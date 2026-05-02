@@ -25,6 +25,7 @@ import { Hand } from "./Hand/Hand";
 import { ChoseEngine, type LegalMove } from "../game/chess/engine";
 import {
   StockfishEngine,
+  legalMoveToUci,
   uciToMove,
   depthForDifficulty,
   type Difficulty,
@@ -185,22 +186,28 @@ export function Match({
         await ai.ready();
         if (cancelled || generationRef.current !== myGen) return;
         ai.setPosition(engine.fen());
+        // Stockfish doesn't know about walls or frozen pieces. We restrict
+        // its root choice to our walled-legal move set via UCI `searchmoves`,
+        // so it can't pick a move that walks through a wall or moves a
+        // frozen piece. (If we have zero legal moves the engine has already
+        // declared mate/stalemate and isAiTurn would be false, so we don't
+        // need to special-case that here.)
+        const candidates = engine.legalMoves().map(legalMoveToUci);
         // Run the search and a minimum-think timer in parallel: the move can't
         // land sooner than AI_MIN_THINK_MS, but Stockfish's depth dictates the
         // upper bound. This prevents instant snap-moves on shallow depths.
         const [uci] = await Promise.all([
-          ai.getBestMove({ depth: depthForDifficulty(difficulty) }),
+          ai.getBestMove({
+            depth: depthForDifficulty(difficulty),
+            searchMoves: candidates,
+          }),
           new Promise<void>((resolve) => setTimeout(resolve, aiMinThinkMs)),
         ]);
         if (cancelled || generationRef.current !== myGen) return;
         if (!uci) return; // no legal move (mate / stalemate handled separately)
         const move = uciToMove(uci);
-        // Stockfish doesn't know about walls / freezes — its move may be
-        // illegal under our overlay-aware rules (e.g. it tried to slide
-        // through a walled square, or chose a frozen piece). If so, fall
-        // back to the first legal move we have. This keeps the AI playing
-        // even though it is, for now, unaware of overlays. A proper
-        // MultiPV-and-filter integration is M4 work.
+        // Defence in depth: if Stockfish somehow returns a move outside our
+        // searchmoves set, fall back to the first legal move.
         if (!engine.move(move)) {
           const fallback = engine.legalMoves()[0];
           if (fallback) engine.move(fallback);
