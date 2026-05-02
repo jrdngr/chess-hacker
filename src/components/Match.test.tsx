@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { Match } from "./Match";
 import { StockfishEngine } from "../ai/stockfish";
+import { BARRICADE, FROSTBITE, RECONNAISSANCE, SURGE } from "../game/cards/library";
+import { makeRng } from "../game/cards/match";
 
 function squareCell(aria: string): HTMLElement | undefined {
   return screen
@@ -174,8 +176,12 @@ function makeFakeAi(moves: string[]): StockfishEngine {
   return fake as StockfishEngine;
 }
 
+function endTurnButton(): HTMLElement {
+  return screen.getByRole("button", { name: /^end turn$/i });
+}
+
 describe("Match (vs AI)", () => {
-  it("plays the AI's response after the human moves", async () => {
+  it("plays the AI's response after the human moves and ends their turn", async () => {
     const user = userEvent.setup();
     const ai = makeFakeAi(["e7e5"]);
     render(<Match initialMode="vs-ai" createAi={() => ai} aiMinThinkMs={0} />);
@@ -183,6 +189,11 @@ describe("Match (vs AI)", () => {
     // Human plays e2 -> e4
     await user.click(squareCell("e2")!);
     await user.click(squareCell("e4")!);
+
+    // The AI does NOT auto-respond — player must click End Turn first.
+    expect(squareCell("e5")?.getAttribute("aria-label")).toBe("e5");
+
+    await user.click(endTurnButton());
 
     // AI's reply should land on e5 (player turn returns).
     await waitFor(() => {
@@ -213,8 +224,9 @@ describe("Match (vs AI)", () => {
     render(<Match initialMode="vs-ai" createAi={() => ai} aiMinThinkMs={300} />);
 
     await user.click(squareCell("e2")!);
-    const t0 = performance.now();
     await user.click(squareCell("e4")!);
+    const t0 = performance.now();
+    await user.click(endTurnButton());
 
     await waitFor(() => {
       expect(squareCell("e5")?.getAttribute("aria-label")).toBe("e5, opponent pawn");
@@ -233,9 +245,255 @@ describe("Match (vs AI)", () => {
 
     await user.click(squareCell("e2")!);
     await user.click(squareCell("e4")!);
+    await user.click(endTurnButton());
 
     await waitFor(() => {
       expect(spy).toHaveBeenCalledWith({ depth: 10 });
     });
+  });
+
+  it("End Turn is disabled until the player makes a chess move", async () => {
+    const user = userEvent.setup();
+    const ai = makeFakeAi([]);
+    render(<Match initialMode="vs-ai" createAi={() => ai} aiMinThinkMs={0} />);
+
+    expect(endTurnButton()).toBeDisabled();
+
+    await user.click(squareCell("e2")!);
+    await user.click(squareCell("e4")!);
+
+    expect(endTurnButton()).toBeEnabled();
+  });
+});
+
+// ---- M3 card system --------------------------------------------------------
+
+const ALL_SURGE_DECK = Array.from({ length: 8 }, () => SURGE);
+const ALL_BARRICADE_DECK = Array.from({ length: 8 }, () => BARRICADE);
+const ALL_FROSTBITE_DECK = Array.from({ length: 8 }, () => FROSTBITE);
+const ALL_RECON_DECK = Array.from({ length: 8 }, () => RECONNAISSANCE);
+
+function findCard(name: string): HTMLElement | undefined {
+  return screen
+    .queryAllByRole("listitem")
+    .find((el) => (el.getAttribute("aria-label") ?? "").startsWith(name));
+}
+
+describe("Match (cards — M3)", () => {
+  it("starts with a hand of 5 and energy 3", () => {
+    const ai = makeFakeAi([]);
+    render(
+      <Match
+        initialMode="vs-ai"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={ALL_SURGE_DECK}
+        rng={makeRng(1)}
+      />,
+    );
+
+    const hand = screen.getByRole("list", { name: /^hand$/i });
+    expect(within(hand).getAllByRole("listitem")).toHaveLength(5);
+    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("3");
+  });
+
+  it("Surge increases energy and moves to the discard pile", async () => {
+    const user = userEvent.setup();
+    const ai = makeFakeAi([]);
+    render(
+      <Match
+        initialMode="vs-ai"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={ALL_SURGE_DECK}
+        rng={makeRng(2)}
+      />,
+    );
+
+    const surge = findCard("Surge");
+    expect(surge).toBeDefined();
+    await user.click(surge!);
+
+    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("4");
+    expect(screen.getByLabelText(/^discard pile/i)).toHaveTextContent("1");
+    const hand = screen.getByRole("list", { name: /^hand$/i });
+    expect(within(hand).getAllByRole("listitem")).toHaveLength(4);
+  });
+
+  it("Reconnaissance draws 2 — hand grows past the cap", async () => {
+    const user = userEvent.setup();
+    const ai = makeFakeAi([]);
+    render(
+      <Match
+        initialMode="vs-ai"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={ALL_RECON_DECK}
+        rng={makeRng(3)}
+      />,
+    );
+
+    const recon = findCard("Reconnaissance");
+    await user.click(recon!);
+
+    const hand = screen.getByRole("list", { name: /^hand$/i });
+    // 5 - 1 played + 2 drawn = 6
+    expect(within(hand).getAllByRole("listitem")).toHaveLength(6);
+  });
+
+  it("Barricade enters targeting mode; clicking an empty square places a wall", async () => {
+    const user = userEvent.setup();
+    const ai = makeFakeAi([]);
+    render(
+      <Match
+        initialMode="vs-ai"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={ALL_BARRICADE_DECK}
+        rng={makeRng(4)}
+      />,
+    );
+
+    await user.click(findCard("Barricade")!);
+    expect(screen.getByText(/Pick an empty square for Barricade/i)).toBeInTheDocument();
+
+    // Click a known-empty square.
+    await user.click(squareCell("e4")!);
+
+    // Wall is now on e4 — aria-label should mention "walled".
+    expect(squareCell("e4")?.getAttribute("aria-label")).toMatch(/walled/);
+  });
+
+  it("Barricade rejects an occupied square and cancels targeting", async () => {
+    const user = userEvent.setup();
+    const ai = makeFakeAi([]);
+    render(
+      <Match
+        initialMode="vs-ai"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={ALL_BARRICADE_DECK}
+        rng={makeRng(5)}
+      />,
+    );
+
+    await user.click(findCard("Barricade")!);
+    // e2 is the player's pawn — invalid for Barricade.
+    await user.click(squareCell("e2")!);
+
+    // No wall placed; targeting cancelled.
+    expect(screen.queryByText(/Pick an empty square/i)).toBeNull();
+    expect(squareCell("e2")?.getAttribute("aria-label")).not.toMatch(/walled/);
+  });
+
+  it("Frostbite freezes an opponent piece on click", async () => {
+    const user = userEvent.setup();
+    const ai = makeFakeAi([]);
+    render(
+      <Match
+        initialMode="vs-ai"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={ALL_FROSTBITE_DECK}
+        rng={makeRng(6)}
+      />,
+    );
+
+    await user.click(findCard("Frostbite")!);
+    expect(screen.getByText(/Pick an enemy piece for Frostbite/i)).toBeInTheDocument();
+
+    await user.click(squareCell("e7")!);
+
+    expect(squareCell("e7")?.getAttribute("aria-label")).toMatch(/frozen/);
+    // 1 frostbite spent, energy was 3, now 1
+    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("1");
+  });
+
+  it("plays a card before moving, ends turn, and starts a fresh turn with energy refreshed", async () => {
+    const user = userEvent.setup();
+    const ai = makeFakeAi(["e7e5"]);
+    render(
+      <Match
+        initialMode="vs-ai"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={ALL_SURGE_DECK}
+        rng={makeRng(7)}
+      />,
+    );
+
+    await user.click(findCard("Surge")!);
+    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("4");
+
+    // Make a chess move.
+    await user.click(squareCell("e2")!);
+    await user.click(squareCell("e4")!);
+
+    // End turn → AI moves → next player turn refreshes energy back to 3 and refills hand.
+    await user.click(endTurnButton());
+
+    await waitFor(() => {
+      expect(squareCell("e5")?.getAttribute("aria-label")).toBe("e5, opponent pawn");
+    });
+
+    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("3");
+    const hand = screen.getByRole("list", { name: /^hand$/i });
+    expect(within(hand).getAllByRole("listitem")).toHaveLength(5);
+  });
+
+  it("a frozen piece's freeze visual is cleared after the AI has had its turn", async () => {
+    const user = userEvent.setup();
+    const ai = makeFakeAi(["d7d5"]);
+    render(
+      <Match
+        initialMode="vs-ai"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={ALL_FROSTBITE_DECK}
+        rng={makeRng(8)}
+      />,
+    );
+
+    await user.click(findCard("Frostbite")!);
+    await user.click(squareCell("e7")!);
+    expect(squareCell("e7")?.getAttribute("aria-label")).toMatch(/frozen/);
+
+    await user.click(squareCell("e2")!);
+    await user.click(squareCell("e4")!);
+    await user.click(endTurnButton());
+
+    await waitFor(() => {
+      expect(squareCell("d5")?.getAttribute("aria-label")).toBe("d5, opponent pawn");
+    });
+
+    // After the AI's turn, the freeze on e7 should have expired.
+    expect(squareCell("e7")?.getAttribute("aria-label") ?? "").not.toMatch(/frozen/);
+  });
+
+  it("clicking the same selected card again cancels targeting", async () => {
+    const user = userEvent.setup();
+    const ai = makeFakeAi([]);
+    render(
+      <Match
+        initialMode="vs-ai"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={ALL_BARRICADE_DECK}
+        rng={makeRng(9)}
+      />,
+    );
+
+    const card = findCard("Barricade")!;
+    await user.click(card);
+    expect(screen.getByText(/Pick an empty square/i)).toBeInTheDocument();
+
+    await user.click(card);
+    expect(screen.queryByText(/Pick an empty square/i)).toBeNull();
+  });
+
+  it("local-pvp mode does not render the hand or End Turn button", () => {
+    render(<Match initialMode="local-pvp" />);
+    expect(screen.queryByRole("list", { name: /^hand$/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^end turn$/i })).toBeNull();
   });
 });

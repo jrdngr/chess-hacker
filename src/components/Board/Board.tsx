@@ -11,12 +11,24 @@ import type { AlgebraicSquare, FileIndex, Piece, RankIndex, Side } from "../../g
 import { PieceGlyph } from "./PieceGlyph";
 import styles from "./Board.module.css";
 
+/** What the board is currently asking the player to do. */
+export type BoardMode =
+  | { kind: "play" }
+  | { kind: "target-empty-square"; cardName: string }
+  | { kind: "target-enemy-piece"; cardName: string };
+
 type Props = {
   engine: ChoseEngine;
   selected: AlgebraicSquare | null;
   legalMovesFromSelected: LegalMove[];
   /** Side(s) the human is allowed to move. Drag/click only enables for these sides. */
   controllableSides: ReadonlySet<Side>;
+  /** Squares that have a wall overlay on them. */
+  walledSquares?: ReadonlySet<AlgebraicSquare>;
+  /** Squares that hold a frozen piece. */
+  frozenSquares?: ReadonlySet<AlgebraicSquare>;
+  /** Targeting mode for card play. Defaults to plain "play" (chess move). */
+  mode?: BoardMode;
   onSquareClick: (square: AlgebraicSquare) => void;
   onSquareDragStart: (square: AlgebraicSquare) => void;
   onSquareDrop: (square: AlgebraicSquare) => void;
@@ -30,11 +42,16 @@ const FILES_LEFT_RIGHT: FileIndex[] = [0, 1, 2, 3, 4, 5, 6, 7];
 
 const DRAG_MIME = "application/x-choss-from";
 
+const EMPTY_SET: ReadonlySet<AlgebraicSquare> = new Set();
+
 export function Board({
   engine,
   selected,
   legalMovesFromSelected,
   controllableSides,
+  walledSquares = EMPTY_SET,
+  frozenSquares = EMPTY_SET,
+  mode = { kind: "play" },
   onSquareClick,
   onSquareDragStart,
   onSquareDrop,
@@ -65,8 +82,19 @@ export function Board({
   const lastMove = engine.lastMove();
   const [dragOverSquare, setDragOverSquare] = useState<AlgebraicSquare | null>(null);
 
+  const targeting = mode.kind !== "play";
+  const targetingForEmpty = mode.kind === "target-empty-square";
+  const targetingForEnemy = mode.kind === "target-enemy-piece";
+
   return (
     <div className={styles.boardWrapper} aria-label="Chess board">
+      {targeting && (
+        <div className={styles.targetingHint} role="status">
+          {mode.kind === "target-empty-square"
+            ? `Pick an empty square for ${mode.cardName}`
+            : `Pick an enemy piece for ${mode.cardName}`}
+        </div>
+      )}
       <div className={styles.board} role="grid">
         {RANKS_TOP_DOWN.map((rank) => (
           <div key={rank} className={styles.row} role="row">
@@ -79,7 +107,15 @@ export function Board({
               const isInCheck = sq === checkSquare;
               const isLastMoveSquare = lastMove?.from === sq || lastMove?.to === sq;
               const isDragOver = dragOverSquare === sq && !!target;
+              const isWalled = walledSquares.has(sq);
+              const isFrozen = frozenSquares.has(sq);
+
+              const validTargetForCard =
+                (targetingForEmpty && piece === null && !isWalled) ||
+                (targetingForEnemy && piece !== null && piece.side === "opponent");
+
               const draggable =
+                !targeting &&
                 !locked &&
                 piece !== null &&
                 piece.side === turn &&
@@ -88,12 +124,16 @@ export function Board({
               const cls = [
                 styles.square,
                 isLight ? styles.light : styles.dark,
-                isLastMoveSquare && styles.lastMove,
-                isSelected && styles.selected,
-                target && (target.isCapture ? styles.capture : styles.target),
-                isInCheck && styles.check,
+                isLastMoveSquare && !targeting && styles.lastMove,
+                isSelected && !targeting && styles.selected,
+                !targeting && target && (target.isCapture ? styles.capture : styles.target),
+                isInCheck && !targeting && styles.check,
                 isDragOver && styles.dragOver,
                 locked && styles.locked,
+                isWalled && styles.walled,
+                isFrozen && styles.frozen,
+                targeting && validTargetForCard && styles.cardTarget,
+                targeting && !validTargetForCard && styles.cardTargetDim,
               ]
                 .filter(Boolean)
                 .join(" ");
@@ -104,7 +144,7 @@ export function Board({
                   type="button"
                   className={cls}
                   role="gridcell"
-                  aria-label={describeSquare(sq, piece, target)}
+                  aria-label={describeSquare(sq, piece, target, { isWalled, isFrozen })}
                   onClick={() => !locked && onSquareClick(sq)}
                   draggable={draggable}
                   onDragStart={(e) => {
@@ -142,7 +182,11 @@ export function Board({
                   {file === 0 && <span className={styles.rankLabel}>{rank + 1}</span>}
                   {rank === 0 && <span className={styles.fileLabel}>{"abcdefgh"[file]}</span>}
                   {piece && <PieceGlyph piece={piece} />}
-                  {target && !piece && <span className={styles.targetDot} aria-hidden />}
+                  {!targeting && target && !piece && (
+                    <span className={styles.targetDot} aria-hidden />
+                  )}
+                  {isWalled && <span className={styles.wallMark} aria-label="wall" />}
+                  {isFrozen && <span className={styles.frostMark} aria-label="frozen" />}
                 </button>
               );
             })}
@@ -157,9 +201,12 @@ function describeSquare(
   sq: AlgebraicSquare,
   piece: ReturnType<ChoseEngine["pieces"]>[number]["piece"] | null,
   target: LegalMove | undefined,
+  flags: { isWalled: boolean; isFrozen: boolean },
 ): string {
   const parts: string[] = [sq];
   if (piece) parts.push(`${piece.side} ${piece.type}`);
+  if (flags.isFrozen) parts.push("frozen");
+  if (flags.isWalled) parts.push("walled");
   if (target) parts.push(target.isCapture ? "capture" : "move");
   return parts.join(", ");
 }

@@ -1,25 +1,27 @@
 // Match shell.
 //
 // Two play modes:
-//   - "local-pvp" — both sides controlled on the same screen (legacy M1 mode).
-//   - "vs-ai"     — the human plays White, Stockfish plays Black (M2).
+//   - "local-pvp" — both sides controlled on the same screen (no cards).
+//   - "vs-ai"     — the human plays White, Stockfish plays Black, with the
+//                   M3 card system layered on top.
 //
-// Interaction:
-//   - Click a piece to select; click a highlighted square to move.
-//   - Or drag a piece onto a target square.
+// Player turn (vs-ai):
+//   1. Match.startPlayerTurn refills hand + resets energy + ticks overlays.
+//   2. Player can play cards (in any order) and must make exactly one chess
+//      move during the turn.
+//   3. Player clicks "End Turn" → AI is asked for a move.
+//   4. After the AI move, we kick off the next player turn.
 //
-// AI lifecycle:
-//   - A single StockfishEngine instance is owned by the component.
-//   - On every position change where it's the AI's turn, we kick off a
-//     getBestMove() at the difficulty's depth and apply the result.
-//   - We track a "generation" counter so a late bestmove from a torn-down
-//     game (mode change, new game) is discarded silently.
+// The chess engine and the card state are deliberately separate. The card
+// state lives as React state here; pure helpers in `game/cards/match.ts`
+// produce new states.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Board } from "./Board/Board";
+import { Board, type BoardMode } from "./Board/Board";
 import { CapturedPieces } from "./Board/CapturedPieces";
 import { materialAdvantage } from "./Board/material";
+import { Hand } from "./Hand/Hand";
 import { ChoseEngine, type LegalMove } from "../game/chess/engine";
 import {
   StockfishEngine,
@@ -28,7 +30,17 @@ import {
   type Difficulty,
   type StockfishOptions,
 } from "../ai/stockfish";
-import type { AlgebraicSquare, MatchOutcome, Side } from "../game/types";
+import {
+  createMatchCardState,
+  hasWallOn,
+  playCard,
+  startPlayerTurn,
+  type BoardContext,
+  type PlayTarget,
+  type Rng,
+} from "../game/cards/match";
+import { makeStarterDeck } from "../game/cards/library";
+import type { AlgebraicSquare, Card, MatchCardState, MatchOutcome, Side } from "../game/types";
 
 import styles from "./Match.module.css";
 
@@ -47,6 +59,10 @@ type Props = {
    * depths from snap-moving. Tests override this to 0 to skip the wait.
    */
   aiMinThinkMs?: number;
+  /** Inject a deck for tests. */
+  initialDeck?: Card[];
+  /** Inject an RNG for tests so card order is deterministic. */
+  rng?: Rng;
 };
 
 const DEFAULT_AI_MIN_THINK_MS = 500;
@@ -60,6 +76,8 @@ export function Match({
   initialFen,
   createAi,
   aiMinThinkMs = DEFAULT_AI_MIN_THINK_MS,
+  initialDeck,
+  rng,
 }: Props = {}) {
   const [mode, setMode] = useState<MatchMode>(initialMode);
   const [difficulty, setDifficulty] = useState<Difficulty>(initialDifficulty);
@@ -69,6 +87,21 @@ export function Match({
   const [version, setVersion] = useState(0);
   const [aiThinking, setAiThinking] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+
+  // ---- Card-system state (vs-ai only) --------------------------------------
+
+  const cardsEnabled = mode === "vs-ai";
+  const [cardState, setCardState] = useState<MatchCardState>(() =>
+    cardsEnabled
+      ? startPlayerTurn(createMatchCardState(initialDeck ?? makeStarterDeck(), rng), rng)
+      : createMatchCardState([], rng),
+  );
+  /** Hand index waiting for a target click, or null. */
+  const [targetingIndex, setTargetingIndex] = useState<number | null>(null);
+  /** True once the player has made their chess move on the current turn. */
+  const [hasMoved, setHasMoved] = useState(false);
+  /** True after End Turn click; gates the AI. */
+  const [endingTurn, setEndingTurn] = useState(false);
 
   // Increments on new game / mode change so stale AI replies are ignored.
   const generationRef = useRef(0);
@@ -98,9 +131,10 @@ export function Match({
   const outcome: MatchOutcome = engine.outcome();
   const matchOver = outcome.kind !== "ongoing";
   const inCheck = engine.inCheck();
-  const isAiTurn = mode === "vs-ai" && turn === AI_SIDE && !matchOver;
+  const isAiTurn = mode === "vs-ai" && turn === AI_SIDE && !matchOver && endingTurn;
 
-  // Sides the human is allowed to click / drag.
+  // Sides the human is allowed to click / drag. In vs-ai the AI's pieces are
+  // off-limits even between the player's chess move and End Turn.
   const controllableSides = useMemo<ReadonlySet<Side>>(() => {
     if (mode === "local-pvp") return new Set<Side>(["player", "opponent"]);
     return new Set<Side>([HUMAN_SIDE]);
@@ -113,6 +147,20 @@ export function Match({
     // version invalidates the memo after a move
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [engine, selected, version]);
+
+  const targetingCard: Card | null =
+    targetingIndex !== null ? (cardState.hand[targetingIndex] ?? null) : null;
+
+  const boardMode: BoardMode = useMemo(() => {
+    if (!targetingCard) return { kind: "play" };
+    if (targetingCard.target.kind === "empty-square") {
+      return { kind: "target-empty-square", cardName: targetingCard.name };
+    }
+    if (targetingCard.target.kind === "enemy-piece") {
+      return { kind: "target-enemy-piece", cardName: targetingCard.name };
+    }
+    return { kind: "play" };
+  }, [targetingCard]);
 
   // ---- AI move loop ---------------------------------------------------------
 
@@ -143,6 +191,12 @@ export function Match({
         const move = uciToMove(uci);
         engine.move(move);
         setVersion((v) => v + 1);
+        // Roll over to the next player turn (refill + energy reset + tick overlays).
+        if (cardsEnabled) {
+          setCardState((prev) => startPlayerTurn(prev, rng));
+        }
+        setHasMoved(false);
+        setEndingTurn(false);
       } catch (e) {
         if (cancelled) return;
         setAiError(e instanceof Error ? e.message : String(e));
@@ -156,23 +210,37 @@ export function Match({
     };
     // engine is mutable but stable; depending on version triggers each turn.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAiTurn, difficulty, version, mode, aiMinThinkMs]);
+  }, [isAiTurn, difficulty, version, mode, aiMinThinkMs, cardsEnabled]);
 
   // ---- Player input handlers -----------------------------------------------
+
+  const boardContext: BoardContext = useMemo(
+    () => ({
+      pieceAt: (sq) => engine.pieceAt(sq),
+      hasWall: (sq) => hasWallOn(cardState, sq),
+    }),
+    // engine is mutable; version forces recompute on each move
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [engine, version, cardState],
+  );
 
   /**
    * Try to play `target` from `selected`. Returns true if a move was made.
    */
   const tryPlay = useCallback(
     (from: AlgebraicSquare, to: AlgebraicSquare): boolean => {
+      if (hasMoved) return false; // already moved this turn
       const legal = engine.legalMoves(from).find((m) => m.to === to);
       if (!legal) return false;
       engine.move({ from, to, promotion: legal.promotion });
       setSelected(null);
       setVersion((v) => v + 1);
+      if (cardsEnabled) {
+        setHasMoved(true);
+      }
       return true;
     },
-    [engine],
+    [engine, hasMoved, cardsEnabled],
   );
 
   /**
@@ -183,16 +251,74 @@ export function Match({
       const piece = engine.pieceAt(sq);
       if (!piece) return false;
       if (!controllableSides.has(piece.side)) return false;
-      if (piece.side !== turn) return false;
+      // In vs-ai we only let the player select if it's their turn AND they
+      // haven't already moved this turn.
+      if (mode === "vs-ai") {
+        if (turn !== HUMAN_SIDE) return false;
+        if (hasMoved) return false;
+      } else {
+        if (piece.side !== turn) return false;
+      }
       setSelected(sq);
       return true;
     },
-    [engine, controllableSides, turn],
+    [engine, controllableSides, turn, mode, hasMoved],
   );
+
+  // ---- Card play handlers --------------------------------------------------
+
+  const cancelTargeting = useCallback(() => {
+    setTargetingIndex(null);
+  }, []);
+
+  const tryResolveCard = useCallback(
+    (index: number, target: PlayTarget): boolean => {
+      const result = playCard(cardState, index, target, boardContext, rng);
+      if (!result.ok) return false;
+      setCardState(result.state);
+      setTargetingIndex(null);
+      return true;
+    },
+    [cardState, boardContext, rng],
+  );
+
+  const onCardClick = useCallback(
+    (index: number) => {
+      if (matchOver || aiThinking || endingTurn) return;
+      if (mode !== "vs-ai") return;
+      const card = cardState.hand[index];
+      if (!card) return;
+      // Toggle off if user clicks the same card they were targeting.
+      if (targetingIndex === index) {
+        setTargetingIndex(null);
+        return;
+      }
+      if (cardState.energy < card.cost) return;
+      if (card.target.kind === "none") {
+        tryResolveCard(index, { kind: "none" });
+        return;
+      }
+      // Targeted card — switch into targeting mode and clear any selection.
+      setSelected(null);
+      setTargetingIndex(index);
+    },
+    [matchOver, aiThinking, endingTurn, mode, cardState, targetingIndex, tryResolveCard],
+  );
+
+  // ---- Square click / drag (chess move OR card target) ---------------------
 
   const onSquareClick = useCallback(
     (sq: AlgebraicSquare) => {
-      if (matchOver || aiThinking) return;
+      if (matchOver || aiThinking || endingTurn) return;
+
+      // Card-targeting takes priority over chess interaction.
+      if (targetingIndex !== null) {
+        if (tryResolveCard(targetingIndex, { kind: "square", square: sq })) return;
+        // Click on an invalid target cancels targeting.
+        cancelTargeting();
+        return;
+      }
+
       if (selected) {
         if (tryPlay(selected, sq)) return;
         // Re-target: clicking another own piece switches the selection.
@@ -202,38 +328,58 @@ export function Match({
       }
       setSelected(null);
     },
-    [matchOver, aiThinking, selected, tryPlay, trySelect],
+    [
+      matchOver,
+      aiThinking,
+      endingTurn,
+      targetingIndex,
+      tryResolveCard,
+      cancelTargeting,
+      selected,
+      tryPlay,
+      trySelect,
+    ],
   );
 
   const onSquareDragStart = useCallback(
     (sq: AlgebraicSquare) => {
-      if (matchOver || aiThinking) return;
+      if (matchOver || aiThinking || endingTurn || targetingIndex !== null) return;
       trySelect(sq);
     },
-    [matchOver, aiThinking, trySelect],
+    [matchOver, aiThinking, endingTurn, targetingIndex, trySelect],
   );
 
   const onSquareDrop = useCallback(
     (sq: AlgebraicSquare) => {
-      if (matchOver || aiThinking) return;
+      if (matchOver || aiThinking || endingTurn) return;
+      if (targetingIndex !== null) return; // drag is for chess moves, not card targeting
       if (selected && selected !== sq) {
         if (tryPlay(selected, sq)) return;
       }
       // Drop on an invalid target leaves the piece where it was; clear selection.
       setSelected(null);
     },
-    [matchOver, aiThinking, selected, tryPlay],
+    [matchOver, aiThinking, endingTurn, targetingIndex, selected, tryPlay],
   );
 
   const onDragCancel = useCallback(() => {
-    // Mouse released outside any valid target: clear selection.
-    // (We keep the click-selection model otherwise consistent.)
     setSelected(null);
   }, []);
 
+  // ---- End-turn -----------------------------------------------------------
+
+  const canEndTurn = mode === "vs-ai" && hasMoved && !aiThinking && !endingTurn && !matchOver;
+
+  const onEndTurn = useCallback(() => {
+    if (!canEndTurn) return;
+    setTargetingIndex(null);
+    setSelected(null);
+    setEndingTurn(true);
+  }, [canEndTurn]);
+
   // ---- Game lifecycle -------------------------------------------------------
 
-  const onNewGame = useCallback(() => {
+  const resetGame = useCallback(() => {
     generationRef.current++;
     aiRef.current?.stop();
     setEngine(new ChoseEngine(initialFen));
@@ -241,7 +387,17 @@ export function Match({
     setVersion(0);
     setAiThinking(false);
     setAiError(null);
-  }, [initialFen]);
+    setTargetingIndex(null);
+    setHasMoved(false);
+    setEndingTurn(false);
+    if (mode === "vs-ai") {
+      setCardState(
+        startPlayerTurn(createMatchCardState(initialDeck ?? makeStarterDeck(), rng), rng),
+      );
+    } else {
+      setCardState(createMatchCardState([], rng));
+    }
+  }, [initialFen, initialDeck, mode, rng]);
 
   const onModeChange = useCallback(
     (next: MatchMode) => {
@@ -254,13 +410,23 @@ export function Match({
       setVersion(0);
       setAiThinking(false);
       setAiError(null);
+      setTargetingIndex(null);
+      setHasMoved(false);
+      setEndingTurn(false);
+      if (next === "vs-ai") {
+        setCardState(
+          startPlayerTurn(createMatchCardState(initialDeck ?? makeStarterDeck(), rng), rng),
+        );
+      } else {
+        setCardState(createMatchCardState([], rng));
+      }
     },
-    [mode, initialFen],
+    [mode, initialFen, initialDeck, rng],
   );
 
   // ---- Render ---------------------------------------------------------------
 
-  const boardLocked = matchOver || aiThinking;
+  const boardLocked = matchOver || aiThinking || endingTurn;
 
   // Recompute on each move (version bump invalidates).
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -268,6 +434,12 @@ export function Match({
   const playerMaterial = materialAdvantage(captured.byPlayer);
   const opponentMaterial = materialAdvantage(captured.byOpponent);
   const playerLead = playerMaterial - opponentMaterial;
+
+  const walledSet = useMemo(() => new Set(cardState.walls.map((w) => w.square)), [cardState.walls]);
+  const frozenSet = useMemo(
+    () => new Set(cardState.freezes.map((f) => f.square)),
+    [cardState.freezes],
+  );
 
   return (
     <div className={styles.match}>
@@ -327,6 +499,28 @@ export function Match({
           <div className={styles.value}>{Math.floor(version / 2) + 1}</div>
         </div>
 
+        {cardsEnabled && (
+          <div className={styles.statusBlock}>
+            <div className={styles.label}>Energy</div>
+            <div className={styles.energy} aria-label={`Energy: ${cardState.energy}`}>
+              <span className={styles.energyValue}>{cardState.energy}</span>
+              <span className={styles.energyMax}>/ {cardState.energyMax}</span>
+            </div>
+          </div>
+        )}
+
+        {cardsEnabled && (
+          <button
+            type="button"
+            onClick={onEndTurn}
+            disabled={!canEndTurn}
+            className={styles.endTurn}
+            aria-label="End turn"
+          >
+            End turn
+          </button>
+        )}
+
         {aiError && (
           <div className={styles.aiError} role="alert">
             AI error: {aiError}
@@ -337,13 +531,13 @@ export function Match({
           <div className={styles.outcome} role="status" aria-live="polite">
             <div className={styles.outcomeHeadline}>{outcomeHeadline(outcome)}</div>
             <div className={styles.outcomeDetail}>{outcomeDetail(outcome)}</div>
-            <button type="button" onClick={onNewGame} className={styles.newGame}>
+            <button type="button" onClick={resetGame} className={styles.newGame}>
               New game
             </button>
           </div>
         )}
         {!matchOver && (
-          <button type="button" onClick={onNewGame} className={styles.resetButton}>
+          <button type="button" onClick={resetGame} className={styles.resetButton}>
             Reset
           </button>
         )}
@@ -359,6 +553,9 @@ export function Match({
           selected={selected}
           legalMovesFromSelected={legalFromSelected}
           controllableSides={controllableSides}
+          walledSquares={walledSet}
+          frozenSquares={frozenSet}
+          mode={boardMode}
           onSquareClick={onSquareClick}
           onSquareDragStart={onSquareDragStart}
           onSquareDrop={onSquareDrop}
@@ -369,6 +566,17 @@ export function Match({
           pieces={captured.byPlayer}
           advantage={playerLead > 0 ? playerLead : undefined}
         />
+        {cardsEnabled && (
+          <Hand
+            hand={cardState.hand}
+            energy={cardState.energy}
+            targetingIndex={targetingIndex}
+            enabled={!aiThinking && !endingTurn && !matchOver}
+            drawPileCount={cardState.drawPile.length}
+            discardPileCount={cardState.discardPile.length}
+            onCardClick={onCardClick}
+          />
+        )}
       </div>
     </div>
   );
