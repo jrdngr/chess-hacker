@@ -62,6 +62,7 @@ export function Board({
   }
 
   const turn = engine.turn();
+  const lastMove = engine.lastMove();
   const [dragOverSquare, setDragOverSquare] = useState<AlgebraicSquare | null>(null);
 
   return (
@@ -76,6 +77,7 @@ export function Board({
               const isSelected = selected === sq;
               const target = targetMoves.get(sq);
               const isInCheck = sq === checkSquare;
+              const isLastMoveFrom = lastMove?.from === sq;
               const isDragOver = dragOverSquare === sq && !!target;
               const draggable =
                 !locked &&
@@ -86,6 +88,7 @@ export function Board({
               const cls = [
                 styles.square,
                 isLight ? styles.light : styles.dark,
+                isLastMoveFrom && styles.lastMoveFrom,
                 isSelected && styles.selected,
                 target && (target.isCapture ? styles.capture : styles.target),
                 isInCheck && styles.check,

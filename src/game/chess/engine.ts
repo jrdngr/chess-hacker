@@ -139,6 +139,17 @@ export class ChoseEngine {
     }
   }
 
+  /**
+   * The most recently played move, or null if the game just started / was reset.
+   * Useful for last-move highlights on the board.
+   */
+  lastMove(): { from: AlgebraicSquare; to: AlgebraicSquare } | null {
+    const hist = this.chess.history({ verbose: true });
+    const last = hist[hist.length - 1];
+    if (!last) return null;
+    return { from: last.from, to: last.to };
+  }
+
   // ---- Outcome detection ----------------------------------------------------
 
   inCheck(): boolean {

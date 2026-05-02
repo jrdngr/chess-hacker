@@ -47,6 +47,10 @@
   background: var(--square-dark);
 }
 
+.lastMoveFrom {
+  background: var(--square-last-move) !important;
+}
+
 .selected {
   background: var(--square-selected) !important;
 }
