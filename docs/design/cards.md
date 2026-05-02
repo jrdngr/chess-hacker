@@ -6,7 +6,7 @@ The card system is the central self-expression mechanic. Cards augment chess; th
 
 - **Hand size:** 5 cards.
 - **Draw timing:** at the **start of each player turn**, draw until your hand is at 5. (A card played during a turn does not get refilled until the next turn unless an effect explicitly says so.)
-- **Run-start deck:** a small starter deck of basic cards. Exact composition TBD — see `roadmap/open-questions.md`.
+- **Run-start deck:** a small starter deck of basic commons (10 cards). See [`../cards/starter-deck.md`](../cards/starter-deck.md) for the composition and rationale.
 - **Adding to your deck:** post-match draft (pick 1 of 3) and shop purchases. Booster packs may grant 1+ cards.
 - **Removing from your deck:** shop card-removal service (scaling per use).
 
@@ -67,7 +67,7 @@ Cards group into a handful of archetypes. The prototype card pool should hit all
 6. **Defensive / setup** — shield a piece (one-time damage immunity from capture), promote a pawn early, ward a square.
 7. **Burst / win-condition** — high-cost cards that radically change the board (e.g., "summon a knight on a chosen empty square", "your queen makes two moves this turn"). Often consume.
 
-The prototype does not need a final card list; it needs enough cards to populate the starter deck plus reasonable drafts/shops. See `roadmap/milestones.md` for the rough sizing target.
+The prototype does not need a final card list; it needs enough cards to populate the starter deck plus reasonable drafts/shops. See `roadmap/milestones.md` for the rough sizing target. The current per-card reference, grouped by type, lives in [`../cards/`](../cards/) — see [`../cards/README.md`](../cards/README.md) for the full list and [`../cards/keywords.md`](../cards/keywords.md) for keyword definitions.
 
 ## Card upgrades
 

@@ -1,0 +1,108 @@
+# Card Keywords
+
+Every named effect a card can apply. Cards reference these keywords by name in their effect text; the rules live here.
+
+Grouped by where the effect lives: on a piece (debuff or buff), on a square, or on a card.
+
+## Piece debuffs
+
+Applied to an enemy piece. The status sits on the piece for the stated duration; on expiry, the piece reverts to normal behavior.
+
+### Freeze
+
+A frozen piece **cannot move and cannot capture** on its next turn. It still occupies its square and still threatens the squares it would normally threaten (i.e., other pieces still treat it as defending those squares for check evaluation), but it cannot itself act.
+
+- **Duration:** opponent's next turn.
+- **Edge cases:** if the frozen piece is the only piece that can block a check, the opponent is in trouble — that's the point. Freezing a king is allowed; the king simply cannot move on its next turn.
+
+### Root
+
+A rooted piece **cannot move except to capture**. If a capture-move is legal for it, it may take that move; otherwise it sits still.
+
+- **Duration:** opponent's next turn.
+- **Contrast with Freeze:** Freeze stops captures; Root permits them.
+- **Contrast with Disarm:** Disarm forbids captures and permits non-capturing moves; Root is the inverse.
+
+### Disarm
+
+A disarmed piece **may move but may not capture**. Any move it makes must end on an empty square.
+
+- **Duration:** opponent's next turn.
+- **Edge cases:** a disarmed piece still threatens squares for check purposes — it just cannot resolve those threats this turn.
+
+### Compel
+
+A compelled piece **must move on its next turn**. If any capture is legal for it, it must make one of the capturing moves; otherwise it must make any legal move it has.
+
+- **Duration:** opponent's next turn.
+- **Edge cases:** if the compelled piece has no legal moves at all (fully blocked, or moving would put own king in check), Compel does nothing — the constraint is on top of legality, not a replacement for it.
+
+## Piece buffs
+
+Applied to one of your own pieces.
+
+### Shield
+
+While a piece is shielded, **captures targeting it are not legal moves**. The opponent's move generation excludes any move that would capture this piece. The attacker is *not* destroyed; the move simply isn't available.
+
+- **Duration:** until the start of your next turn (covers the opponent's next turn).
+- **Edge cases:** if every capture-out-of-check option targets a shielded piece, that branch is closed — the opponent must escape check another way. If no escape exists, that's checkmate against them.
+
+### Haste
+
+A hasted piece **may move a second time on the same turn, but may not capture** (on either move). The two moves must be otherwise legal in the chess sense (no moving into check, etc.).
+
+- **Duration:** the current turn only.
+- **Edge cases:** the second move counts as a normal move for any rules that count moves (e.g., en passant only off the immediately preceding move).
+
+### Empower
+
+An empowered piece **gains an additional movement pattern this turn**, defined per card (e.g., "knight L-shape", "1 step diagonal", "1 step backward as if pawn"). The piece keeps its normal moveset *and* the granted pattern; it picks one to use.
+
+- **Duration:** the current turn only.
+- **Edge cases:** the granted pattern follows the same blocking rules as a real piece of that move-type (a knight L-shape ignores blockers; a sliding extension is blocked normally).
+
+## Square / board effects
+
+Painted onto a board square. See `docs/design/board.md` for general overlay rules.
+
+### Wall
+
+An impassable square. **No piece may enter or pass through it**, and it blocks attack rays for sliding pieces. For check evaluation, a wall counts as a blocker (friendly to whichever side is calculating).
+
+- **Duration:** card-specified (timed in turns, or permanent).
+- **Edge cases:** en passant is blocked if the capture target square is walled. A piece cannot be placed on a walled square by Summon, Swap, Switch Files, or any other effect.
+
+### Sanctuary
+
+A square on which **pieces cannot be captured**. While a piece (yours or theirs) stands on a Sanctuary square, no capture move targeting it is legal.
+
+- **Duration:** card-specified (timed in turns).
+- **Edge cases:** Sanctuary protects the *square*, not a specific piece — your shielded piece moving off and an enemy piece moving on means the enemy piece becomes uncapturable. If a piece on a Sanctuary square is delivering check, the opponent cannot capture it to escape; they must block or move the king.
+
+### Trap
+
+A square that **triggers an effect when an enemy piece enters or passes through it**. Each Trap card specifies one trigger effect:
+
+- **Trap (capture)** — the entering piece is removed from the board (counts as a capture for any "on capture" effects).
+- **Trap (freeze)** — the entering piece is frozen for 1 turn (see Freeze).
+- **Trap (push)** — the entering piece is pushed back 1 square along its movement path; if that square is occupied or off the board, the push fails and the Trap remains armed.
+
+The Trap dissolves on trigger. It does not affect your own pieces.
+
+- **Duration:** card-specified (timed in turns); also dissolves on trigger.
+- **Edge cases:** a sliding piece passing *through* a Trap square (not stopping on it) still triggers it — the trigger fires on first entry. A Trap on a square that the player intends to move into via Marionette still fires (the targeted enemy piece is the one moving).
+
+## Card-flow keywords
+
+How a card behaves with respect to deck and hand. No new keywords this pass.
+
+### Cycle
+
+The default. When played, the card goes to the discard pile. When the draw pile empties, the discard reshuffles into a new draw pile silently and immediately.
+
+### Consume
+
+When played, the card is **removed from the deck for the rest of the match**. It does not return to the draw pile. Match-consume is the default; run-consume is reserved for a small handful of game-changing cards and is called out explicitly when used.
+
+The keyword is visible at all times on the card.
