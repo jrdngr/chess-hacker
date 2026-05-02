@@ -17,6 +17,13 @@
   /* The Lichess-default SVGs already have outlines; we just shrink them. */
 }
 
+/* Black pieces are filled black with a black stroke, so they vanish on the
+   app's dark background. Stack four 1px drop-shadows to fake a white halo. */
+.darkPiece {
+  filter: drop-shadow(1px 0 0 #fff) drop-shadow(-1px 0 0 #fff) drop-shadow(0 1px 0 #fff)
+    drop-shadow(0 -1px 0 #fff);
+}
+
 .cell + .cell {
   /* Slight overlap to mimic Lichess's stacked feel. */
   margin-left: -6px;

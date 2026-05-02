@@ -23,7 +23,7 @@ export function CapturedPieces({ pieces, advantage }: Props) {
   return (
     <div className={styles.row} aria-label="Captured pieces">
       {sorted.map((p, i) => (
-        <span key={i} className={styles.cell}>
+        <span key={i} className={`${styles.cell} ${p.side === "opponent" ? styles.darkPiece : ""}`}>
           <PieceGlyph piece={p} />
         </span>
       ))}
