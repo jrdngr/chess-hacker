@@ -39,6 +39,7 @@ Alternatives considered: writing a chess engine from scratch (rejected — too m
 
 - Strong chess AI with adjustable depth/time controls. Tunable strength.
 - Runs entirely client-side (a worker thread).
+- Specifically: the `stockfish.js` npm package, which ships both a WASM build (`stockfish.wasm.js` + `stockfish.wasm`) and an asm.js fallback. We avoided the `stockfish.wasm` package because it requires `COOP` / `COEP` HTTP headers, which complicates the static-host story.
 - Doesn't know about our cards / walls / curses. We use a **layered AI** — Stockfish proposes moves on a **virtualized chess board** (where the rule extensions are simulated), and a custom layer decides curse-card insertion timing on the boss's behalf. See `ai.md`.
 
 Alternatives considered: hand-rolled alpha-beta (rejected — far weaker chess play; we'd spend more time tuning than playing); heuristic AI (rejected for the same reason).

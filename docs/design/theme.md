@@ -25,16 +25,9 @@ Color choices are **functional first, aesthetic second**. Colorblind accessibili
 
 ### Pieces
 
-Each piece type is a unique geometric glyph. Suggestions (final TBD):
+We render the **classical chess piece silhouettes** (king with cross, queen with multi-pointed crown, rook battlements, bishop mitre, knight horse-head, pawn). Same shape for both sides; the player palette colors the fill, and a dark stroke keeps the silhouette readable on light squares.
 
-| Piece   | Shape                                |
-|---------|--------------------------------------|
-| King    | Crown silhouette (filled triangle with notches) |
-| Queen   | Diamond                              |
-| Rook    | Square block                         |
-| Bishop  | Tall pointed triangle                |
-| Knight  | Asymmetric L or arrow                |
-| Pawn    | Small circle                         |
+This is a deliberate departure from a stricter "purely abstract" treatment: in playtesting, geometric glyphs read as ambiguous on a busy board. Traditional silhouettes are universally recognizable and let the rest of the UI stay minimalist.
 
 All pieces fit comfortably within a board square, with consistent visual weight. Selection state shows a glow / outline highlight.
 
@@ -72,7 +65,8 @@ Out of scope for the prototype. Add basic sound effects (click, place, capture, 
 
 ## What we're explicitly NOT doing
 
-- ❌ No representational art (no painted knights, no fantasy creatures).
+- ❌ No painted / illustrated artwork on pieces or cards (classical chess silhouettes are flat-color SVG, not rendered art).
+- ❌ No fantasy creatures, no character portraits.
 - ❌ No flavor text on cards (in the prototype).
 - ❌ No story / lore. Boss names are descriptive ("The Iron Garrison") not narrative.
 - ❌ No voice-acting, no cutscenes.

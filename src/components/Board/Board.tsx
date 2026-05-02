@@ -1,8 +1,12 @@
-// 8x8 board. Click a piece to select; click a highlighted square to move.
-// Both sides controlled by the human (M1 milestone — AI arrives in M2).
+// 8x8 board.
+// Two ways to move a piece:
+//   - Click the piece, then click a highlighted square.
+//   - Drag the piece onto a target square.
+
+import { useState } from "react";
 
 import { squareName, type ChoseEngine, type LegalMove } from "../../game/chess/engine";
-import type { AlgebraicSquare, FileIndex, Piece, RankIndex } from "../../game/types";
+import type { AlgebraicSquare, FileIndex, Piece, RankIndex, Side } from "../../game/types";
 
 import { PieceGlyph } from "./PieceGlyph";
 import styles from "./Board.module.css";
@@ -11,15 +15,32 @@ type Props = {
   engine: ChoseEngine;
   selected: AlgebraicSquare | null;
   legalMovesFromSelected: LegalMove[];
+  /** Side(s) the human is allowed to move. Drag/click only enables for these sides. */
+  controllableSides: ReadonlySet<Side>;
   onSquareClick: (square: AlgebraicSquare) => void;
-  /** Disable interaction (e.g. when the match is over). */
+  onSquareDragStart: (square: AlgebraicSquare) => void;
+  onSquareDrop: (square: AlgebraicSquare) => void;
+  onDragCancel: () => void;
+  /** Disable interaction (e.g. when the match is over or AI is thinking). */
   locked?: boolean;
 };
 
 const RANKS_TOP_DOWN: RankIndex[] = [7, 6, 5, 4, 3, 2, 1, 0];
 const FILES_LEFT_RIGHT: FileIndex[] = [0, 1, 2, 3, 4, 5, 6, 7];
 
-export function Board({ engine, selected, legalMovesFromSelected, onSquareClick, locked }: Props) {
+const DRAG_MIME = "application/x-choss-from";
+
+export function Board({
+  engine,
+  selected,
+  legalMovesFromSelected,
+  controllableSides,
+  onSquareClick,
+  onSquareDragStart,
+  onSquareDrop,
+  onDragCancel,
+  locked,
+}: Props) {
   // ChoseEngine mutates internally on move(), so we recompute these every render.
   // Memoizing on `[engine]` would serve stale data because the ref doesn't change.
   const piecesBySquare = new Map<AlgebraicSquare, Piece>();
@@ -40,6 +61,9 @@ export function Board({ engine, selected, legalMovesFromSelected, onSquareClick,
     }
   }
 
+  const turn = engine.turn();
+  const [dragOverSquare, setDragOverSquare] = useState<AlgebraicSquare | null>(null);
+
   return (
     <div className={styles.boardWrapper} aria-label="Chess board">
       <div className={styles.board} role="grid">
@@ -52,6 +76,12 @@ export function Board({ engine, selected, legalMovesFromSelected, onSquareClick,
               const isSelected = selected === sq;
               const target = targetMoves.get(sq);
               const isInCheck = sq === checkSquare;
+              const isDragOver = dragOverSquare === sq && !!target;
+              const draggable =
+                !locked &&
+                piece !== null &&
+                piece.side === turn &&
+                controllableSides.has(piece.side);
 
               const cls = [
                 styles.square,
@@ -59,6 +89,7 @@ export function Board({ engine, selected, legalMovesFromSelected, onSquareClick,
                 isSelected && styles.selected,
                 target && (target.isCapture ? styles.capture : styles.target),
                 isInCheck && styles.check,
+                isDragOver && styles.dragOver,
                 locked && styles.locked,
               ]
                 .filter(Boolean)
@@ -72,6 +103,37 @@ export function Board({ engine, selected, legalMovesFromSelected, onSquareClick,
                   role="gridcell"
                   aria-label={describeSquare(sq, piece, target)}
                   onClick={() => !locked && onSquareClick(sq)}
+                  draggable={draggable}
+                  onDragStart={(e) => {
+                    if (!draggable) {
+                      e.preventDefault();
+                      return;
+                    }
+                    e.dataTransfer.effectAllowed = "move";
+                    // Some browsers refuse a drag without setData.
+                    e.dataTransfer.setData(DRAG_MIME, sq);
+                    e.dataTransfer.setData("text/plain", sq);
+                    onSquareDragStart(sq);
+                  }}
+                  onDragEnd={() => {
+                    setDragOverSquare(null);
+                    onDragCancel();
+                  }}
+                  onDragOver={(e) => {
+                    if (targetMoves.has(sq)) {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = "move";
+                      if (dragOverSquare !== sq) setDragOverSquare(sq);
+                    }
+                  }}
+                  onDragLeave={() => {
+                    if (dragOverSquare === sq) setDragOverSquare(null);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragOverSquare(null);
+                    onSquareDrop(sq);
+                  }}
                   disabled={locked}
                 >
                   {file === 0 && <span className={styles.rankLabel}>{rank + 1}</span>}

@@ -77,8 +77,21 @@
   background: var(--square-check) !important;
 }
 
+.dragOver {
+  outline: 3px solid var(--square-selected);
+  outline-offset: -3px;
+}
+
 .locked {
   cursor: default;
+}
+
+.square[draggable="true"] {
+  cursor: grab;
+}
+
+.square[draggable="true"]:active {
+  cursor: grabbing;
 }
 
 .rankLabel,
