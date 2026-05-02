@@ -7,9 +7,10 @@ Welcome. This folder is the design and technical reference for **choss**: a sing
 1. [`design/overview.md`](design/overview.md) — pillars, the run loop, the match loop.
 2. [`design/modes.md`](design/modes.md) — Skirmish vs Royal.
 3. [`design/cards.md`](design/cards.md) — cards, energy, hand, disposal.
-4. [`design/progression.md`](design/progression.md) — runs, acts, Ascension.
-5. Skim the rest of `design/` as needed.
-6. When ready to build, read [`technical/stack.md`](technical/stack.md) and [`technical/architecture.md`](technical/architecture.md), then [`roadmap/milestones.md`](roadmap/milestones.md).
+4. [`cards/`](cards/) — per-card reference grouped by type, plus the keyword and starter-deck pages.
+5. [`design/progression.md`](design/progression.md) — runs, acts, Ascension.
+6. Skim the rest of `design/` as needed.
+7. When ready to build, read [`technical/stack.md`](technical/stack.md) and [`technical/architecture.md`](technical/architecture.md), then [`roadmap/milestones.md`](roadmap/milestones.md).
 
 ## Folder map
 
@@ -29,6 +30,11 @@ docs/
 │   ├── progression.md
 │   ├── chess-rules.md
 │   └── theme.md
+├── cards/                     ← per-card reference, grouped by type
+│   ├── README.md
+│   ├── keywords.md
+│   ├── starter-deck.md
+│   └── (one .md per card type)
 ├── technical/                  ← how the game is BUILT
 │   ├── stack.md
 │   ├── architecture.md

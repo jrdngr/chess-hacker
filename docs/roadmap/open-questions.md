@@ -6,7 +6,7 @@ Loosely grouped by topic.
 
 ## Cards / energy / hand
 
-- **Starter deck composition.** What cards does a fresh run start with? Roughly 8–12 cards, mostly commons, balanced across archetypes (Tempo, Spatial, Disruption, Resource). Final list TBD.
+- **Code-side starter pool.** The starter deck composition is now resolved in [`docs/cards/starter-deck.md`](../cards/starter-deck.md) (10 cards). The hardcoded starter pool in the prototype code (`3x Surge, 2x Recon, 2x Frostbite, 3x Barricade`) still needs to be updated to match — Surge has been removed from the design entirely, and the new starter introduces Iron Guard, Snare, Quickstep, and Crooked Path.
 - **Card upgrades.** Currently cut from the prototype. Reconsider after basic loop is working: do we want a shop service or a card-tier system that lets cards become stronger versions of themselves?
 - **Reactions on opponent turn.** Currently disallowed for all cards. Likely to revisit once base play feels good — having "interrupt" cards (e.g., "when an enemy moves to a square adjacent to your queen, freeze that piece") would deepen the design but is non-trivial.
 - **Card art.** Plain text-only cards in the prototype. Add visual identity later as a polish pass.

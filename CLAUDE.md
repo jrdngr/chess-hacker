@@ -15,6 +15,7 @@ When you start work, **read `docs/README.md` first** — it is the index for eve
 | The big picture                                 | `docs/design/overview.md`                                         |
 | Game modes (Skirmish vs Royal)                  | `docs/design/modes.md`                                            |
 | How cards / energy / hand work                  | `docs/design/cards.md`                                            |
+| Per-card reference + keyword definitions        | `docs/cards/` (see `docs/cards/README.md`)                        |
 | How pieces are drafted and placed               | `docs/design/pieces.md`                                           |
 | Board overlays (walls, zones, square effects)   | `docs/design/board.md`                                            |
 | Artifacts / relics                              | `docs/design/artifacts.md`                                        |
