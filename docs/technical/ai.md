@@ -11,7 +11,8 @@ Stockfish is a black-box chess engine; it doesn't know about our cards, walls, o
 
 ### Setup
 
-- Loaded via `stockfish.wasm` package.
+- Loaded from the `stockfish.js` npm package (which bundles both a WASM build, `stockfish.wasm.js` + `stockfish.wasm`, and an asm.js fallback). The WASM build is preferred when available. We picked this package over `stockfish.wasm` because it does **not** require `Cross-Origin-Embedder-Policy` / `Cross-Origin-Opener-Policy` headers — this keeps the static-host story simple for the prototype.
+- The engine files live in `public/stockfish/` so Vite serves them as static assets.
 - Runs in a **dedicated Web Worker** so it doesn't block the UI thread.
 - Configured per-match with a target depth (or move time) reflecting the difficulty.
 
@@ -41,6 +42,15 @@ class StockfishEngine {
 | Ascension scaling      | +1 depth at certain Ascension levels |
 
 Depth values are starting points; tune from playtesting.
+
+For the M2 free-play screen (no run / shop / cards yet), the user picks
+between three depths via a Difficulty selector:
+
+| Difficulty | Depth |
+|------------|-------|
+| Easy       | 2     |
+| Normal     | 6     |
+| Hard       | 10    |
 
 ### Handling our rule extensions
 
