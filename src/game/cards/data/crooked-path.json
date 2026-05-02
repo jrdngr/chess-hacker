@@ -1,0 +1,11 @@
+{
+  "id": "crooked-path",
+  "name": "Crooked Path",
+  "cost": 1,
+  "rarity": "common",
+  "archetype": "movement",
+  "consume": false,
+  "description": "Empower own piece: gains knight L-shape as an extra movement pattern this turn.",
+  "target": { "kind": "own-piece" },
+  "effect": { "kind": "empower-piece", "pattern": "knight" }
+}

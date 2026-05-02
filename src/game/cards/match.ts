@@ -2,9 +2,21 @@
 //
 // These functions are framework-free. They take a `MatchCardState` (and
 // sometimes a context object describing the chess board) and return a new
-// `MatchCardState`. No mutation. The React layer wires them up.
+// `MatchCardState` plus a list of board-side effects (place piece, remove
+// piece, swap, etc.) for the React layer to apply against the chess engine.
+// No mutation. The React layer wires them up.
 
-import type { AlgebraicSquare, Card, MatchCardState, Piece } from "../types";
+import type {
+  AlgebraicSquare,
+  Card,
+  CardEffect,
+  EmpowerStatus,
+  LightningStatus,
+  MatchCardState,
+  Piece,
+  PieceStatus,
+  PieceType,
+} from "../types";
 
 /** Per `docs/design/cards.md`. */
 export const HAND_SIZE = 5;
@@ -56,6 +68,15 @@ export function createMatchCardState(
     turn: 0,
     walls: [],
     freezes: [],
+    roots: [],
+    disarms: [],
+    compels: [],
+    shields: [],
+    hastes: [],
+    lightnings: [],
+    empowers: [],
+    sanctuaries: [],
+    traps: [],
   };
 }
 
@@ -96,20 +117,30 @@ export function refillHand(state: MatchCardState, rng: Rng = Math.random): Match
 /**
  * Begin a new player turn.
  *  - Increment turn counter.
- *  - Expire walls / freezes whose `expiresOnTurn <= turn`.
+ *  - Expire walls / freezes / sanctuaries / traps / debuffs / shields /
+ *    one-turn buffs (haste/empower/lightning) whose `expiresOnTurn <= turn`.
  *  - Refill hand to HAND_SIZE.
  *  - Reset energy to `energyMax`.
  */
 export function startPlayerTurn(state: MatchCardState, rng: Rng = Math.random): MatchCardState {
   const turn = state.turn + 1;
-  const walls = state.walls.filter((w) => w.expiresOnTurn > turn);
-  const freezes = state.freezes.filter((f) => f.expiresOnTurn > turn);
+  const alive = <T extends { expiresOnTurn: number }>(arr: T[]) =>
+    arr.filter((x) => x.expiresOnTurn > turn);
   const next: MatchCardState = {
     ...state,
     turn,
     energy: state.energyMax,
-    walls,
-    freezes,
+    walls: alive(state.walls),
+    freezes: alive(state.freezes),
+    roots: alive(state.roots),
+    disarms: alive(state.disarms),
+    compels: alive(state.compels),
+    shields: alive(state.shields),
+    hastes: alive(state.hastes),
+    lightnings: alive(state.lightnings),
+    empowers: alive(state.empowers),
+    sanctuaries: alive(state.sanctuaries),
+    traps: alive(state.traps),
   };
   return refillHand(next, rng);
 }
@@ -119,8 +150,20 @@ export function startPlayerTurn(state: MatchCardState, rng: Rng = Math.random): 
 /**
  * Where the player has aimed the card. The kind matches what the card asked
  * for (see `Card.target`); the resolver double-checks against the board.
+ *
+ * `two-squares` covers both Switch Files (two own pieces) and Marionette
+ * (enemy piece + destination); the card's target.kind disambiguates.
  */
-export type PlayTarget = { kind: "none" } | { kind: "square"; square: AlgebraicSquare };
+export type PlayTarget =
+  | { kind: "none" }
+  | { kind: "square"; square: AlgebraicSquare }
+  | { kind: "two-squares"; first: AlgebraicSquare; second: AlgebraicSquare };
+
+/** Per-card half-board limit for empty-square-own-half. Player half is ranks 1–4. */
+export function isInPlayerHalf(square: AlgebraicSquare): boolean {
+  const r = Number(square[1]);
+  return r >= 1 && r <= 4;
+}
 
 /**
  * Read-only view of the chess board passed into `playCard` so it can
@@ -131,8 +174,19 @@ export type BoardContext = {
   hasWall: (sq: AlgebraicSquare) => boolean;
 };
 
+/**
+ * Side-effects the resolver wants applied to the chess engine. The engine
+ * boundary is owned by the React layer; we describe the change as data so
+ * `playCard` stays pure.
+ */
+export type CardSideEffect =
+  | { kind: "place-piece"; square: AlgebraicSquare; pieceType: PieceType }
+  | { kind: "remove-piece"; square: AlgebraicSquare }
+  | { kind: "swap-pieces"; a: AlgebraicSquare; b: AlgebraicSquare }
+  | { kind: "foreign-move"; from: AlgebraicSquare; to: AlgebraicSquare };
+
 export type PlayCardResult =
-  | { ok: true; state: MatchCardState }
+  | { ok: true; state: MatchCardState; sideEffects: CardSideEffect[] }
   | { ok: false; reason: PlayCardFailure };
 
 export type PlayCardFailure =
@@ -140,12 +194,16 @@ export type PlayCardFailure =
   | "not-enough-energy"
   | "missing-target"
   | "target-not-empty"
-  | "target-not-enemy-piece";
+  | "target-not-enemy-piece"
+  | "target-not-own-piece"
+  | "target-not-own-non-king-piece"
+  | "target-not-distinct"
+  | "target-not-in-own-half"
+  | "target-not-empty-or-walled";
 
 /**
- * Resolve a card play. Returns the new match state or a failure reason.
- *
- * Pure: does not mutate `state`. The caller is responsible for re-rendering.
+ * Resolve a card play. Returns the new match state, side effects, or a
+ * failure reason. Pure: does not mutate `state`.
  */
 export function playCard(
   state: MatchCardState,
@@ -158,61 +216,17 @@ export function playCard(
   if (!card) return { ok: false, reason: "no-such-card" };
   if (state.energy < card.cost) return { ok: false, reason: "not-enough-energy" };
 
-  switch (card.target.kind) {
-    case "none":
-      // No target required — accept any (we ignore an accidentally-supplied target).
-      break;
-    case "empty-square": {
-      if (target.kind !== "square") return { ok: false, reason: "missing-target" };
-      const occupied = ctx.pieceAt(target.square) !== null || ctx.hasWall(target.square);
-      if (occupied) return { ok: false, reason: "target-not-empty" };
-      break;
-    }
-    case "enemy-piece": {
-      if (target.kind !== "square") return { ok: false, reason: "missing-target" };
-      const p = ctx.pieceAt(target.square);
-      if (!p || p.side !== "opponent") {
-        return { ok: false, reason: "target-not-enemy-piece" };
-      }
-      break;
-    }
-  }
+  const validation = validateTarget(card, target, ctx);
+  if (validation) return { ok: false, reason: validation };
 
   let next: MatchCardState = { ...state, energy: state.energy - card.cost };
+  const sideEffects: CardSideEffect[] = [];
 
-  switch (card.effect.kind) {
-    case "gain-energy":
-      next = { ...next, energy: next.energy + card.effect.amount };
-      break;
-    case "draw":
-      next = drawCards(next, card.effect.count, rng);
-      break;
-    case "freeze-piece": {
-      // Validated above: target.kind === "square" and pieceAt is opponent.
-      const square = (target as Extract<PlayTarget, { kind: "square" }>).square;
-      next = {
-        ...next,
-        freezes: [
-          ...next.freezes.filter((f) => f.square !== square),
-          { square, side: "opponent", expiresOnTurn: state.turn + 1 },
-        ],
-      };
-      break;
-    }
-    case "place-wall": {
-      const square = (target as Extract<PlayTarget, { kind: "square" }>).square;
-      next = {
-        ...next,
-        walls: [
-          ...next.walls.filter((w) => w.square !== square),
-          { square, expiresOnTurn: state.turn + card.effect.durationTurns },
-        ],
-      };
-      break;
-    }
-  }
+  const applied = applyEffect(card.effect, next, target, ctx, rng);
+  next = applied.state;
+  sideEffects.push(...applied.sideEffects);
 
-  // Move the card to its destination pile. We rebuild hand without the played card.
+  // Move the played card to its destination pile.
   const hand = next.hand.slice();
   hand.splice(cardIndex, 1);
   if (card.consume) {
@@ -220,7 +234,246 @@ export function playCard(
   } else {
     next = { ...next, hand, discardPile: [...next.discardPile, card] };
   }
-  return { ok: true, state: next };
+  return { ok: true, state: next, sideEffects };
+}
+
+function validateTarget(
+  card: Card,
+  target: PlayTarget,
+  ctx: BoardContext,
+): PlayCardFailure | null {
+  switch (card.target.kind) {
+    case "none":
+      return null;
+    case "empty-square": {
+      if (target.kind !== "square") return "missing-target";
+      if (ctx.pieceAt(target.square) !== null || ctx.hasWall(target.square))
+        return "target-not-empty";
+      return null;
+    }
+    case "empty-square-own-half": {
+      if (target.kind !== "square") return "missing-target";
+      if (!isInPlayerHalf(target.square)) return "target-not-in-own-half";
+      if (ctx.pieceAt(target.square) !== null || ctx.hasWall(target.square))
+        return "target-not-empty";
+      return null;
+    }
+    case "enemy-piece": {
+      if (target.kind !== "square") return "missing-target";
+      const p = ctx.pieceAt(target.square);
+      if (!p || p.side !== "opponent") return "target-not-enemy-piece";
+      return null;
+    }
+    case "own-piece": {
+      if (target.kind !== "square") return "missing-target";
+      const p = ctx.pieceAt(target.square);
+      if (!p || p.side !== "player") return "target-not-own-piece";
+      return null;
+    }
+    case "own-non-king-piece": {
+      if (target.kind !== "square") return "missing-target";
+      const p = ctx.pieceAt(target.square);
+      if (!p || p.side !== "player") return "target-not-own-piece";
+      if (p.type === "king") return "target-not-own-non-king-piece";
+      return null;
+    }
+    case "two-own-pieces": {
+      if (target.kind !== "two-squares") return "missing-target";
+      if (target.first === target.second) return "target-not-distinct";
+      const a = ctx.pieceAt(target.first);
+      const b = ctx.pieceAt(target.second);
+      if (!a || a.side !== "player" || !b || b.side !== "player") return "target-not-own-piece";
+      return null;
+    }
+    case "marionette": {
+      // Two squares: an enemy piece and its destination. We trust the React
+      // layer to only offer destinations from the engine's legal-move set;
+      // we still sanity-check the enemy-piece source here.
+      if (target.kind !== "two-squares") return "missing-target";
+      if (target.first === target.second) return "target-not-distinct";
+      const enemy = ctx.pieceAt(target.first);
+      if (!enemy || enemy.side !== "opponent") return "target-not-enemy-piece";
+      return null;
+    }
+  }
+}
+
+type EffectResult = { state: MatchCardState; sideEffects: CardSideEffect[] };
+
+function applyEffect(
+  effect: CardEffect,
+  state: MatchCardState,
+  target: PlayTarget,
+  _ctx: BoardContext,
+  rng: Rng,
+): EffectResult {
+  switch (effect.kind) {
+    case "gain-energy":
+      return { state: { ...state, energy: state.energy + effect.amount }, sideEffects: [] };
+    case "draw":
+      return { state: drawCards(state, effect.count, rng), sideEffects: [] };
+    case "scry":
+      // Scry: peek at the top N cards of the deck. The actual reordering UI
+      // is owned by the React layer; the resolver can't know the new order
+      // here. We surface the deck untouched and let the UI replace the top
+      // N via `setDeckTop` in MatchCardState directly. For data purposes
+      // the effect is a no-op at this layer; the UI layer handles the prompt.
+      return { state, sideEffects: [] };
+    case "freeze-piece":
+      return {
+        state: addStatus(state, "freezes", squareTarget(target), state.turn + 1, "opponent"),
+        sideEffects: [],
+      };
+    case "root-piece":
+      return {
+        state: addStatus(state, "roots", squareTarget(target), state.turn + 1, "opponent"),
+        sideEffects: [],
+      };
+    case "disarm-piece":
+      return {
+        state: addStatus(state, "disarms", squareTarget(target), state.turn + 1, "opponent"),
+        sideEffects: [],
+      };
+    case "compel-piece":
+      return {
+        state: addStatus(state, "compels", squareTarget(target), state.turn + 1, "opponent"),
+        sideEffects: [],
+      };
+    case "shield-piece":
+      return {
+        state: addStatus(state, "shields", squareTarget(target), state.turn + 1, "player"),
+        sideEffects: [],
+      };
+    case "haste-piece":
+      return {
+        state: addStatus(state, "hastes", squareTarget(target), state.turn + 1, "player"),
+        sideEffects: [],
+      };
+    case "empower-piece": {
+      const sq = squareTarget(target);
+      const status: EmpowerStatus = {
+        square: sq,
+        side: "player",
+        expiresOnTurn: state.turn + 1,
+        pattern: effect.pattern,
+      };
+      return {
+        state: { ...state, empowers: [...state.empowers.filter((e) => e.square !== sq), status] },
+        sideEffects: [],
+      };
+    }
+    case "lightning-piece": {
+      const sq = squareTarget(target);
+      const status: LightningStatus = {
+        square: sq,
+        side: "player",
+        expiresOnTurn: state.turn + 1,
+        remaining: effect.actions,
+      };
+      return {
+        state: {
+          ...state,
+          lightnings: [...state.lightnings.filter((l) => l.square !== sq), status],
+        },
+        sideEffects: [],
+      };
+    }
+    case "place-wall": {
+      const sq = squareTarget(target);
+      return {
+        state: {
+          ...state,
+          walls: [
+            ...state.walls.filter((w) => w.square !== sq),
+            { square: sq, expiresOnTurn: state.turn + effect.durationTurns },
+          ],
+        },
+        sideEffects: [],
+      };
+    }
+    case "place-sanctuary": {
+      const sq = squareTarget(target);
+      return {
+        state: {
+          ...state,
+          sanctuaries: [
+            ...state.sanctuaries.filter((s) => s.square !== sq),
+            { square: sq, expiresOnTurn: state.turn + effect.durationTurns },
+          ],
+        },
+        sideEffects: [],
+      };
+    }
+    case "place-trap": {
+      const sq = squareTarget(target);
+      return {
+        state: {
+          ...state,
+          traps: [
+            ...state.traps.filter((t) => t.square !== sq),
+            {
+              square: sq,
+              effect: effect.trapEffect,
+              expiresOnTurn: state.turn + effect.durationTurns,
+            },
+          ],
+        },
+        sideEffects: [],
+      };
+    }
+    case "swap-own-pieces": {
+      if (target.kind !== "two-squares") return { state, sideEffects: [] };
+      return {
+        state,
+        sideEffects: [{ kind: "swap-pieces", a: target.first, b: target.second }],
+      };
+    }
+    case "summon-piece": {
+      const sq = squareTarget(target);
+      return {
+        state,
+        sideEffects: [{ kind: "place-piece", square: sq, pieceType: effect.pieceType }],
+      };
+    }
+    case "sacrifice-piece": {
+      const sq = squareTarget(target);
+      let next = drawCards(state, effect.drawCount, rng);
+      next = { ...next, energy: next.energy + effect.energyGain };
+      return {
+        state: next,
+        sideEffects: [{ kind: "remove-piece", square: sq }],
+      };
+    }
+    case "marionette": {
+      if (target.kind !== "two-squares") return { state, sideEffects: [] };
+      return {
+        state,
+        sideEffects: [{ kind: "foreign-move", from: target.first, to: target.second }],
+      };
+    }
+  }
+}
+
+function squareTarget(t: PlayTarget): AlgebraicSquare {
+  if (t.kind === "square") return t.square;
+  if (t.kind === "two-squares") return t.first;
+  throw new Error(`expected square target, got ${t.kind}`);
+}
+
+type StatusKey = "freezes" | "roots" | "disarms" | "compels" | "shields" | "hastes";
+
+function addStatus(
+  state: MatchCardState,
+  key: StatusKey,
+  square: AlgebraicSquare,
+  expiresOnTurn: number,
+  side: "player" | "opponent",
+): MatchCardState {
+  const status: PieceStatus = { square, side, expiresOnTurn };
+  return {
+    ...state,
+    [key]: [...state[key].filter((s) => s.square !== square), status],
+  };
 }
 
 // ---- Convenience predicates -------------------------------------------------
@@ -231,4 +484,118 @@ export function hasWallOn(state: MatchCardState, sq: AlgebraicSquare): boolean {
 
 export function isFrozen(state: MatchCardState, sq: AlgebraicSquare): boolean {
   return state.freezes.some((f) => f.square === sq);
+}
+
+export function isRooted(state: MatchCardState, sq: AlgebraicSquare): boolean {
+  return state.roots.some((r) => r.square === sq);
+}
+
+export function isDisarmed(state: MatchCardState, sq: AlgebraicSquare): boolean {
+  return state.disarms.some((d) => d.square === sq);
+}
+
+export function isCompelled(state: MatchCardState, sq: AlgebraicSquare): boolean {
+  return state.compels.some((c) => c.square === sq);
+}
+
+export function isShielded(state: MatchCardState, sq: AlgebraicSquare): boolean {
+  return state.shields.some((s) => s.square === sq);
+}
+
+export function hasSanctuary(state: MatchCardState, sq: AlgebraicSquare): boolean {
+  return state.sanctuaries.some((s) => s.square === sq);
+}
+
+export function trapAt(state: MatchCardState, sq: AlgebraicSquare) {
+  return state.traps.find((t) => t.square === sq) ?? null;
+}
+
+export function hasteAt(state: MatchCardState, sq: AlgebraicSquare): PieceStatus | null {
+  return state.hastes.find((h) => h.square === sq) ?? null;
+}
+
+export function lightningAt(state: MatchCardState, sq: AlgebraicSquare): LightningStatus | null {
+  return state.lightnings.find((l) => l.square === sq) ?? null;
+}
+
+export function empowerAt(state: MatchCardState, sq: AlgebraicSquare): EmpowerStatus | null {
+  return state.empowers.find((e) => e.square === sq) ?? null;
+}
+
+/**
+ * Move a buff/debuff status that's stored by square when its piece relocates
+ * (e.g., after a move or swap). Used by the React layer after a chess move
+ * to keep haste/empower/shield/etc. attached to the right piece.
+ */
+export function relocateStatuses(
+  state: MatchCardState,
+  from: AlgebraicSquare,
+  to: AlgebraicSquare,
+): MatchCardState {
+  const move = <T extends { square: AlgebraicSquare }>(arr: T[]): T[] =>
+    arr.map((x) => (x.square === from ? { ...x, square: to } : x));
+  return {
+    ...state,
+    freezes: move(state.freezes),
+    roots: move(state.roots),
+    disarms: move(state.disarms),
+    compels: move(state.compels),
+    shields: move(state.shields),
+    hastes: move(state.hastes),
+    lightnings: move(state.lightnings),
+    empowers: move(state.empowers),
+  };
+}
+
+/**
+ * Drop any per-square statuses sitting on `square` (e.g., after the piece
+ * there is captured or removed by Sacrifice).
+ */
+export function clearStatusesOn(state: MatchCardState, square: AlgebraicSquare): MatchCardState {
+  const drop = <T extends { square: AlgebraicSquare }>(arr: T[]): T[] =>
+    arr.filter((x) => x.square !== square);
+  return {
+    ...state,
+    freezes: drop(state.freezes),
+    roots: drop(state.roots),
+    disarms: drop(state.disarms),
+    compels: drop(state.compels),
+    shields: drop(state.shields),
+    hastes: drop(state.hastes),
+    lightnings: drop(state.lightnings),
+    empowers: drop(state.empowers),
+  };
+}
+
+/**
+ * Replace the top N of the draw pile with a custom-ordered subset.
+ * Used by the Foresight (scry) UI when the player commits a new order.
+ */
+export function setDeckTop(state: MatchCardState, top: Card[]): MatchCardState {
+  // The caller supplies exactly the same set of cards that were on top.
+  // Anything they didn't include stays where it was.
+  const remainder = state.drawPile.slice(top.length);
+  return { ...state, drawPile: [...top, ...remainder] };
+}
+
+/**
+ * Decrement (or remove) a Lightning status after one of its actions is used.
+ * Returns the new state.
+ */
+export function consumeLightningAction(
+  state: MatchCardState,
+  square: AlgebraicSquare,
+): MatchCardState {
+  const lightnings = state.lightnings.flatMap((l) => {
+    if (l.square !== square) return [l];
+    const next = l.remaining - 1;
+    if (next <= 1) return []; // 1 remaining means the standard turn-flip move handles it
+    return [{ ...l, remaining: next }];
+  });
+  return { ...state, lightnings };
+}
+
+/** Drop a haste status (e.g., after the second move was made). */
+export function consumeHaste(state: MatchCardState, square: AlgebraicSquare): MatchCardState {
+  return { ...state, hastes: state.hastes.filter((h) => h.square !== square) };
 }

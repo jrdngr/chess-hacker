@@ -22,7 +22,14 @@
 // both behave identically as blockers. The card layer still tracks
 // expiration; rule logic only sees "is this square walled right now?".
 
-import type { AlgebraicSquare, FileIndex, Piece, RankIndex, Side } from "../types";
+import type {
+  AlgebraicSquare,
+  EmpowerPattern,
+  FileIndex,
+  Piece,
+  RankIndex,
+  Side,
+} from "../types";
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"] as const;
 
@@ -55,12 +62,43 @@ export type Position = {
   fullmove: number;
 };
 
+/**
+ * Card-spawned overlays seen by the rule engine. All fields are optional in
+ * the type; rule code reads them via `get*` helpers below that supply empty
+ * defaults. This keeps legacy callers (and tests) that only set walls and
+ * freezes working unchanged.
+ */
 export type Overlays = {
   walls: ReadonlySet<AlgebraicSquare>;
   freezes: ReadonlySet<AlgebraicSquare>;
+  /** Pieces that may move only if the move is a capture. */
+  roots?: ReadonlySet<AlgebraicSquare>;
+  /** Pieces that may move but may not capture. */
+  disarms?: ReadonlySet<AlgebraicSquare>;
+  /** Pieces forced to move (and prefer captures). */
+  compels?: ReadonlySet<AlgebraicSquare>;
+  /** Player pieces that cannot be captured. */
+  shields?: ReadonlySet<AlgebraicSquare>;
+  /** Squares where pieces standing on them cannot be captured. */
+  sanctuaries?: ReadonlySet<AlgebraicSquare>;
+  /** Pieces with an additional movement pattern this turn. */
+  empowers?: ReadonlyMap<AlgebraicSquare, EmpowerPattern>;
 };
 
-export const NO_OVERLAYS: Overlays = { walls: new Set(), freezes: new Set() };
+const EMPTY_SET: ReadonlySet<AlgebraicSquare> = new Set();
+const EMPTY_EMPOWERS: ReadonlyMap<AlgebraicSquare, EmpowerPattern> = new Map();
+
+const roots = (o: Overlays) => o.roots ?? EMPTY_SET;
+const disarms = (o: Overlays) => o.disarms ?? EMPTY_SET;
+const compels = (o: Overlays) => o.compels ?? EMPTY_SET;
+const shields = (o: Overlays) => o.shields ?? EMPTY_SET;
+const sanctuaries = (o: Overlays) => o.sanctuaries ?? EMPTY_SET;
+const empowers = (o: Overlays) => o.empowers ?? EMPTY_EMPOWERS;
+
+export const NO_OVERLAYS: Overlays = {
+  walls: new Set(),
+  freezes: new Set(),
+};
 
 export type RuleMove = {
   from: AlgebraicSquare;
@@ -306,17 +344,44 @@ export function pseudoLegalMoves(
   fromSquare?: AlgebraicSquare,
 ): RuleMove[] {
   const out: RuleMove[] = [];
+
+  const generate = (sq: AlgebraicSquare, piece: Piece) => {
+    if (overlays.freezes.has(sq)) return;
+    const moves: RuleMove[] = [];
+    addPieceMoves(moves, sq, piece, pos, overlays);
+
+    // Empower: append additional movement pattern.
+    const empower = empowers(overlays).get(sq);
+    if (empower === "knight" && piece.type !== "knight") {
+      addJumpMoves(moves, sq, piece, pos, overlays, KNIGHT_DELTAS);
+    }
+
+    // Root: piece may move only if the move is a capture.
+    // Disarm: piece may move only if the move is NOT a capture.
+    // Status restrictions are applied to the piece's moves only — not other pieces.
+    const rooted = roots(overlays).has(sq);
+    const disarmed = disarms(overlays).has(sq);
+    const sanc = sanctuaries(overlays);
+    const sh = shields(overlays);
+    for (const m of moves) {
+      if (rooted && !m.isCapture) continue;
+      if (disarmed && m.isCapture) continue;
+      // Sanctuary: pieces on a Sanctuary square cannot be captured.
+      // Shield: shielded pieces cannot be captured.
+      if (m.isCapture && (sanc.has(m.to) || sh.has(m.to))) continue;
+      out.push(m);
+    }
+  };
+
   if (fromSquare) {
     const piece = pos.pieces.get(fromSquare);
     if (!piece || piece.side !== pos.turn) return out;
-    if (overlays.freezes.has(fromSquare)) return out;
-    addPieceMoves(out, fromSquare, piece, pos, overlays);
+    generate(fromSquare, piece);
     return out;
   }
   for (const [sq, piece] of pos.pieces) {
     if (piece.side !== pos.turn) continue;
-    if (overlays.freezes.has(sq)) continue;
-    addPieceMoves(out, sq, piece, pos, overlays);
+    generate(sq, piece);
   }
   return out;
 }
@@ -671,7 +736,35 @@ export function legalMoves(
       result.push(m);
     }
   }
-  return result;
+  // When asking for moves from a specific square, the per-square Compel
+  // filter would restrict the same square's own list — a no-op. Skip.
+  if (fromSquare) return result;
+  return applyCompel(result, pos, overlays);
+}
+
+/**
+ * Compel filter (per docs/cards/keywords.md):
+ *  - If any compelled piece of the side-to-move has legal moves, restrict
+ *    the move set to only that piece's moves.
+ *  - If any of those are captures, restrict further to captures only.
+ *  - If no compelled piece has legal moves, the filter is a no-op.
+ *
+ * If multiple compelled pieces have moves, every compelled piece's moves
+ * are kept (and captures-only collapsing applies across the union).
+ */
+function applyCompel(legal: RuleMove[], pos: Position, overlays: Overlays): RuleMove[] {
+  const c = compels(overlays);
+  if (c.size === 0) return legal;
+  const compelledWithMoves = new Set<AlgebraicSquare>();
+  for (const sq of c) {
+    const piece = pos.pieces.get(sq);
+    if (!piece || piece.side !== pos.turn) continue;
+    if (legal.some((m) => m.from === sq)) compelledWithMoves.add(sq);
+  }
+  if (compelledWithMoves.size === 0) return legal;
+  const fromCompelled = legal.filter((m) => compelledWithMoves.has(m.from));
+  const captures = fromCompelled.filter((m) => m.isCapture);
+  return captures.length > 0 ? captures : fromCompelled;
 }
 
 // ---- Insufficient material -------------------------------------------------

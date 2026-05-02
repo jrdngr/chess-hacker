@@ -1,10 +1,13 @@
 {
   "name": "Starter",
-  "description": "Run-start deck for the M3 prototype. 10 cards, weighted toward cheap utility / spatial cards so an opening hand of 5 has a high chance of being playable on turn 1 with energy = 3.",
+  "description": "Run-start deck: 10 commons biased toward teaching the major effect families (Cycle, Freeze, Wall, Shield, Trap, Haste, Empower) without burying the player in variety. See docs/cards/starter-deck.md for the rationale.",
   "cards": [
-    { "id": "surge", "count": 3 },
     { "id": "reconnaissance", "count": 2 },
     { "id": "frostbite", "count": 2 },
-    { "id": "barricade", "count": 3 }
+    { "id": "barricade", "count": 2 },
+    { "id": "iron-guard", "count": 1 },
+    { "id": "snare", "count": 1 },
+    { "id": "quickstep", "count": 1 },
+    { "id": "crooked-path", "count": 1 }
   ]
 }

@@ -6,6 +6,11 @@
 //
 // Adding a card: drop a new file in `./data/`. Adding it to the starter deck:
 // edit `./decks/starter.json`. No code changes required.
+//
+// The validator below is the canonical list of acceptable archetype, target,
+// and effect kinds for the prototype. Adding a new effect or target kind is a
+// two-step change: extend the union type in `../types.ts`, then extend the
+// validator here.
 
 import type {
   Card,
@@ -15,6 +20,9 @@ import type {
   CardId,
   CardRarity,
   CardTarget,
+  EmpowerPattern,
+  PieceType,
+  TrapEffect,
 } from "../types";
 
 import starterDeckJson from "./decks/starter.json";
@@ -28,10 +36,51 @@ const VALID_ARCHETYPES: readonly CardArchetype[] = [
   "resource",
   "defensive",
   "burst",
+  "sacrifice",
+  "summon",
+  "swap",
 ];
 const VALID_COSTS: readonly CardCost[] = [0, 1, 2, 3, 4];
-const VALID_TARGET_KINDS = ["none", "empty-square", "enemy-piece"] as const;
-const VALID_EFFECT_KINDS = ["gain-energy", "draw", "freeze-piece", "place-wall"] as const;
+const VALID_TARGET_KINDS = [
+  "none",
+  "empty-square",
+  "empty-square-own-half",
+  "enemy-piece",
+  "own-piece",
+  "own-non-king-piece",
+  "two-own-pieces",
+  "marionette",
+] as const;
+const VALID_EFFECT_KINDS = [
+  "gain-energy",
+  "draw",
+  "scry",
+  "freeze-piece",
+  "root-piece",
+  "disarm-piece",
+  "compel-piece",
+  "shield-piece",
+  "haste-piece",
+  "empower-piece",
+  "lightning-piece",
+  "place-wall",
+  "place-sanctuary",
+  "place-trap",
+  "swap-own-pieces",
+  "summon-piece",
+  "sacrifice-piece",
+  "marionette",
+] as const;
+const VALID_TRAP_EFFECTS: readonly TrapEffect[] = ["capture", "freeze", "push"];
+const VALID_EMPOWER_PATTERNS: readonly EmpowerPattern[] = ["knight"];
+const VALID_PIECE_TYPES: readonly PieceType[] = [
+  "pawn",
+  "knight",
+  "bishop",
+  "rook",
+  "queen",
+  "king",
+];
 
 type DeckJson = {
   name?: unknown;
@@ -41,6 +90,10 @@ type DeckJson = {
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+function isPositiveInt(v: unknown): v is number {
+  return typeof v === "number" && Number.isInteger(v) && v >= 1;
 }
 
 function validateTarget(raw: unknown, errors: string[]): CardTarget | null {
@@ -71,28 +124,175 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
       return { kind: "gain-energy", amount: raw.amount };
     }
     case "draw": {
-      if (typeof raw.count !== "number" || !Number.isInteger(raw.count) || raw.count < 1) {
+      if (!isPositiveInt(raw.count)) {
         errors.push("'effect.count' must be a positive integer for kind 'draw'");
         return null;
       }
       return { kind: "draw", count: raw.count };
     }
+    case "scry": {
+      if (!isPositiveInt(raw.count)) {
+        errors.push("'effect.count' must be a positive integer for kind 'scry'");
+        return null;
+      }
+      return { kind: "scry", count: raw.count };
+    }
     case "freeze-piece":
       return { kind: "freeze-piece" };
+    case "root-piece":
+      return { kind: "root-piece" };
+    case "disarm-piece":
+      return { kind: "disarm-piece" };
+    case "compel-piece":
+      return { kind: "compel-piece" };
+    case "shield-piece":
+      return { kind: "shield-piece" };
+    case "haste-piece":
+      return { kind: "haste-piece" };
+    case "empower-piece": {
+      const p = raw.pattern;
+      if (typeof p !== "string" || !(VALID_EMPOWER_PATTERNS as readonly string[]).includes(p)) {
+        errors.push(
+          `'effect.pattern' must be one of ${VALID_EMPOWER_PATTERNS.join(", ")} for kind 'empower-piece'`,
+        );
+        return null;
+      }
+      return { kind: "empower-piece", pattern: p as EmpowerPattern };
+    }
+    case "lightning-piece": {
+      if (!isPositiveInt(raw.actions)) {
+        errors.push(
+          "'effect.actions' must be a positive integer for kind 'lightning-piece'",
+        );
+        return null;
+      }
+      return { kind: "lightning-piece", actions: raw.actions };
+    }
     case "place-wall": {
-      if (
-        typeof raw.durationTurns !== "number" ||
-        !Number.isInteger(raw.durationTurns) ||
-        raw.durationTurns < 1
-      ) {
+      if (!isPositiveInt(raw.durationTurns)) {
         errors.push("'effect.durationTurns' must be a positive integer for kind 'place-wall'");
         return null;
       }
       return { kind: "place-wall", durationTurns: raw.durationTurns };
     }
+    case "place-sanctuary": {
+      if (!isPositiveInt(raw.durationTurns)) {
+        errors.push(
+          "'effect.durationTurns' must be a positive integer for kind 'place-sanctuary'",
+        );
+        return null;
+      }
+      return { kind: "place-sanctuary", durationTurns: raw.durationTurns };
+    }
+    case "place-trap": {
+      const fx = raw.trapEffect;
+      if (typeof fx !== "string" || !(VALID_TRAP_EFFECTS as readonly string[]).includes(fx)) {
+        errors.push(
+          `'effect.trapEffect' must be one of ${VALID_TRAP_EFFECTS.join(", ")} for kind 'place-trap'`,
+        );
+        return null;
+      }
+      if (!isPositiveInt(raw.durationTurns)) {
+        errors.push(
+          "'effect.durationTurns' must be a positive integer for kind 'place-trap'",
+        );
+        return null;
+      }
+      return {
+        kind: "place-trap",
+        trapEffect: fx as TrapEffect,
+        durationTurns: raw.durationTurns,
+      };
+    }
+    case "swap-own-pieces":
+      return { kind: "swap-own-pieces" };
+    case "summon-piece": {
+      const pt = raw.pieceType;
+      if (typeof pt !== "string" || !(VALID_PIECE_TYPES as readonly string[]).includes(pt)) {
+        errors.push(
+          `'effect.pieceType' must be one of ${VALID_PIECE_TYPES.join(", ")} for kind 'summon-piece'`,
+        );
+        return null;
+      }
+      return { kind: "summon-piece", pieceType: pt as PieceType };
+    }
+    case "sacrifice-piece": {
+      const drawCount = raw.drawCount;
+      const energyGain = raw.energyGain;
+      if (typeof drawCount !== "number" || !Number.isInteger(drawCount) || drawCount < 0) {
+        errors.push(
+          "'effect.drawCount' must be a non-negative integer for kind 'sacrifice-piece'",
+        );
+        return null;
+      }
+      if (typeof energyGain !== "number" || !Number.isInteger(energyGain) || energyGain < 0) {
+        errors.push(
+          "'effect.energyGain' must be a non-negative integer for kind 'sacrifice-piece'",
+        );
+        return null;
+      }
+      return { kind: "sacrifice-piece", drawCount, energyGain };
+    }
+    case "marionette":
+      return { kind: "marionette" };
     default:
-      errors.push(`'effect.kind' must be one of ${VALID_EFFECT_KINDS.join(", ")} (got ${JSON.stringify(kind)})`);
+      errors.push(
+        `'effect.kind' must be one of ${VALID_EFFECT_KINDS.join(", ")} (got ${JSON.stringify(kind)})`,
+      );
       return null;
+  }
+}
+
+/**
+ * Cross-field check: a card's effect.kind must agree with its target.kind.
+ * The contract is "what the player must aim at to cast this effect" — it's
+ * how the UI knows whether to ask for a square, an own piece, etc.
+ */
+function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | null {
+  const tk = target.kind;
+  switch (effect.kind) {
+    case "gain-energy":
+    case "draw":
+    case "scry":
+      return tk === "none"
+        ? null
+        : `'${effect.kind}' effect requires target.kind 'none'`;
+    case "freeze-piece":
+    case "root-piece":
+    case "disarm-piece":
+    case "compel-piece":
+      return tk === "enemy-piece"
+        ? null
+        : `'${effect.kind}' effect requires target.kind 'enemy-piece'`;
+    case "shield-piece":
+    case "haste-piece":
+    case "empower-piece":
+    case "lightning-piece":
+      return tk === "own-piece"
+        ? null
+        : `'${effect.kind}' effect requires target.kind 'own-piece'`;
+    case "place-wall":
+    case "place-sanctuary":
+    case "place-trap":
+      return tk === "empty-square"
+        ? null
+        : `'${effect.kind}' effect requires target.kind 'empty-square'`;
+    case "summon-piece":
+      return tk === "empty-square" || tk === "empty-square-own-half"
+        ? null
+        : "'summon-piece' effect requires target.kind 'empty-square' or 'empty-square-own-half'";
+    case "sacrifice-piece":
+      return tk === "own-non-king-piece"
+        ? null
+        : "'sacrifice-piece' effect requires target.kind 'own-non-king-piece'";
+    case "swap-own-pieces":
+      return tk === "two-own-pieces"
+        ? null
+        : "'swap-own-pieces' effect requires target.kind 'two-own-pieces'";
+    case "marionette":
+      return tk === "marionette"
+        ? null
+        : "'marionette' effect requires target.kind 'marionette'";
   }
 }
 
@@ -138,6 +338,12 @@ function validateCard(raw: unknown): { card: Card | null; errors: string[] } {
     return { card: null, errors };
   }
 
+  const mismatch = targetMatchesEffect(target, effect);
+  if (mismatch) {
+    errors.push(mismatch);
+    return { card: null, errors };
+  }
+
   const card: Card = {
     id: raw.id as CardId,
     name: raw.name as string,
@@ -150,22 +356,6 @@ function validateCard(raw: unknown): { card: Card | null; errors: string[] } {
     effect,
   };
   if (typeof raw.curse === "boolean") card.curse = raw.curse;
-
-  // Cross-field check: target kind must agree with effect kind.
-  if (effect.kind === "freeze-piece" && target.kind !== "enemy-piece") {
-    errors.push("'freeze-piece' effect requires target.kind 'enemy-piece'");
-  }
-  if (effect.kind === "place-wall" && target.kind !== "empty-square") {
-    errors.push("'place-wall' effect requires target.kind 'empty-square'");
-  }
-  if (
-    (effect.kind === "gain-energy" || effect.kind === "draw") &&
-    target.kind !== "none"
-  ) {
-    errors.push(`'${effect.kind}' effect requires target.kind 'none'`);
-  }
-
-  if (errors.length > 0) return { card: null, errors };
 
   return { card, errors: [] };
 }
@@ -232,10 +422,25 @@ function pick(id: CardId): Card {
   return card;
 }
 
-export const SURGE: Card = pick("surge");
 export const RECONNAISSANCE: Card = pick("reconnaissance");
+export const FORESIGHT: Card = pick("foresight");
 export const FROSTBITE: Card = pick("frostbite");
+export const FROZEN_ROOTS: Card = pick("frozen-roots");
+export const FUMBLE: Card = pick("fumble");
+export const PROVOKE: Card = pick("provoke");
 export const BARRICADE: Card = pick("barricade");
+export const HALLOWED_GROUND: Card = pick("hallowed-ground");
+export const SPIKE_PIT: Card = pick("spike-pit");
+export const SNARE: Card = pick("snare");
+export const SPRING_TRAP: Card = pick("spring-trap");
+export const QUICKSTEP: Card = pick("quickstep");
+export const CROOKED_PATH: Card = pick("crooked-path");
+export const IRON_GUARD: Card = pick("iron-guard");
+export const LIGHTNING_STRIKE: Card = pick("lightning-strike");
+export const MARTYRS_GIFT: Card = pick("martyrs-gift");
+export const CONJURE_KNIGHT: Card = pick("conjure-knight");
+export const SWITCH_FILES: Card = pick("switch-files");
+export const MARIONETTE: Card = pick("marionette");
 
 // ---- Decks ------------------------------------------------------------------
 

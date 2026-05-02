@@ -11,11 +11,18 @@ import type { AlgebraicSquare, FileIndex, Piece, RankIndex, Side } from "../../g
 import { PieceGlyph } from "./PieceGlyph";
 import styles from "./Board.module.css";
 
-/** What the board is currently asking the player to do. */
+/**
+ * What the board is currently asking the player to do.
+ *
+ * - `play`: normal chess move flow.
+ * - `target`: a card is in flight; the user must click one of `validTargets`.
+ *   The `hint` is shown above the board (e.g., "Pick an empty square for
+ *   Barricade"). `valid` decides which squares are highlighted as legal
+ *   targets and which are dimmed.
+ */
 export type BoardMode =
   | { kind: "play" }
-  | { kind: "target-empty-square"; cardName: string }
-  | { kind: "target-enemy-piece"; cardName: string };
+  | { kind: "target"; cardName: string; hint: string; valid: ReadonlySet<AlgebraicSquare> };
 
 type Props = {
   engine: ChoseEngine;
@@ -27,6 +34,12 @@ type Props = {
   walledSquares?: ReadonlySet<AlgebraicSquare>;
   /** Squares that hold a frozen piece. */
   frozenSquares?: ReadonlySet<AlgebraicSquare>;
+  /** Squares with a sanctuary overlay. */
+  sanctuarySquares?: ReadonlySet<AlgebraicSquare>;
+  /** Squares with a trap overlay. */
+  trapSquares?: ReadonlySet<AlgebraicSquare>;
+  /** Player pieces with active status badges (root/disarm/compel/shield/haste/lightning/empower). */
+  pieceBadges?: ReadonlyMap<AlgebraicSquare, string>;
   /** Targeting mode for card play. Defaults to plain "play" (chess move). */
   mode?: BoardMode;
   onSquareClick: (square: AlgebraicSquare) => void;
@@ -44,6 +57,8 @@ const DRAG_MIME = "application/x-choss-from";
 
 const EMPTY_SET: ReadonlySet<AlgebraicSquare> = new Set();
 
+const EMPTY_BADGES: ReadonlyMap<AlgebraicSquare, string> = new Map();
+
 export function Board({
   engine,
   selected,
@@ -51,6 +66,9 @@ export function Board({
   controllableSides,
   walledSquares = EMPTY_SET,
   frozenSquares = EMPTY_SET,
+  sanctuarySquares = EMPTY_SET,
+  trapSquares = EMPTY_SET,
+  pieceBadges = EMPTY_BADGES,
   mode = { kind: "play" },
   onSquareClick,
   onSquareDragStart,
@@ -83,16 +101,13 @@ export function Board({
   const [dragOverSquare, setDragOverSquare] = useState<AlgebraicSquare | null>(null);
 
   const targeting = mode.kind !== "play";
-  const targetingForEmpty = mode.kind === "target-empty-square";
-  const targetingForEnemy = mode.kind === "target-enemy-piece";
+  const validTargets = mode.kind === "target" ? mode.valid : EMPTY_SET;
 
   return (
     <div className={styles.boardWrapper} aria-label="Chess board">
-      {targeting && (
+      {targeting && mode.kind === "target" && (
         <div className={styles.targetingHint} role="status">
-          {mode.kind === "target-empty-square"
-            ? `Pick an empty square for ${mode.cardName}`
-            : `Pick an enemy piece for ${mode.cardName}`}
+          {mode.hint}
         </div>
       )}
       <div className={styles.board} role="grid">
@@ -109,10 +124,11 @@ export function Board({
               const isDragOver = dragOverSquare === sq && !!target;
               const isWalled = walledSquares.has(sq);
               const isFrozen = frozenSquares.has(sq);
+              const isSanctuary = sanctuarySquares.has(sq);
+              const isTrap = trapSquares.has(sq);
+              const badge = pieceBadges.get(sq);
 
-              const validTargetForCard =
-                (targetingForEmpty && piece === null && !isWalled) ||
-                (targetingForEnemy && piece !== null && piece.side === "opponent");
+              const validTargetForCard = targeting && validTargets.has(sq);
 
               const draggable =
                 !targeting &&
@@ -144,7 +160,13 @@ export function Board({
                   type="button"
                   className={cls}
                   role="gridcell"
-                  aria-label={describeSquare(sq, piece, target, { isWalled, isFrozen })}
+                  aria-label={describeSquare(sq, piece, target, {
+                    isWalled,
+                    isFrozen,
+                    isSanctuary,
+                    isTrap,
+                    badge,
+                  })}
                   onClick={() => !locked && onSquareClick(sq)}
                   draggable={draggable}
                   onDragStart={(e) => {
@@ -187,6 +209,13 @@ export function Board({
                   )}
                   {isWalled && <span className={styles.wallMark} aria-label="wall" />}
                   {isFrozen && <span className={styles.frostMark} aria-label="frozen" />}
+                  {isSanctuary && <span className={styles.sanctuaryMark} aria-label="sanctuary" />}
+                  {isTrap && <span className={styles.trapMark} aria-label="trap" />}
+                  {badge && (
+                    <span className={styles.statusBadge} aria-label={badge}>
+                      {badgeGlyph(badge)}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -201,12 +230,32 @@ function describeSquare(
   sq: AlgebraicSquare,
   piece: ReturnType<ChoseEngine["pieces"]>[number]["piece"] | null,
   target: LegalMove | undefined,
-  flags: { isWalled: boolean; isFrozen: boolean },
+  flags: {
+    isWalled: boolean;
+    isFrozen: boolean;
+    isSanctuary: boolean;
+    isTrap: boolean;
+    badge: string | undefined;
+  },
 ): string {
   const parts: string[] = [sq];
   if (piece) parts.push(`${piece.side} ${piece.type}`);
   if (flags.isFrozen) parts.push("frozen");
   if (flags.isWalled) parts.push("walled");
+  if (flags.isSanctuary) parts.push("sanctuary");
+  if (flags.isTrap) parts.push("trap");
+  if (flags.badge) parts.push(flags.badge);
   if (target) parts.push(target.isCapture ? "capture" : "move");
   return parts.join(", ");
+}
+
+function badgeGlyph(badge: string): string {
+  if (badge.includes("rooted")) return "⚓";
+  if (badge.includes("disarmed")) return "✕";
+  if (badge.includes("compelled")) return "!";
+  if (badge.includes("shielded")) return "🛡";
+  if (badge.includes("haste")) return "⚡";
+  if (badge.includes("lightning")) return "⚡⚡";
+  if (badge.includes("empower")) return "♞";
+  return "•";
 }

@@ -1,0 +1,11 @@
+{
+  "id": "quickstep",
+  "name": "Quickstep",
+  "cost": 2,
+  "rarity": "common",
+  "archetype": "tempo",
+  "consume": false,
+  "description": "Target own piece gains Haste this turn (move twice, no captures).",
+  "target": { "kind": "own-piece" },
+  "effect": { "kind": "haste-piece" }
+}

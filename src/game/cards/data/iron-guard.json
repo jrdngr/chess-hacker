@@ -1,0 +1,11 @@
+{
+  "id": "iron-guard",
+  "name": "Iron Guard",
+  "cost": 1,
+  "rarity": "common",
+  "archetype": "defensive",
+  "consume": false,
+  "description": "Shield own piece: captures of it are illegal until your next turn.",
+  "target": { "kind": "own-piece" },
+  "effect": { "kind": "shield-piece" }
+}

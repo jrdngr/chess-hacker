@@ -1,0 +1,11 @@
+{
+  "id": "conjure-knight",
+  "name": "Conjure Knight",
+  "cost": 3,
+  "rarity": "rare",
+  "archetype": "summon",
+  "consume": true,
+  "description": "Summon a knight on an empty square in your half (ranks 1–4). Consume.",
+  "target": { "kind": "empty-square-own-half" },
+  "effect": { "kind": "summon-piece", "pieceType": "knight" }
+}
