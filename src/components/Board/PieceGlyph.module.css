@@ -1,0 +1,14 @@
+.glyph {
+  width: 78%;
+  height: 78%;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+}
+
+.player {
+  color: var(--player);
+}
+
+.opponent {
+  color: var(--opponent);
+}
