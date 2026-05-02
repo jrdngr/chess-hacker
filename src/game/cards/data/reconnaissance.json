@@ -1,0 +1,11 @@
+{
+  "id": "reconnaissance",
+  "name": "Reconnaissance",
+  "cost": 1,
+  "rarity": "common",
+  "archetype": "resource",
+  "consume": false,
+  "description": "Draw 2 cards.",
+  "target": { "kind": "none" },
+  "effect": { "kind": "draw", "count": 2 }
+}

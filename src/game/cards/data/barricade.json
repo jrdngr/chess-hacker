@@ -1,0 +1,11 @@
+{
+  "id": "barricade",
+  "name": "Barricade",
+  "cost": 1,
+  "rarity": "common",
+  "archetype": "spatial",
+  "consume": false,
+  "description": "Place a wall on an empty square. Lasts 3 turns.",
+  "target": { "kind": "empty-square" },
+  "effect": { "kind": "place-wall", "durationTurns": 3 }
+}

@@ -79,6 +79,38 @@ Reconsider this decision only after the basic loop is working — adding upgrade
 
 Some bosses can place **curse cards** into the player's hand mid-match. Curse cards have detrimental effects and must be played to be removed from hand. They cost 0 energy, do not count against the hand size cap, and do not enter the player's deck (they vanish when played and do not return). See `bosses.md` for boss curse-card specifics.
 
+## Where cards live in the codebase
+
+Card definitions are **human-readable JSON**, one file per card, in
+`src/game/cards/data/`. The filename (without extension) must match the card's
+`id`. Adding a new card means dropping a new JSON file in that folder — no
+code changes are needed; `src/game/cards/library.ts` discovers files via a
+glob and validates every card at startup, throwing a clear error message that
+points at the offending file if anything is malformed.
+
+Decks compose cards by id. The starter deck lives at
+`src/game/cards/decks/starter.json` as a list of `{ id, count }` entries.
+
+A card JSON has the shape:
+
+```json
+{
+  "id": "frostbite",
+  "name": "Frostbite",
+  "cost": 2,
+  "rarity": "common",
+  "archetype": "disruption",
+  "consume": false,
+  "description": "Freeze an enemy piece. It can't be moved on the opponent's next turn.",
+  "target": { "kind": "enemy-piece" },
+  "effect": { "kind": "freeze-piece" }
+}
+```
+
+The runtime types behind these fields live in `src/game/types.ts`; the
+validator in `library.ts` is the canonical list of acceptable `target.kind`
+and `effect.kind` values for the prototype.
+
 ## Summary numbers (prototype starting values)
 
 | Knob                         | Value                                      |
