@@ -77,7 +77,7 @@ export function Board({
               const isSelected = selected === sq;
               const target = targetMoves.get(sq);
               const isInCheck = sq === checkSquare;
-              const isLastMoveFrom = lastMove?.from === sq;
+              const isLastMoveSquare = lastMove?.from === sq || lastMove?.to === sq;
               const isDragOver = dragOverSquare === sq && !!target;
               const draggable =
                 !locked &&
@@ -88,7 +88,7 @@ export function Board({
               const cls = [
                 styles.square,
                 isLight ? styles.light : styles.dark,
-                isLastMoveFrom && styles.lastMoveFrom,
+                isLastMoveSquare && styles.lastMove,
                 isSelected && styles.selected,
                 target && (target.isCapture ? styles.capture : styles.target),
                 isInCheck && styles.check,
