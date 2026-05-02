@@ -2,13 +2,7 @@
   width: 88%;
   height: 88%;
   pointer-events: none;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
-}
-
-.player {
-  color: var(--player);
-}
-
-.opponent {
-  color: var(--opponent);
+  user-select: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
 }

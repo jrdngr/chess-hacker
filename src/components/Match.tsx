@@ -36,6 +36,8 @@ type Props = {
   /** Default mode. Defaults to "vs-ai". Tests pass "local-pvp" to skip AI. */
   initialMode?: MatchMode;
   initialDifficulty?: Difficulty;
+  /** Optional starting FEN. Used by tests to set up specific positions. */
+  initialFen?: string;
   /** Hook to swap the AI engine in tests. */
   createAi?: (opts?: StockfishOptions) => StockfishEngine;
 };
@@ -46,11 +48,12 @@ const AI_SIDE: Side = "opponent";
 export function Match({
   initialMode = "vs-ai",
   initialDifficulty = "normal",
+  initialFen,
   createAi,
 }: Props = {}) {
   const [mode, setMode] = useState<MatchMode>(initialMode);
   const [difficulty, setDifficulty] = useState<Difficulty>(initialDifficulty);
-  const [engine, setEngine] = useState(() => new ChoseEngine());
+  const [engine, setEngine] = useState(() => new ChoseEngine(initialFen));
   const [selected, setSelected] = useState<AlgebraicSquare | null>(null);
   // Bumped after each move so derived render values recompute.
   const [version, setVersion] = useState(0);
@@ -217,12 +220,12 @@ export function Match({
   const onNewGame = useCallback(() => {
     generationRef.current++;
     aiRef.current?.stop();
-    setEngine(new ChoseEngine());
+    setEngine(new ChoseEngine(initialFen));
     setSelected(null);
     setVersion(0);
     setAiThinking(false);
     setAiError(null);
-  }, []);
+  }, [initialFen]);
 
   const onModeChange = useCallback(
     (next: MatchMode) => {
@@ -230,13 +233,13 @@ export function Match({
       generationRef.current++;
       aiRef.current?.stop();
       setMode(next);
-      setEngine(new ChoseEngine());
+      setEngine(new ChoseEngine(initialFen));
       setSelected(null);
       setVersion(0);
       setAiThinking(false);
       setAiError(null);
     },
-    [mode],
+    [mode, initialFen],
   );
 
   // ---- Render ---------------------------------------------------------------
