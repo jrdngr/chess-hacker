@@ -50,7 +50,11 @@ src/
 │   └── metaStore.ts          # Cross-run state (unlocks, ascension, stats)
 ├── game/                     # Pure TS game logic
 │   ├── chess/                # chess.js wrapper + rule-extension layer
-│   ├── cards/                # Card definitions, effects, resolution
+│   ├── cards/                # Card system: effects, resolution, library loader
+│   │   ├── data/             #   one JSON file per card (source of truth)
+│   │   ├── decks/            #   deck compositions ({ id, count } lists)
+│   │   ├── library.ts        #   loads + validates card JSON at startup
+│   │   └── match.ts          #   match-scoped state + effect resolver
 │   ├── artifacts/            # Artifact definitions, triggers
 │   ├── pieces/               # Piece-related logic (Skirmish drafts, soft caps)
 │   ├── shop/                 # Shop generation, reroll, removal
@@ -63,8 +67,7 @@ src/
 │   ├── worker.ts             # Web Worker entry; hosts Stockfish
 │   ├── stockfish.ts          # Stockfish.wasm wrapper
 │   └── curseAI.ts            # Boss curse-insertion scheduling
-├── data/                     # Static data
-│   ├── cards.json
+├── data/                     # Static data (cards live under game/cards/data/)
 │   ├── artifacts.json
 │   └── bosses.ts             # Boss definitions are code (modifier rules) not just data
 ├── persistence/              # localStorage adapter
@@ -143,6 +146,18 @@ These types are sketches. The actual code may evolve them; what matters is the s
 - **Run state** is preserved across matches.
 - **Match state** is fresh per match.
 - **Meta state** is preserved across runs.
+
+## Static content
+
+Card definitions are JSON, one file per card, under `src/game/cards/data/`.
+Decks (e.g. the starter deck) are JSON under `src/game/cards/decks/`, and
+reference cards by id with a count. `src/game/cards/library.ts` loads every
+card via `import.meta.glob`, validates each one at module load, and throws a
+clear error if a card is malformed or a deck references an unknown id. To add
+a card, drop a new JSON file in `data/` — no code changes are needed.
+
+Artifacts and bosses will follow the same shape (`data/artifacts.json`,
+boss-definition modules) once those systems are implemented.
 
 ## Update flow during a match
 

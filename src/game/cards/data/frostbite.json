@@ -1,0 +1,11 @@
+{
+  "id": "frostbite",
+  "name": "Frostbite",
+  "cost": 2,
+  "rarity": "common",
+  "archetype": "disruption",
+  "consume": false,
+  "description": "Freeze an enemy piece. It can't be moved on the opponent's next turn.",
+  "target": { "kind": "enemy-piece" },
+  "effect": { "kind": "freeze-piece" }
+}
