@@ -178,7 +178,7 @@ describe("Match (vs AI)", () => {
   it("plays the AI's response after the human moves", async () => {
     const user = userEvent.setup();
     const ai = makeFakeAi(["e7e5"]);
-    render(<Match initialMode="vs-ai" createAi={() => ai} />);
+    render(<Match initialMode="vs-ai" createAi={() => ai} aiMinThinkMs={0} />);
 
     // Human plays e2 -> e4
     await user.click(squareCell("e2")!);
@@ -197,7 +197,7 @@ describe("Match (vs AI)", () => {
   it("ignores clicks on AI pieces in vs-AI mode", async () => {
     const user = userEvent.setup();
     const ai = makeFakeAi([]);
-    render(<Match initialMode="vs-ai" createAi={() => ai} />);
+    render(<Match initialMode="vs-ai" createAi={() => ai} aiMinThinkMs={0} />);
 
     // Black pieces (controlled by AI) should not be selectable.
     await user.click(squareCell("e7")!);
@@ -207,11 +207,27 @@ describe("Match (vs AI)", () => {
     expect(targetCells).toHaveLength(0);
   });
 
+  it("waits at least aiMinThinkMs before applying the AI's move", async () => {
+    const user = userEvent.setup();
+    const ai = makeFakeAi(["e7e5"]);
+    render(<Match initialMode="vs-ai" createAi={() => ai} aiMinThinkMs={300} />);
+
+    await user.click(squareCell("e2")!);
+    const t0 = performance.now();
+    await user.click(squareCell("e4")!);
+
+    await waitFor(() => {
+      expect(squareCell("e5")?.getAttribute("aria-label")).toBe("e5, opponent pawn");
+    });
+    const elapsed = performance.now() - t0;
+    expect(elapsed).toBeGreaterThanOrEqual(280); // small slack for timer jitter
+  });
+
   it("difficulty selector lets the user pick a depth", async () => {
     const user = userEvent.setup();
     const ai = makeFakeAi([]);
     const spy = vi.spyOn(ai, "getBestMove");
-    render(<Match initialMode="vs-ai" createAi={() => ai} />);
+    render(<Match initialMode="vs-ai" createAi={() => ai} aiMinThinkMs={0} />);
 
     await user.selectOptions(screen.getByLabelText(/difficulty/i), "hard");
 

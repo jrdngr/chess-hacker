@@ -42,7 +42,14 @@ type Props = {
   initialFen?: string;
   /** Hook to swap the AI engine in tests. */
   createAi?: (opts?: StockfishOptions) => StockfishEngine;
+  /**
+   * Minimum time the AI must "think" before its move lands, in ms. Stops shallow
+   * depths from snap-moving. Tests override this to 0 to skip the wait.
+   */
+  aiMinThinkMs?: number;
 };
+
+const DEFAULT_AI_MIN_THINK_MS = 500;
 
 const HUMAN_SIDE: Side = "player";
 const AI_SIDE: Side = "opponent";
@@ -52,6 +59,7 @@ export function Match({
   initialDifficulty = "normal",
   initialFen,
   createAi,
+  aiMinThinkMs = DEFAULT_AI_MIN_THINK_MS,
 }: Props = {}) {
   const [mode, setMode] = useState<MatchMode>(initialMode);
   const [difficulty, setDifficulty] = useState<Difficulty>(initialDifficulty);
@@ -123,7 +131,13 @@ export function Match({
         await ai.ready();
         if (cancelled || generationRef.current !== myGen) return;
         ai.setPosition(engine.fen());
-        const uci = await ai.getBestMove({ depth: depthForDifficulty(difficulty) });
+        // Run the search and a minimum-think timer in parallel: the move can't
+        // land sooner than AI_MIN_THINK_MS, but Stockfish's depth dictates the
+        // upper bound. This prevents instant snap-moves on shallow depths.
+        const [uci] = await Promise.all([
+          ai.getBestMove({ depth: depthForDifficulty(difficulty) }),
+          new Promise<void>((resolve) => setTimeout(resolve, aiMinThinkMs)),
+        ]);
         if (cancelled || generationRef.current !== myGen) return;
         if (!uci) return; // no legal move (mate / stalemate handled separately)
         const move = uciToMove(uci);
@@ -142,7 +156,7 @@ export function Match({
     };
     // engine is mutable but stable; depending on version triggers each turn.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAiTurn, difficulty, version, mode]);
+  }, [isAiTurn, difficulty, version, mode, aiMinThinkMs]);
 
   // ---- Player input handlers -----------------------------------------------
 
