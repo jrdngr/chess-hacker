@@ -2,13 +2,17 @@
   display: flex;
   align-items: stretch;
   justify-content: center;
-  gap: 16px;
-  margin-top: 12px;
-  padding: 0 8px;
+  gap: 12px;
+  width: 100%;
+  height: 132px;
+  flex-shrink: 0;
+  margin-top: 4px;
+  padding: 0 4px;
 }
 
 .pile {
-  width: 56px;
+  width: 52px;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -16,8 +20,8 @@
   background: var(--panel);
   border: 1px solid var(--panel-border);
   border-radius: 6px;
-  padding: 8px 4px;
-  gap: 6px;
+  padding: 6px 4px;
+  gap: 4px;
 }
 
 .pileLabel {
@@ -28,21 +32,24 @@
 }
 
 .pileCount {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--fg);
 }
 
 .hand {
   display: flex;
-  align-items: flex-end;
+  align-items: stretch;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   flex: 1;
-  flex-wrap: wrap;
+  min-width: 0;
+  flex-wrap: nowrap;
+  overflow-x: auto;
 }
 
 .emptyHand {
+  align-self: center;
   color: var(--muted);
   font-style: italic;
   padding: 16px 0;
@@ -50,15 +57,16 @@
 
 .card {
   position: relative;
-  width: 130px;
-  min-height: 160px;
-  padding: 26px 10px 10px;
+  width: 110px;
+  flex-shrink: 0;
+  height: 100%;
+  padding: 22px 8px 8px;
   background: var(--panel);
   border: 1px solid var(--panel-border);
   border-radius: 6px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   text-align: left;
   cursor: pointer;
   transition:
@@ -66,10 +74,11 @@
     border-color 80ms ease-out;
   font: inherit;
   color: inherit;
+  overflow: hidden;
 }
 
 .card:hover:not(:disabled) {
-  transform: translateY(-4px);
+  transform: translateY(-3px);
   border-color: var(--player);
 }
 
@@ -82,37 +91,40 @@
   border-color: var(--player);
   outline: 2px solid var(--player);
   outline-offset: 2px;
-  transform: translateY(-6px);
+  transform: translateY(-5px);
 }
 
 .cost {
   position: absolute;
-  top: 6px;
-  left: 8px;
+  top: 4px;
+  left: 6px;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 12px;
   color: var(--player);
   background: rgba(244, 162, 60, 0.16);
-  padding: 1px 7px;
+  padding: 1px 6px;
   border-radius: 999px;
 }
 
 .name {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--fg);
+  line-height: 1.15;
 }
 
 .archetype {
-  font-size: 10px;
+  font-size: 9px;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 
 .description {
-  font-size: 12px;
-  line-height: 1.35;
+  font-size: 10.5px;
+  line-height: 1.3;
   color: var(--fg);
   flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
