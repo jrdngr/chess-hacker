@@ -62,6 +62,15 @@ describe("ChoseEngine", () => {
     expect(e.outcome()).toEqual({ kind: "draw", reason: "insufficient-material" });
   });
 
+  it("lastMove() reports the most recently played move", () => {
+    const e = new ChoseEngine();
+    expect(e.lastMove()).toBeNull();
+    e.move({ from: "e2", to: "e4" });
+    expect(e.lastMove()).toEqual({ from: "e2", to: "e4" });
+    e.move({ from: "c7", to: "c5" });
+    expect(e.lastMove()).toEqual({ from: "c7", to: "c5" });
+  });
+
   it("auto-promotes pawns to queen by default", () => {
     const e = new ChoseEngine("8/P7/8/8/8/8/8/4k2K w - - 0 1");
     const m = e.move({ from: "a7", to: "a8" });

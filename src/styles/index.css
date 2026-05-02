@@ -15,6 +15,7 @@
   --square-light: #ddd6c5;
   --square-dark: #8a8470;
   --square-selected: #f5d76e;
+  --square-last-move: #c5a74a; /* dimmer than --square-selected so an active selection still pops */
   --square-target: #88c08540;
   --square-capture: #d65b5b66;
   --square-check: #d65b5baa;
