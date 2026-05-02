@@ -161,9 +161,7 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
     }
     case "lightning-piece": {
       if (!isPositiveInt(raw.actions)) {
-        errors.push(
-          "'effect.actions' must be a positive integer for kind 'lightning-piece'",
-        );
+        errors.push("'effect.actions' must be a positive integer for kind 'lightning-piece'");
         return null;
       }
       return { kind: "lightning-piece", actions: raw.actions };
@@ -177,9 +175,7 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
     }
     case "place-sanctuary": {
       if (!isPositiveInt(raw.durationTurns)) {
-        errors.push(
-          "'effect.durationTurns' must be a positive integer for kind 'place-sanctuary'",
-        );
+        errors.push("'effect.durationTurns' must be a positive integer for kind 'place-sanctuary'");
         return null;
       }
       return { kind: "place-sanctuary", durationTurns: raw.durationTurns };
@@ -193,9 +189,7 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
         return null;
       }
       if (!isPositiveInt(raw.durationTurns)) {
-        errors.push(
-          "'effect.durationTurns' must be a positive integer for kind 'place-trap'",
-        );
+        errors.push("'effect.durationTurns' must be a positive integer for kind 'place-trap'");
         return null;
       }
       return {
@@ -220,9 +214,7 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
       const drawCount = raw.drawCount;
       const energyGain = raw.energyGain;
       if (typeof drawCount !== "number" || !Number.isInteger(drawCount) || drawCount < 0) {
-        errors.push(
-          "'effect.drawCount' must be a non-negative integer for kind 'sacrifice-piece'",
-        );
+        errors.push("'effect.drawCount' must be a non-negative integer for kind 'sacrifice-piece'");
         return null;
       }
       if (typeof energyGain !== "number" || !Number.isInteger(energyGain) || energyGain < 0) {
@@ -254,9 +246,7 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
     case "gain-energy":
     case "draw":
     case "scry":
-      return tk === "none"
-        ? null
-        : `'${effect.kind}' effect requires target.kind 'none'`;
+      return tk === "none" ? null : `'${effect.kind}' effect requires target.kind 'none'`;
     case "freeze-piece":
     case "root-piece":
     case "disarm-piece":
@@ -268,9 +258,7 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
     case "haste-piece":
     case "empower-piece":
     case "lightning-piece":
-      return tk === "own-piece"
-        ? null
-        : `'${effect.kind}' effect requires target.kind 'own-piece'`;
+      return tk === "own-piece" ? null : `'${effect.kind}' effect requires target.kind 'own-piece'`;
     case "place-wall":
     case "place-sanctuary":
     case "place-trap":
@@ -290,9 +278,7 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
         ? null
         : "'swap-own-pieces' effect requires target.kind 'two-own-pieces'";
     case "marionette":
-      return tk === "marionette"
-        ? null
-        : "'marionette' effect requires target.kind 'marionette'";
+      return tk === "marionette" ? null : "'marionette' effect requires target.kind 'marionette'";
   }
 }
 
@@ -312,7 +298,10 @@ function validateCard(raw: unknown): { card: Card | null; errors: string[] } {
   if (typeof raw.cost !== "number" || !(VALID_COSTS as readonly number[]).includes(raw.cost)) {
     errors.push(`'cost' must be one of ${VALID_COSTS.join(", ")}`);
   }
-  if (typeof raw.rarity !== "string" || !(VALID_RARITIES as readonly string[]).includes(raw.rarity)) {
+  if (
+    typeof raw.rarity !== "string" ||
+    !(VALID_RARITIES as readonly string[]).includes(raw.rarity)
+  ) {
     errors.push(`'rarity' must be one of ${VALID_RARITIES.join(", ")}`);
   }
   if (
@@ -482,9 +471,7 @@ function expandDeck(source: string, json: DeckJson, library: Record<CardId, Card
   }
 
   if (errors.length > 0) {
-    throw new Error(
-      `Failed to load deck '${source}':\n  - ${errors.join("\n  - ")}`,
-    );
+    throw new Error(`Failed to load deck '${source}':\n  - ${errors.join("\n  - ")}`);
   }
   return out;
 }

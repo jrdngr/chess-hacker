@@ -7,7 +7,14 @@
 //
 // Pure TS — no React, no DOM. See architecture.md.
 
-import type { AlgebraicSquare, EmpowerPattern, MatchOutcome, Piece, PieceType, Side } from "../types";
+import type {
+  AlgebraicSquare,
+  EmpowerPattern,
+  MatchOutcome,
+  Piece,
+  PieceType,
+  Side,
+} from "../types";
 
 import {
   STARTING_FEN,

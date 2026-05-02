@@ -4,11 +4,7 @@
 import { describe, expect, it } from "vitest";
 
 import { ChoseEngine } from "./engine";
-import {
-  legalMoves,
-  parseFen,
-  type Overlays,
-} from "./rules";
+import { legalMoves, parseFen, type Overlays } from "./rules";
 
 const baseOverlays = (): Overlays => ({
   walls: new Set(),

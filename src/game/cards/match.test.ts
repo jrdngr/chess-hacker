@@ -414,9 +414,7 @@ describe("playCard — sacrifice / summon / swap / marionette", () => {
     const r = playCard(st, idx, { kind: "square", square: "e3" }, emptyBoard, rng);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.sideEffects).toEqual([
-      { kind: "place-piece", square: "e3", pieceType: "knight" },
-    ]);
+    expect(r.sideEffects).toEqual([{ kind: "place-piece", square: "e3", pieceType: "knight" }]);
     expect(r.state.consumedPile.some((c) => c.id === "conjure-knight")).toBe(true);
   });
 
@@ -430,23 +428,11 @@ describe("playCard — sacrifice / summon / swap / marionette", () => {
       h1: { type: "rook", side: "player" },
     });
 
-    const rDup = playCard(
-      st,
-      idx,
-      { kind: "two-squares", first: "a1", second: "a1" },
-      ctx,
-      rng,
-    );
+    const rDup = playCard(st, idx, { kind: "two-squares", first: "a1", second: "a1" }, ctx, rng);
     expect(rDup.ok).toBe(false);
     if (!rDup.ok) expect(rDup.reason).toBe("target-not-distinct");
 
-    const r = playCard(
-      st,
-      idx,
-      { kind: "two-squares", first: "a1", second: "h1" },
-      ctx,
-      rng,
-    );
+    const r = playCard(st, idx, { kind: "two-squares", first: "a1", second: "h1" }, ctx, rng);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.sideEffects).toEqual([{ kind: "swap-pieces", a: "a1", b: "h1" }]);
@@ -459,23 +445,11 @@ describe("playCard — sacrifice / summon / swap / marionette", () => {
     const idx = st.hand.findIndex((c) => c.id === "marionette");
     const ctx = withPieces({ e7: { type: "pawn", side: "opponent" } });
 
-    const rOwn = playCard(
-      st,
-      idx,
-      { kind: "two-squares", first: "e2", second: "e3" },
-      ctx,
-      rng,
-    );
+    const rOwn = playCard(st, idx, { kind: "two-squares", first: "e2", second: "e3" }, ctx, rng);
     expect(rOwn.ok).toBe(false);
     if (!rOwn.ok) expect(rOwn.reason).toBe("target-not-enemy-piece");
 
-    const r = playCard(
-      st,
-      idx,
-      { kind: "two-squares", first: "e7", second: "e6" },
-      ctx,
-      rng,
-    );
+    const r = playCard(st, idx, { kind: "two-squares", first: "e7", second: "e6" }, ctx, rng);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.sideEffects).toEqual([{ kind: "foreign-move", from: "e7", to: "e6" }]);

@@ -22,14 +22,7 @@
 // both behave identically as blockers. The card layer still tracks
 // expiration; rule logic only sees "is this square walled right now?".
 
-import type {
-  AlgebraicSquare,
-  EmpowerPattern,
-  FileIndex,
-  Piece,
-  RankIndex,
-  Side,
-} from "../types";
+import type { AlgebraicSquare, EmpowerPattern, FileIndex, Piece, RankIndex, Side } from "../types";
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"] as const;
 
