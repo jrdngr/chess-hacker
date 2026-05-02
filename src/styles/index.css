@@ -1,0 +1,74 @@
+/* Global styles. Per docs/design/theme.md: abstract minimalist, two-color player palette. */
+
+:root {
+  --bg: #14161b;
+  --fg: #e8e6df;
+  --muted: #7a7a7a;
+
+  /* Player palette */
+  --player: #f4a23c; /* warm amber */
+  --player-soft: #f4a23c33;
+  --opponent: #6c7df0; /* cool indigo */
+  --opponent-soft: #6c7df033;
+
+  /* Board palette */
+  --square-light: #ddd6c5;
+  --square-dark: #8a8470;
+  --square-selected: #f5d76e;
+  --square-target: #88c08540;
+  --square-capture: #d65b5b66;
+  --square-check: #d65b5baa;
+
+  --panel: #1c1f25;
+  --panel-border: #2c2f35;
+
+  font-family:
+    "Inter",
+    "Helvetica Neue",
+    Helvetica,
+    Arial,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: var(--fg);
+  background: var(--bg);
+
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--fg);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

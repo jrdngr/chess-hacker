@@ -1,0 +1,101 @@
+.boardWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.board {
+  display: flex;
+  flex-direction: column;
+  border: 2px solid var(--panel-border);
+  border-radius: 4px;
+  overflow: hidden;
+  width: min(72vh, 72vw);
+  aspect-ratio: 1 / 1;
+  user-select: none;
+}
+
+.row {
+  display: flex;
+  flex: 1;
+}
+
+.square {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  transition: filter 80ms ease-out;
+  background: var(--square-dark);
+  border-radius: 0;
+}
+
+.square:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.light {
+  background: var(--square-light);
+}
+
+.dark {
+  background: var(--square-dark);
+}
+
+.selected {
+  background: var(--square-selected) !important;
+}
+
+.target::after,
+.targetDot {
+  /* dot drawn in the center of empty target squares */
+}
+
+.targetDot {
+  position: absolute;
+  width: 28%;
+  height: 28%;
+  border-radius: 50%;
+  background: var(--square-target);
+  pointer-events: none;
+}
+
+.target {
+  /* solid color hint also shown via the dot */
+}
+
+.capture {
+  background: var(--square-capture) !important;
+}
+
+.check {
+  background: var(--square-check) !important;
+}
+
+.locked {
+  cursor: default;
+}
+
+.rankLabel,
+.fileLabel {
+  position: absolute;
+  font-size: 10px;
+  color: var(--muted);
+  pointer-events: none;
+  font-weight: 500;
+}
+
+.rankLabel {
+  top: 2px;
+  left: 4px;
+}
+
+.fileLabel {
+  bottom: 2px;
+  right: 4px;
+}
