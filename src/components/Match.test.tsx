@@ -163,13 +163,19 @@ describe("Match (PvP same-screen)", () => {
 /**
  * Build a stub StockfishEngine that resolves a scripted sequence of UCI
  * moves. Each call to getBestMove() returns the next move in the script.
+ *
+ * `searchMovesLog` is appended to with the searchMoves array passed on each
+ * call, so tests can assert the AI was constrained to walled-legal moves.
  */
-function makeFakeAi(moves: string[]): StockfishEngine {
+function makeFakeAi(moves: string[], searchMovesLog?: ReadonlyArray<string>[]): StockfishEngine {
   let idx = 0;
   const fake: Partial<StockfishEngine> = {
     ready: () => Promise.resolve(),
     setPosition: () => {},
-    getBestMove: () => Promise.resolve(moves[idx++] ?? ""),
+    getBestMove: (opts) => {
+      if (searchMovesLog) searchMovesLog.push(opts.searchMoves ?? []);
+      return Promise.resolve(moves[idx++] ?? "");
+    },
     stop: () => {},
     destroy: () => {},
   };
@@ -237,8 +243,9 @@ describe("Match (vs AI)", () => {
     await user.click(squareCell("e4")!);
 
     await waitFor(() => {
-      expect(spy).toHaveBeenCalledWith({ depth: 10 });
+      expect(spy).toHaveBeenCalled();
     });
+    expect(spy.mock.calls[0][0]).toMatchObject({ depth: 10 });
   });
 });
 
@@ -492,5 +499,80 @@ describe("Match (cards — M3)", () => {
   it("local-pvp mode does not render the hand", () => {
     render(<Match initialMode="local-pvp" />);
     expect(screen.queryByRole("list", { name: /^hand$/i })).toBeNull();
+  });
+
+  // ---- M4: AI respects walls / freezes via searchmoves ---------------------
+
+  it("the AI is given UCI searchmoves restricted to our walled-legal set", async () => {
+    const user = userEvent.setup();
+    const calls: ReadonlyArray<string>[] = [];
+    // AI happens to play e7e5 — but the test only cares about the searchMoves
+    // it was given, not the move itself.
+    const ai = makeFakeAi(["e7e5"], calls);
+    render(
+      <Match
+        initialMode="vs-ai"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={ALL_BARRICADE_DECK}
+        rng={makeRng(20)}
+      />,
+    );
+
+    // Drop a wall on e3 — this would cut off any black move that tries to slide
+    // through e3 (none exist immediately, but the wall is on the board).
+    await user.click(findCard("Barricade")!);
+    await user.click(squareCell("e3")!);
+
+    // Make a move so the AI gets a turn.
+    await user.click(squareCell("d2")!);
+    await user.click(squareCell("d4")!);
+
+    await waitFor(() => {
+      expect(squareCell("e5")?.getAttribute("aria-label")).toBe("e5, opponent pawn");
+    });
+
+    expect(calls).toHaveLength(1);
+    const offered = calls[0];
+    // We should have offered the AI a non-trivial set (>=20 plain opening moves).
+    expect(offered.length).toBeGreaterThan(15);
+    // None of the offered moves may LAND on the walled square.
+    for (const uci of offered) {
+      expect(uci.slice(2, 4)).not.toBe("e3");
+    }
+  });
+
+  it("a frozen enemy piece is excluded from the AI's searchmoves", async () => {
+    const user = userEvent.setup();
+    const calls: ReadonlyArray<string>[] = [];
+    const ai = makeFakeAi(["d7d5"], calls);
+    render(
+      <Match
+        initialMode="vs-ai"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={ALL_FROSTBITE_DECK}
+        rng={makeRng(21)}
+      />,
+    );
+
+    // Freeze the black knight on g8.
+    await user.click(findCard("Frostbite")!);
+    await user.click(squareCell("g8")!);
+
+    // Make a move to give the AI its turn.
+    await user.click(squareCell("e2")!);
+    await user.click(squareCell("e4")!);
+
+    await waitFor(() => {
+      expect(squareCell("d5")?.getAttribute("aria-label")).toBe("d5, opponent pawn");
+    });
+
+    expect(calls).toHaveLength(1);
+    const offered = calls[0];
+    // No move from g8 (frozen knight) should appear in the offered set.
+    expect(offered.some((uci) => uci.startsWith("g8"))).toBe(false);
+    // Plenty of other moves should still be on offer.
+    expect(offered.length).toBeGreaterThan(10);
   });
 });

@@ -20,12 +20,20 @@
 //   wrapper itself just resolves the promise; the *caller* (Match) handles
 //   discarding stale answers.
 
-import type { EngineMove } from "../game/chess/engine";
+import type { EngineMove, LegalMove } from "../game/chess/engine";
 import type { AlgebraicSquare } from "../game/types";
 
-export type GoOptions =
+export type GoOptions = (
   | { depth: number; movetimeMs?: never }
-  | { movetimeMs: number; depth?: never };
+  | { movetimeMs: number; depth?: never }
+) & {
+  /**
+   * UCI `searchmoves` filter — restrict Stockfish to only consider these
+   * moves at the root. Used to keep the AI inside our wall/freeze-aware
+   * move set (Stockfish itself doesn't know about overlays).
+   */
+  searchMoves?: ReadonlyArray<string>;
+};
 
 export type StockfishOptions = {
   /** URL of the worker script, relative to the site root. Override for tests. */
@@ -51,7 +59,7 @@ function wasmSupported(): boolean {
 
 /**
  * Parse a UCI bestmove string ("e2e4", "e7e8q", or castling like "e1g1") into
- * the engine's move shape. Castling uses king-from / king-to which chess.js
+ * the engine's move shape. Castling uses king-from / king-to which our engine
  * also accepts directly via the from/to API.
  */
 export function uciToMove(uci: string): EngineMove {
@@ -60,6 +68,11 @@ export function uciToMove(uci: string): EngineMove {
   const to = uci.slice(2, 4) as AlgebraicSquare;
   const promotion = uci.length >= 5 ? (uci[4] as "q" | "r" | "b" | "n") : undefined;
   return promotion ? { from, to, promotion } : { from, to };
+}
+
+/** Format a LegalMove for UCI `searchmoves` (e.g. "e2e4", "e7e8q", "e1g1"). */
+export function legalMoveToUci(m: LegalMove): string {
+  return `${m.from}${m.to}${m.promotion ?? ""}`;
 }
 
 export class StockfishEngine {
@@ -112,11 +125,15 @@ export class StockfishEngine {
     return new Promise<string>((resolve, reject) => {
       this.bestMoveResolve = resolve;
       this.bestMoveReject = reject;
-      const cmd =
+      const head =
         "movetimeMs" in opts && opts.movetimeMs != null
           ? `go movetime ${opts.movetimeMs}`
           : `go depth ${opts.depth ?? 6}`;
-      this.send(cmd);
+      const restrict =
+        opts.searchMoves && opts.searchMoves.length > 0
+          ? ` searchmoves ${opts.searchMoves.join(" ")}`
+          : "";
+      this.send(`${head}${restrict}`);
     });
   }
 

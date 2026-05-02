@@ -6,7 +6,8 @@
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { StockfishEngine, depthForDifficulty, uciToMove } from "./stockfish";
+import { StockfishEngine, depthForDifficulty, legalMoveToUci, uciToMove } from "./stockfish";
+import type { LegalMove } from "../game/chess/engine";
 
 class FakeWorker {
   static instances: FakeWorker[] = [];
@@ -122,6 +123,22 @@ describe("StockfishEngine", () => {
     await expect(p).resolves.toBe("h7h5");
   });
 
+  it("getBestMove with searchMoves restricts the root via UCI searchmoves", async () => {
+    const sf = new StockfishEngine({ workerUrl: "/fake.js" });
+    const w = FakeWorker.instances[0]!;
+    const p = sf.getBestMove({ depth: 6, searchMoves: ["e7e5", "d7d5"] });
+    expect(w.posted.at(-1)).toBe("go depth 6 searchmoves e7e5 d7d5");
+    w.emit("bestmove e7e5");
+    await expect(p).resolves.toBe("e7e5");
+  });
+
+  it("getBestMove omits searchmoves when the list is empty", async () => {
+    const sf = new StockfishEngine({ workerUrl: "/fake.js" });
+    const w = FakeWorker.instances[0]!;
+    sf.getBestMove({ depth: 6, searchMoves: [] });
+    expect(w.posted.at(-1)).toBe("go depth 6");
+  });
+
   it("getBestMove rejects when a search is already in progress", async () => {
     const sf = new StockfishEngine({ workerUrl: "/fake.js" });
     sf.getBestMove({ depth: 4 });
@@ -177,5 +194,32 @@ describe("StockfishEngine", () => {
       w.onmessage?.({ data: 42 as unknown as string } as MessageEvent<string>),
     ).not.toThrow();
     sf.destroy();
+  });
+});
+
+describe("legalMoveToUci", () => {
+  it("formats a normal move as from+to", () => {
+    const m: LegalMove = {
+      from: "e2",
+      to: "e4",
+      san: "e4",
+      isCapture: false,
+      isPromotion: false,
+      isCastle: false,
+    };
+    expect(legalMoveToUci(m)).toBe("e2e4");
+  });
+
+  it("appends the promotion letter for promotions", () => {
+    const m: LegalMove = {
+      from: "e7",
+      to: "e8",
+      promotion: "q",
+      san: "e8=Q",
+      isCapture: false,
+      isPromotion: true,
+      isCastle: false,
+    };
+    expect(legalMoveToUci(m)).toBe("e7e8q");
   });
 });
