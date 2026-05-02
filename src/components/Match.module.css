@@ -7,6 +7,13 @@
   margin: 0 auto;
 }
 
+.boardArea {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
 .sidePanel {
   display: flex;
   flex-direction: column;

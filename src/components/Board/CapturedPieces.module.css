@@ -1,0 +1,30 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  min-height: 28px;
+  padding: 2px 4px;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+
+.cell {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* The Lichess-default SVGs already have outlines; we just shrink them. */
+}
+
+.cell + .cell {
+  /* Slight overlap to mimic Lichess's stacked feel. */
+  margin-left: -6px;
+}
+
+.advantage {
+  margin-left: 8px;
+  color: var(--muted);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}

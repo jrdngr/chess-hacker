@@ -150,6 +150,32 @@ export class ChoseEngine {
     return { from: last.from, to: last.to };
   }
 
+  /**
+   * Captured pieces, partitioned by the side that did the capturing.
+   *
+   *   byPlayer:   opponent pieces the human white side has taken
+   *   byOpponent: player pieces the black side has taken
+   *
+   * Within each list, pieces appear in capture order. Each entry has the
+   * `side` of the captured piece (i.e. the *loser*) so the existing piece
+   * glyphs render correctly.
+   */
+  capturedPieces(): { byPlayer: Piece[]; byOpponent: Piece[] } {
+    const byPlayer: Piece[] = [];
+    const byOpponent: Piece[] = [];
+    for (const m of this.chess.history({ verbose: true })) {
+      if (!m.captured) continue;
+      const capturedSide: Side = m.color === "w" ? "opponent" : "player";
+      const captor: Side = m.color === "w" ? "player" : "opponent";
+      const piece: Piece = {
+        type: PIECE_TYPE_FROM_SYMBOL[m.captured],
+        side: capturedSide,
+      };
+      (captor === "player" ? byPlayer : byOpponent).push(piece);
+    }
+    return { byPlayer, byOpponent };
+  }
+
   // ---- Outcome detection ----------------------------------------------------
 
   inCheck(): boolean {

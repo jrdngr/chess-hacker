@@ -62,6 +62,19 @@ describe("ChoseEngine", () => {
     expect(e.outcome()).toEqual({ kind: "draw", reason: "insufficient-material" });
   });
 
+  it("capturedPieces() partitions captures by captor side", () => {
+    const e = new ChoseEngine();
+    expect(e.capturedPieces()).toEqual({ byPlayer: [], byOpponent: [] });
+    // 1.e4 d5 2.exd5 (white takes black pawn) Qxd5 (black queen takes white pawn)
+    e.move({ from: "e2", to: "e4" });
+    e.move({ from: "d7", to: "d5" });
+    e.move({ from: "e4", to: "d5" });
+    e.move({ from: "d8", to: "d5" });
+    const cap = e.capturedPieces();
+    expect(cap.byPlayer).toEqual([{ type: "pawn", side: "opponent" }]);
+    expect(cap.byOpponent).toEqual([{ type: "pawn", side: "player" }]);
+  });
+
   it("lastMove() reports the most recently played move", () => {
     const e = new ChoseEngine();
     expect(e.lastMove()).toBeNull();

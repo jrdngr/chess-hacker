@@ -18,6 +18,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Board } from "./Board/Board";
+import { CapturedPieces } from "./Board/CapturedPieces";
+import { materialAdvantage } from "./Board/material";
 import { ChoseEngine, type LegalMove } from "../game/chess/engine";
 import {
   StockfishEngine,
@@ -246,6 +248,13 @@ export function Match({
 
   const boardLocked = matchOver || aiThinking;
 
+  // Recompute on each move (version bump invalidates).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const captured = useMemo(() => engine.capturedPieces(), [engine, version]);
+  const playerMaterial = materialAdvantage(captured.byPlayer);
+  const opponentMaterial = materialAdvantage(captured.byOpponent);
+  const playerLead = playerMaterial - opponentMaterial;
+
   return (
     <div className={styles.match}>
       <aside className={styles.sidePanel}>
@@ -326,17 +335,27 @@ export function Match({
         )}
       </aside>
 
-      <Board
-        engine={engine}
-        selected={selected}
-        legalMovesFromSelected={legalFromSelected}
-        controllableSides={controllableSides}
-        onSquareClick={onSquareClick}
-        onSquareDragStart={onSquareDragStart}
-        onSquareDrop={onSquareDrop}
-        onDragCancel={onDragCancel}
-        locked={boardLocked}
-      />
+      <div className={styles.boardArea}>
+        <CapturedPieces
+          pieces={captured.byOpponent}
+          advantage={playerLead < 0 ? -playerLead : undefined}
+        />
+        <Board
+          engine={engine}
+          selected={selected}
+          legalMovesFromSelected={legalFromSelected}
+          controllableSides={controllableSides}
+          onSquareClick={onSquareClick}
+          onSquareDragStart={onSquareDragStart}
+          onSquareDrop={onSquareDrop}
+          onDragCancel={onDragCancel}
+          locked={boardLocked}
+        />
+        <CapturedPieces
+          pieces={captured.byPlayer}
+          advantage={playerLead > 0 ? playerLead : undefined}
+        />
+      </div>
     </div>
   );
 }
