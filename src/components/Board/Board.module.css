@@ -47,7 +47,7 @@
   background: var(--square-dark);
 }
 
-.lastMoveFrom {
+.lastMove {
   background: var(--square-last-move) !important;
 }
 
