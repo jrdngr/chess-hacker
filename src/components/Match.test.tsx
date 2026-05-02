@@ -176,12 +176,8 @@ function makeFakeAi(moves: string[]): StockfishEngine {
   return fake as StockfishEngine;
 }
 
-function endTurnButton(): HTMLElement {
-  return screen.getByRole("button", { name: /^end turn$/i });
-}
-
 describe("Match (vs AI)", () => {
-  it("plays the AI's response after the human moves and ends their turn", async () => {
+  it("plays the AI's response immediately after the human moves", async () => {
     const user = userEvent.setup();
     const ai = makeFakeAi(["e7e5"]);
     render(<Match initialMode="vs-ai" createAi={() => ai} aiMinThinkMs={0} />);
@@ -190,12 +186,7 @@ describe("Match (vs AI)", () => {
     await user.click(squareCell("e2")!);
     await user.click(squareCell("e4")!);
 
-    // The AI does NOT auto-respond — player must click End Turn first.
-    expect(squareCell("e5")?.getAttribute("aria-label")).toBe("e5");
-
-    await user.click(endTurnButton());
-
-    // AI's reply should land on e5 (player turn returns).
+    // The AI auto-responds — moving a piece ends the player's turn.
     await waitFor(() => {
       const e5After = squareCell("e5");
       expect(e5After?.getAttribute("aria-label")).toBe("e5, opponent pawn");
@@ -224,9 +215,8 @@ describe("Match (vs AI)", () => {
     render(<Match initialMode="vs-ai" createAi={() => ai} aiMinThinkMs={300} />);
 
     await user.click(squareCell("e2")!);
-    await user.click(squareCell("e4")!);
     const t0 = performance.now();
-    await user.click(endTurnButton());
+    await user.click(squareCell("e4")!);
 
     await waitFor(() => {
       expect(squareCell("e5")?.getAttribute("aria-label")).toBe("e5, opponent pawn");
@@ -245,24 +235,10 @@ describe("Match (vs AI)", () => {
 
     await user.click(squareCell("e2")!);
     await user.click(squareCell("e4")!);
-    await user.click(endTurnButton());
 
     await waitFor(() => {
       expect(spy).toHaveBeenCalledWith({ depth: 10 });
     });
-  });
-
-  it("End Turn is disabled until the player makes a chess move", async () => {
-    const user = userEvent.setup();
-    const ai = makeFakeAi([]);
-    render(<Match initialMode="vs-ai" createAi={() => ai} aiMinThinkMs={0} />);
-
-    expect(endTurnButton()).toBeDisabled();
-
-    await user.click(squareCell("e2")!);
-    await user.click(squareCell("e4")!);
-
-    expect(endTurnButton()).toBeEnabled();
   });
 });
 
@@ -409,7 +385,7 @@ describe("Match (cards — M3)", () => {
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("1");
   });
 
-  it("plays a card before moving, ends turn, and starts a fresh turn with energy refreshed", async () => {
+  it("plays a card before moving; the move ends the turn and the next turn refreshes energy / hand", async () => {
     const user = userEvent.setup();
     const ai = makeFakeAi(["e7e5"]);
     render(
@@ -425,12 +401,9 @@ describe("Match (cards — M3)", () => {
     await user.click(findCard("Surge")!);
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("4");
 
-    // Make a chess move.
+    // Make a chess move — this ends the turn, AI auto-responds, new turn begins.
     await user.click(squareCell("e2")!);
     await user.click(squareCell("e4")!);
-
-    // End turn → AI moves → next player turn refreshes energy back to 3 and refills hand.
-    await user.click(endTurnButton());
 
     await waitFor(() => {
       expect(squareCell("e5")?.getAttribute("aria-label")).toBe("e5, opponent pawn");
@@ -460,7 +433,6 @@ describe("Match (cards — M3)", () => {
 
     await user.click(squareCell("e2")!);
     await user.click(squareCell("e4")!);
-    await user.click(endTurnButton());
 
     await waitFor(() => {
       expect(squareCell("d5")?.getAttribute("aria-label")).toBe("d5, opponent pawn");
@@ -468,6 +440,32 @@ describe("Match (cards — M3)", () => {
 
     // After the AI's turn, the freeze on e7 should have expired.
     expect(squareCell("e7")?.getAttribute("aria-label") ?? "").not.toMatch(/frozen/);
+  });
+
+  it("once the player has moved a piece, cards are no longer playable that turn", async () => {
+    const user = userEvent.setup();
+    // AI never moves so we stay paused on the AI's turn after the player moves.
+    const ai = makeFakeAi([]);
+    render(
+      <Match
+        initialMode="vs-ai"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={ALL_SURGE_DECK}
+        rng={makeRng(10)}
+      />,
+    );
+
+    // Make a chess move — turn flips to opponent.
+    await user.click(squareCell("e2")!);
+    await user.click(squareCell("e4")!);
+
+    // Now try to play a card — should be disabled.
+    const surge = findCard("Surge")!;
+    expect(surge).toBeDisabled();
+
+    // Energy is unchanged.
+    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("3");
   });
 
   it("clicking the same selected card again cancels targeting", async () => {
@@ -491,9 +489,8 @@ describe("Match (cards — M3)", () => {
     expect(screen.queryByText(/Pick an empty square/i)).toBeNull();
   });
 
-  it("local-pvp mode does not render the hand or End Turn button", () => {
+  it("local-pvp mode does not render the hand", () => {
     render(<Match initialMode="local-pvp" />);
     expect(screen.queryByRole("list", { name: /^hand$/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /^end turn$/i })).toBeNull();
   });
 });
