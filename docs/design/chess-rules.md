@@ -1,0 +1,103 @@
+# Chess Rules
+
+choss uses **standard chess** as its rule baseline. Where this doc says "standard", we mean the FIDE laws of chess as commonly implemented (and as chess.js implements). Cards, artifacts, and bosses can override these rules in specific ways; this doc covers the **defaults**, and `cards.md` / `artifacts.md` / `bosses.md` cover the override mechanisms.
+
+## Win, loss, draw
+
+- **Checkmate** — the side checkmated loses the match. Player checkmating the AI = match win. AI checkmating the player = match loss.
+- **Stalemate** — the side stalemated draws. **Draws count as a run loss.**
+- **50-move rule** — fires; draw → run loss.
+- **Threefold repetition** — fires; draw → run loss.
+- **Insufficient material** — fires; draw → run loss.
+
+The "draw = run loss" treatment is intentional: it pressures players to make decisive plays and prevents stall-strategies for cheap draws. Some players will find this harsh; this is mitigated by the cards giving players powerful tempo and tactical tools. Reconsider after playtesting if it feels unfair.
+
+There is **no clock** and **no move-count cap** in the prototype. Players take as long as they like. (Adding a clock is a future option — see `roadmap/open-questions.md`.)
+
+## Piece movement
+
+Standard chess movement, no override unless specified by an active card / artifact / boss modifier:
+
+- King — 1 square in any direction. Cannot move into check.
+- Queen — sliding any number of squares in any of the 8 directions, blocked by pieces.
+- Rook — sliding orthogonally.
+- Bishop — sliding diagonally.
+- Knight — L-shape (2+1), can jump over pieces.
+- Pawn — 1 square forward (2 from starting rank), captures diagonally.
+
+## Special moves (all enabled)
+
+### Castling
+
+Standard chess castling rules apply:
+
+- King and rook have not moved.
+- No pieces between them.
+- King is not in check.
+- King does not pass through or end on a square attacked by an enemy piece.
+
+In **Royal**, castling is straightforward (pieces start on standard squares).
+
+In **Skirmish**, castling is possible only when the player happens to place their king on its standard square (e1) AND a rook on a standard square (a1 or h1). Most placements won't satisfy this — that's intended.
+
+### En passant
+
+Enabled. Standard rules: when an enemy pawn advances two squares from its starting rank and lands beside one of your pawns, your pawn may, on the very next move only, capture the enemy pawn diagonally as if it had advanced only one square.
+
+Note (see `board.md`): if the en passant capture target square is walled, en passant cannot be performed.
+
+### Pawn promotion
+
+Enabled. A pawn reaching the back rank promotes. The player chooses any piece type **other than king** (typically queen, rook, bishop, or knight).
+
+In **Royal**, promotion is unlimited.
+
+In **Skirmish**, promotion is allowed and the promoted piece exists for the rest of the match only. Promotion does **not** add to the persistent roster (i.e., promoting to queen does not give you a queen for next match's draft / placement).
+
+## Check
+
+A king in check must be the next move's resolution — that move must remove the check. Standard rules.
+
+When evaluating "is this square attacked?" for check / castling purposes, **walls** count as friendly blockers (they block sliding pieces' lines of attack). Square effects do not interact with check evaluation. Zone-control buffs do not interact with check evaluation.
+
+## What cards / artifacts / bosses CAN override
+
+Subject to specific card / artifact / boss text:
+
+- A piece's move set (e.g., "your knights may also move 1 square diagonally").
+- The board (walls, square effects, zone buffs).
+- Resources (energy, hand size, gold).
+- Triggers ("when you check, draw a card").
+- Promotion rules (e.g., "pawns promote on rank 6").
+- Match-end conditions in specific niche cases (e.g., a card might say "if you would lose to checkmate this turn, instead skip the opponent's next move" — rare, deliberately).
+
+## What cards / artifacts / bosses CAN'T override (without explicit text)
+
+- The number of pieces a side has at match start (this is set by mode rules).
+- The 8x8 board geometry.
+- The basic alternation of turns.
+- The player's identity as the side that draws cards (the AI never draws).
+
+## Edge case: when chess rules and card rules conflict
+
+If a card's effect would create a board state inconsistent with standard chess (e.g., multiple kings, kings in check that can't be escaped), the card's effect is the **canonical state** and chess.js (or our chess rule layer) is updated to reflect it. See `technical/chess-integration.md` for how we layer rule extensions over chess.js.
+
+If a card would let the player make a move that puts their own king in check (illegal in standard chess), the card is interpreted strictly: **unless the card explicitly says "you may put your own king in check"**, the move remains illegal. We err toward standard chess conservatism.
+
+## Summary
+
+| Rule                       | Status in prototype                 |
+|----------------------------|-------------------------------------|
+| Standard piece movement    | Enabled, can be extended by cards   |
+| Castling                   | Enabled                             |
+| En passant                 | Enabled                             |
+| Pawn promotion             | Enabled                             |
+| Check / checkmate          | Enabled                             |
+| Stalemate                  | Enabled (= draw = run loss)         |
+| 50-move rule               | Enabled (= draw = run loss)         |
+| Threefold repetition       | Enabled (= draw = run loss)         |
+| Insufficient material draw | Enabled (= draw = run loss)         |
+| Clock / time control       | None                                |
+| Move-count cap             | None                                |
+| Walls block movement       | Yes                                 |
+| Walls block check rays     | Yes (count as friendly blockers)    |
