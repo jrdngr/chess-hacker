@@ -71,6 +71,33 @@ describe("ChoseEngine", () => {
     expect(e.lastMove()).toEqual({ from: "c7", to: "c5" });
   });
 
+  it("castles kingside via king-from / king-to (e1 -> g1)", () => {
+    const e = new ChoseEngine("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1");
+    const moves = e.legalMoves("e1");
+    expect(moves.some((m) => m.to === "g1" && m.isCastle)).toBe(true);
+    const res = e.move({ from: "e1", to: "g1" });
+    expect(res?.isCastle).toBe(true);
+    expect(e.pieceAt("g1")).toEqual({ type: "king", side: "player" });
+    expect(e.pieceAt("f1")).toEqual({ type: "rook", side: "player" });
+    expect(e.pieceAt("e1")).toBeNull();
+    expect(e.pieceAt("h1")).toBeNull();
+  });
+
+  it("castles queenside via king-from / king-to (e1 -> c1)", () => {
+    const e = new ChoseEngine("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1");
+    const res = e.move({ from: "e1", to: "c1" });
+    expect(res?.isCastle).toBe(true);
+    expect(e.pieceAt("c1")).toEqual({ type: "king", side: "player" });
+    expect(e.pieceAt("d1")).toEqual({ type: "rook", side: "player" });
+    expect(e.pieceAt("a1")).toBeNull();
+  });
+
+  it("rejects king-onto-rook (e1 -> h1) — that is not how castling is encoded", () => {
+    const e = new ChoseEngine("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1");
+    const res = e.move({ from: "e1", to: "h1" });
+    expect(res).toBeNull();
+  });
+
   it("auto-promotes pawns to queen by default", () => {
     const e = new ChoseEngine("8/P7/8/8/8/8/8/4k2K w - - 0 1");
     const m = e.move({ from: "a7", to: "a8" });

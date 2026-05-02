@@ -25,9 +25,16 @@ Color choices are **functional first, aesthetic second**. Colorblind accessibili
 
 ### Pieces
 
-We render the **classical chess piece silhouettes** (king with cross, queen with multi-pointed crown, rook battlements, bishop mitre, knight horse-head, pawn). Same shape for both sides; the player palette colors the fill, and a dark stroke keeps the silhouette readable on light squares.
+We render the **Lichess default piece set** (Cburnett SVGs by Maurizio
+Monge, CC-BY-SA 3.0). Files live under `public/pieces/{w,b}{K,Q,R,B,N,P}.svg`
+and are loaded as plain `<img>` elements.
 
-This is a deliberate departure from a stricter "purely abstract" treatment: in playtesting, geometric glyphs read as ambiguous on a busy board. Traditional silhouettes are universally recognizable and let the rest of the UI stay minimalist.
+This is a deliberate departure from a "purely abstract" treatment: in
+playtesting, geometric glyphs read as ambiguous on a busy board. Cburnett is
+universally recognizable to chess players, free, and lets the rest of the UI
+stay minimalist. The white/black two-color scheme baked into the SVGs
+replaces the earlier amber/indigo palette for pieces. The "to move" indicator
+in the side panel still uses the warm/cool accent colors.
 
 All pieces fit comfortably within a board square, with consistent visual weight. Selection state shows a glow / outline highlight.
 

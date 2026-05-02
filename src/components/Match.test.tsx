@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { Match } from "./Match";
@@ -9,6 +9,37 @@ function squareCell(aria: string): HTMLElement | undefined {
   return screen
     .getAllByRole("gridcell")
     .find((el) => (el.getAttribute("aria-label") ?? "").startsWith(aria));
+}
+
+/**
+ * Simulate an HTML5 drag-and-drop sequence between two squares. We share a
+ * single DataTransfer-like object across the events so handlers that read
+ * setData/getData see consistent state.
+ */
+function dragSquare(from: HTMLElement, to: HTMLElement) {
+  const data: Record<string, string> = {};
+  const types: string[] = [];
+  const dataTransfer = {
+    effectAllowed: "all",
+    dropEffect: "move",
+    types,
+    setData(format: string, value: string) {
+      data[format] = value;
+      if (!types.includes(format)) types.push(format);
+    },
+    getData(format: string) {
+      return data[format] ?? "";
+    },
+    clearData() {
+      for (const k of Object.keys(data)) delete data[k];
+      types.length = 0;
+    },
+  } as unknown as DataTransfer;
+
+  fireEvent.dragStart(from, { dataTransfer });
+  fireEvent.dragOver(to, { dataTransfer });
+  fireEvent.drop(to, { dataTransfer });
+  fireEvent.dragEnd(from, { dataTransfer });
 }
 
 describe("Match (PvP same-screen)", () => {
@@ -52,6 +83,78 @@ describe("Match (PvP same-screen)", () => {
       .getAllByRole("gridcell")
       .filter((el) => /move|capture/.test(el.getAttribute("aria-label") ?? ""));
     expect(targetCells).toHaveLength(0);
+  });
+
+  it("castles kingside by clicking king then clicking g1 (two squares right)", async () => {
+    const user = userEvent.setup();
+    render(<Match initialMode="local-pvp" initialFen="r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1" />);
+
+    await user.click(squareCell("e1")!);
+    // g1 should be highlighted as a legal target.
+    expect(squareCell("g1")?.getAttribute("aria-label")).toMatch(/move/);
+
+    await user.click(squareCell("g1")!);
+
+    expect(squareCell("g1")?.getAttribute("aria-label")).toBe("g1, player king");
+    expect(squareCell("f1")?.getAttribute("aria-label")).toBe("f1, player rook");
+    expect(squareCell("e1")?.getAttribute("aria-label")).toBe("e1");
+    expect(squareCell("h1")?.getAttribute("aria-label")).toBe("h1");
+  });
+
+  it("castles queenside by clicking king then clicking c1 (two squares left)", async () => {
+    const user = userEvent.setup();
+    render(<Match initialMode="local-pvp" initialFen="r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1" />);
+
+    await user.click(squareCell("e1")!);
+    expect(squareCell("c1")?.getAttribute("aria-label")).toMatch(/move/);
+    await user.click(squareCell("c1")!);
+
+    expect(squareCell("c1")?.getAttribute("aria-label")).toBe("c1, player king");
+    expect(squareCell("d1")?.getAttribute("aria-label")).toBe("d1, player rook");
+    expect(squareCell("a1")?.getAttribute("aria-label")).toBe("a1");
+  });
+
+  it("castles kingside via drag: dragging the king two squares right (e1 -> g1)", () => {
+    render(<Match initialMode="local-pvp" initialFen="r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1" />);
+
+    dragSquare(squareCell("e1")!, squareCell("g1")!);
+
+    expect(squareCell("g1")?.getAttribute("aria-label")).toBe("g1, player king");
+    expect(squareCell("f1")?.getAttribute("aria-label")).toBe("f1, player rook");
+    expect(squareCell("e1")?.getAttribute("aria-label")).toBe("e1");
+    expect(squareCell("h1")?.getAttribute("aria-label")).toBe("h1");
+  });
+
+  it("dragging the king onto the rook does NOT castle — drop is rejected, board unchanged", () => {
+    render(<Match initialMode="local-pvp" initialFen="r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1" />);
+
+    dragSquare(squareCell("e1")!, squareCell("h1")!);
+
+    expect(squareCell("e1")?.getAttribute("aria-label")).toBe("e1, player king");
+    expect(squareCell("h1")?.getAttribute("aria-label")).toBe("h1, player rook");
+  });
+
+  it("clicking the king then clicking a friendly rook does NOT castle — it reselects the rook", async () => {
+    const user = userEvent.setup();
+    render(<Match initialMode="local-pvp" initialFen="r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1" />);
+
+    await user.click(squareCell("e1")!);
+    await user.click(squareCell("h1")!);
+
+    // King is still on e1; rook is still on h1.
+    expect(squareCell("e1")?.getAttribute("aria-label")).toBe("e1, player king");
+    expect(squareCell("h1")?.getAttribute("aria-label")).toMatch(/^h1, player rook/);
+
+    // Rook is now selected: its legal moves are highlighted (h1 has friendly rook
+    // moves along its rank and file).
+    const rookTargets = screen
+      .getAllByRole("gridcell")
+      .filter((el) => /move|capture/.test(el.getAttribute("aria-label") ?? ""));
+    expect(rookTargets.length).toBeGreaterThan(0);
+    // None of the rook's legal moves should be e1 (the king is still there).
+    expect(
+      rookTargets.find((el) => (el.getAttribute("aria-label") ?? "").startsWith("e1")),
+    ).toBeUndefined();
   });
 });
 
