@@ -10,7 +10,7 @@ export function App() {
     <div className={styles.app}>
       <header className={styles.header}>
         <h1 className={styles.title}>choss</h1>
-        <span className={styles.tag}>vs Stockfish · M2 prototype</span>
+        <span className={styles.tag}>cards · M3 prototype</span>
       </header>
       <main className={styles.main}>
         <Match />

@@ -133,3 +133,32 @@
   margin-top: auto;
   align-self: stretch;
 }
+
+.energy {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.energyValue {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--player);
+}
+
+.energyMax {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.endTurn {
+  background: rgba(244, 162, 60, 0.16);
+  border-color: var(--player);
+  color: var(--fg);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.endTurn:hover:not(:disabled) {
+  background: rgba(244, 162, 60, 0.28);
+}

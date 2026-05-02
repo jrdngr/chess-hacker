@@ -1,0 +1,118 @@
+.handArea {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 12px;
+  padding: 0 8px;
+}
+
+.pile {
+  width: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  padding: 8px 4px;
+  gap: 6px;
+}
+
+.pileLabel {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.pileCount {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--fg);
+}
+
+.hand {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 8px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.emptyHand {
+  color: var(--muted);
+  font-style: italic;
+  padding: 16px 0;
+}
+
+.card {
+  position: relative;
+  width: 130px;
+  min-height: 160px;
+  padding: 26px 10px 10px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform 80ms ease-out,
+    border-color 80ms ease-out;
+  font: inherit;
+  color: inherit;
+}
+
+.card:hover:not(:disabled) {
+  transform: translateY(-4px);
+  border-color: var(--player);
+}
+
+.card.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.card.targeting {
+  border-color: var(--player);
+  outline: 2px solid var(--player);
+  outline-offset: 2px;
+  transform: translateY(-6px);
+}
+
+.cost {
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--player);
+  background: rgba(244, 162, 60, 0.16);
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+
+.name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.archetype {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.description {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--fg);
+  flex: 1;
+}
