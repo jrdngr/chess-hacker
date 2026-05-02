@@ -5,7 +5,7 @@ Per-card reference for choss. The mechanics doc is [`docs/design/cards.md`](../d
 ## Layout
 
 - [`keywords.md`](keywords.md) — every effect keyword (Freeze, Root, Disarm, Compel, Shield, Haste, Empower, Wall, Sanctuary, Trap, Cycle, Consume) with full rules and edge cases.
-- [`starter-deck.md`](starter-deck.md) — the 10 cards every fresh run begins with.
+- [`starter-deck.md`](starter-deck.md) — the cards every fresh run begins with (currently one of every card in the library).
 - One file per card type:
   - [`tempo.md`](tempo.md) — extra/chained moves
   - [`spatial.md`](spatial.md) — walls, sanctuaries, traps
