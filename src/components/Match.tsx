@@ -52,13 +52,7 @@ import {
   type Rng,
 } from "../game/cards/match";
 import { makeStarterDeck } from "../game/cards/library";
-import type {
-  AlgebraicSquare,
-  Card,
-  MatchCardState,
-  MatchOutcome,
-  Side,
-} from "../game/types";
+import type { AlgebraicSquare, Card, MatchCardState, MatchOutcome, Side } from "../game/types";
 
 import styles from "./Match.module.css";
 
@@ -155,10 +149,7 @@ export function Match({
     () => new Set(cardState.freezes.map((f) => f.square)),
     [cardState.freezes],
   );
-  const rootedSet = useMemo(
-    () => new Set(cardState.roots.map((r) => r.square)),
-    [cardState.roots],
-  );
+  const rootedSet = useMemo(() => new Set(cardState.roots.map((r) => r.square)), [cardState.roots]);
   const disarmedSet = useMemo(
     () => new Set(cardState.disarms.map((d) => d.square)),
     [cardState.disarms],
@@ -614,7 +605,13 @@ export function Match({
             cancelTargeting();
             return;
           }
-          if (tryResolveCard(targetingIndex, { kind: "two-squares", first: partialTarget, second: sq }))
+          if (
+            tryResolveCard(targetingIndex, {
+              kind: "two-squares",
+              first: partialTarget,
+              second: sq,
+            })
+          )
             return;
           cancelTargeting();
           return;

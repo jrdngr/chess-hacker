@@ -63,11 +63,7 @@ export function ScryModal({ cards, onConfirm }: Props) {
           ))}
         </ul>
         <div className={styles.actions}>
-          <button
-            type="button"
-            className={styles.confirmButton}
-            onClick={() => onConfirm(order)}
-          >
+          <button type="button" className={styles.confirmButton} onClick={() => onConfirm(order)}>
             Confirm
           </button>
         </div>

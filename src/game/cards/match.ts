@@ -237,11 +237,7 @@ export function playCard(
   return { ok: true, state: next, sideEffects };
 }
 
-function validateTarget(
-  card: Card,
-  target: PlayTarget,
-  ctx: BoardContext,
-): PlayCardFailure | null {
+function validateTarget(card: Card, target: PlayTarget, ctx: BoardContext): PlayCardFailure | null {
   switch (card.target.kind) {
     case "none":
       return null;
