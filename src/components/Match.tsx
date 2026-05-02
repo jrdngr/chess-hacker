@@ -123,6 +123,16 @@ export function Match({
     };
   }, [mode, createAi]);
 
+  // Sync the current wall + freeze overlays to the engine BEFORE any engine
+  // method (legalMoves / inCheck / outcome) is called this render. The engine
+  // is mutable and shared, so setting it here is idempotent and inexpensive.
+  const walledSet = useMemo(() => new Set(cardState.walls.map((w) => w.square)), [cardState.walls]);
+  const frozenSet = useMemo(
+    () => new Set(cardState.freezes.map((f) => f.square)),
+    [cardState.freezes],
+  );
+  engine.setOverlays(walledSet, frozenSet);
+
   const turn: Side = engine.turn();
   const outcome: MatchOutcome = engine.outcome();
   const matchOver = outcome.kind !== "ongoing";
@@ -135,13 +145,14 @@ export function Match({
     return new Set<Side>([HUMAN_SIDE]);
   }, [mode]);
 
-  // Legal moves originating from the selected square.
+  // Legal moves originating from the selected square. Recomputed when the
+  // chess position OR the wall/freeze overlays change.
   const legalFromSelected: LegalMove[] = useMemo(() => {
     if (!selected) return [];
     return engine.legalMoves(selected);
-    // version invalidates the memo after a move
+    // version invalidates after a move; walledSet/frozenSet after a card play
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [engine, selected, version]);
+  }, [engine, selected, version, walledSet, frozenSet]);
 
   const targetingCard: Card | null =
     targetingIndex !== null ? (cardState.hand[targetingIndex] ?? null) : null;
@@ -184,7 +195,16 @@ export function Match({
         if (cancelled || generationRef.current !== myGen) return;
         if (!uci) return; // no legal move (mate / stalemate handled separately)
         const move = uciToMove(uci);
-        engine.move(move);
+        // Stockfish doesn't know about walls / freezes — its move may be
+        // illegal under our overlay-aware rules (e.g. it tried to slide
+        // through a walled square, or chose a frozen piece). If so, fall
+        // back to the first legal move we have. This keeps the AI playing
+        // even though it is, for now, unaware of overlays. A proper
+        // MultiPV-and-filter integration is M4 work.
+        if (!engine.move(move)) {
+          const fallback = engine.legalMoves()[0];
+          if (fallback) engine.move(fallback);
+        }
         setVersion((v) => v + 1);
         // Roll over to the next player turn (refill + energy reset + tick overlays).
         if (cardsEnabled) {
@@ -220,7 +240,7 @@ export function Match({
   /**
    * Try to play `target` from `selected`. Returns true if a move was made.
    * Making a move ends the player's turn — the AI loop kicks in via
-   * `isAiTurn` once chess.js flips the turn.
+   * `isAiTurn` once the engine flips the turn.
    */
   const tryPlay = useCallback(
     (from: AlgebraicSquare, to: AlgebraicSquare): boolean => {
@@ -407,12 +427,6 @@ export function Match({
   const playerMaterial = materialAdvantage(captured.byPlayer);
   const opponentMaterial = materialAdvantage(captured.byOpponent);
   const playerLead = playerMaterial - opponentMaterial;
-
-  const walledSet = useMemo(() => new Set(cardState.walls.map((w) => w.square)), [cardState.walls]);
-  const frozenSet = useMemo(
-    () => new Set(cardState.freezes.map((f) => f.square)),
-    [cardState.freezes],
-  );
 
   return (
     <div className={styles.match}>

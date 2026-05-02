@@ -1,0 +1,715 @@
+// Wall- and freeze-aware chess rules.
+//
+// We previously wrapped chess.js, but chess.js doesn't know about walls or
+// frozen pieces and its internals don't expose enough hooks to teach it.
+// Rather than wedge overlays into chess.js, every move-generation /
+// check-evaluation decision goes through this module. We own the position,
+// the FEN parser, and the rule logic. Stockfish (which still operates on a
+// plain FEN with no overlays) is now the only consumer that doesn't see
+// walls — see Match.tsx for the "AI move illegal under our rules" fallback.
+//
+// Rules summary (per docs/design/board.md and docs/design/cards.md):
+//   - Walls block all movement: knights cannot land on a walled square;
+//     sliding pieces cannot land on or pass through one; pawn pushes /
+//     captures cannot enter a wall; the king cannot castle through one.
+//   - Walls also act as opaque blockers for attack rays — i.e. a wall
+//     between an attacker and a target stops the attacker from defending or
+//     checking through it.
+//   - Frozen pieces lose all movement, attacks, and defence for the duration
+//     of the freeze. A frozen rook does not defend a queen on the same file.
+//
+// We don't yet model destructible blocks distinctly from permanent walls —
+// both behave identically as blockers. The card layer still tracks
+// expiration; rule logic only sees "is this square walled right now?".
+
+import type { AlgebraicSquare, FileIndex, Piece, RankIndex, Side } from "../types";
+
+const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"] as const;
+
+export function squareName(file: FileIndex, rank: RankIndex): AlgebraicSquare {
+  return `${FILES[file]}${rank + 1}`;
+}
+
+export function squareCoords(s: AlgebraicSquare): { file: FileIndex; rank: RankIndex } {
+  const file = FILES.indexOf(s[0] as (typeof FILES)[number]);
+  const rank = Number(s[1]) - 1;
+  return { file: file as FileIndex, rank: rank as RankIndex };
+}
+
+export const STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+export type CastlingRights = { K: boolean; Q: boolean; k: boolean; q: boolean };
+
+export type Position = {
+  /** Square → piece. Empty squares have no entry. */
+  pieces: ReadonlyMap<AlgebraicSquare, Piece>;
+  /** Side to move. */
+  turn: Side;
+  castling: CastlingRights;
+  /**
+   * En-passant target square — i.e. the square *behind* the pawn that just
+   * moved two ranks. Null if no double-push was the previous move.
+   */
+  enPassant: AlgebraicSquare | null;
+  halfmove: number;
+  fullmove: number;
+};
+
+export type Overlays = {
+  walls: ReadonlySet<AlgebraicSquare>;
+  freezes: ReadonlySet<AlgebraicSquare>;
+};
+
+export const NO_OVERLAYS: Overlays = { walls: new Set(), freezes: new Set() };
+
+export type RuleMove = {
+  from: AlgebraicSquare;
+  to: AlgebraicSquare;
+  promotion?: "q" | "r" | "b" | "n";
+  /** En-passant capture: square of the captured pawn (differs from `to`). */
+  epVictim?: AlgebraicSquare;
+  /** Castling side; only set on king's two-square move. */
+  castle?: "K" | "Q";
+  isCapture: boolean;
+  capturedPiece?: Piece;
+  isDouble: boolean;
+  isPromotion: boolean;
+};
+
+// ---- FEN parse / serialize -------------------------------------------------
+
+const PIECE_FROM_FEN: Record<string, Piece> = {
+  p: { type: "pawn", side: "opponent" },
+  n: { type: "knight", side: "opponent" },
+  b: { type: "bishop", side: "opponent" },
+  r: { type: "rook", side: "opponent" },
+  q: { type: "queen", side: "opponent" },
+  k: { type: "king", side: "opponent" },
+  P: { type: "pawn", side: "player" },
+  N: { type: "knight", side: "player" },
+  B: { type: "bishop", side: "player" },
+  R: { type: "rook", side: "player" },
+  Q: { type: "queen", side: "player" },
+  K: { type: "king", side: "player" },
+};
+
+function fenCharFor(piece: Piece): string {
+  const map = { pawn: "p", knight: "n", bishop: "b", rook: "r", queen: "q", king: "k" } as const;
+  const c = map[piece.type];
+  return piece.side === "player" ? c.toUpperCase() : c;
+}
+
+export function parseFen(fen: string): Position {
+  const parts = fen.trim().split(/\s+/);
+  if (parts.length < 4) throw new Error(`invalid FEN: ${fen}`);
+  const [board, turnPart, castlingPart, epPart, halfmovePart = "0", fullmovePart = "1"] = parts;
+
+  const pieces = new Map<AlgebraicSquare, Piece>();
+  const ranks = board.split("/");
+  if (ranks.length !== 8) throw new Error(`invalid FEN board: ${board}`);
+  for (let r = 0; r < 8; r++) {
+    const row = ranks[r];
+    let f = 0;
+    for (const c of row) {
+      if (/[1-8]/.test(c)) {
+        f += Number(c);
+      } else if (PIECE_FROM_FEN[c]) {
+        const rank = (7 - r) as RankIndex; // FEN rank 8 first
+        pieces.set(squareName(f as FileIndex, rank), PIECE_FROM_FEN[c]);
+        f++;
+      } else {
+        throw new Error(`invalid FEN char: ${c}`);
+      }
+    }
+    if (f !== 8) throw new Error(`invalid FEN row width: ${row}`);
+  }
+
+  const turn: Side = turnPart === "w" ? "player" : "opponent";
+
+  const castling: CastlingRights = {
+    K: castlingPart.includes("K"),
+    Q: castlingPart.includes("Q"),
+    k: castlingPart.includes("k"),
+    q: castlingPart.includes("q"),
+  };
+
+  const enPassant = epPart === "-" ? null : epPart;
+  const halfmove = Number(halfmovePart) || 0;
+  const fullmove = Number(fullmovePart) || 1;
+
+  return { pieces, turn, castling, enPassant, halfmove, fullmove };
+}
+
+export function serializeFen(pos: Position): string {
+  const ranks: string[] = [];
+  for (let r = 7; r >= 0; r--) {
+    let row = "";
+    let empty = 0;
+    for (let f = 0; f < 8; f++) {
+      const sq = squareName(f as FileIndex, r as RankIndex);
+      const p = pos.pieces.get(sq);
+      if (!p) {
+        empty++;
+        continue;
+      }
+      if (empty) {
+        row += String(empty);
+        empty = 0;
+      }
+      row += fenCharFor(p);
+    }
+    if (empty) row += String(empty);
+    ranks.push(row);
+  }
+  const turn = pos.turn === "player" ? "w" : "b";
+  let castling = "";
+  if (pos.castling.K) castling += "K";
+  if (pos.castling.Q) castling += "Q";
+  if (pos.castling.k) castling += "k";
+  if (pos.castling.q) castling += "q";
+  if (!castling) castling = "-";
+  const ep = pos.enPassant ?? "-";
+  return `${ranks.join("/")} ${turn} ${castling} ${ep} ${pos.halfmove} ${pos.fullmove}`;
+}
+
+// ---- Move geometry ---------------------------------------------------------
+
+const KNIGHT_DELTAS: ReadonlyArray<readonly [number, number]> = [
+  [1, 2],
+  [2, 1],
+  [-1, 2],
+  [-2, 1],
+  [1, -2],
+  [2, -1],
+  [-1, -2],
+  [-2, -1],
+];
+const ROOK_DIRS: ReadonlyArray<readonly [number, number]> = [
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+  [0, -1],
+];
+const BISHOP_DIRS: ReadonlyArray<readonly [number, number]> = [
+  [1, 1],
+  [-1, 1],
+  [1, -1],
+  [-1, -1],
+];
+const QUEEN_DIRS: ReadonlyArray<readonly [number, number]> = [...ROOK_DIRS, ...BISHOP_DIRS];
+const KING_DIRS = QUEEN_DIRS;
+
+function inBounds(file: number, rank: number): boolean {
+  return file >= 0 && file < 8 && rank >= 0 && rank < 8;
+}
+function sqAt(file: number, rank: number): AlgebraicSquare {
+  return squareName(file as FileIndex, rank as RankIndex);
+}
+const opp = (s: Side): Side => (s === "player" ? "opponent" : "player");
+
+// ---- Attacks ---------------------------------------------------------------
+
+/**
+ * True iff `target` is attacked by any piece of `attacker` side, accounting
+ * for walls (block sliding rays) and freezes (frozen pieces don't attack).
+ *
+ * Used both for "is the king in check?" and for "would the king be safe
+ * stepping to this square?". Knights still jump over walls — but they
+ * cannot LAND on one (that's a destination check, not an attack check).
+ */
+export function isSquareAttacked(
+  pos: Position,
+  overlays: Overlays,
+  target: AlgebraicSquare,
+  attacker: Side,
+): boolean {
+  const { file: tf, rank: tr } = squareCoords(target);
+  const isFrozen = (sq: AlgebraicSquare) => overlays.freezes.has(sq);
+
+  // Pawn attacks: an attacker pawn diagonally one rank "behind" the target.
+  // Player (white) pawns advance +1 rank → they attack squares on their +1 diag.
+  // So a player pawn attacking `target` sits at (tf±1, tr-1). Opponent: (tf±1, tr+1).
+  const pawnSrcDr = attacker === "player" ? -1 : 1;
+  for (const df of [-1, 1]) {
+    const sf = tf + df;
+    const sr = tr + pawnSrcDr;
+    if (!inBounds(sf, sr)) continue;
+    const sq = sqAt(sf, sr);
+    const p = pos.pieces.get(sq);
+    if (p && p.side === attacker && p.type === "pawn" && !isFrozen(sq)) return true;
+  }
+
+  // Knight attacks
+  for (const [df, dr] of KNIGHT_DELTAS) {
+    const sf = tf + df;
+    const sr = tr + dr;
+    if (!inBounds(sf, sr)) continue;
+    const sq = sqAt(sf, sr);
+    const p = pos.pieces.get(sq);
+    if (p && p.side === attacker && p.type === "knight" && !isFrozen(sq)) return true;
+  }
+
+  // King attacks (one square)
+  for (const [df, dr] of KING_DIRS) {
+    const sf = tf + df;
+    const sr = tr + dr;
+    if (!inBounds(sf, sr)) continue;
+    const sq = sqAt(sf, sr);
+    const p = pos.pieces.get(sq);
+    if (p && p.side === attacker && p.type === "king" && !isFrozen(sq)) return true;
+  }
+
+  // Sliding-piece rays. A wall stops the ray; a piece stops the ray (and
+  // contributes if it matches the ray direction and isn't frozen).
+  for (const [df, dr] of QUEEN_DIRS) {
+    const isDiag = df !== 0 && dr !== 0;
+    let sf = tf + df;
+    let sr = tr + dr;
+    while (inBounds(sf, sr)) {
+      const sq = sqAt(sf, sr);
+      if (overlays.walls.has(sq)) break;
+      const p = pos.pieces.get(sq);
+      if (p) {
+        if (p.side === attacker && !isFrozen(sq)) {
+          if (p.type === "queen") return true;
+          if (isDiag && p.type === "bishop") return true;
+          if (!isDiag && p.type === "rook") return true;
+        }
+        break; // any piece (frozen or not) blocks the ray
+      }
+      sf += df;
+      sr += dr;
+    }
+  }
+
+  return false;
+}
+
+export function findKing(pos: Position, side: Side): AlgebraicSquare | null {
+  for (const [sq, p] of pos.pieces) {
+    if (p.side === side && p.type === "king") return sq;
+  }
+  return null;
+}
+
+export function isInCheck(pos: Position, overlays: Overlays): boolean {
+  const k = findKing(pos, pos.turn);
+  if (!k) return false;
+  return isSquareAttacked(pos, overlays, k, opp(pos.turn));
+}
+
+// ---- Pseudo-legal generation ----------------------------------------------
+
+export function pseudoLegalMoves(
+  pos: Position,
+  overlays: Overlays,
+  fromSquare?: AlgebraicSquare,
+): RuleMove[] {
+  const out: RuleMove[] = [];
+  if (fromSquare) {
+    const piece = pos.pieces.get(fromSquare);
+    if (!piece || piece.side !== pos.turn) return out;
+    if (overlays.freezes.has(fromSquare)) return out;
+    addPieceMoves(out, fromSquare, piece, pos, overlays);
+    return out;
+  }
+  for (const [sq, piece] of pos.pieces) {
+    if (piece.side !== pos.turn) continue;
+    if (overlays.freezes.has(sq)) continue;
+    addPieceMoves(out, sq, piece, pos, overlays);
+  }
+  return out;
+}
+
+function addPieceMoves(
+  out: RuleMove[],
+  from: AlgebraicSquare,
+  piece: Piece,
+  pos: Position,
+  overlays: Overlays,
+): void {
+  switch (piece.type) {
+    case "pawn":
+      addPawnMoves(out, from, piece, pos, overlays);
+      break;
+    case "knight":
+      addJumpMoves(out, from, piece, pos, overlays, KNIGHT_DELTAS);
+      break;
+    case "bishop":
+      addSlideMoves(out, from, piece, pos, overlays, BISHOP_DIRS);
+      break;
+    case "rook":
+      addSlideMoves(out, from, piece, pos, overlays, ROOK_DIRS);
+      break;
+    case "queen":
+      addSlideMoves(out, from, piece, pos, overlays, QUEEN_DIRS);
+      break;
+    case "king":
+      addKingMoves(out, from, piece, pos, overlays);
+      break;
+  }
+}
+
+function addJumpMoves(
+  out: RuleMove[],
+  from: AlgebraicSquare,
+  piece: Piece,
+  pos: Position,
+  overlays: Overlays,
+  deltas: ReadonlyArray<readonly [number, number]>,
+): void {
+  const { file, rank } = squareCoords(from);
+  for (const [df, dr] of deltas) {
+    const tf = file + df;
+    const tr = rank + dr;
+    if (!inBounds(tf, tr)) continue;
+    const to = sqAt(tf, tr);
+    if (overlays.walls.has(to)) continue;
+    const occ = pos.pieces.get(to);
+    if (occ && occ.side === piece.side) continue;
+    out.push({
+      from,
+      to,
+      isCapture: !!occ,
+      capturedPiece: occ,
+      isDouble: false,
+      isPromotion: false,
+    });
+  }
+}
+
+function addSlideMoves(
+  out: RuleMove[],
+  from: AlgebraicSquare,
+  piece: Piece,
+  pos: Position,
+  overlays: Overlays,
+  dirs: ReadonlyArray<readonly [number, number]>,
+): void {
+  const { file, rank } = squareCoords(from);
+  for (const [df, dr] of dirs) {
+    let tf = file + df;
+    let tr = rank + dr;
+    while (inBounds(tf, tr)) {
+      const to = sqAt(tf, tr);
+      if (overlays.walls.has(to)) break;
+      const occ = pos.pieces.get(to);
+      if (occ) {
+        if (occ.side !== piece.side) {
+          out.push({
+            from,
+            to,
+            isCapture: true,
+            capturedPiece: occ,
+            isDouble: false,
+            isPromotion: false,
+          });
+        }
+        break;
+      }
+      out.push({ from, to, isCapture: false, isDouble: false, isPromotion: false });
+      tf += df;
+      tr += dr;
+    }
+  }
+}
+
+function addPawnMoves(
+  out: RuleMove[],
+  from: AlgebraicSquare,
+  piece: Piece,
+  pos: Position,
+  overlays: Overlays,
+): void {
+  const { file, rank } = squareCoords(from);
+  const dir = piece.side === "player" ? 1 : -1;
+  const startRank = piece.side === "player" ? 1 : 6;
+  const promoRank = piece.side === "player" ? 7 : 0;
+
+  const pushPromo = (m: Omit<RuleMove, "promotion" | "isPromotion">) => {
+    for (const promo of ["q", "r", "b", "n"] as const) {
+      out.push({ ...m, promotion: promo, isPromotion: true });
+    }
+  };
+
+  // Forward 1 / 2
+  const fr1 = rank + dir;
+  if (inBounds(file, fr1)) {
+    const to1 = sqAt(file, fr1);
+    if (!overlays.walls.has(to1) && !pos.pieces.has(to1)) {
+      if (fr1 === promoRank) {
+        pushPromo({ from, to: to1, isCapture: false, isDouble: false });
+      } else {
+        out.push({ from, to: to1, isCapture: false, isDouble: false, isPromotion: false });
+      }
+      if (rank === startRank) {
+        const fr2 = rank + 2 * dir;
+        const to2 = sqAt(file, fr2);
+        if (!overlays.walls.has(to2) && !pos.pieces.has(to2)) {
+          out.push({ from, to: to2, isCapture: false, isDouble: true, isPromotion: false });
+        }
+      }
+    }
+  }
+
+  // Diagonal captures (incl en passant, incl promotion-on-capture)
+  for (const df of [-1, 1] as const) {
+    const tf = file + df;
+    const tr = rank + dir;
+    if (!inBounds(tf, tr)) continue;
+    const to = sqAt(tf, tr);
+    if (overlays.walls.has(to)) continue;
+    const occ = pos.pieces.get(to);
+    if (occ && occ.side !== piece.side) {
+      if (tr === promoRank) {
+        pushPromo({ from, to, isCapture: true, capturedPiece: occ, isDouble: false });
+      } else {
+        out.push({
+          from,
+          to,
+          isCapture: true,
+          capturedPiece: occ,
+          isDouble: false,
+          isPromotion: false,
+        });
+      }
+    } else if (!occ && pos.enPassant === to) {
+      const epVictim = sqAt(tf, rank);
+      const victim = pos.pieces.get(epVictim);
+      if (victim && victim.type === "pawn" && victim.side !== piece.side) {
+        out.push({
+          from,
+          to,
+          isCapture: true,
+          capturedPiece: victim,
+          isDouble: false,
+          isPromotion: false,
+          epVictim,
+        });
+      }
+    }
+  }
+}
+
+function addKingMoves(
+  out: RuleMove[],
+  from: AlgebraicSquare,
+  piece: Piece,
+  pos: Position,
+  overlays: Overlays,
+): void {
+  addJumpMoves(out, from, piece, pos, overlays, KING_DIRS);
+
+  const them = opp(piece.side);
+  const rights = pos.castling;
+  const homeRank: 0 | 7 = piece.side === "player" ? 0 : 7;
+  const e = sqAt(4, homeRank);
+  if (from !== e) return; // king must be on its starting square
+
+  const tryCastle = (
+    side: "K" | "Q",
+    allowed: boolean,
+    rookSquare: AlgebraicSquare,
+    between: AlgebraicSquare[],
+    pathSquares: AlgebraicSquare[],
+    target: AlgebraicSquare,
+  ) => {
+    if (!allowed) return;
+    const rook = pos.pieces.get(rookSquare);
+    if (!rook || rook.type !== "rook" || rook.side !== piece.side) return;
+    for (const sq of between) {
+      if (pos.pieces.has(sq)) return;
+      if (overlays.walls.has(sq)) return;
+    }
+    for (const sq of pathSquares) {
+      if (isSquareAttacked(pos, overlays, sq, them)) return;
+    }
+    out.push({
+      from,
+      to: target,
+      castle: side,
+      isCapture: false,
+      isDouble: false,
+      isPromotion: false,
+    });
+  };
+
+  if (piece.side === "player") {
+    tryCastle(
+      "K",
+      rights.K,
+      "h1",
+      [sqAt(5, 0), sqAt(6, 0)],
+      [e, sqAt(5, 0), sqAt(6, 0)],
+      sqAt(6, 0),
+    );
+    tryCastle(
+      "Q",
+      rights.Q,
+      "a1",
+      [sqAt(3, 0), sqAt(2, 0), sqAt(1, 0)],
+      [e, sqAt(3, 0), sqAt(2, 0)],
+      sqAt(2, 0),
+    );
+  } else {
+    tryCastle(
+      "K",
+      rights.k,
+      "h8",
+      [sqAt(5, 7), sqAt(6, 7)],
+      [e, sqAt(5, 7), sqAt(6, 7)],
+      sqAt(6, 7),
+    );
+    tryCastle(
+      "Q",
+      rights.q,
+      "a8",
+      [sqAt(3, 7), sqAt(2, 7), sqAt(1, 7)],
+      [e, sqAt(3, 7), sqAt(2, 7)],
+      sqAt(2, 7),
+    );
+  }
+}
+
+// ---- Apply move ------------------------------------------------------------
+
+export function applyMove(pos: Position, m: RuleMove): Position {
+  const pieces = new Map(pos.pieces);
+  const mover = pieces.get(m.from);
+  if (!mover) throw new Error(`applyMove: no piece on ${m.from}`);
+
+  pieces.delete(m.from);
+
+  if (m.castle === "K") {
+    if (mover.side === "player") {
+      pieces.delete("h1");
+      pieces.set("f1", { type: "rook", side: "player" });
+    } else {
+      pieces.delete("h8");
+      pieces.set("f8", { type: "rook", side: "opponent" });
+    }
+  } else if (m.castle === "Q") {
+    if (mover.side === "player") {
+      pieces.delete("a1");
+      pieces.set("d1", { type: "rook", side: "player" });
+    } else {
+      pieces.delete("a8");
+      pieces.set("d8", { type: "rook", side: "opponent" });
+    }
+  }
+
+  if (m.epVictim) pieces.delete(m.epVictim);
+
+  if (m.promotion) {
+    const promoType = ({ q: "queen", r: "rook", b: "bishop", n: "knight" } as const)[m.promotion];
+    pieces.set(m.to, { type: promoType, side: mover.side });
+  } else {
+    pieces.set(m.to, mover);
+  }
+
+  // Castling rights: any king move clears that side's rights; rook moving from
+  // its corner clears that corner's rights; a piece captured on a rook corner
+  // also clears that corner's rights.
+  const castling: CastlingRights = { ...pos.castling };
+  if (mover.type === "king") {
+    if (mover.side === "player") {
+      castling.K = false;
+      castling.Q = false;
+    } else {
+      castling.k = false;
+      castling.q = false;
+    }
+  }
+  if (mover.type === "rook") {
+    if (m.from === "h1") castling.K = false;
+    if (m.from === "a1") castling.Q = false;
+    if (m.from === "h8") castling.k = false;
+    if (m.from === "a8") castling.q = false;
+  }
+  if (m.to === "h1") castling.K = false;
+  if (m.to === "a1") castling.Q = false;
+  if (m.to === "h8") castling.k = false;
+  if (m.to === "a8") castling.q = false;
+
+  let enPassant: AlgebraicSquare | null = null;
+  if (m.isDouble) {
+    const { file, rank } = squareCoords(m.to);
+    const epRank = (mover.side === "player" ? rank - 1 : rank + 1) as RankIndex;
+    enPassant = sqAt(file, epRank);
+  }
+
+  const halfmove = mover.type === "pawn" || m.isCapture ? 0 : pos.halfmove + 1;
+  const fullmove = pos.turn === "opponent" ? pos.fullmove + 1 : pos.fullmove;
+
+  return {
+    pieces,
+    turn: opp(pos.turn),
+    castling,
+    enPassant,
+    halfmove,
+    fullmove,
+  };
+}
+
+// ---- Legal moves -----------------------------------------------------------
+
+export function legalMoves(
+  pos: Position,
+  overlays: Overlays,
+  fromSquare?: AlgebraicSquare,
+): RuleMove[] {
+  const pseudo = pseudoLegalMoves(pos, overlays, fromSquare);
+  const result: RuleMove[] = [];
+  for (const m of pseudo) {
+    const after = applyMove(pos, m);
+    const kingSq = findKing(after, pos.turn);
+    if (!kingSq) {
+      // King missing (shouldn't happen in standard play). Skip.
+      continue;
+    }
+    if (!isSquareAttacked(after, overlays, kingSq, opp(pos.turn))) {
+      result.push(m);
+    }
+  }
+  return result;
+}
+
+// ---- Insufficient material -------------------------------------------------
+
+export function isInsufficientMaterial(pos: Position): boolean {
+  type Inv = { knights: number; bishopColors: Set<number>; otherCount: number };
+  const sides: Record<Side, Inv> = {
+    player: { knights: 0, bishopColors: new Set(), otherCount: 0 },
+    opponent: { knights: 0, bishopColors: new Set(), otherCount: 0 },
+  };
+  for (const [sq, p] of pos.pieces) {
+    if (p.type === "king") continue;
+    if (p.type === "knight") {
+      sides[p.side].knights++;
+    } else if (p.type === "bishop") {
+      const { file, rank } = squareCoords(sq);
+      sides[p.side].bishopColors.add((file + rank) & 1);
+    } else {
+      // pawn / rook / queen → never insufficient
+      sides[p.side].otherCount++;
+    }
+  }
+  if (sides.player.otherCount > 0 || sides.opponent.otherCount > 0) return false;
+  const totalMinors = (s: Inv) => s.knights + s.bishopColors.size;
+  const pl = totalMinors(sides.player);
+  const op = totalMinors(sides.opponent);
+  // K vs K
+  if (pl === 0 && op === 0) return true;
+  // K vs K+N or K vs K+B (single minor)
+  if ((pl === 0 && op === 1) || (op === 0 && pl === 1)) {
+    // single minor (knight or bishop)
+    return true;
+  }
+  // K+B vs K+B with bishops on same color
+  if (pl === 1 && op === 1 && sides.player.knights === 0 && sides.opponent.knights === 0) {
+    const pc = [...sides.player.bishopColors][0];
+    const oc = [...sides.opponent.bishopColors][0];
+    if (pc !== undefined && oc !== undefined && pc === oc) return true;
+  }
+  return false;
+}
