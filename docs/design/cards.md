@@ -6,7 +6,7 @@ The card system is the central self-expression mechanic. Cards augment chess; th
 
 - **Hand size:** 5 cards.
 - **Draw timing:** at the **start of each player turn**, draw until your hand is at 5. (A card played during a turn does not get refilled until the next turn unless an effect explicitly says so.)
-- **Run-start deck:** a small starter deck of basic commons (10 cards). See [`../cards/starter-deck.md`](../cards/starter-deck.md) for the composition and rationale.
+- **Run-start deck:** the prototype currently starts with one of every card in the library (19 cards). See [`../cards/starter-deck.md`](../cards/starter-deck.md) for the composition and rationale; this will narrow once drafts and the shop start contributing copies.
 - **Adding to your deck:** post-match draft (pick 1 of 3) and shop purchases. Booster packs may grant 1+ cards.
 - **Removing from your deck:** shop card-removal service (scaling per use).
 

@@ -1,42 +1,49 @@
 # Starter Deck
 
-The 10 cards every fresh run begins with. All commons. The list is biased toward teaching the major effect families — Cycle, Freeze, Wall, Shield, Trap, Haste, Empower — without burying the player in variety.
+The cards every fresh run begins with. **One of every card currently in the library** (19 cards). Deliberately broad — the prototype is small enough that the starter deck simply *is* the entire pool, and the player sees every effect family within their first match.
+
+This will narrow once drafts and the shop start contributing additional copies; for now, "all cards × 1" is the simplest way to playtest every effect.
 
 ## Composition
 
-| Count | Card | Type | Effect taught |
+| Count | Card | Type | Effect |
 |---|---|---|---|
-| 2 | [Reconnaissance](resource.md#reconnaissance) | Resource | Card draw |
-| 2 | [Frostbite](disruption.md#frostbite) | Disruption | Freeze |
-| 2 | [Barricade](spatial.md#barricade) | Spatial | Wall |
-| 1 | [Iron Guard](defensive.md#iron-guard) | Defensive | Shield |
-| 1 | [Snare](spatial.md#snare) | Spatial | Trap (freeze variant) |
-| 1 | [Quickstep](tempo.md#quickstep) | Tempo | Haste |
-| 1 | [Crooked Path](movement-extension.md#crooked-path) | Movement-extension | Empower |
+| 1 | [Reconnaissance](resource.md#reconnaissance) | Resource | Draw 2. |
+| 1 | [Foresight](resource.md#foresight) | Resource | Scry top 3 of deck. |
+| 1 | [Frostbite](disruption.md#frostbite) | Disruption | Freeze enemy piece. |
+| 1 | [Frozen Roots](disruption.md#frozen-roots) | Disruption | Root enemy piece. |
+| 1 | [Fumble](disruption.md#fumble) | Disruption | Disarm enemy piece. |
+| 1 | [Provoke](disruption.md#provoke) | Disruption | Compel enemy piece. |
+| 1 | [Barricade](spatial.md#barricade) | Spatial | Place wall, 3 turns. |
+| 1 | [Hallowed Ground](spatial.md#hallowed-ground) | Spatial | Place sanctuary, 3 turns. |
+| 1 | [Spike Pit](spatial.md#spike-pit) | Spatial | Trap (capture), 4 turns. |
+| 1 | [Snare](spatial.md#snare) | Spatial | Trap (freeze), 3 turns. |
+| 1 | [Spring Trap](spatial.md#spring-trap) | Spatial | Trap (push), 3 turns. |
+| 1 | [Quickstep](tempo.md#quickstep) | Tempo | Haste on own piece. |
+| 1 | [Crooked Path](movement-extension.md#crooked-path) | Movement-extension | Empower own piece. |
+| 1 | [Iron Guard](defensive.md#iron-guard) | Defensive | Shield own piece. |
+| 1 | [Lightning Strike](burst.md#lightning-strike) | Burst | Own piece takes 2 actions. Consume. |
+| 1 | [Martyr's Gift](sacrifice.md#martyrs-gift) | Sacrifice | Destroy own piece; +2 cards, +1 energy. |
+| 1 | [Conjure Knight](summon.md#conjure-knight) | Summon | Summon a knight in own half. Consume. |
+| 1 | [Switch Files](swap.md#switch-files) | Swap/Displace | Swap two of your own pieces. |
+| 1 | [Marionette](swap.md#marionette) | Swap/Displace | Move an enemy piece by its legal moves. Consume. |
 
-**Total: 10 cards.**
+**Total: 19 cards.**
 
 ## Cost curve
 
 | Cost | Count | Cards |
 |---|---|---|
-| 0 | 0 | — |
-| 1 | 7 | 2× Reconnaissance, 2× Barricade, 1× Iron Guard, 1× Snare, 1× Crooked Path |
-| 2 | 3 | 2× Frostbite, 1× Quickstep |
-| 3 | 0 | — |
-| 4 | 0 | — |
+| 0 | 1 | Foresight |
+| 1 | 9 | Reconnaissance, Frozen Roots, Fumble, Barricade, Snare, Spring Trap, Crooked Path, Iron Guard, Martyr's Gift |
+| 2 | 6 | Frostbite, Provoke, Hallowed Ground, Spike Pit, Quickstep, Switch Files |
+| 3 | 2 | Conjure Knight, Marionette |
+| 4 | 1 | Lightning Strike |
 
-Average cost: 1.3. Comfortable inside the 3-energy/turn budget; a typical opening turn is "play 2 cheap cards + make a chess move."
+Average cost: ~1.6. Comfortable inside the 3-energy/turn budget; opening hands of 5 will almost always include something playable on turn 1.
 
 ## Rationale
 
-- **Two copies of the signature commons** (Frostbite, Barricade, Reconnaissance) so they reliably appear in opening hands and a player feels the core flavors of the game (freeze, wall, draw) within their first match.
-- **One copy of each "introductory" new common** (Iron Guard, Snare, Quickstep, Crooked Path) so the player meets Shield, Trap, Haste, and Empower early but doesn't overdraw any single mechanic.
-- **No 0-cost cards.** Surge (the previous 0-cost) is removed from the pool; Foresight (the only remaining 0-cost) is held back from the starter and pushed to drafts/shop, since the design goal here is to teach effect families, not deck cycling.
-- **No Burst, Sacrifice, Summon, or Swap cards.** Those types are higher-stakes and read better when the player has already internalized basic chess + cards interplay; they enter via drafts and shops.
-
-## Deck shape after a full run
-
-The starter deck is intentionally small (10 cards). Across a typical 9-match run with post-match drafts and shop purchases, the deck will roughly double in size. Card removal (a shop service) is the only way the deck shrinks; it scales per use to discourage trimming aggressively early.
-
-See `docs/design/cards.md` for the deck/hand mechanics, `docs/design/economy.md` for shop costs, and `docs/design/progression.md` for run shape.
+- **Maximum coverage.** Every effect keyword (Freeze, Root, Disarm, Compel, Shield, Haste, Empower, Wall, Sanctuary, Trap × 3 variants) is represented. Every card type has at least one entry.
+- **Single copies only.** No card is duplicated. This keeps the deck thin enough to reshuffle quickly within a match (≈ 3 reshuffles per match in the worst case) and makes every draw feel distinct.
+- **No drafted/shop cards yet.** Drafts and the shop don't exist in the prototype, so the starter is also the entire pool the player sees. When those systems land, the starter will shrink to a focused subset and the rest will become draftable.
