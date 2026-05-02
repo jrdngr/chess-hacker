@@ -7,7 +7,7 @@
 //
 // Pure TS — no React, no DOM. See architecture.md.
 
-import type { AlgebraicSquare, MatchOutcome, Piece, PieceType, Side } from "../types";
+import type { AlgebraicSquare, EmpowerPattern, MatchOutcome, Piece, PieceType, Side } from "../types";
 
 import {
   STARTING_FEN,
@@ -44,6 +44,16 @@ export type LegalMove = EngineMove & {
 
 const EMPTY_OVERLAYS: Overlays = { walls: new Set(), freezes: new Set() };
 
+/** Optional overlay fields the engine can pass through to the rule layer. */
+export type ExtraOverlays = {
+  roots?: ReadonlySet<AlgebraicSquare>;
+  disarms?: ReadonlySet<AlgebraicSquare>;
+  compels?: ReadonlySet<AlgebraicSquare>;
+  shields?: ReadonlySet<AlgebraicSquare>;
+  sanctuaries?: ReadonlySet<AlgebraicSquare>;
+  empowers?: ReadonlyMap<AlgebraicSquare, EmpowerPattern>;
+};
+
 type HistoryEntry = {
   move: RuleMove;
   /** Side that made the move (the side-to-move BEFORE applying it). */
@@ -68,9 +78,17 @@ export class ChoseEngine {
   /**
    * Set the active wall and freeze overlays. The engine takes a reference;
    * pass new sets when the overlays change so move generation reflects them.
+   *
+   * `extra` carries the rest of the card-spawned overlays (root, disarm,
+   * compel, shield, sanctuary, empower). All optional — unset fields are
+   * treated as empty by the rule layer.
    */
-  setOverlays(walls: ReadonlySet<AlgebraicSquare>, freezes: ReadonlySet<AlgebraicSquare>): void {
-    this.overlays = { walls, freezes };
+  setOverlays(
+    walls: ReadonlySet<AlgebraicSquare>,
+    freezes: ReadonlySet<AlgebraicSquare>,
+    extra: ExtraOverlays = {},
+  ): void {
+    this.overlays = { walls, freezes, ...extra };
   }
 
   // ---- Position queries ----------------------------------------------------
@@ -136,6 +154,117 @@ export class ChoseEngine {
     const last = this.history[this.history.length - 1];
     if (!last) return null;
     return { from: last.move.from, to: last.move.to };
+  }
+
+  /**
+   * Place a new piece on an empty square. Used by Summon cards (e.g.,
+   * Conjure Knight). Throws if the square is already occupied. Does NOT
+   * flip the turn or record history; the caller is still on the same turn.
+   */
+  placePiece(square: AlgebraicSquare, piece: Piece): void {
+    if (this.position.pieces.has(square))
+      throw new Error(`placePiece: ${square} is already occupied`);
+    const pieces = new Map(this.position.pieces);
+    pieces.set(square, piece);
+    this.position = { ...this.position, pieces };
+  }
+
+  /**
+   * Remove the piece on `square`. Used by Sacrifice cards and Trap (capture).
+   * Captured pieces are NOT credited to either side's `capturedPieces` —
+   * card-driven removal is a separate accounting category. Does not flip
+   * the turn or record history.
+   */
+  removePiece(square: AlgebraicSquare): Piece | null {
+    const piece = this.position.pieces.get(square);
+    if (!piece) return null;
+    const pieces = new Map(this.position.pieces);
+    pieces.delete(square);
+    this.position = { ...this.position, pieces };
+    return piece;
+  }
+
+  /**
+   * Swap the contents of two squares. Used by Switch Files. Does not flip
+   * the turn or record history. Requires at least one square to be occupied;
+   * an empty/empty swap is a no-op.
+   */
+  swapPieces(a: AlgebraicSquare, b: AlgebraicSquare): void {
+    if (a === b) return;
+    const pa = this.position.pieces.get(a);
+    const pb = this.position.pieces.get(b);
+    const pieces = new Map(this.position.pieces);
+    if (pa) pieces.set(b, pa);
+    else pieces.delete(b);
+    if (pb) pieces.set(a, pb);
+    else pieces.delete(a);
+    this.position = { ...this.position, pieces };
+  }
+
+  /**
+   * Force the side-to-move. Used by Haste / Lightning Strike to grant a
+   * second action to the player after their first move (which would have
+   * otherwise flipped the turn to the opponent). Does not record history.
+   */
+  forceTurn(side: Side): void {
+    if (this.position.turn === side) return;
+    this.position = { ...this.position, turn: side };
+  }
+
+  /**
+   * Move a piece from `from` to `to`, ignoring legality. Used by Trap (push):
+   * the displacement is a card effect, not a chess move, so it bypasses the
+   * normal legal-move check. No-ops if `from` is empty or `to` is occupied.
+   * Does not flip the turn.
+   */
+  displacePiece(from: AlgebraicSquare, to: AlgebraicSquare): void {
+    if (from === to) return;
+    const piece = this.position.pieces.get(from);
+    if (!piece) return;
+    if (this.position.pieces.has(to)) return;
+    const pieces = new Map(this.position.pieces);
+    pieces.delete(from);
+    pieces.set(to, piece);
+    this.position = { ...this.position, pieces };
+  }
+
+  /**
+   * Legal moves *as if it were the other side's turn*. Used by Marionette
+   * to enumerate the puppet target's options while the player is still
+   * mid-turn. Restores the original turn before returning.
+   */
+  foreignLegalMoves(from: AlgebraicSquare): LegalMove[] {
+    const original = this.position.turn;
+    const flipped: Side = original === "player" ? "opponent" : "player";
+    this.position = { ...this.position, turn: flipped };
+    try {
+      return this.legalMoves(from);
+    } finally {
+      this.position = { ...this.position, turn: original };
+    }
+  }
+
+  /**
+   * Apply a move as if the *other* side made it, while it's still the
+   * current side's turn. Used by Marionette (player makes the opponent
+   * move) and Trap (push) (push the opponent piece back). Returns the
+   * resulting LegalMove descriptor, or null if the move is illegal under
+   * the foreign side's rules. After the foreign move resolves, the
+   * side-to-move is unchanged (the card play continues on the original
+   * side's turn).
+   */
+  applyForeignMove(m: EngineMove): LegalMove | null {
+    const original = this.position.turn;
+    const flipped: Side = original === "player" ? "opponent" : "player";
+    this.position = { ...this.position, turn: flipped };
+    const result = this.move(m);
+    if (!result) {
+      // Restore turn (move() didn't apply anything).
+      this.position = { ...this.position, turn: original };
+      return null;
+    }
+    // After move(), turn flipped from `flipped` → original. Done.
+    return result;
   }
 
   /**

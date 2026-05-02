@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 
 import { Match } from "./Match";
 import { StockfishEngine } from "../ai/stockfish";
-import { BARRICADE, FROSTBITE, RECONNAISSANCE, SURGE } from "../game/cards/library";
+import { BARRICADE, FORESIGHT, FROSTBITE, RECONNAISSANCE } from "../game/cards/library";
 import { makeRng } from "../game/cards/match";
 
 function squareCell(aria: string): HTMLElement | undefined {
@@ -251,7 +251,7 @@ describe("Match (vs AI)", () => {
 
 // ---- M3 card system --------------------------------------------------------
 
-const ALL_SURGE_DECK = Array.from({ length: 8 }, () => SURGE);
+const ALL_FORESIGHT_DECK = Array.from({ length: 8 }, () => FORESIGHT);
 const ALL_BARRICADE_DECK = Array.from({ length: 8 }, () => BARRICADE);
 const ALL_FROSTBITE_DECK = Array.from({ length: 8 }, () => FROSTBITE);
 const ALL_RECON_DECK = Array.from({ length: 8 }, () => RECONNAISSANCE);
@@ -270,7 +270,7 @@ describe("Match (cards — M3)", () => {
         initialMode="vs-ai"
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_SURGE_DECK}
+        initialDeck={ALL_FORESIGHT_DECK}
         rng={makeRng(1)}
       />,
     );
@@ -280,7 +280,7 @@ describe("Match (cards — M3)", () => {
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("3");
   });
 
-  it("Surge increases energy and moves to the discard pile", async () => {
+  it("Foresight is 0-cost and moves to the discard pile", async () => {
     const user = userEvent.setup();
     const ai = makeFakeAi([]);
     render(
@@ -288,16 +288,19 @@ describe("Match (cards — M3)", () => {
         initialMode="vs-ai"
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_SURGE_DECK}
+        initialDeck={ALL_FORESIGHT_DECK}
         rng={makeRng(2)}
       />,
     );
 
-    const surge = findCard("Surge");
-    expect(surge).toBeDefined();
-    await user.click(surge!);
+    const foresight = findCard("Foresight");
+    expect(foresight).toBeDefined();
+    await user.click(foresight!);
+    // Foresight opens the scry modal — confirm to dismiss.
+    const confirm = await screen.findByRole("button", { name: /confirm/i });
+    await user.click(confirm);
 
-    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("4");
+    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("3"); // 0-cost
     expect(screen.getByLabelText(/^discard pile/i)).toHaveTextContent("1");
     const hand = screen.getByRole("list", { name: /^hand$/i });
     expect(within(hand).getAllByRole("listitem")).toHaveLength(4);
@@ -400,13 +403,15 @@ describe("Match (cards — M3)", () => {
         initialMode="vs-ai"
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_SURGE_DECK}
+        initialDeck={ALL_BARRICADE_DECK}
         rng={makeRng(7)}
       />,
     );
 
-    await user.click(findCard("Surge")!);
-    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("4");
+    // Play Barricade on a3 — costs 1 energy, leaves us at 2.
+    await user.click(findCard("Barricade")!);
+    await user.click(squareCell("a3")!);
+    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("2");
 
     // Make a chess move — this ends the turn, AI auto-responds, new turn begins.
     await user.click(squareCell("e2")!);
@@ -458,7 +463,7 @@ describe("Match (cards — M3)", () => {
         initialMode="vs-ai"
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_SURGE_DECK}
+        initialDeck={ALL_BARRICADE_DECK}
         rng={makeRng(10)}
       />,
     );
@@ -468,8 +473,8 @@ describe("Match (cards — M3)", () => {
     await user.click(squareCell("e4")!);
 
     // Now try to play a card — should be disabled.
-    const surge = findCard("Surge")!;
-    expect(surge).toBeDisabled();
+    const card = findCard("Barricade")!;
+    expect(card).toBeDisabled();
 
     // Energy is unchanged.
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("3");

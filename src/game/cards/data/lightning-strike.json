@@ -1,0 +1,11 @@
+{
+  "id": "lightning-strike",
+  "name": "Lightning Strike",
+  "cost": 4,
+  "rarity": "rare",
+  "archetype": "burst",
+  "consume": true,
+  "description": "Target own piece may take 2 actions this turn (moves and captures). Consume.",
+  "target": { "kind": "own-piece" },
+  "effect": { "kind": "lightning-piece", "actions": 2 }
+}

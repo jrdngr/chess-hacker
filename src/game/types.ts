@@ -43,18 +43,39 @@ export type CardArchetype =
   | "disruption"
   | "resource"
   | "defensive"
-  | "burst";
+  | "burst"
+  | "sacrifice"
+  | "summon"
+  | "swap";
 
 /**
  * What kind of input a card needs from the player when it's played.
- *  - "none":         no target; resolve immediately on click.
- *  - "empty-square": pick any board square that has no piece (and no wall).
- *  - "enemy-piece":  pick a square that holds an opponent piece.
+ * See `docs/cards/` for the per-card target.
  *
- * The full target taxonomy in `docs/design/cards.md` is broader; we add more
- * kinds (own piece, hand card, …) as cards demand them.
+ *  - "none":                  no target; resolve immediately on click.
+ *  - "empty-square":          any empty, unwalled square on the board.
+ *  - "empty-square-own-half": empty square in the player's half (ranks 1–4).
+ *  - "enemy-piece":           a square holding an opponent piece.
+ *  - "own-piece":             a square holding one of the player's pieces.
+ *  - "own-non-king-piece":    same as own-piece, but the king is excluded.
+ *  - "two-own-pieces":        two squares each holding a player piece (multi-step).
+ *  - "marionette":            an enemy piece, then one of its legal destinations.
  */
-export type CardTarget = { kind: "none" } | { kind: "empty-square" } | { kind: "enemy-piece" };
+export type CardTarget =
+  | { kind: "none" }
+  | { kind: "empty-square" }
+  | { kind: "empty-square-own-half" }
+  | { kind: "enemy-piece" }
+  | { kind: "own-piece" }
+  | { kind: "own-non-king-piece" }
+  | { kind: "two-own-pieces" }
+  | { kind: "marionette" };
+
+/** Trap variant — picked per-card when the trap is placed. */
+export type TrapEffect = "capture" | "freeze" | "push";
+
+/** Empower pattern — extra movement granted to a piece this turn. */
+export type EmpowerPattern = "knight";
 
 /**
  * Effect descriptor — interpreted by the resolver in `game/cards/match.ts`.
@@ -63,8 +84,22 @@ export type CardTarget = { kind: "none" } | { kind: "empty-square" } | { kind: "
 export type CardEffect =
   | { kind: "gain-energy"; amount: number }
   | { kind: "draw"; count: number }
+  | { kind: "scry"; count: number }
   | { kind: "freeze-piece" }
-  | { kind: "place-wall"; durationTurns: number };
+  | { kind: "root-piece" }
+  | { kind: "disarm-piece" }
+  | { kind: "compel-piece" }
+  | { kind: "shield-piece" }
+  | { kind: "haste-piece" }
+  | { kind: "empower-piece"; pattern: EmpowerPattern }
+  | { kind: "lightning-piece"; actions: number }
+  | { kind: "place-wall"; durationTurns: number }
+  | { kind: "place-sanctuary"; durationTurns: number }
+  | { kind: "place-trap"; trapEffect: TrapEffect; durationTurns: number }
+  | { kind: "swap-own-pieces" }
+  | { kind: "summon-piece"; pieceType: PieceType }
+  | { kind: "sacrifice-piece"; drawCount: number; energyGain: number }
+  | { kind: "marionette" };
 
 export type Card = {
   id: CardId;
@@ -91,13 +126,44 @@ export type Wall = {
 };
 
 /**
- * A frozen piece skips its next move (per `docs/design/cards.md`).
- * We track the squares that are frozen for the opponent's upcoming turn.
- * In M3 the visual is wired but rule enforcement against the AI is M4 work.
+ * A status applied to a single piece on a single square.
+ *
+ * Used for: freeze, root, disarm, compel (debuffs on enemy pieces);
+ * shield, haste, lightning (buffs on player pieces).
+ *
+ * `expiresOnTurn` is a player-turn number; the status is dropped when
+ * `startPlayerTurn` advances to (or past) that turn.
  */
-export type FrozenPiece = {
+export type PieceStatus = {
   square: AlgebraicSquare;
   side: Side;
+  expiresOnTurn: number;
+};
+
+/** A frozen piece. Kept as a named alias for back-compat with M3 code. */
+export type FrozenPiece = PieceStatus;
+
+/** An empower status — like PieceStatus, plus the granted movement pattern. */
+export type EmpowerStatus = PieceStatus & {
+  pattern: EmpowerPattern;
+};
+
+/** A lightning status — N extra actions on the same piece this turn. */
+export type LightningStatus = PieceStatus & {
+  /** Remaining actions (the first move costs 1). */
+  remaining: number;
+};
+
+/** Sanctuary square overlay. Pieces standing on it cannot be captured. */
+export type Sanctuary = {
+  square: AlgebraicSquare;
+  expiresOnTurn: number;
+};
+
+/** Trap square overlay. Triggers when an enemy piece enters. */
+export type Trap = {
+  square: AlgebraicSquare;
+  effect: TrapEffect;
   expiresOnTurn: number;
 };
 
@@ -116,4 +182,22 @@ export type MatchCardState = {
   turn: number;
   walls: Wall[];
   freezes: FrozenPiece[];
+  /** Enemy pieces that may only capture next turn. */
+  roots: PieceStatus[];
+  /** Enemy pieces that may move but not capture next turn. */
+  disarms: PieceStatus[];
+  /** Enemy pieces forced to move (and prefer captures) next turn. */
+  compels: PieceStatus[];
+  /** Player pieces immune to capture until the player's next turn starts. */
+  shields: PieceStatus[];
+  /** Player pieces with Haste (move twice, no captures) for the current turn. */
+  hastes: PieceStatus[];
+  /** Player pieces with extra-action (move twice, captures allowed). */
+  lightnings: LightningStatus[];
+  /** Player pieces with an extra movement pattern this turn. */
+  empowers: EmpowerStatus[];
+  /** Sanctuary square overlays. */
+  sanctuaries: Sanctuary[];
+  /** Trap square overlays. */
+  traps: Trap[];
 };

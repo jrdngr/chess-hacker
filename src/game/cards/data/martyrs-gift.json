@@ -1,0 +1,11 @@
+{
+  "id": "martyrs-gift",
+  "name": "Martyr's Gift",
+  "cost": 1,
+  "rarity": "uncommon",
+  "archetype": "sacrifice",
+  "consume": false,
+  "description": "Destroy one of your own non-King pieces; draw 2 cards and gain 1 energy.",
+  "target": { "kind": "own-non-king-piece" },
+  "effect": { "kind": "sacrifice-piece", "drawCount": 2, "energyGain": 1 }
+}

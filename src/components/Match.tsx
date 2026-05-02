@@ -22,7 +22,8 @@ import { Board, type BoardMode } from "./Board/Board";
 import { CapturedPieces } from "./Board/CapturedPieces";
 import { materialAdvantage } from "./Board/material";
 import { Hand } from "./Hand/Hand";
-import { ChoseEngine, type LegalMove } from "../game/chess/engine";
+import { ScryModal } from "./Hand/ScryModal";
+import { ChoseEngine, type ExtraOverlays, type LegalMove } from "../game/chess/engine";
 import {
   StockfishEngine,
   legalMoveToUci,
@@ -32,16 +33,32 @@ import {
   type StockfishOptions,
 } from "../ai/stockfish";
 import {
+  clearStatusesOn,
+  consumeHaste,
+  consumeLightningAction,
   createMatchCardState,
   hasWallOn,
+  hasteAt,
+  isInPlayerHalf,
+  lightningAt,
   playCard,
+  relocateStatuses,
+  setDeckTop,
   startPlayerTurn,
+  trapAt,
   type BoardContext,
+  type CardSideEffect,
   type PlayTarget,
   type Rng,
 } from "../game/cards/match";
 import { makeStarterDeck } from "../game/cards/library";
-import type { AlgebraicSquare, Card, MatchCardState, MatchOutcome, Side } from "../game/types";
+import type {
+  AlgebraicSquare,
+  Card,
+  MatchCardState,
+  MatchOutcome,
+  Side,
+} from "../game/types";
 
 import styles from "./Match.module.css";
 
@@ -99,6 +116,12 @@ export function Match({
   );
   /** Hand index waiting for a target click, or null. */
   const [targetingIndex, setTargetingIndex] = useState<number | null>(null);
+  /** First square in a two-step targeting flow (Switch Files / Marionette). */
+  const [partialTarget, setPartialTarget] = useState<AlgebraicSquare | null>(null);
+  /** Pre-computed legal moves of the puppet piece while Marionette is in flight. */
+  const [marionetteMoves, setMarionetteMoves] = useState<LegalMove[]>([]);
+  /** When non-null, Foresight is asking the player to reorder the deck top. */
+  const [scryPending, setScryPending] = useState<{ cards: Card[] } | null>(null);
 
   // Increments on new game / mode change so stale AI replies are ignored.
   const generationRef = useRef(0);
@@ -124,15 +147,75 @@ export function Match({
     };
   }, [mode, createAi]);
 
-  // Sync the current wall + freeze overlays to the engine BEFORE any engine
-  // method (legalMoves / inCheck / outcome) is called this render. The engine
-  // is mutable and shared, so setting it here is idempotent and inexpensive.
+  // Sync the current overlays to the engine BEFORE any engine method
+  // (legalMoves / inCheck / outcome) is called this render. The engine is
+  // mutable and shared; setting overlays here is idempotent.
   const walledSet = useMemo(() => new Set(cardState.walls.map((w) => w.square)), [cardState.walls]);
   const frozenSet = useMemo(
     () => new Set(cardState.freezes.map((f) => f.square)),
     [cardState.freezes],
   );
-  engine.setOverlays(walledSet, frozenSet);
+  const rootedSet = useMemo(
+    () => new Set(cardState.roots.map((r) => r.square)),
+    [cardState.roots],
+  );
+  const disarmedSet = useMemo(
+    () => new Set(cardState.disarms.map((d) => d.square)),
+    [cardState.disarms],
+  );
+  const compelledSet = useMemo(
+    () => new Set(cardState.compels.map((c) => c.square)),
+    [cardState.compels],
+  );
+  const shieldedSet = useMemo(
+    () => new Set(cardState.shields.map((s) => s.square)),
+    [cardState.shields],
+  );
+  const sanctuarySet = useMemo(
+    () => new Set(cardState.sanctuaries.map((s) => s.square)),
+    [cardState.sanctuaries],
+  );
+  const trapSet = useMemo(() => new Set(cardState.traps.map((t) => t.square)), [cardState.traps]);
+  const empowerMap = useMemo(
+    () => new Map(cardState.empowers.map((e) => [e.square, e.pattern] as const)),
+    [cardState.empowers],
+  );
+  const extraOverlays: ExtraOverlays = useMemo(
+    () => ({
+      roots: rootedSet,
+      disarms: disarmedSet,
+      compels: compelledSet,
+      shields: shieldedSet,
+      sanctuaries: sanctuarySet,
+      empowers: empowerMap,
+    }),
+    [rootedSet, disarmedSet, compelledSet, shieldedSet, sanctuarySet, empowerMap],
+  );
+  engine.setOverlays(walledSet, frozenSet, extraOverlays);
+
+  // Per-square badges shown on top of pieces (root/disarm/compel/shield/haste/lightning/empower).
+  const pieceBadges = useMemo(() => {
+    const m = new Map<AlgebraicSquare, string>();
+    for (const r of cardState.roots) m.set(r.square, "rooted");
+    for (const d of cardState.disarms) m.set(d.square, "disarmed");
+    for (const c of cardState.compels) m.set(c.square, "compelled");
+    for (const s of cardState.shields) m.set(s.square, "shielded");
+    for (const h of cardState.hastes) m.set(h.square, "haste");
+    for (const l of cardState.lightnings) m.set(l.square, "lightning");
+    for (const e of cardState.empowers) {
+      const existing = m.get(e.square);
+      m.set(e.square, existing ? `${existing}, empowered` : "empowered");
+    }
+    return m;
+  }, [
+    cardState.roots,
+    cardState.disarms,
+    cardState.compels,
+    cardState.shields,
+    cardState.hastes,
+    cardState.lightnings,
+    cardState.empowers,
+  ]);
 
   const turn: Side = engine.turn();
   const outcome: MatchOutcome = engine.outcome();
@@ -158,16 +241,92 @@ export function Match({
   const targetingCard: Card | null =
     targetingIndex !== null ? (cardState.hand[targetingIndex] ?? null) : null;
 
+  /** Squares that are valid targets for the current in-flight card. */
+  const validTargetSquares = useMemo<ReadonlySet<AlgebraicSquare>>(() => {
+    if (!targetingCard) return new Set();
+    const out = new Set<AlgebraicSquare>();
+    const allPieces = engine.pieces();
+    const targetKind = targetingCard.target.kind;
+    if (targetKind === "marionette" && partialTarget) {
+      // Phase 2: destinations from the puppet's legal-move list.
+      for (const m of marionetteMoves) out.add(m.to);
+      return out;
+    }
+    if (targetKind === "two-own-pieces" && partialTarget) {
+      // Phase 2: any other own piece.
+      for (const { square, piece } of allPieces) {
+        if (piece.side === "player" && square !== partialTarget) out.add(square);
+      }
+      return out;
+    }
+    if (targetKind === "marionette") {
+      // Phase 1: enemy pieces with at least one legal move.
+      for (const { square, piece } of allPieces) {
+        if (piece.side !== "opponent") continue;
+        if (engine.foreignLegalMoves(square).length > 0) out.add(square);
+      }
+      return out;
+    }
+    if (targetKind === "two-own-pieces") {
+      for (const { square, piece } of allPieces) {
+        if (piece.side === "player") out.add(square);
+      }
+      return out;
+    }
+    if (targetKind === "empty-square" || targetKind === "empty-square-own-half") {
+      const ownHalfOnly = targetKind === "empty-square-own-half";
+      for (let r = 1; r <= 8; r++) {
+        for (let f = 0; f < 8; f++) {
+          const sq = "abcdefgh"[f] + r;
+          if (engine.pieceAt(sq)) continue;
+          if (walledSet.has(sq)) continue;
+          if (ownHalfOnly && !isInPlayerHalf(sq)) continue;
+          out.add(sq);
+        }
+      }
+      return out;
+    }
+    if (targetKind === "enemy-piece") {
+      for (const { square, piece } of allPieces) {
+        if (piece.side === "opponent") out.add(square);
+      }
+      return out;
+    }
+    if (targetKind === "own-piece" || targetKind === "own-non-king-piece") {
+      const excludeKing = targetKind === "own-non-king-piece";
+      for (const { square, piece } of allPieces) {
+        if (piece.side !== "player") continue;
+        if (excludeKing && piece.type === "king") continue;
+        out.add(square);
+      }
+      return out;
+    }
+    return out;
+    // engine is mutable; depend on version + walls
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetingCard, partialTarget, marionetteMoves, walledSet, version]);
+
   const boardMode: BoardMode = useMemo(() => {
     if (!targetingCard) return { kind: "play" };
-    if (targetingCard.target.kind === "empty-square") {
-      return { kind: "target-empty-square", cardName: targetingCard.name };
-    }
-    if (targetingCard.target.kind === "enemy-piece") {
-      return { kind: "target-enemy-piece", cardName: targetingCard.name };
-    }
-    return { kind: "play" };
-  }, [targetingCard]);
+    const k = targetingCard.target.kind;
+    let hint = "";
+    if (k === "empty-square") hint = `Pick an empty square for ${targetingCard.name}`;
+    else if (k === "empty-square-own-half")
+      hint = `Pick an empty square in your half (ranks 1–4) for ${targetingCard.name}`;
+    else if (k === "enemy-piece") hint = `Pick an enemy piece for ${targetingCard.name}`;
+    else if (k === "own-piece") hint = `Pick one of your pieces for ${targetingCard.name}`;
+    else if (k === "own-non-king-piece")
+      hint = `Pick one of your non-King pieces for ${targetingCard.name}`;
+    else if (k === "two-own-pieces")
+      hint = partialTarget
+        ? `Pick the second piece for ${targetingCard.name}`
+        : `Pick the first piece for ${targetingCard.name}`;
+    else if (k === "marionette")
+      hint = partialTarget
+        ? `Pick a destination for ${targetingCard.name}`
+        : `Pick an enemy piece to control with ${targetingCard.name}`;
+    return { kind: "target", cardName: targetingCard.name, hint, valid: validTargetSquares };
+  }, [targetingCard, partialTarget, validTargetSquares]);
 
   // ---- AI move loop ---------------------------------------------------------
 
@@ -186,16 +345,11 @@ export function Match({
         await ai.ready();
         if (cancelled || generationRef.current !== myGen) return;
         ai.setPosition(engine.fen());
-        // Stockfish doesn't know about walls or frozen pieces. We restrict
-        // its root choice to our walled-legal move set via UCI `searchmoves`,
-        // so it can't pick a move that walks through a wall or moves a
-        // frozen piece. (If we have zero legal moves the engine has already
-        // declared mate/stalemate and isAiTurn would be false, so we don't
-        // need to special-case that here.)
+        // Stockfish doesn't know about overlays. We restrict its root choice
+        // to our wall/freeze/sanctuary/shield/compel-aware legal-move set via
+        // UCI `searchmoves`, so it can't pick a move that walks through a
+        // wall, moves a frozen piece, captures a shielded piece, etc.
         const candidates = engine.legalMoves().map(legalMoveToUci);
-        // Run the search and a minimum-think timer in parallel: the move can't
-        // land sooner than AI_MIN_THINK_MS, but Stockfish's depth dictates the
-        // upper bound. This prevents instant snap-moves on shallow depths.
         const [uci] = await Promise.all([
           ai.getBestMove({
             depth: depthForDifficulty(difficulty),
@@ -204,18 +358,56 @@ export function Match({
           new Promise<void>((resolve) => setTimeout(resolve, aiMinThinkMs)),
         ]);
         if (cancelled || generationRef.current !== myGen) return;
-        if (!uci) return; // no legal move (mate / stalemate handled separately)
+        if (!uci) return;
         const move = uciToMove(uci);
-        // Defence in depth: if Stockfish somehow returns a move outside our
-        // searchmoves set, fall back to the first legal move.
-        if (!engine.move(move)) {
+        let applied = engine.move(move);
+        if (!applied) {
           const fallback = engine.legalMoves()[0];
-          if (fallback) engine.move(fallback);
+          if (fallback) applied = engine.move(fallback);
         }
         setVersion((v) => v + 1);
-        // Roll over to the next player turn (refill + energy reset + tick overlays).
-        if (cardsEnabled) {
-          setCardState((prev) => startPlayerTurn(prev, rng));
+
+        // After the AI moves, resolve any trap that fired.
+        let nextCardState = cardState;
+        if (applied && cardsEnabled) {
+          const trap = trapAt(nextCardState, applied.to);
+          if (trap) {
+            nextCardState = {
+              ...nextCardState,
+              traps: nextCardState.traps.filter((t) => t.square !== trap.square),
+            };
+            if (trap.effect === "capture") {
+              engine.removePiece(applied.to);
+              nextCardState = clearStatusesOn(nextCardState, applied.to);
+            } else if (trap.effect === "freeze") {
+              nextCardState = {
+                ...nextCardState,
+                freezes: [
+                  ...nextCardState.freezes.filter((f) => f.square !== applied.to),
+                  {
+                    square: applied.to,
+                    side: "opponent",
+                    expiresOnTurn: nextCardState.turn + 1,
+                  },
+                ],
+              };
+            } else if (trap.effect === "push") {
+              // Push back to origin if empty; otherwise the push fizzles and
+              // the trap re-arms (we already removed it above — re-add).
+              if (!engine.pieceAt(applied.from)) {
+                engine.displacePiece(applied.to, applied.from);
+              } else {
+                nextCardState = {
+                  ...nextCardState,
+                  traps: [...nextCardState.traps, trap],
+                };
+              }
+            }
+            setVersion((v) => v + 1);
+          }
+
+          // Roll over to the next player turn.
+          setCardState(startPlayerTurn(nextCardState, rng));
         }
       } catch (e) {
         if (cancelled) return;
@@ -246,21 +438,50 @@ export function Match({
 
   /**
    * Try to play `target` from `selected`. Returns true if a move was made.
-   * Making a move ends the player's turn — the AI loop kicks in via
-   * `isAiTurn` once the engine flips the turn.
+   * Making a move usually ends the player's turn — the AI loop kicks in via
+   * `isAiTurn` once the engine flips the turn. Exceptions: a hasted or
+   * lightning-statused piece may take another action; in that case we flip
+   * the turn back to the player and decrement / consume the buff.
    */
   const tryPlay = useCallback(
     (from: AlgebraicSquare, to: AlgebraicSquare): boolean => {
       const legal = engine.legalMoves(from).find((m) => m.to === to);
       if (!legal) return false;
-      engine.move({ from, to, promotion: legal.promotion });
+      const haste = hasteAt(cardState, from);
+      const lightning = lightningAt(cardState, from);
+      const applied = engine.move({ from, to, promotion: legal.promotion });
+      if (!applied) return false;
+
+      // Statuses follow the piece.
+      let next = relocateStatuses(cardState, from, to);
+      // Captured-piece's statuses (if any) are dropped.
+      if (applied.isCapture) next = clearStatusesOn(next, to);
+
+      // Haste / Lightning: grant another action by flipping the turn back.
+      // Haste: must not be a capture move (rule engine already prevents this).
+      // Both: only the FIRST move uses the second-action grant; after that we
+      // flip turn normally.
+      let consumeAndContinue = false;
+      if (lightning && lightning.remaining > 1) {
+        next = consumeLightningAction(next, to);
+        consumeAndContinue = true;
+      } else if (haste) {
+        next = consumeHaste(next, to);
+        consumeAndContinue = true;
+      }
+      if (consumeAndContinue) {
+        engine.forceTurn("player");
+      }
+
+      setCardState(next);
       setSelected(null);
-      // Cards are no longer playable on this turn — clear any in-flight target.
       setTargetingIndex(null);
+      setPartialTarget(null);
+      setMarionetteMoves([]);
       setVersion((v) => v + 1);
       return true;
     },
-    [engine],
+    [engine, cardState],
   );
 
   /**
@@ -282,17 +503,68 @@ export function Match({
 
   const cancelTargeting = useCallback(() => {
     setTargetingIndex(null);
+    setPartialTarget(null);
+    setMarionetteMoves([]);
   }, []);
+
+  /**
+   * Apply a card's side effects to the chess engine. Returns true if it's
+   * still the player's turn afterwards (Marionette can flip the turn back
+   * to player; place/remove/swap don't flip at all).
+   */
+  const applySideEffects = useCallback(
+    (effects: CardSideEffect[]): void => {
+      for (const fx of effects) {
+        if (fx.kind === "place-piece") {
+          engine.placePiece(fx.square, { type: fx.pieceType, side: "player" });
+        } else if (fx.kind === "remove-piece") {
+          engine.removePiece(fx.square);
+        } else if (fx.kind === "swap-pieces") {
+          engine.swapPieces(fx.a, fx.b);
+        } else if (fx.kind === "foreign-move") {
+          engine.applyForeignMove({ from: fx.from, to: fx.to });
+        }
+      }
+    },
+    [engine],
+  );
 
   const tryResolveCard = useCallback(
     (index: number, target: PlayTarget): boolean => {
+      const card = cardState.hand[index];
+      if (!card) return false;
       const result = playCard(cardState, index, target, boardContext, rng);
       if (!result.ok) return false;
-      setCardState(result.state);
+      let next = result.state;
+      // Card-driven board mutations also need their statuses kept in sync.
+      for (const fx of result.sideEffects) {
+        if (fx.kind === "remove-piece") next = clearStatusesOn(next, fx.square);
+        if (fx.kind === "swap-pieces") {
+          // Swap: each piece's statuses follow it. Two relocates are equivalent
+          // to a swap when neither destination originally held a status with the
+          // other's square — true by construction here.
+          next = relocateStatuses(next, fx.a, "__swap_tmp__");
+          next = relocateStatuses(next, fx.b, fx.a);
+          next = relocateStatuses(next, "__swap_tmp__", fx.b);
+        }
+        if (fx.kind === "foreign-move") next = relocateStatuses(next, fx.from, fx.to);
+      }
+      applySideEffects(result.sideEffects);
+      setCardState(next);
       setTargetingIndex(null);
+      setPartialTarget(null);
+      setMarionetteMoves([]);
+      // Foresight: open scry modal showing the new top of deck.
+      if (card.effect.kind === "scry") {
+        const top = next.drawPile.slice(0, card.effect.count);
+        if (top.length > 0) setScryPending({ cards: top });
+      }
+      // Card play may have changed the board (capture / move / new piece) —
+      // make sure derived rendering re-runs.
+      setVersion((v) => v + 1);
       return true;
     },
-    [cardState, boardContext, rng],
+    [cardState, boardContext, rng, applySideEffects],
   );
 
   const onCardClick = useCallback(
@@ -306,7 +578,7 @@ export function Match({
       if (!card) return;
       // Toggle off if user clicks the same card they were targeting.
       if (targetingIndex === index) {
-        setTargetingIndex(null);
+        cancelTargeting();
         return;
       }
       if (cardState.energy < card.cost) return;
@@ -316,9 +588,11 @@ export function Match({
       }
       // Targeted card — switch into targeting mode and clear any selection.
       setSelected(null);
+      setPartialTarget(null);
+      setMarionetteMoves([]);
       setTargetingIndex(index);
     },
-    [matchOver, aiThinking, mode, turn, cardState, targetingIndex, tryResolveCard],
+    [matchOver, aiThinking, mode, turn, cardState, targetingIndex, tryResolveCard, cancelTargeting],
   );
 
   // ---- Square click / drag (chess move OR card target) ---------------------
@@ -328,16 +602,59 @@ export function Match({
       if (matchOver || aiThinking) return;
 
       // Card-targeting takes priority over chess interaction.
-      if (targetingIndex !== null) {
+      if (targetingIndex !== null && targetingCard) {
+        const k = targetingCard.target.kind;
+        if (k === "two-own-pieces") {
+          if (!partialTarget) {
+            const piece = engine.pieceAt(sq);
+            if (piece && piece.side === "player") {
+              setPartialTarget(sq);
+              return;
+            }
+            cancelTargeting();
+            return;
+          }
+          if (tryResolveCard(targetingIndex, { kind: "two-squares", first: partialTarget, second: sq }))
+            return;
+          cancelTargeting();
+          return;
+        }
+        if (k === "marionette") {
+          if (!partialTarget) {
+            const piece = engine.pieceAt(sq);
+            if (piece && piece.side === "opponent") {
+              const moves = engine.foreignLegalMoves(sq);
+              if (moves.length > 0) {
+                setPartialTarget(sq);
+                setMarionetteMoves(moves);
+                return;
+              }
+            }
+            cancelTargeting();
+            return;
+          }
+          // Phase 2: pick a destination among marionetteMoves.
+          if (marionetteMoves.some((m) => m.to === sq)) {
+            if (
+              tryResolveCard(targetingIndex, {
+                kind: "two-squares",
+                first: partialTarget,
+                second: sq,
+              })
+            )
+              return;
+          }
+          cancelTargeting();
+          return;
+        }
+        // Single-square targets.
         if (tryResolveCard(targetingIndex, { kind: "square", square: sq })) return;
-        // Click on an invalid target cancels targeting.
         cancelTargeting();
         return;
       }
 
       if (selected) {
         if (tryPlay(selected, sq)) return;
-        // Re-target: clicking another own piece switches the selection.
         if (trySelect(sq)) return;
       } else if (trySelect(sq)) {
         return;
@@ -348,6 +665,10 @@ export function Match({
       matchOver,
       aiThinking,
       targetingIndex,
+      targetingCard,
+      partialTarget,
+      marionetteMoves,
+      engine,
       tryResolveCard,
       cancelTargeting,
       selected,
@@ -392,6 +713,9 @@ export function Match({
     setAiThinking(false);
     setAiError(null);
     setTargetingIndex(null);
+    setPartialTarget(null);
+    setMarionetteMoves([]);
+    setScryPending(null);
     if (mode === "vs-ai") {
       setCardState(
         startPlayerTurn(createMatchCardState(initialDeck ?? makeStarterDeck(), rng), rng),
@@ -537,6 +861,9 @@ export function Match({
           controllableSides={controllableSides}
           walledSquares={walledSet}
           frozenSquares={frozenSet}
+          sanctuarySquares={sanctuarySet}
+          trapSquares={trapSet}
+          pieceBadges={pieceBadges}
           mode={boardMode}
           onSquareClick={onSquareClick}
           onSquareDragStart={onSquareDragStart}
@@ -560,6 +887,15 @@ export function Match({
           />
         )}
       </div>
+      {scryPending && (
+        <ScryModal
+          cards={scryPending.cards}
+          onConfirm={(newOrder) => {
+            setCardState((prev) => setDeckTop(prev, newOrder));
+            setScryPending(null);
+          }}
+        />
+      )}
     </div>
   );
 }

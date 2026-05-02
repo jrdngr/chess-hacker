@@ -1,0 +1,11 @@
+{
+  "id": "provoke",
+  "name": "Provoke",
+  "cost": 2,
+  "rarity": "uncommon",
+  "archetype": "disruption",
+  "consume": false,
+  "description": "Compel an enemy piece: it must move next turn (must capture if able).",
+  "target": { "kind": "enemy-piece" },
+  "effect": { "kind": "compel-piece" }
+}
