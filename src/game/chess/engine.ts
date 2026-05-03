@@ -191,7 +191,7 @@ export class ChoseEngine {
 
   /**
    * Place a new piece on an empty square. Used by Summon cards (e.g.,
-   * Conjure Knight). Throws if the square is already occupied. Does NOT
+   * Knight Soul). Throws if the square is already occupied. Does NOT
    * flip the turn or record history; the caller is still on the same turn.
    */
   placePiece(square: AlgebraicSquare, piece: Piece): void {

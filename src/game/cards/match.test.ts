@@ -28,11 +28,11 @@ import {
 } from "./match";
 import {
   BARRICADE,
-  CONJURE_KNIGHT,
+  KNIGHT_SOUL,
   CROOKED_PATH,
   FORESIGHT,
   FROSTBITE,
-  FROZEN_ROOTS,
+  TANGLED_ROOTS,
   FUMBLE,
   HALLOWED_GROUND,
   IRON_GUARD,
@@ -225,14 +225,14 @@ describe("playCard — disruption / spatial", () => {
     expect(st.freezes[0].expiresOnTurn).toBe(2);
   });
 
-  it("Frozen Roots / Fumble / Provoke add the right status", () => {
+  it("Tangled Roots / Fumble / Provoke add the right status", () => {
     const rng = makeRng(30);
-    const deck = [FROZEN_ROOTS, FUMBLE, PROVOKE];
+    const deck = [TANGLED_ROOTS, FUMBLE, PROVOKE];
     let st = startPlayerTurn(createMatchCardState(deck, rng), rng);
     st = { ...st, energy: 10 };
     const ctx = withPieces({ e7: { type: "pawn", side: "opponent" } });
 
-    const idxRoots = st.hand.findIndex((c) => c.id === "frozen-roots");
+    const idxRoots = st.hand.findIndex((c) => c.id === "tangled-roots");
     const r1 = playCard(st, idxRoots, { kind: "square", square: "e7" }, ctx, rng);
     expect(r1.ok).toBe(true);
     if (!r1.ok) return;
@@ -401,11 +401,11 @@ describe("playCard — sacrifice / summon / swap / marionette", () => {
     expect(r.sideEffects).toEqual([{ kind: "remove-piece", square: "a2" }]);
   });
 
-  it("Conjure Knight: rejects squares outside own half, accepts ranks 1-4, emits place-piece", () => {
+  it("Knight Soul: rejects squares outside own half, accepts ranks 1-4, emits place-piece", () => {
     const rng = makeRng(70);
-    let st = startPlayerTurn(createMatchCardState([CONJURE_KNIGHT], rng), rng);
+    let st = startPlayerTurn(createMatchCardState([KNIGHT_SOUL], rng), rng);
     st = { ...st, energy: 10 };
-    const idx = st.hand.findIndex((c) => c.id === "conjure-knight");
+    const idx = st.hand.findIndex((c) => c.id === "knight-soul");
 
     const rOpp = playCard(st, idx, { kind: "square", square: "e5" }, emptyBoard, rng);
     expect(rOpp.ok).toBe(false);
@@ -415,7 +415,7 @@ describe("playCard — sacrifice / summon / swap / marionette", () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.sideEffects).toEqual([{ kind: "place-piece", square: "e3", pieceType: "knight" }]);
-    expect(r.state.consumedPile.some((c) => c.id === "conjure-knight")).toBe(true);
+    expect(r.state.consumedPile.some((c) => c.id === "knight-soul")).toBe(true);
   });
 
   it("Switch Files: requires two distinct own-piece squares; emits swap-pieces", () => {

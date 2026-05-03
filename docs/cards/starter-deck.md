@@ -11,7 +11,7 @@ This will narrow once drafts and the shop start contributing additional copies; 
 | 1 | [Reconnaissance](resource.md#reconnaissance) | Resource | Draw 2. |
 | 1 | [Foresight](resource.md#foresight) | Resource | Scry top 3 of deck. |
 | 1 | [Frostbite](disruption.md#frostbite) | Disruption | Freeze enemy piece. |
-| 1 | [Frozen Roots](disruption.md#frozen-roots) | Disruption | Root enemy piece. |
+| 1 | [Tangled Roots](disruption.md#tangled-roots) | Disruption | Root enemy piece. |
 | 1 | [Fumble](disruption.md#fumble) | Disruption | Disarm enemy piece. |
 | 1 | [Provoke](disruption.md#provoke) | Disruption | Compel enemy piece. |
 | 1 | [Barricade](spatial.md#barricade) | Spatial | Place wall, 3 turns. |
@@ -24,10 +24,10 @@ This will narrow once drafts and the shop start contributing additional copies; 
 | 1 | [Iron Guard](defensive.md#iron-guard) | Defensive | Shield own piece. |
 | 1 | [Lightning Strike](burst.md#lightning-strike) | Burst | Own piece takes 2 actions. Consume. |
 | 1 | [Martyr's Gift](sacrifice.md#martyrs-gift) | Sacrifice | Destroy own piece; +2 cards, +1 energy. |
-| 1 | [Conjure Pawn](summon.md#conjure-pawn) | Summon | Summon a pawn in own half. Consume. |
-| 1 | [Conjure Knight](summon.md#conjure-knight) | Summon | Summon a knight in own half. Consume. |
-| 1 | [Conjure Bishop](summon.md#conjure-bishop) | Summon | Summon a bishop in own half. Consume. |
-| 1 | [Conjure Rook](summon.md#conjure-rook) | Summon | Summon a rook in own half. Consume. |
+| 1 | [Pawn Soul](summon.md#pawn-soul) | Summon | Summon a pawn in own half. Consume. |
+| 1 | [Knight Soul](summon.md#knight-soul) | Summon | Summon a knight in own half. Consume. |
+| 1 | [Bishop Soul](summon.md#bishop-soul) | Summon | Summon a bishop in own half. Consume. |
+| 1 | [Rook Soul](summon.md#rook-soul) | Summon | Summon a rook in own half. Consume. |
 | 1 | [Switch Files](swap.md#switch-files) | Swap/Displace | Swap two of your own pieces. |
 | 1 | [Marionette](swap.md#marionette) | Swap/Displace | Move an enemy piece by its legal moves. Consume. |
 
@@ -38,10 +38,10 @@ This will narrow once drafts and the shop start contributing additional copies; 
 | Cost | Count | Cards |
 |---|---|---|
 | 0 | 1 | Foresight |
-| 1 | 10 | Reconnaissance, Frozen Roots, Fumble, Barricade, Snare, Spring Trap, Crooked Path, Iron Guard, Martyr's Gift, Conjure Pawn |
+| 1 | 10 | Reconnaissance, Tangled Roots, Fumble, Barricade, Snare, Spring Trap, Crooked Path, Iron Guard, Martyr's Gift, Pawn Soul |
 | 2 | 6 | Frostbite, Provoke, Hallowed Ground, Spike Pit, Quickstep, Switch Files |
-| 3 | 3 | Conjure Knight, Conjure Bishop, Marionette |
-| 4 | 2 | Lightning Strike, Conjure Rook |
+| 3 | 3 | Knight Soul, Bishop Soul, Marionette |
+| 4 | 2 | Lightning Strike, Rook Soul |
 
 Average cost: ~1.7. Comfortable inside the 3-energy/turn budget; opening hands of 5 will almost always include something playable on turn 1.
 
