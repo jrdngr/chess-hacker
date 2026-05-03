@@ -18,7 +18,7 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 - **Rarity:** Common
 - **Target:** enemy piece
 - **Effect:** Target enemy piece: **Root** for its next turn.
-- **Design note:** half of a Freeze, but cheaper. Hits sliders (queen, rook, bishop) hardest — they lose all their reach unless they have a capture. Knights and pawns are nearly unaffected if no capture is on offer. Designed as a finer-grained, cheaper disruption.
+- **Design note:** half of a Freeze, but cheaper. Sliders (queen, rook, bishop) lose all their reach — Root only permits *adjacent* captures, so a long-range bishop pin is defanged. Knights are completely shut down (their L-shape is too far). Pawns and the king remain dangerous when an adjacent capture is on offer. Designed as a finer-grained, cheaper disruption.
 
 ## Fumble
 

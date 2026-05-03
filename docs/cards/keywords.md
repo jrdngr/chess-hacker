@@ -17,11 +17,11 @@ A frozen piece **cannot move and cannot capture** on its next turn. It still occ
 
 ### Root
 
-A rooted piece **cannot move except to capture**. If a capture-move is legal for it, it may take that move; otherwise it sits still.
+A rooted piece **cannot move except to capture an immediately adjacent piece**. The capture target must be one square away in any direction (king-step distance); long-range captures (a sliding piece capturing across the board, a knight L-shape) are not legal under Root.
 
 - **Duration:** opponent's next turn.
-- **Contrast with Freeze:** Freeze stops captures; Root permits them.
-- **Contrast with Disarm:** Disarm forbids captures and permits non-capturing moves; Root is the inverse.
+- **Contrast with Freeze:** Freeze stops captures; Root permits them but only at melee range.
+- **Contrast with Disarm:** Disarm forbids captures and permits non-capturing moves; Root is the inverse, and further restricts the captures it permits to adjacent ones.
 
 ### Disarm
 

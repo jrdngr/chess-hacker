@@ -5,7 +5,7 @@
   "rarity": "common",
   "archetype": "disruption",
   "consume": false,
-  "description": "Root an enemy piece: next turn it can only move if the move is a capture.",
+  "description": "Root an enemy piece: next turn it can only capture an adjacent piece.",
   "target": { "kind": "enemy-piece" },
   "effect": { "kind": "root-piece" }
 }

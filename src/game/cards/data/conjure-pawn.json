@@ -1,0 +1,11 @@
+{
+  "id": "conjure-pawn",
+  "name": "Conjure Pawn",
+  "cost": 1,
+  "rarity": "common",
+  "archetype": "summon",
+  "consume": true,
+  "description": "Summon a pawn on an empty square in your half (ranks 1–4). Consume.",
+  "target": { "kind": "empty-square-own-half" },
+  "effect": { "kind": "summon-piece", "pieceType": "pawn" }
+}

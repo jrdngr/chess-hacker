@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 
 import { Match } from "./Match";
 import { StockfishEngine } from "../ai/stockfish";
-import { BARRICADE, FORESIGHT, FROSTBITE, RECONNAISSANCE } from "../game/cards/library";
+import { BARRICADE, FORESIGHT, FROSTBITE, RECONNAISSANCE, SPIKE_PIT } from "../game/cards/library";
 import { makeRng } from "../game/cards/match";
 
 function squareCell(aria: string): HTMLElement | undefined {
@@ -255,6 +255,7 @@ const ALL_FORESIGHT_DECK = Array.from({ length: 8 }, () => FORESIGHT);
 const ALL_BARRICADE_DECK = Array.from({ length: 8 }, () => BARRICADE);
 const ALL_FROSTBITE_DECK = Array.from({ length: 8 }, () => FROSTBITE);
 const ALL_RECON_DECK = Array.from({ length: 8 }, () => RECONNAISSANCE);
+const ALL_SPIKE_PIT_DECK = Array.from({ length: 8 }, () => SPIKE_PIT);
 
 function findCard(name: string): HTMLElement | undefined {
   return screen
@@ -579,5 +580,113 @@ describe("Match (cards — M3)", () => {
     expect(offered.some((uci) => uci.startsWith("g8"))).toBe(false);
     // Plenty of other moves should still be on offer.
     expect(offered.length).toBeGreaterThan(10);
+  });
+});
+
+describe("Match — trap mechanics", () => {
+  it("a Spike Pit captures an enemy sliding piece passing THROUGH the trap square", async () => {
+    const user = userEvent.setup();
+    // FEN: black queen on h7, otherwise sparse so the queen has a long ray.
+    // Player king on h1, white pawn on a2 to give white a non-relevant move.
+    // Black to move scenario after white plays its turn — we'll script the AI
+    // to slide the queen across an armed Spike Pit on c3.
+    // Actually: after white's e2-e4, black plays Qa7-a3 sliding through... no,
+    // simpler: opponent rook on h8 sliding down the h-file, trap on h4.
+    const ai = makeFakeAi(["h8h4"]);
+    render(
+      <Match
+        initialMode="vs-ai"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={ALL_SPIKE_PIT_DECK}
+        rng={makeRng(100)}
+        initialFen="r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1"
+      />,
+    );
+
+    // Place a Spike Pit on h4 so the rook would slide through it on its way down.
+    await user.click(findCard("Spike Pit")!);
+    await user.click(squareCell("h4")!);
+    expect(squareCell("h4")?.getAttribute("aria-label")).toMatch(/trap/);
+
+    // Make any white move to let black respond.
+    await user.click(squareCell("a1")!);
+    await user.click(squareCell("a2")!);
+
+    await waitFor(() => {
+      // Rook attempted h8 -> h4 (or further). Either way it should be captured
+      // by the trap and removed from the board.
+      expect(squareCell("h8")?.getAttribute("aria-label")).toBe("h8");
+    });
+    // The rook never made it anywhere — trap captured it on h4.
+    for (const r of [1, 2, 3, 4, 5, 6, 7, 8]) {
+      const sq = `h${r}`;
+      const label = squareCell(sq)?.getAttribute("aria-label") ?? "";
+      expect(label).not.toMatch(/opponent rook/);
+    }
+  });
+
+  it("a Spike Pit also captures one of the player's own pieces", async () => {
+    const user = userEvent.setup();
+    const ai = makeFakeAi([]);
+    render(
+      <Match
+        initialMode="vs-ai"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={ALL_SPIKE_PIT_DECK}
+        rng={makeRng(101)}
+      />,
+    );
+
+    // Place a Spike Pit on e4.
+    await user.click(findCard("Spike Pit")!);
+    await user.click(squareCell("e4")!);
+
+    // Now move the white pawn e2 -> e4 — pawn lands on the trap and is captured.
+    await user.click(squareCell("e2")!);
+    await user.click(squareCell("e4")!);
+
+    // The pawn is gone (captured by the trap).
+    expect(squareCell("e4")?.getAttribute("aria-label")).not.toMatch(/pawn/);
+    expect(squareCell("e2")?.getAttribute("aria-label")).toBe("e2");
+  });
+});
+
+describe("Match — undo", () => {
+  it("undoes the previous player+AI turn cycle", async () => {
+    const user = userEvent.setup();
+    const ai = makeFakeAi(["e7e5"]);
+    render(
+      <Match
+        initialMode="vs-ai"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={ALL_FORESIGHT_DECK}
+        rng={makeRng(200)}
+      />,
+    );
+
+    // Initially undo is disabled — no completed turn yet.
+    expect(screen.getByRole("button", { name: /undo turn/i })).toBeDisabled();
+
+    // Player plays e2 -> e4; AI replies e7 -> e5.
+    await user.click(squareCell("e2")!);
+    await user.click(squareCell("e4")!);
+    await waitFor(() => {
+      expect(squareCell("e5")?.getAttribute("aria-label")).toBe("e5, opponent pawn");
+    });
+
+    // Undo the turn — both moves should be reverted.
+    const undoBtn = screen.getByRole("button", { name: /undo turn/i });
+    expect(undoBtn).not.toBeDisabled();
+    await user.click(undoBtn);
+
+    expect(squareCell("e2")?.getAttribute("aria-label")).toBe("e2, player pawn");
+    expect(squareCell("e4")?.getAttribute("aria-label")).toBe("e4");
+    expect(squareCell("e7")?.getAttribute("aria-label")).toBe("e7, opponent pawn");
+    expect(squareCell("e5")?.getAttribute("aria-label")).toBe("e5");
+    // Back to white's turn.
+    expect(screen.getByText(/^white/i)).toBeInTheDocument();
   });
 });

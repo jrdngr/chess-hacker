@@ -23,7 +23,13 @@ import { CapturedPieces } from "./Board/CapturedPieces";
 import { materialAdvantage } from "./Board/material";
 import { Hand } from "./Hand/Hand";
 import { ScryModal } from "./Hand/ScryModal";
-import { ChoseEngine, type ExtraOverlays, type LegalMove } from "../game/chess/engine";
+import {
+  ChoseEngine,
+  movePath,
+  type EngineSnapshot,
+  type ExtraOverlays,
+  type LegalMove,
+} from "../game/chess/engine";
 import {
   StockfishEngine,
   legalMoveToUci,
@@ -45,14 +51,19 @@ import {
   relocateStatuses,
   setDeckTop,
   startPlayerTurn,
-  trapAt,
   type BoardContext,
-  type CardSideEffect,
   type PlayTarget,
   type Rng,
 } from "../game/cards/match";
 import { makeStarterDeck } from "../game/cards/library";
-import type { AlgebraicSquare, Card, MatchCardState, MatchOutcome, Side } from "../game/types";
+import type {
+  AlgebraicSquare,
+  Card,
+  MatchCardState,
+  MatchOutcome,
+  Piece,
+  Side,
+} from "../game/types";
 
 import styles from "./Match.module.css";
 
@@ -77,10 +88,89 @@ type Props = {
   rng?: Rng;
 };
 
-const DEFAULT_AI_MIN_THINK_MS = 250;
+/**
+ * Engine + card-state captured at the start of a player turn. The Undo
+ * button rolls the match back to one of these. We snapshot once per player
+ * turn (not per individual card play), so undo always rewinds to the start
+ * of a clean turn — including the AI's preceding move if there was one.
+ */
+type TurnSnapshot = {
+  engineSnapshot: EngineSnapshot;
+  cardState: MatchCardState;
+};
+
+const DEFAULT_AI_MIN_THINK_MS = 500;
 
 const HUMAN_SIDE: Side = "player";
 const AI_SIDE: Side = "opponent";
+
+/**
+ * Resolve any trap the moved piece walked into or crossed. Returns the new
+ * card state. Mutates the engine in place if the trap displaces or captures
+ * the piece.
+ *
+ * The first trap found along the move path (origin → destination, exclusive
+ * of origin) fires; subsequent traps on the same path are not consulted
+ * (the piece never made it that far).
+ */
+function resolveTrapForMove(
+  engine: ChoseEngine,
+  cardState: MatchCardState,
+  mover: Piece,
+  from: AlgebraicSquare,
+  to: AlgebraicSquare,
+): MatchCardState {
+  const path = movePath(mover.type, from, to);
+  for (let i = 0; i < path.length; i++) {
+    const sq = path[i];
+    const trap = cardState.traps.find((t) => t.square === sq);
+    if (!trap) continue;
+
+    let next: MatchCardState = {
+      ...cardState,
+      traps: cardState.traps.filter((t) => t.square !== sq),
+    };
+    if (trap.effect === "capture") {
+      // The piece is captured at the trap square. Engine may have it on `to`
+      // (if the trap is at `to`) or at `to` after a pass-through; in either
+      // case removing from `to` is correct because the moved piece's final
+      // engine position is `to` regardless of where on the path the trap sat.
+      engine.removePiece(to);
+      next = clearStatusesOn(next, to);
+    } else if (trap.effect === "freeze") {
+      // If the trap was on an intermediate square, drag the piece back to it
+      // so it stops at the trigger point. (For a trap on `to` itself, no
+      // displacement is needed.)
+      if (sq !== to) {
+        engine.displacePiece(to, sq);
+        next = relocateStatuses(next, to, sq);
+      }
+      next = {
+        ...next,
+        freezes: [
+          ...next.freezes.filter((f) => f.square !== sq),
+          { square: sq, side: mover.side, expiresOnTurn: next.turn + 1 },
+        ],
+      };
+    } else if (trap.effect === "push") {
+      // Push back one square along the path. For a trap at index 0 (the only
+      // step away from origin) the push lands on `from`; for an intermediate
+      // trap it lands on the previous path square. If that square is occupied
+      // (e.g. the move originated there but it's now occupied by the same
+      // piece returning, which shouldn't happen — or some other piece was
+      // displaced into it) the push fizzles and the trap re-arms.
+      const pushBack = i === 0 ? from : path[i - 1];
+      if (engine.pieceAt(pushBack)) {
+        next = { ...next, traps: [...next.traps, trap] };
+      } else if (pushBack !== to) {
+        engine.displacePiece(to, pushBack);
+        next = relocateStatuses(next, to, pushBack);
+      }
+    }
+    return next;
+  }
+  return cardState;
+}
 
 export function Match({
   initialMode = "vs-ai",
@@ -116,10 +206,27 @@ export function Match({
   const [marionetteMoves, setMarionetteMoves] = useState<LegalMove[]>([]);
   /** When non-null, Foresight is asking the player to reorder the deck top. */
   const [scryPending, setScryPending] = useState<{ cards: Card[] } | null>(null);
+  /**
+   * Stack of engine + card-state snapshots, one per player turn.
+   * `turnSnapshots[turnSnapshots.length - 1]` is the state at the start of
+   * the player's CURRENT turn; the Undo button restores the entry before
+   * that. Empty until the first effect-driven push (or in non-vs-AI mode).
+   */
+  const [turnSnapshots, setTurnSnapshots] = useState<TurnSnapshot[]>([]);
 
   // Increments on new game / mode change so stale AI replies are ignored.
   const generationRef = useRef(0);
   const aiRef = useRef<StockfishEngine | null>(null);
+
+  // Take the initial turn snapshot once on first mount (and again on reset/
+  // mode change — the reset paths reset `turnSnapshots` to []).
+  useEffect(() => {
+    if (turnSnapshots.length > 0) return;
+    if (mode !== "vs-ai") return;
+    setTurnSnapshots([{ engineSnapshot: engine.snapshot(), cardState }]);
+    // engine + cardState are captured by the closure; intentional.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [turnSnapshots.length, mode]);
 
   // Spin up the Stockfish worker only when in vs-ai mode.
   useEffect(() => {
@@ -351,54 +458,37 @@ export function Match({
         if (cancelled || generationRef.current !== myGen) return;
         if (!uci) return;
         const move = uciToMove(uci);
+        // Snapshot the moving piece BEFORE the engine applies the move; its
+        // type drives the move-path computation used by trap resolution.
+        let mover = engine.pieceAt(move.from);
         let applied = engine.move(move);
         if (!applied) {
           const fallback = engine.legalMoves()[0];
-          if (fallback) applied = engine.move(fallback);
+          if (fallback) {
+            mover = engine.pieceAt(fallback.from);
+            applied = engine.move(fallback);
+          }
         }
         setVersion((v) => v + 1);
 
-        // After the AI moves, resolve any trap that fired.
         let nextCardState = cardState;
-        if (applied && cardsEnabled) {
-          const trap = trapAt(nextCardState, applied.to);
-          if (trap) {
-            nextCardState = {
-              ...nextCardState,
-              traps: nextCardState.traps.filter((t) => t.square !== trap.square),
-            };
-            if (trap.effect === "capture") {
-              engine.removePiece(applied.to);
-              nextCardState = clearStatusesOn(nextCardState, applied.to);
-            } else if (trap.effect === "freeze") {
-              nextCardState = {
-                ...nextCardState,
-                freezes: [
-                  ...nextCardState.freezes.filter((f) => f.square !== applied.to),
-                  {
-                    square: applied.to,
-                    side: "opponent",
-                    expiresOnTurn: nextCardState.turn + 1,
-                  },
-                ],
-              };
-            } else if (trap.effect === "push") {
-              // Push back to origin if empty; otherwise the push fizzles and
-              // the trap re-arms (we already removed it above — re-add).
-              if (!engine.pieceAt(applied.from)) {
-                engine.displacePiece(applied.to, applied.from);
-              } else {
-                nextCardState = {
-                  ...nextCardState,
-                  traps: [...nextCardState.traps, trap],
-                };
-              }
-            }
-            setVersion((v) => v + 1);
-          }
-
+        if (applied && cardsEnabled && mover) {
+          nextCardState = resolveTrapForMove(
+            engine,
+            nextCardState,
+            mover,
+            applied.from,
+            applied.to,
+          );
+          setVersion((v) => v + 1);
           // Roll over to the next player turn.
-          setCardState(startPlayerTurn(nextCardState, rng));
+          const turnStarted = startPlayerTurn(nextCardState, rng);
+          setCardState(turnStarted);
+          // Snapshot the start-of-new-turn state so Undo can rewind here.
+          setTurnSnapshots((prev) => [
+            ...prev,
+            { engineSnapshot: engine.snapshot(), cardState: turnStarted },
+          ]);
         }
       } catch (e) {
         if (cancelled) return;
@@ -440,6 +530,7 @@ export function Match({
       if (!legal) return false;
       const haste = hasteAt(cardState, from);
       const lightning = lightningAt(cardState, from);
+      const mover = engine.pieceAt(from);
       const applied = engine.move({ from, to, promotion: legal.promotion });
       if (!applied) return false;
 
@@ -448,15 +539,21 @@ export function Match({
       // Captured-piece's statuses (if any) are dropped.
       if (applied.isCapture) next = clearStatusesOn(next, to);
 
+      // Resolve any trap triggered by this move (player pieces are not exempt).
+      if (mover) {
+        next = resolveTrapForMove(engine, next, mover, applied.from, applied.to);
+      }
+
       // Haste / Lightning: grant another action by flipping the turn back.
       // Haste: must not be a capture move (rule engine already prevents this).
       // Both: only the FIRST move uses the second-action grant; after that we
-      // flip turn normally.
+      // flip turn normally. If the trap removed our piece, the buff is moot.
+      const stillOurs = engine.pieceAt(applied.to)?.side === "player";
       let consumeAndContinue = false;
-      if (lightning && lightning.remaining > 1) {
+      if (stillOurs && lightning && lightning.remaining > 1) {
         next = consumeLightningAction(next, to);
         consumeAndContinue = true;
-      } else if (haste) {
+      } else if (stillOurs && haste) {
         next = consumeHaste(next, to);
         consumeAndContinue = true;
       }
@@ -498,28 +595,6 @@ export function Match({
     setMarionetteMoves([]);
   }, []);
 
-  /**
-   * Apply a card's side effects to the chess engine. Returns true if it's
-   * still the player's turn afterwards (Marionette can flip the turn back
-   * to player; place/remove/swap don't flip at all).
-   */
-  const applySideEffects = useCallback(
-    (effects: CardSideEffect[]): void => {
-      for (const fx of effects) {
-        if (fx.kind === "place-piece") {
-          engine.placePiece(fx.square, { type: fx.pieceType, side: "player" });
-        } else if (fx.kind === "remove-piece") {
-          engine.removePiece(fx.square);
-        } else if (fx.kind === "swap-pieces") {
-          engine.swapPieces(fx.a, fx.b);
-        } else if (fx.kind === "foreign-move") {
-          engine.applyForeignMove({ from: fx.from, to: fx.to });
-        }
-      }
-    },
-    [engine],
-  );
-
   const tryResolveCard = useCallback(
     (index: number, target: PlayTarget): boolean => {
       const card = cardState.hand[index];
@@ -527,20 +602,30 @@ export function Match({
       const result = playCard(cardState, index, target, boardContext, rng);
       if (!result.ok) return false;
       let next = result.state;
-      // Card-driven board mutations also need their statuses kept in sync.
+      // Card-driven board mutations also need their statuses kept in sync,
+      // and any side effect that *moves* a piece on the board can spring a
+      // trap on its path.
       for (const fx of result.sideEffects) {
-        if (fx.kind === "remove-piece") next = clearStatusesOn(next, fx.square);
-        if (fx.kind === "swap-pieces") {
+        if (fx.kind === "place-piece") {
+          engine.placePiece(fx.square, { type: fx.pieceType, side: "player" });
+        } else if (fx.kind === "remove-piece") {
+          engine.removePiece(fx.square);
+          next = clearStatusesOn(next, fx.square);
+        } else if (fx.kind === "swap-pieces") {
           // Swap: each piece's statuses follow it. Two relocates are equivalent
           // to a swap when neither destination originally held a status with the
           // other's square — true by construction here.
           next = relocateStatuses(next, fx.a, "__swap_tmp__");
           next = relocateStatuses(next, fx.b, fx.a);
           next = relocateStatuses(next, "__swap_tmp__", fx.b);
+          engine.swapPieces(fx.a, fx.b);
+        } else if (fx.kind === "foreign-move") {
+          const mover = engine.pieceAt(fx.from);
+          engine.applyForeignMove({ from: fx.from, to: fx.to });
+          next = relocateStatuses(next, fx.from, fx.to);
+          if (mover) next = resolveTrapForMove(engine, next, mover, fx.from, fx.to);
         }
-        if (fx.kind === "foreign-move") next = relocateStatuses(next, fx.from, fx.to);
       }
-      applySideEffects(result.sideEffects);
       setCardState(next);
       setTargetingIndex(null);
       setPartialTarget(null);
@@ -555,7 +640,7 @@ export function Match({
       setVersion((v) => v + 1);
       return true;
     },
-    [cardState, boardContext, rng, applySideEffects],
+    [cardState, boardContext, rng, engine],
   );
 
   const onCardClick = useCallback(
@@ -713,6 +798,7 @@ export function Match({
     setPartialTarget(null);
     setMarionetteMoves([]);
     setScryPending(null);
+    setTurnSnapshots([]);
     if (mode === "vs-ai") {
       setCardState(
         startPlayerTurn(createMatchCardState(initialDeck ?? makeStarterDeck(), rng), rng),
@@ -734,6 +820,7 @@ export function Match({
       setAiThinking(false);
       setAiError(null);
       setTargetingIndex(null);
+      setTurnSnapshots([]);
       if (next === "vs-ai") {
         setCardState(
           startPlayerTurn(createMatchCardState(initialDeck ?? makeStarterDeck(), rng), rng),
@@ -744,6 +831,31 @@ export function Match({
     },
     [mode, initialFen, initialDeck, rng],
   );
+
+  /**
+   * Roll the match back to the start of the previous player turn — including
+   * undoing the AI's most recent move. No-op until at least one full
+   * player+AI turn cycle has completed (i.e. snapshots has 2+ entries).
+   */
+  const canUndo = cardsEnabled && turnSnapshots.length >= 2 && !aiThinking && !matchOver;
+  const undo = useCallback(() => {
+    if (!canUndo) return;
+    // Drop the snapshot for the current turn; restore the previous one.
+    setTurnSnapshots((prev) => {
+      if (prev.length < 2) return prev;
+      const next = prev.slice(0, -1);
+      const target = next[next.length - 1];
+      engine.restore(target.engineSnapshot);
+      setCardState(target.cardState);
+      setSelected(null);
+      setTargetingIndex(null);
+      setPartialTarget(null);
+      setMarionetteMoves([]);
+      setScryPending(null);
+      setVersion((v) => v + 1);
+      return next;
+    });
+  }, [canUndo, engine]);
 
   // ---- Render ---------------------------------------------------------------
 
@@ -842,6 +954,11 @@ export function Match({
         {!matchOver && (
           <button type="button" onClick={resetGame} className={styles.resetButton}>
             Reset
+          </button>
+        )}
+        {cardsEnabled && !matchOver && (
+          <button type="button" onClick={undo} disabled={!canUndo} className={styles.resetButton}>
+            Undo turn
           </button>
         )}
       </aside>

@@ -22,7 +22,15 @@
 // both behave identically as blockers. The card layer still tracks
 // expiration; rule logic only sees "is this square walled right now?".
 
-import type { AlgebraicSquare, EmpowerPattern, FileIndex, Piece, RankIndex, Side } from "../types";
+import type {
+  AlgebraicSquare,
+  EmpowerPattern,
+  FileIndex,
+  Piece,
+  PieceType,
+  RankIndex,
+  Side,
+} from "../types";
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"] as const;
 
@@ -238,6 +246,58 @@ function sqAt(file: number, rank: number): AlgebraicSquare {
 }
 const opp = (s: Side): Side => (s === "player" ? "opponent" : "player");
 
+/**
+ * Squares the piece passes through on its way from `from` to `to`, in order,
+ * INCLUDING the destination but excluding the origin. For sliding pieces
+ * (bishop / rook / queen) this is every square on the line. For knights and
+ * the king it's just the destination. For pawns it includes the intermediate
+ * square on a double push.
+ *
+ * Used by the trap resolver — a sliding piece that crosses a trap square
+ * still triggers it even if it doesn't stop there.
+ */
+export function movePath(
+  pieceType: PieceType,
+  from: AlgebraicSquare,
+  to: AlgebraicSquare,
+): AlgebraicSquare[] {
+  const a = squareCoords(from);
+  const b = squareCoords(to);
+  const df = b.file - a.file;
+  const dr = b.rank - a.rank;
+  if (df === 0 && dr === 0) return [];
+
+  // Knight: jump.
+  if (pieceType === "knight") return [to];
+  // King: castling moves two squares but visually jumps; passing-through
+  // would require the path to be clear (it already is since castling can't
+  // happen otherwise). The intermediate square trips a trap too.
+  if (pieceType === "king") {
+    const steps = Math.max(Math.abs(df), Math.abs(dr));
+    const sf = Math.sign(df);
+    const sr = Math.sign(dr);
+    const out: AlgebraicSquare[] = [];
+    for (let i = 1; i <= steps; i++) out.push(sqAt(a.file + sf * i, a.rank + sr * i));
+    return out;
+  }
+  // Pawn: 1 or 2 squares straight, or 1 square diagonal capture.
+  if (pieceType === "pawn") {
+    const steps = Math.max(Math.abs(df), Math.abs(dr));
+    const sf = Math.sign(df);
+    const sr = Math.sign(dr);
+    const out: AlgebraicSquare[] = [];
+    for (let i = 1; i <= steps; i++) out.push(sqAt(a.file + sf * i, a.rank + sr * i));
+    return out;
+  }
+  // Sliding pieces.
+  const sf = Math.sign(df);
+  const sr = Math.sign(dr);
+  const steps = Math.max(Math.abs(df), Math.abs(dr));
+  const out: AlgebraicSquare[] = [];
+  for (let i = 1; i <= steps; i++) out.push(sqAt(a.file + sf * i, a.rank + sr * i));
+  return out;
+}
+
 // ---- Attacks ---------------------------------------------------------------
 
 /**
@@ -349,7 +409,8 @@ export function pseudoLegalMoves(
       addJumpMoves(moves, sq, piece, pos, overlays, KNIGHT_DELTAS);
     }
 
-    // Root: piece may move only if the move is a capture.
+    // Root: piece may move only to capture an immediately adjacent piece
+    //   (one square in any direction — king-step distance).
     // Disarm: piece may move only if the move is NOT a capture.
     // Status restrictions are applied to the piece's moves only — not other pieces.
     const rooted = roots(overlays).has(sq);
@@ -357,7 +418,12 @@ export function pseudoLegalMoves(
     const sanc = sanctuaries(overlays);
     const sh = shields(overlays);
     for (const m of moves) {
-      if (rooted && !m.isCapture) continue;
+      if (rooted) {
+        if (!m.isCapture) continue;
+        const a = squareCoords(m.from);
+        const b = squareCoords(m.to);
+        if (Math.max(Math.abs(a.file - b.file), Math.abs(a.rank - b.rank)) > 1) continue;
+      }
       if (disarmed && m.isCapture) continue;
       // Sanctuary: pieces on a Sanctuary square cannot be captured.
       // Shield: shielded pieces cannot be captured.

@@ -24,6 +24,7 @@ import {
   isInsufficientMaterial,
   isSquareAttacked,
   legalMoves as rulesLegalMoves,
+  movePath,
   parseFen,
   serializeFen,
   squareCoords,
@@ -33,7 +34,7 @@ import {
   type RuleMove,
 } from "./rules";
 
-export { squareCoords, squareName };
+export { movePath, squareCoords, squareName };
 
 export type EngineMove = {
   from: AlgebraicSquare;
@@ -71,6 +72,17 @@ type HistoryEntry = {
   signatureBefore: string;
 };
 
+/**
+ * An opaque snapshot of the engine's mutable state — board position and move
+ * history — captured at a point in time so the React layer can revert to it
+ * later (the Undo button). Overlays are *not* part of the snapshot; they're
+ * derived from card state, which the React layer snapshots separately.
+ */
+export type EngineSnapshot = {
+  position: Position;
+  history: HistoryEntry[];
+};
+
 export class ChoseEngine {
   private position: Position;
   private overlays: Overlays = EMPTY_OVERLAYS;
@@ -78,6 +90,20 @@ export class ChoseEngine {
 
   constructor(fen?: string) {
     this.position = parseFen(fen ?? STARTING_FEN);
+  }
+
+  /**
+   * Capture the engine's mutable state. `restore` re-applies it. The snapshot
+   * is shallow but safe — `position` is treated immutably by `applyMove`, and
+   * `history` is sliced before being stored.
+   */
+  snapshot(): EngineSnapshot {
+    return { position: this.position, history: this.history.slice() };
+  }
+
+  restore(snapshot: EngineSnapshot): void {
+    this.position = snapshot.position;
+    this.history = snapshot.history.slice();
   }
 
   // ---- Overlays (walls / freezes) -----------------------------------------
