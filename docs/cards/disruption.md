@@ -12,7 +12,7 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 - **Effect:** Target enemy piece: **Freeze** for its next turn.
 - **Design note:** the iconic disruption card. Freezes a defender to open a capture, freezes an attacker to escape a threat, or freezes a king to delay an escape from check. Two copies in the starter so the player meets Freeze early and often.
 
-## Frozen Roots
+## Tangled Roots
 
 - **Cost:** 1
 - **Rarity:** Common
@@ -26,7 +26,7 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 - **Rarity:** Common
 - **Target:** enemy piece
 - **Effect:** Target enemy piece: **Disarm** for its next turn.
-- **Design note:** the inverse of Frozen Roots — the piece may move freely but cannot capture. Best used to defang a piece that's about to take one of yours, while leaving its mobility (and thus its threats) intact.
+- **Design note:** the inverse of Tangled Roots — the piece may move freely but cannot capture. Best used to defang a piece that's about to take one of yours, while leaving its mobility (and thus its threats) intact.
 
 ## Provoke
 

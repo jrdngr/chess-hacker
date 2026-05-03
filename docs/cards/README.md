@@ -20,14 +20,14 @@ Per-card reference for choss. The mechanics doc is [`docs/design/cards.md`](../d
 
 ## All cards
 
-19 cards total: 3 carried over plus 16 new this pass.
+22 cards total.
 
 | Card | Type | Cost | Rarity | Effect summary |
 |---|---|---|---|---|
 | [Reconnaissance](resource.md#reconnaissance) | Resource | 1 | Common | Draw 2. |
 | [Foresight](resource.md#foresight) | Resource | 0 | Common | Scry top 3 of deck. |
 | [Frostbite](disruption.md#frostbite) | Disruption | 2 | Common | Freeze enemy piece. |
-| [Frozen Roots](disruption.md#frozen-roots) | Disruption | 1 | Common | Root enemy piece. |
+| [Tangled Roots](disruption.md#tangled-roots) | Disruption | 1 | Common | Root enemy piece. |
 | [Fumble](disruption.md#fumble) | Disruption | 1 | Common | Disarm enemy piece. |
 | [Provoke](disruption.md#provoke) | Disruption | 2 | Uncommon | Compel enemy piece. |
 | [Barricade](spatial.md#barricade) | Spatial | 1 | Common | Wall on square, 3 turns. |
@@ -40,12 +40,15 @@ Per-card reference for choss. The mechanics doc is [`docs/design/cards.md`](../d
 | [Iron Guard](defensive.md#iron-guard) | Defensive | 1 | Common | Shield own piece. |
 | [Lightning Strike](burst.md#lightning-strike) | Burst | 4 | Rare | Own piece takes 2 actions. Consume. |
 | [Martyr's Gift](sacrifice.md#martyrs-gift) | Sacrifice | 1 | Uncommon | Destroy own piece; +2 cards, +1 energy. |
-| [Conjure Knight](summon.md#conjure-knight) | Summon | 3 | Rare | Summon a knight in own half. Consume. |
+| [Pawn Soul](summon.md#pawn-soul) | Summon | 1 | Common | Summon a pawn in own half. Consume. |
+| [Knight Soul](summon.md#knight-soul) | Summon | 3 | Rare | Summon a knight in own half. Consume. |
+| [Bishop Soul](summon.md#bishop-soul) | Summon | 3 | Rare | Summon a bishop in own half. Consume. |
+| [Rook Soul](summon.md#rook-soul) | Summon | 4 | Rare | Summon a rook in own half. Consume. |
 | [Switch Files](swap.md#switch-files) | Swap/Displace | 2 | Uncommon | Swap two of your own pieces. |
 | [Marionette](swap.md#marionette) | Swap/Displace | 3 | Rare | Move an enemy piece by its legal moves. Consume. |
 
 ## Counts
 
-- **By rarity:** 11 Common, 5 Uncommon, 3 Rare.
-- **By type:** Resource 2, Disruption 4, Spatial 5, Tempo 1, Movement-extension 1, Defensive 1, Burst 1, Sacrifice 1, Summon 1, Swap 2.
-- **By cost:** 1× 0-cost, 9× 1-cost, 7× 2-cost, 2× 3-cost, 1× 4-cost.
+- **By rarity:** 12 Common, 5 Uncommon, 5 Rare.
+- **By type:** Resource 2, Disruption 4, Spatial 5, Tempo 1, Movement-extension 1, Defensive 1, Burst 1, Sacrifice 1, Summon 4, Swap 2.
+- **By cost:** 1× 0-cost, 10× 1-cost, 6× 2-cost, 3× 3-cost, 2× 4-cost.

@@ -414,7 +414,7 @@ function pick(id: CardId): Card {
 export const RECONNAISSANCE: Card = pick("reconnaissance");
 export const FORESIGHT: Card = pick("foresight");
 export const FROSTBITE: Card = pick("frostbite");
-export const FROZEN_ROOTS: Card = pick("frozen-roots");
+export const TANGLED_ROOTS: Card = pick("tangled-roots");
 export const FUMBLE: Card = pick("fumble");
 export const PROVOKE: Card = pick("provoke");
 export const BARRICADE: Card = pick("barricade");
@@ -427,7 +427,7 @@ export const CROOKED_PATH: Card = pick("crooked-path");
 export const IRON_GUARD: Card = pick("iron-guard");
 export const LIGHTNING_STRIKE: Card = pick("lightning-strike");
 export const MARTYRS_GIFT: Card = pick("martyrs-gift");
-export const CONJURE_KNIGHT: Card = pick("conjure-knight");
+export const KNIGHT_SOUL: Card = pick("knight-soul");
 export const SWITCH_FILES: Card = pick("switch-files");
 export const MARIONETTE: Card = pick("marionette");
 

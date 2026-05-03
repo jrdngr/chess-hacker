@@ -5,7 +5,7 @@
     { "id": "reconnaissance", "count": 1 },
     { "id": "foresight", "count": 1 },
     { "id": "frostbite", "count": 1 },
-    { "id": "frozen-roots", "count": 1 },
+    { "id": "tangled-roots", "count": 1 },
     { "id": "fumble", "count": 1 },
     { "id": "provoke", "count": 1 },
     { "id": "barricade", "count": 1 },
@@ -18,10 +18,10 @@
     { "id": "iron-guard", "count": 1 },
     { "id": "lightning-strike", "count": 1 },
     { "id": "martyrs-gift", "count": 1 },
-    { "id": "conjure-pawn", "count": 1 },
-    { "id": "conjure-knight", "count": 1 },
-    { "id": "conjure-bishop", "count": 1 },
-    { "id": "conjure-rook", "count": 1 },
+    { "id": "pawn-soul", "count": 1 },
+    { "id": "knight-soul", "count": 1 },
+    { "id": "bishop-soul", "count": 1 },
+    { "id": "rook-soul", "count": 1 },
     { "id": "switch-files", "count": 1 },
     { "id": "marionette", "count": 1 }
   ]
