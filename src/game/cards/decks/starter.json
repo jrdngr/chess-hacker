@@ -1,6 +1,6 @@
 {
   "name": "Starter",
-  "description": "Run-start deck: one of every card currently in the library (19 cards). Deliberately broad — exposes the player to every effect family in the prototype pool. See docs/cards/starter-deck.md for the rationale.",
+  "description": "Run-start deck: one of every card currently in the library (22 cards). Deliberately broad — exposes the player to every effect family in the prototype pool. See docs/cards/starter-deck.md for the rationale.",
   "cards": [
     { "id": "reconnaissance", "count": 1 },
     { "id": "foresight", "count": 1 },
@@ -18,7 +18,10 @@
     { "id": "iron-guard", "count": 1 },
     { "id": "lightning-strike", "count": 1 },
     { "id": "martyrs-gift", "count": 1 },
+    { "id": "conjure-pawn", "count": 1 },
     { "id": "conjure-knight", "count": 1 },
+    { "id": "conjure-bishop", "count": 1 },
+    { "id": "conjure-rook", "count": 1 },
     { "id": "switch-files", "count": 1 },
     { "id": "marionette", "count": 1 }
   ]

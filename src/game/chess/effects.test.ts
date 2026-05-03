@@ -12,17 +12,40 @@ const baseOverlays = (): Overlays => ({
 });
 
 describe("Root", () => {
-  it("a rooted piece may only make capturing moves", () => {
-    // Black knight on f6 (its turn), with a player pawn on g4 in capture range.
+  it("a rooted piece may only capture an immediately adjacent piece", () => {
+    // Black king on e8 with a player pawn on d7 (one square away). The king
+    // is rooted; only the d7 capture is legal.
+    const pos = parseFen("4k3/3P4/8/8/8/8/8/7K b - - 0 1");
+    const overlays: Overlays = {
+      ...baseOverlays(),
+      roots: new Set(["e8"]),
+    };
+    const moves = legalMoves(pos, overlays, "e8").map((m) => m.to);
+    expect(moves).toEqual(["d7"]);
+  });
+
+  it("a rooted sliding piece cannot capture across the board", () => {
+    // Black rook on a8, player pawn on a1 — long-range capture would normally
+    // be legal, but Root forbids non-adjacent captures.
+    const pos = parseFen("r3k3/8/8/8/8/8/8/P6K b - - 0 1");
+    const overlays: Overlays = {
+      ...baseOverlays(),
+      roots: new Set(["a8"]),
+    };
+    const moves = legalMoves(pos, overlays, "a8").map((m) => m.to);
+    expect(moves).not.toContain("a1");
+  });
+
+  it("a rooted knight cannot capture via knight-jump (>1 square)", () => {
+    // Black knight on f6 with a player pawn on g4 (knight-jump capture).
+    // The capture is 2 squares away, so Root forbids it.
     const pos = parseFen("8/8/5n2/8/6P1/8/8/4k2K b - - 0 1");
     const overlays: Overlays = {
       ...baseOverlays(),
       roots: new Set(["f6"]),
     };
     const moves = legalMoves(pos, overlays, "f6").map((m) => m.to);
-    // Knight on f6 can move to g4 (capture), e4, h5 (no capture), g8, h7, e8.
-    // Root limits to captures: only g4.
-    expect(moves).toEqual(["g4"]);
+    expect(moves).toEqual([]);
   });
 });
 

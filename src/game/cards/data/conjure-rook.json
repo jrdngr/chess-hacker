@@ -1,0 +1,11 @@
+{
+  "id": "conjure-rook",
+  "name": "Conjure Rook",
+  "cost": 4,
+  "rarity": "rare",
+  "archetype": "summon",
+  "consume": true,
+  "description": "Summon a rook on an empty square in your half (ranks 1–4). Consume.",
+  "target": { "kind": "empty-square-own-half" },
+  "effect": { "kind": "summon-piece", "pieceType": "rook" }
+}

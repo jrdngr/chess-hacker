@@ -1,6 +1,6 @@
 # Starter Deck
 
-The cards every fresh run begins with. **One of every card currently in the library** (19 cards). Deliberately broad — the prototype is small enough that the starter deck simply *is* the entire pool, and the player sees every effect family within their first match.
+The cards every fresh run begins with. **One of every card currently in the library** (22 cards). Deliberately broad — the prototype is small enough that the starter deck simply *is* the entire pool, and the player sees every effect family within their first match.
 
 This will narrow once drafts and the shop start contributing additional copies; for now, "all cards × 1" is the simplest way to playtest every effect.
 
@@ -24,23 +24,26 @@ This will narrow once drafts and the shop start contributing additional copies; 
 | 1 | [Iron Guard](defensive.md#iron-guard) | Defensive | Shield own piece. |
 | 1 | [Lightning Strike](burst.md#lightning-strike) | Burst | Own piece takes 2 actions. Consume. |
 | 1 | [Martyr's Gift](sacrifice.md#martyrs-gift) | Sacrifice | Destroy own piece; +2 cards, +1 energy. |
+| 1 | [Conjure Pawn](summon.md#conjure-pawn) | Summon | Summon a pawn in own half. Consume. |
 | 1 | [Conjure Knight](summon.md#conjure-knight) | Summon | Summon a knight in own half. Consume. |
+| 1 | [Conjure Bishop](summon.md#conjure-bishop) | Summon | Summon a bishop in own half. Consume. |
+| 1 | [Conjure Rook](summon.md#conjure-rook) | Summon | Summon a rook in own half. Consume. |
 | 1 | [Switch Files](swap.md#switch-files) | Swap/Displace | Swap two of your own pieces. |
 | 1 | [Marionette](swap.md#marionette) | Swap/Displace | Move an enemy piece by its legal moves. Consume. |
 
-**Total: 19 cards.**
+**Total: 22 cards.**
 
 ## Cost curve
 
 | Cost | Count | Cards |
 |---|---|---|
 | 0 | 1 | Foresight |
-| 1 | 9 | Reconnaissance, Frozen Roots, Fumble, Barricade, Snare, Spring Trap, Crooked Path, Iron Guard, Martyr's Gift |
+| 1 | 10 | Reconnaissance, Frozen Roots, Fumble, Barricade, Snare, Spring Trap, Crooked Path, Iron Guard, Martyr's Gift, Conjure Pawn |
 | 2 | 6 | Frostbite, Provoke, Hallowed Ground, Spike Pit, Quickstep, Switch Files |
-| 3 | 2 | Conjure Knight, Marionette |
-| 4 | 1 | Lightning Strike |
+| 3 | 3 | Conjure Knight, Conjure Bishop, Marionette |
+| 4 | 2 | Lightning Strike, Conjure Rook |
 
-Average cost: ~1.6. Comfortable inside the 3-energy/turn budget; opening hands of 5 will almost always include something playable on turn 1.
+Average cost: ~1.7. Comfortable inside the 3-energy/turn budget; opening hands of 5 will almost always include something playable on turn 1.
 
 ## Rationale
 

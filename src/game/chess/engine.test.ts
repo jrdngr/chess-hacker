@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ChoseEngine, squareCoords, squareName } from "./engine";
+import { ChoseEngine, movePath, squareCoords, squareName } from "./engine";
 
 describe("ChoseEngine", () => {
   it("starts in the standard initial position with white to move", () => {
@@ -127,5 +127,48 @@ describe("square helpers", () => {
     expect(squareCoords("a1")).toEqual({ file: 0, rank: 0 });
     expect(squareCoords("h8")).toEqual({ file: 7, rank: 7 });
     expect(squareCoords("e4")).toEqual({ file: 4, rank: 3 });
+  });
+});
+
+describe("snapshot / restore", () => {
+  it("rolls back position and history", () => {
+    const e = new ChoseEngine();
+    const snap = e.snapshot();
+    e.move({ from: "e2", to: "e4" });
+    e.move({ from: "e7", to: "e5" });
+    expect(e.pieceAt("e4")?.type).toBe("pawn");
+    e.restore(snap);
+    expect(e.pieceAt("e4")).toBeNull();
+    expect(e.pieceAt("e2")?.type).toBe("pawn");
+    expect(e.lastMove()).toBeNull();
+  });
+
+  it("captured pieces are reverted along with history", () => {
+    const e = new ChoseEngine("4k3/8/8/8/3p4/4P3/8/4K3 w - - 0 1");
+    const snap = e.snapshot();
+    e.move({ from: "e3", to: "d4" }); // captures the pawn
+    expect(e.capturedPieces().byPlayer).toHaveLength(1);
+    e.restore(snap);
+    expect(e.capturedPieces().byPlayer).toHaveLength(0);
+    expect(e.pieceAt("d4")?.side).toBe("opponent");
+  });
+});
+
+describe("movePath", () => {
+  it("knights jump, so the path is just the destination", () => {
+    expect(movePath("knight", "g1", "f3")).toEqual(["f3"]);
+  });
+
+  it("a sliding piece's path includes every square between origin and destination", () => {
+    // d1 to d5 along the file: d2, d3, d4, d5
+    expect(movePath("rook", "d1", "d5")).toEqual(["d2", "d3", "d4", "d5"]);
+  });
+
+  it("a bishop's diagonal path is every diagonal step", () => {
+    expect(movePath("bishop", "c1", "f4")).toEqual(["d2", "e3", "f4"]);
+  });
+
+  it("a pawn double-step crosses the intermediate square", () => {
+    expect(movePath("pawn", "e2", "e4")).toEqual(["e3", "e4"]);
   });
 });
