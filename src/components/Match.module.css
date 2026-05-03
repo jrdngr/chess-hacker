@@ -139,6 +139,14 @@
   align-self: stretch;
 }
 
+.toggleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
 .energy {
   display: flex;
   align-items: baseline;

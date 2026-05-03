@@ -184,6 +184,21 @@
   z-index: 3;
 }
 
+/* Chess-vision overlays (attacked-square highlights). `inset` box-shadow
+   paints between the square's background and its contents, so pieces and
+   overlay marks remain on top without needing explicit z-index. */
+.visionPlayer {
+  box-shadow: inset 0 0 0 9999px rgba(70, 130, 220, 0.45);
+}
+
+.visionOpponent {
+  box-shadow: inset 0 0 0 9999px rgba(220, 70, 70, 0.45);
+}
+
+.visionBoth {
+  box-shadow: inset 0 0 0 9999px rgba(160, 80, 200, 0.5);
+}
+
 .cardTarget {
   outline: 2px solid var(--player);
   outline-offset: -3px;
