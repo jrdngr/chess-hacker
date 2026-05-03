@@ -57,6 +57,18 @@ The milestones are roughly sequential — each builds on the previous — but se
 
 **Done when:** a wall placed by the player blocks enemy bishop / rook / queen lines, the AI doesn't try to walk through walls, and walls expire correctly.
 
+## Dev mode — testing sandbox [tooling]
+
+Top-level run mode parallel to Royal / Skirmish (developer-only, not player-facing). Selected from the App's mode menu. Provides:
+
+- Board editor (place / overwrite / erase pieces, toggle side-to-move, clear, standard start).
+- Free card library — every card playable on demand; cost waived; library plays don't enter the spent pile, but effects (statuses, traps, summons, generators, self-replicators, scry / revive prompts, capture-grants-Soul) persist.
+- Optional AI on Black (off by default + "AI: play one move" single-shot button).
+- Energy controls ("+1", "Refill (10)").
+- Action-granular undo / redo (every dev action pushes a snapshot).
+
+**Done when:** an engineer can spin up a custom position via the editor, exercise any library card against it, and undo back to any prior action.
+
 ## M5 — Match end-to-end + run scaffolding [2d]
 
 - Add a top-level run state machine: `mode-select → match → reward → shop → match → ...`.

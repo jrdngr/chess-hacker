@@ -1,6 +1,8 @@
 # Modes
 
-The player picks one of two modes at the start of each run. The mode is fixed for the entire run.
+The player picks one of two modes at the start of each run — **Royal** or **Skirmish**. The mode is fixed for the entire run.
+
+A third mode, **Dev**, sits parallel to Royal and Skirmish but is **not a player-facing mode**. It is a developer sandbox for setting up specific positions and exercising card interactions while the official modes are being built; it is selected from the same top-level menu but exposes editor / library / AI controls instead of a run progression. See the "Dev" section at the bottom of this doc for details.
 
 ## Royal
 
@@ -58,3 +60,17 @@ Royal is for players who want the cleanest "chess + spells" experience. Skirmish
 - Ascension difficulty modifiers.
 
 The only differences are roster management and placement.
+
+## Dev (developer-only)
+
+Dev is a sandbox parallel to Royal and Skirmish at the menu level. It exists so we can scaffold and exercise card / status / chess interactions without first building the run loop. Dev is **not shipped to players** and has no run progression.
+
+What dev mode provides:
+
+- **Board editor.** Place / overwrite / erase pieces, toggle side-to-move, clear the board, restore the standard chess starting position. Statuses on a square are dropped when the piece on it is replaced.
+- **Free card library.** Every card in the library is playable on demand. Library plays cost no energy and do not enter the spent pile, but their effects (statuses, traps, summons, draws, scry, revive prompts, generators, self-replicators, capture-grants-Soul) resolve through the same `playCard` path as a real play.
+- **Optional AI.** Stockfish on Black is off by default. Toggle it on for an auto-replying opponent, or click "AI: play one move" for a one-shot reply. With the AI off, the human drives both colors.
+- **Energy controls.** "+1 energy" and "Refill (10)" buttons short-circuit the natural ramp.
+- **Action-granular undo / redo.** Every dev action (move, edit, library play, side-to-move toggle, energy bump) pushes a snapshot, so undo rewinds individual actions instead of whole turns.
+
+Cards are still only playable on the player's turn, and the chess engine still enforces standard rules — the editor doesn't validate king-uniqueness or other position legality, and odd positions may produce odd `outcome()` / `inCheck()` results. Acceptable for a dev tool.
