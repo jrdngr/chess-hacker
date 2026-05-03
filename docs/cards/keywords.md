@@ -101,14 +101,18 @@ The Trap dissolves on trigger. It does not affect your own pieces.
 
 ## Card-flow keywords
 
-How a card behaves with respect to deck and hand. No new keywords this pass.
+### Disposal (universal rule, not a keyword)
 
-### Cycle
+Every played card is removed for the rest of the match. There is no discard pile, no reshuffle. Multiples in your deck are how you get repeatable effects; running the deck dry leaves you with chess only.
 
-The default. When played, the card goes to the discard pile. When the draw pile empties, the discard reshuffles into a new draw pile silently and immediately.
+### Self-replicating
 
-### Consume
+Some cards (Pace, Hum, Drift) shuffle a fresh copy of themselves into your draw pile when played. The played copy still consumes; the spawned copy is a brand-new card in the draw pile. Net effect: each play "replaces" the card at the cost of one energy and one effect resolution.
 
-When played, the card is **removed from the deck for the rest of the match**. It does not return to the draw pile. Match-consume is the default; run-consume is reserved for a small handful of game-changing cards and is called out explicitly when used.
+### Generator
 
-The keyword is visible at all times on the card.
+A card whose effect creates one or more new cards in your hand. The created cards may be a random pool entry (Improvise picks a random common; Trick Bag picks three from the shiv pool) or a specific id (Mark Target adds Vine Pull to your hand).
+
+### Revive
+
+A card whose effect returns one card from your spent pile to your hand. Recall picks at random; Recover prompts you to choose. The card you bring back is the same instance that was previously played; revival doesn't generate copies.

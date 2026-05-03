@@ -44,7 +44,7 @@ All pieces fit comfortably within a board square, with consistent visual weight.
 - **Card name:** sans-serif, top of card.
 - **Cost:** large numeric in the upper-left corner.
 - **Effect text:** centered, concise, plain-language description — no flavor text in the prototype.
-- **Cycle vs Consume keyword:** small icon at the bottom corner. Consume = a single-X icon, Cycle = a circular arrow icon (or no icon for cycle, since it's the default).
+- **Self-replicating keyword:** small icon at the bottom corner for cards that shuffle a copy of themselves back into the draw pile (Pace, Hum, Drift). No icon for default behaviour — every card consumes by default, so it's not worth marking.
 - **Card art:** none in the prototype. The card's main visual is its color, name, and cost. Add art in post-prototype iteration.
 
 ### UI surface
@@ -52,7 +52,7 @@ All pieces fit comfortably within a board square, with consistent visual weight.
 - **Match screen layout:**
   - Center: the 8x8 board, taking ~60% of the viewport.
   - Bottom: the player's hand (up to 5–6 cards).
-  - Top-left: turn indicator + energy display + draw/discard counts.
+  - Top-left: turn indicator + energy display + draw/spent pile counts.
   - Top-right: opponent piece roster summary (Skirmish) or boss-modifier reminder (boss matches).
   - Right sidebar: artifact slots (always visible, hover for details).
   - Curses-in-hand visually distinct from regular cards (the desaturated red border).
@@ -61,7 +61,7 @@ All pieces fit comfortably within a board square, with consistent visual weight.
 
 ### Motion
 
-- **Card play:** card lifts, plays its effect with a short visualization, then animates to discard / consume.
+- **Card play:** card lifts, plays its effect with a short visualization, then animates to the spent pile.
 - **Move animations:** smooth piece glide along the move path. Captures pop the captured piece off.
 - **Curse insertions:** a visible flash + the card sliding into hand from above with a curse-tinted effect.
 - Motion should be **fast** (300–400ms total per animation). Players replaying matches will hate slow animations.

@@ -41,7 +41,7 @@ See [`progression.md`](progression.md) for the post-match flow in detail and the
 A single match is a chess game with two augmentations:
 
 1. The player's side has a **deck of cards** drawn from across the run. They start the match with 5 cards in hand and refill to 5 at the start of each of their turns.
-2. The player has **3 energy per turn** (resets each turn) to spend playing cards. Cards cost 0–4 energy.
+2. The player gains **+1 energy per turn** (turn 1 starts at 1, unspent energy banks up to a cap of 10) to spend playing cards. Cards cost 0–10 energy. Every played card is removed for the rest of the match — no reshuffle.
 
 On the player's turn, the player may **play any number of cards** (limited only by energy and hand contents), then make exactly one chess move. Cards are mostly played during the player's own turn, before or after the move; some specific card effects may target the move itself (e.g. "this turn, your knight may also move 1 square diagonally"). There are **no reactions** on the opponent's turn in the prototype.
 

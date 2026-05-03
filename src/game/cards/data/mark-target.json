@@ -1,0 +1,16 @@
+{
+  "id": "mark-target",
+  "name": "Mark Target",
+  "cost": 2,
+  "rarity": "uncommon",
+  "archetype": "disruption",
+  "description": "Root an enemy non-King piece for 2 turns. Add Vine Pull to your hand.",
+  "target": { "kind": "enemy-non-king-piece" },
+  "effect": {
+    "kind": "compound",
+    "effects": [
+      { "kind": "root-piece", "durationTurns": 2 },
+      { "kind": "add-card-to-hand", "source": "card-id", "cardId": "vine-pull" }
+    ]
+  }
+}

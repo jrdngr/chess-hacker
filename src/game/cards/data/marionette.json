@@ -1,11 +1,10 @@
 {
   "id": "marionette",
   "name": "Marionette",
-  "cost": 3,
+  "cost": 5,
   "rarity": "rare",
   "archetype": "swap",
-  "consume": true,
-  "description": "Move an enemy piece using one of its legal moves (no self-captures). Consume.",
+  "description": "Move an enemy piece using one of its legal moves (no self-captures).",
   "target": { "kind": "marionette" },
   "effect": { "kind": "marionette" }
 }

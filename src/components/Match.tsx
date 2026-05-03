@@ -22,6 +22,7 @@ import { Board, type BoardMode } from "./Board/Board";
 import { CapturedPieces } from "./Board/CapturedPieces";
 import { materialAdvantage } from "./Board/material";
 import { Hand } from "./Hand/Hand";
+import { ReviveModal } from "./Hand/ReviveModal";
 import { ScryModal } from "./Hand/ScryModal";
 import {
   ChoseEngine,
@@ -39,18 +40,24 @@ import {
   type StockfishOptions,
 } from "../ai/stockfish";
 import {
+  ENERGY_MAX,
+  addToHand,
   clearStatusesOn,
+  completeRevive,
   consumeHaste,
   consumeLightningAction,
   createMatchCardState,
   dropOtherSingleUseEmpowers,
+  grantSoulOnCapture,
   hasWallOn,
   hasteAt,
   isInPlayerHalf,
+  isRooted,
   lightningAt,
   playCard,
   relocateStatuses,
   setDeckTop,
+  shuffleIntoDraw,
   startPlayerTurn,
   type BoardContext,
   type PlayTarget,
@@ -88,6 +95,12 @@ type Props = {
   initialDeck?: Card[];
   /** Inject an RNG for tests so card order is deterministic. */
   rng?: Rng;
+  /**
+   * Override the starting energy for tests. Production starts at
+   * STARTING_ENERGY (1) and banks +1 each turn; tests sometimes need a
+   * larger pool so existing scenarios (cost-2+ cards on turn 1) keep working.
+   */
+  initialEnergy?: number;
 };
 
 /**
@@ -187,6 +200,7 @@ export function Match({
   aiMinThinkMs = DEFAULT_AI_MIN_THINK_MS,
   initialDeck,
   rng,
+  initialEnergy,
 }: Props = {}) {
   const [mode, setMode] = useState<MatchMode>(initialMode);
   const [difficulty, setDifficulty] = useState<Difficulty>(initialDifficulty);
@@ -206,11 +220,14 @@ export function Match({
   // ---- Card-system state (vs-ai only) --------------------------------------
 
   const cardsEnabled = mode === "vs-ai";
-  const [cardState, setCardState] = useState<MatchCardState>(() =>
-    cardsEnabled
-      ? startPlayerTurn(createMatchCardState(initialDeck ?? makeStarterDeck(), rng), rng)
-      : createMatchCardState([], rng),
-  );
+  const [cardState, setCardState] = useState<MatchCardState>(() => {
+    if (!cardsEnabled) return createMatchCardState([], rng);
+    const fresh = startPlayerTurn(
+      createMatchCardState(initialDeck ?? makeStarterDeck(), rng),
+      rng,
+    );
+    return initialEnergy !== undefined ? { ...fresh, energy: initialEnergy } : fresh;
+  });
   /** Hand index waiting for a target click, or null. */
   const [targetingIndex, setTargetingIndex] = useState<number | null>(null);
   /** First square in a two-step targeting flow (Switch Files / Marionette). */
@@ -219,6 +236,8 @@ export function Match({
   const [marionetteMoves, setMarionetteMoves] = useState<LegalMove[]>([]);
   /** When non-null, Foresight is asking the player to reorder the deck top. */
   const [scryPending, setScryPending] = useState<{ cards: Card[] } | null>(null);
+  /** When true, Recover is asking the player to pick a card from consumedPile. */
+  const [revivePending, setRevivePending] = useState<boolean>(false);
   /**
    * Stack of engine + card-state snapshots, one per player turn.
    * `turnSnapshots[turnSnapshots.length - 1]` is the state at the start of
@@ -434,6 +453,35 @@ export function Match({
       }
       return out;
     }
+    if (targetKind === "enemy-non-king-piece") {
+      const requireAttacked =
+        targetingCard.effect.kind === "destroy-piece" &&
+        targetingCard.effect.filter === "attacked-by-player";
+      for (const { square, piece } of allPieces) {
+        if (piece.side !== "opponent") continue;
+        if (piece.type === "king") continue;
+        if (requireAttacked && !engine.isSquareAttackedBy(square, "player")) continue;
+        out.add(square);
+      }
+      return out;
+    }
+    if (targetKind === "rooted-enemy-and-own-piece") {
+      if (partialTarget) {
+        // Phase 2: any of the player's pieces (other than the picked enemy).
+        for (const { square, piece } of allPieces) {
+          if (piece.side === "player" && square !== partialTarget) out.add(square);
+        }
+        return out;
+      }
+      // Phase 1: rooted enemy non-king pieces.
+      for (const { square, piece } of allPieces) {
+        if (piece.side !== "opponent") continue;
+        if (piece.type === "king") continue;
+        if (!rootedSet.has(square)) continue;
+        out.add(square);
+      }
+      return out;
+    }
     if (targetKind === "own-piece" || targetKind === "own-non-king-piece") {
       const excludeKing = targetKind === "own-non-king-piece";
       for (const { square, piece } of allPieces) {
@@ -444,9 +492,9 @@ export function Match({
       return out;
     }
     return out;
-    // engine is mutable; depend on version + walls
+    // engine is mutable; depend on version + walls + rooted
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetingCard, partialTarget, marionetteMoves, walledSet, version]);
+  }, [targetingCard, partialTarget, marionetteMoves, walledSet, rootedSet, version]);
 
   const boardMode: BoardMode = useMemo(() => {
     if (!targetingCard) return { kind: "play" };
@@ -463,7 +511,16 @@ export function Match({
     else if (k === "empty-square-own-half")
       hint = `Pick an empty square in your half (ranks 1–4) for ${targetingCard.name}`;
     else if (k === "enemy-piece") hint = `Pick an enemy piece for ${targetingCard.name}`;
-    else if (k === "own-piece") hint = `Pick one of your pieces for ${targetingCard.name}`;
+    else if (k === "enemy-non-king-piece") {
+      if (
+        targetingCard.effect.kind === "destroy-piece" &&
+        targetingCard.effect.filter === "attacked-by-player"
+      ) {
+        hint = `Pick an enemy piece your forces are attacking for ${targetingCard.name}`;
+      } else {
+        hint = `Pick an enemy non-King piece for ${targetingCard.name}`;
+      }
+    } else if (k === "own-piece") hint = `Pick one of your pieces for ${targetingCard.name}`;
     else if (k === "own-non-king-piece")
       hint = `Pick one of your non-King pieces for ${targetingCard.name}`;
     else if (k === "two-own-pieces")
@@ -474,6 +531,10 @@ export function Match({
       hint = partialTarget
         ? `Pick a destination for ${targetingCard.name}`
         : `Pick an enemy piece to control with ${targetingCard.name}`;
+    else if (k === "rooted-enemy-and-own-piece")
+      hint = partialTarget
+        ? `Pick one of your pieces to swap with the rooted enemy for ${targetingCard.name}`
+        : `Pick a rooted enemy piece for ${targetingCard.name}`;
     return { kind: "target", cardName: targetingCard.name, hint, valid: validTargetSquares };
   }, [targetingCard, partialTarget, validTargetSquares]);
 
@@ -566,6 +627,8 @@ export function Match({
     () => ({
       pieceAt: (sq) => engine.pieceAt(sq),
       hasWall: (sq) => hasWallOn(cardState, sq),
+      isAttackedBy: (sq, by) => engine.isSquareAttackedBy(sq, by),
+      isRooted: (sq) => isRooted(cardState, sq),
     }),
     // engine is mutable; version forces recompute on each move
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -586,6 +649,9 @@ export function Match({
       const haste = hasteAt(cardState, from);
       const lightning = lightningAt(cardState, from);
       const mover = engine.pieceAt(from);
+      // Snapshot the captured piece BEFORE applying the move — once the
+      // engine resolves, the target square is gone or repopulated.
+      const captured = engine.pieceAt(to);
       const applied = engine.move({ from, to, promotion: legal.promotion });
       if (!applied) return false;
 
@@ -595,7 +661,12 @@ export function Match({
       // Statuses follow the piece.
       next = relocateStatuses(next, from, to);
       // Captured-piece's statuses (if any) are dropped.
-      if (applied.isCapture) next = clearStatusesOn(next, to);
+      if (applied.isCapture) {
+        next = clearStatusesOn(next, to);
+        // Capture-grants-Soul: feed the matching Soul card into the draw
+        // pile. The helper filters by side and piece-type itself.
+        next = grantSoulOnCapture(next, captured, "player", rng);
+      }
 
       // Resolve any trap triggered by this move (player pieces are not exempt).
       if (mover) {
@@ -627,7 +698,7 @@ export function Match({
       setVersion((v) => v + 1);
       return true;
     },
-    [engine, cardState],
+    [engine, cardState, rng],
   );
 
   /**
@@ -682,6 +753,12 @@ export function Match({
           engine.applyForeignMove({ from: fx.from, to: fx.to });
           next = relocateStatuses(next, fx.from, fx.to);
           if (mover) next = resolveTrapForMove(engine, next, mover, fx.from, fx.to);
+        } else if (fx.kind === "add-card-to-hand") {
+          next = addToHand(next, fx.card);
+        } else if (fx.kind === "add-card-to-draw") {
+          next = shuffleIntoDraw(next, fx.card, rng);
+        } else if (fx.kind === "revive-prompt") {
+          setRevivePending(true);
         }
       }
       setCardState(next);
@@ -1068,7 +1145,7 @@ export function Match({
             <div className={styles.label}>Energy</div>
             <div className={styles.energy} aria-label={`Energy: ${cardState.energy}`}>
               <span className={styles.energyValue}>{cardState.energy}</span>
-              <span className={styles.energyMax}>/ {cardState.energyMax}</span>
+              <span className={styles.energyMax}>/ {ENERGY_MAX}</span>
             </div>
           </div>
         )}
@@ -1140,7 +1217,7 @@ export function Match({
             targetingIndex={targetingIndex}
             enabled={!aiThinking && !matchOver && turn === HUMAN_SIDE}
             drawPileCount={cardState.drawPile.length}
-            discardPileCount={cardState.discardPile.length}
+            consumedPileCount={cardState.consumedPile.length}
             onCardClick={onCardClick}
             onCardDragStart={onCardDragStart}
             onCardDragEnd={onCardDragEnd}
@@ -1154,6 +1231,16 @@ export function Match({
             setCardState((prev) => setDeckTop(prev, newOrder));
             setScryPending(null);
           }}
+        />
+      )}
+      {revivePending && (
+        <ReviveModal
+          cards={cardState.consumedPile}
+          onPick={(idx) => {
+            setCardState((prev) => completeRevive(prev, idx));
+            setRevivePending(false);
+          }}
+          onCancel={() => setRevivePending(false)}
         />
       )}
     </div>

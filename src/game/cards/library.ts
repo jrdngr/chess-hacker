@@ -40,16 +40,18 @@ const VALID_ARCHETYPES: readonly CardArchetype[] = [
   "summon",
   "swap",
 ];
-const VALID_COSTS: readonly CardCost[] = [0, 1, 2, 3, 4];
+const VALID_COSTS: readonly CardCost[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const VALID_TARGET_KINDS = [
   "none",
   "empty-square",
   "empty-square-own-half",
   "enemy-piece",
+  "enemy-non-king-piece",
   "own-piece",
   "own-non-king-piece",
   "two-own-pieces",
   "marionette",
+  "rooted-enemy-and-own-piece",
 ] as const;
 const VALID_EFFECT_KINDS = [
   "gain-energy",
@@ -67,10 +69,20 @@ const VALID_EFFECT_KINDS = [
   "place-sanctuary",
   "place-trap",
   "swap-own-pieces",
+  "swap-rooted-with-own",
   "summon-piece",
   "sacrifice-piece",
   "marionette",
+  "destroy-piece",
+  "add-card-to-hand",
+  "add-card-to-draw",
+  "revive",
+  "compound",
 ] as const;
+const VALID_DESTROY_FILTERS = ["any", "attacked-by-player"] as const;
+const VALID_ADD_CARD_HAND_SOURCES = ["random-common", "card-id", "shiv-pool"] as const;
+const VALID_ADD_CARD_DRAW_SOURCES = ["self", "card-id"] as const;
+const VALID_REVIVE_SELECTIONS = ["random", "choose"] as const;
 const VALID_TRAP_EFFECTS: readonly TrapEffect[] = ["capture", "freeze", "push"];
 const VALID_EMPOWER_PATTERNS: readonly EmpowerPattern[] = [
   "pawn",
@@ -145,8 +157,16 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
     }
     case "freeze-piece":
       return { kind: "freeze-piece" };
-    case "root-piece":
-      return { kind: "root-piece" };
+    case "root-piece": {
+      const dt = raw.durationTurns;
+      if (dt !== undefined && (typeof dt !== "number" || !Number.isInteger(dt) || dt < 1)) {
+        errors.push("'effect.durationTurns' must be a positive integer if present for 'root-piece'");
+        return null;
+      }
+      const out: CardEffect = { kind: "root-piece" };
+      if (typeof dt === "number") (out as { durationTurns?: number }).durationTurns = dt;
+      return out;
+    }
     case "disarm-piece":
       return { kind: "disarm-piece" };
     case "compel-piece":
@@ -243,6 +263,109 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
     }
     case "marionette":
       return { kind: "marionette" };
+    case "swap-rooted-with-own":
+      return { kind: "swap-rooted-with-own" };
+    case "destroy-piece": {
+      const filter = raw.filter;
+      if (
+        typeof filter !== "string" ||
+        !(VALID_DESTROY_FILTERS as readonly string[]).includes(filter)
+      ) {
+        errors.push(
+          `'effect.filter' must be one of ${VALID_DESTROY_FILTERS.join(", ")} for 'destroy-piece'`,
+        );
+        return null;
+      }
+      return { kind: "destroy-piece", filter: filter as "any" | "attacked-by-player" };
+    }
+    case "add-card-to-hand": {
+      const source = raw.source;
+      if (
+        typeof source !== "string" ||
+        !(VALID_ADD_CARD_HAND_SOURCES as readonly string[]).includes(source)
+      ) {
+        errors.push(
+          `'effect.source' must be one of ${VALID_ADD_CARD_HAND_SOURCES.join(", ")} for 'add-card-to-hand'`,
+        );
+        return null;
+      }
+      const cardId = raw.cardId;
+      if (source === "card-id" && (typeof cardId !== "string" || cardId.length === 0)) {
+        errors.push("'effect.cardId' must be a non-empty string when source is 'card-id'");
+        return null;
+      }
+      const count = raw.count;
+      if (count !== undefined && (typeof count !== "number" || !Number.isInteger(count) || count < 1)) {
+        errors.push("'effect.count' must be a positive integer if present for 'add-card-to-hand'");
+        return null;
+      }
+      const out: CardEffect & { kind: "add-card-to-hand" } = {
+        kind: "add-card-to-hand",
+        source: source as "random-common" | "card-id" | "shiv-pool",
+      };
+      if (typeof cardId === "string" && cardId.length > 0) out.cardId = cardId;
+      if (typeof count === "number") out.count = count;
+      return out;
+    }
+    case "add-card-to-draw": {
+      const source = raw.source;
+      if (
+        typeof source !== "string" ||
+        !(VALID_ADD_CARD_DRAW_SOURCES as readonly string[]).includes(source)
+      ) {
+        errors.push(
+          `'effect.source' must be one of ${VALID_ADD_CARD_DRAW_SOURCES.join(", ")} for 'add-card-to-draw'`,
+        );
+        return null;
+      }
+      const cardId = raw.cardId;
+      if (source === "card-id" && (typeof cardId !== "string" || cardId.length === 0)) {
+        errors.push("'effect.cardId' must be a non-empty string when source is 'card-id'");
+        return null;
+      }
+      const out: CardEffect & { kind: "add-card-to-draw" } = {
+        kind: "add-card-to-draw",
+        source: source as "self" | "card-id",
+      };
+      if (typeof cardId === "string" && cardId.length > 0) out.cardId = cardId;
+      return out;
+    }
+    case "revive": {
+      const sel = raw.selection;
+      if (
+        typeof sel !== "string" ||
+        !(VALID_REVIVE_SELECTIONS as readonly string[]).includes(sel)
+      ) {
+        errors.push(
+          `'effect.selection' must be one of ${VALID_REVIVE_SELECTIONS.join(", ")} for 'revive'`,
+        );
+        return null;
+      }
+      return { kind: "revive", selection: sel as "random" | "choose" };
+    }
+    case "compound": {
+      const children = raw.effects;
+      if (!Array.isArray(children) || children.length === 0) {
+        errors.push("'effect.effects' must be a non-empty array for 'compound'");
+        return null;
+      }
+      const resolved: CardEffect[] = [];
+      for (let i = 0; i < children.length; i++) {
+        const child = children[i];
+        if (!isPlainObject(child)) {
+          errors.push(`'effect.effects[${i}]' must be an object`);
+          return null;
+        }
+        if (child.kind === "compound") {
+          errors.push("'compound' effects may not nest 'compound' children (one level only)");
+          return null;
+        }
+        const ce = validateEffect(child, errors);
+        if (!ce) return null;
+        resolved.push(ce);
+      }
+      return { kind: "compound", effects: resolved };
+    }
     default:
       errors.push(
         `'effect.kind' must be one of ${VALID_EFFECT_KINDS.join(", ")} (got ${JSON.stringify(kind)})`,
@@ -264,12 +387,15 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
     case "scry":
       return tk === "none" ? null : `'${effect.kind}' effect requires target.kind 'none'`;
     case "freeze-piece":
-    case "root-piece":
     case "disarm-piece":
     case "compel-piece":
       return tk === "enemy-piece"
         ? null
         : `'${effect.kind}' effect requires target.kind 'enemy-piece'`;
+    case "root-piece":
+      return tk === "enemy-piece" || tk === "enemy-non-king-piece"
+        ? null
+        : "'root-piece' effect requires target.kind 'enemy-piece' or 'enemy-non-king-piece'";
     case "shield-piece":
     case "haste-piece":
     case "empower-piece":
@@ -293,8 +419,30 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
       return tk === "two-own-pieces"
         ? null
         : "'swap-own-pieces' effect requires target.kind 'two-own-pieces'";
+    case "swap-rooted-with-own":
+      return tk === "rooted-enemy-and-own-piece"
+        ? null
+        : "'swap-rooted-with-own' effect requires target.kind 'rooted-enemy-and-own-piece'";
     case "marionette":
       return tk === "marionette" ? null : "'marionette' effect requires target.kind 'marionette'";
+    case "destroy-piece":
+      return tk === "enemy-non-king-piece"
+        ? null
+        : "'destroy-piece' effect requires target.kind 'enemy-non-king-piece'";
+    case "add-card-to-hand":
+    case "add-card-to-draw":
+    case "revive":
+      // These effects don't read the target — they're target-agnostic. They
+      // can appear on any card, including compound parents whose primary
+      // effect drives the target.
+      return null;
+    case "compound": {
+      for (const child of effect.effects) {
+        const m = targetMatchesEffect(target, child);
+        if (m) return `compound: ${m}`;
+      }
+      return null;
+    }
   }
 }
 
@@ -326,8 +474,10 @@ function validateCard(raw: unknown): { card: Card | null; errors: string[] } {
   ) {
     errors.push(`'archetype' must be one of ${VALID_ARCHETYPES.join(", ")}`);
   }
-  if (typeof raw.consume !== "boolean") {
-    errors.push("'consume' must be a boolean");
+  if (raw.consume !== undefined) {
+    errors.push(
+      "'consume' is no longer a valid field — every played card consumes (see docs/design/cards.md). Remove it.",
+    );
   }
   if (raw.curse !== undefined && typeof raw.curse !== "boolean") {
     errors.push("'curse' must be a boolean if present");
@@ -355,7 +505,6 @@ function validateCard(raw: unknown): { card: Card | null; errors: string[] } {
     cost: raw.cost as CardCost,
     rarity: raw.rarity as CardRarity,
     archetype: raw.archetype as CardArchetype,
-    consume: raw.consume as boolean,
     description: raw.description as string,
     target,
     effect,
@@ -425,6 +574,33 @@ function pick(id: CardId): Card {
     );
   }
   return card;
+}
+
+/**
+ * Look up a card definition by id. Throws if no such card is in the library.
+ * Use this in resolvers / runtime callers that pass a string id from data.
+ */
+export function getCardById(id: CardId): Card {
+  const card = CARD_LIBRARY[id];
+  if (!card) {
+    throw new Error(
+      `Unknown card id '${id}' — not found in src/game/cards/data/. Either fix the reference or add ${id}.json.`,
+    );
+  }
+  return card;
+}
+
+/** All cards in the library matching `rarity`. Used for `random-common`. */
+export function getCardsByRarity(rarity: CardRarity): Card[] {
+  return Object.values(CARD_LIBRARY).filter((c) => c.rarity === rarity);
+}
+
+/**
+ * The "shiv pool" — small filler cards that enter play only via Trick Bag.
+ * Filtered by id-prefix `shiv-` so the pool stays data-driven.
+ */
+export function getShivPool(): Card[] {
+  return Object.values(CARD_LIBRARY).filter((c) => c.id.startsWith("shiv-"));
 }
 
 export const RECONNAISSANCE: Card = pick("reconnaissance");

@@ -264,7 +264,7 @@ function findCard(name: string): HTMLElement | undefined {
 }
 
 describe("Match (cards — M3)", () => {
-  it("starts with a hand of 5 and energy 3", () => {
+  it("starts with a hand of 5 and energy 1 (banking start)", () => {
     const ai = makeFakeAi([]);
     render(
       <Match
@@ -278,10 +278,10 @@ describe("Match (cards — M3)", () => {
 
     const hand = screen.getByRole("list", { name: /^hand$/i });
     expect(within(hand).getAllByRole("listitem")).toHaveLength(5);
-    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("3");
+    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("1");
   });
 
-  it("Foresight is 0-cost and moves to the discard pile", async () => {
+  it("Foresight is 0-cost and moves to the spent pile", async () => {
     const user = userEvent.setup();
     const ai = makeFakeAi([]);
     render(
@@ -301,8 +301,8 @@ describe("Match (cards — M3)", () => {
     const confirm = await screen.findByRole("button", { name: /confirm/i });
     await user.click(confirm);
 
-    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("3"); // 0-cost
-    expect(screen.getByLabelText(/^discard pile/i)).toHaveTextContent("1");
+    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("1"); // 0-cost, starting energy 1
+    expect(screen.getByLabelText(/^spent pile/i)).toHaveTextContent("1");
     const hand = screen.getByRole("list", { name: /^hand$/i });
     expect(within(hand).getAllByRole("listitem")).toHaveLength(4);
   });
@@ -383,6 +383,7 @@ describe("Match (cards — M3)", () => {
         aiMinThinkMs={0}
         initialDeck={ALL_FROSTBITE_DECK}
         rng={makeRng(6)}
+        initialEnergy={3}
       />,
     );
 
@@ -396,7 +397,7 @@ describe("Match (cards — M3)", () => {
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("1");
   });
 
-  it("plays a card before moving; the move ends the turn and the next turn refreshes energy / hand", async () => {
+  it("plays a card before moving; the move ends the turn and the next turn banks +1 energy", async () => {
     const user = userEvent.setup();
     const ai = makeFakeAi(["e7e5"]);
     render(
@@ -406,6 +407,7 @@ describe("Match (cards — M3)", () => {
         aiMinThinkMs={0}
         initialDeck={ALL_BARRICADE_DECK}
         rng={makeRng(7)}
+        initialEnergy={3}
       />,
     );
 
@@ -422,6 +424,7 @@ describe("Match (cards — M3)", () => {
       expect(squareCell("e5")?.getAttribute("aria-label")).toBe("e5, opponent pawn");
     });
 
+    // Banking: ended turn 1 at 2 energy, turn 2 adds +1 → 3.
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("3");
     const hand = screen.getByRole("list", { name: /^hand$/i });
     expect(within(hand).getAllByRole("listitem")).toHaveLength(5);
@@ -437,6 +440,7 @@ describe("Match (cards — M3)", () => {
         aiMinThinkMs={0}
         initialDeck={ALL_FROSTBITE_DECK}
         rng={makeRng(8)}
+        initialEnergy={3}
       />,
     );
 
@@ -466,6 +470,7 @@ describe("Match (cards — M3)", () => {
         aiMinThinkMs={0}
         initialDeck={ALL_BARRICADE_DECK}
         rng={makeRng(10)}
+        initialEnergy={3}
       />,
     );
 
@@ -559,6 +564,7 @@ describe("Match (cards — M3)", () => {
         aiMinThinkMs={0}
         initialDeck={ALL_FROSTBITE_DECK}
         rng={makeRng(21)}
+        initialEnergy={3}
       />,
     );
 
@@ -601,6 +607,7 @@ describe("Match — trap mechanics", () => {
         initialDeck={ALL_SPIKE_PIT_DECK}
         rng={makeRng(100)}
         initialFen="r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1"
+        initialEnergy={3}
       />,
     );
 
@@ -636,6 +643,7 @@ describe("Match — trap mechanics", () => {
         aiMinThinkMs={0}
         initialDeck={ALL_SPIKE_PIT_DECK}
         rng={makeRng(101)}
+        initialEnergy={3}
       />,
     );
 
@@ -790,6 +798,7 @@ describe("Match — undo", () => {
         aiMinThinkMs={0}
         initialDeck={ALL_FORESIGHT_DECK}
         rng={makeRng(203)}
+        initialEnergy={3}
       />,
     );
 

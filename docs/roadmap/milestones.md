@@ -44,7 +44,7 @@ The milestones are roughly sequential — each builds on the previous — but se
   - Disruption: "Freeze an enemy piece" (target piece).
   - Spatial: "Place a wall on a chosen square" (target square).
 - Resolve these effects against the match state.
-- End-of-turn refill, energy reset.
+- End-of-turn refill; +1 energy gained, banks unspent within the cap.
 
 **Done when:** the player can draw a hand, play several cards, see them affect the match (board overlays + freeze status), and end their turn.
 

@@ -14,9 +14,9 @@ Gold is earned from four sources:
 2. **Performance bonuses.** Modest extra gold for in-match feats. Examples (final list TBD):
    - Win in N or fewer turns.
    - Lose no major pieces (rook/queen/king-equivalent).
-   - Win without spending any energy on a turn.
+   - Win without playing any cards on a turn (banking energy spends 0 by default; this measures restraint, not "free" play).
    - Capture the enemy queen.
-   - Don't reshuffle your deck.
+   - Win with cards still in your draw pile (consume-all means the deck thins quickly; finishing before it empties is a feat).
 
    These are designed to reward a specific style without pressuring every player into the same play pattern.
 

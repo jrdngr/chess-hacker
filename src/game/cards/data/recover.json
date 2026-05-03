@@ -1,0 +1,10 @@
+{
+  "id": "recover",
+  "name": "Recover",
+  "cost": 4,
+  "rarity": "uncommon",
+  "archetype": "resource",
+  "description": "Choose a card from your spent pile to return to your hand.",
+  "target": { "kind": "none" },
+  "effect": { "kind": "revive", "selection": "choose" }
+}

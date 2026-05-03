@@ -150,6 +150,16 @@ export class ChoseEngine {
   }
 
   /**
+   * Whether `square` is attacked by any piece on `by`'s side under the
+   * current overlays. Thin pass-through to the rule layer; used by cards
+   * that filter targets by what the player's pieces are threatening
+   * (e.g. Cheap Destroy).
+   */
+  isSquareAttackedBy(square: AlgebraicSquare, by: Side): boolean {
+    return isSquareAttacked(this.position, this.overlays, square, by);
+  }
+
+  /**
    * Every square attacked by `side` under the current overlays. Used by the
    * "chess vision" UI overlay to colour squares the player or opponent
    * threatens. Walls block sliding attacks; frozen pieces don't attack —
