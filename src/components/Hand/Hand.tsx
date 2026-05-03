@@ -25,7 +25,7 @@ type Props = {
   /** Whether the player is allowed to interact with their hand right now. */
   enabled: boolean;
   drawPileCount: number;
-  discardPileCount: number;
+  consumedPileCount: number;
   onCardClick: (index: number) => void;
   /** Drag a targeted card from the hand onto a board square to play it. */
   onCardDragStart?: (index: number) => void;
@@ -38,7 +38,7 @@ export function Hand({
   targetingIndex,
   enabled,
   drawPileCount,
-  discardPileCount,
+  consumedPileCount,
   onCardClick,
   onCardDragStart,
   onCardDragEnd,
@@ -104,9 +104,9 @@ export function Hand({
         )}
       </div>
 
-      <div className={styles.pile} aria-label="Discard pile">
-        <span className={styles.pileLabel}>Discard</span>
-        <span className={styles.pileCount}>{discardPileCount}</span>
+      <div className={styles.pile} aria-label="Spent pile">
+        <span className={styles.pileLabel}>Spent</span>
+        <span className={styles.pileCount}>{consumedPileCount}</span>
       </div>
     </div>
   );

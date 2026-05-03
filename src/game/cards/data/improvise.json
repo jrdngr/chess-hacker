@@ -1,0 +1,10 @@
+{
+  "id": "improvise",
+  "name": "Improvise",
+  "cost": 1,
+  "rarity": "common",
+  "archetype": "resource",
+  "description": "Add a random common card to your hand.",
+  "target": { "kind": "none" },
+  "effect": { "kind": "add-card-to-hand", "source": "random-common", "count": 1 }
+}

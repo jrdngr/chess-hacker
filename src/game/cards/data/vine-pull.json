@@ -1,0 +1,10 @@
+{
+  "id": "vine-pull",
+  "name": "Vine Pull",
+  "cost": 2,
+  "rarity": "uncommon",
+  "archetype": "swap",
+  "description": "Swap one of your pieces with a rooted enemy piece.",
+  "target": { "kind": "rooted-enemy-and-own-piece" },
+  "effect": { "kind": "swap-rooted-with-own" }
+}

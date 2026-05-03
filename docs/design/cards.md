@@ -6,19 +6,19 @@ The card system is the central self-expression mechanic. Cards augment chess; th
 
 - **Hand size:** 5 cards.
 - **Draw timing:** at the **start of each player turn**, draw until your hand is at 5. (A card played during a turn does not get refilled until the next turn unless an effect explicitly says so.)
-- **Run-start deck:** the prototype currently starts with one of every card in the library (19 cards). See [`../cards/starter-deck.md`](../cards/starter-deck.md) for the composition and rationale; this will narrow once drafts and the shop start contributing copies.
-- **Adding to your deck:** post-match draft (pick 1 of 3) and shop purchases. Booster packs may grant 1+ cards.
+- **Run-start deck:** 20 cards — multiples of cheap utilities + four common empty-deck-mitigation cards. See [`../cards/starter-deck.md`](../cards/starter-deck.md) for the composition and rationale.
+- **Adding to your deck:** post-match draft (pick 1 of 3) and shop purchases. Booster packs may grant 1+ cards. Capturing an enemy piece during a match grants the matching Soul card directly into your draw pile (see "Card economy" below).
 - **Removing from your deck:** shop card-removal service (scaling per use).
 
 ## Energy
 
-- Each turn the player begins with **3 energy**.
-- **Cards cost 0–4 energy.** Most cards cost 0–2; rare/powerful cards cost 3–4.
-- **Unspent energy disappears at end of turn** — it does not bank or carry over.
+- Turn 1 starts with **1 energy**. Each subsequent player turn adds **+1 energy**, up to a hard cap of **10**.
+- **Unspent energy banks** across turns. The natural ramp is 1 → 2 → 3 → ... → 10; the player can choose to spend or save at every step.
+- **Cards cost 0–10 energy.** Most cards cost 0–2; mid cards cost 3–5; haymakers cost 7+.
 - **No per-turn cap on cards played** other than the energy budget and hand contents.
-- Artifacts and rare cards may grant temporary or permanent extra energy. (Energy ramp is a recognized build axis.)
+- Artifacts and rare cards may grant temporary or permanent extra energy; gains still respect the cap of 10.
 
-A starting turn budget of 3 lets the player play one premium card, two mid-cost cards, three cheap cards, or any combination. The cap of 4 on individual cards means a player must save energy or scale energy via artifacts to play the most powerful single cards.
+Banking is the central tempo mechanic. A typical line is one cheap card per turn, with mid cards every 2–3 turns and a haymaker (Lightning Strike, Big Destroy) every 7–10 turns. Saving means *not playing right now* so a future turn can land a single dominant effect.
 
 ## When can cards be played?
 
@@ -43,17 +43,31 @@ A card declares one or more **target slots** when played. Common target types:
 
 A card may have multiple targets in sequence (e.g., choose own piece, then choose destination square). When previewing a card, the UI must indicate exactly which legal targets are valid (see `technical/architecture.md`).
 
-## Disposal: cycle vs consume
+## Disposal: every card consumes
 
-Most cards **cycle**: when played, they go to a discard pile. When the deck runs out, the discard reshuffles into the deck. This means a card you bought in act 1 will be drawn many times across the run.
+**Universal rule:** when a card is played, it is removed for the rest of the match. There is no discard pile. There is no reshuffle. Multiples in the deck are how the player gets repeatable effects.
 
-Some cards **consume**: when played, they are removed from the deck for the rest of the match (or the rest of the run, for a small subset). Consume cards are typically more powerful for their cost — they trade reusability for raw effect.
+- **No `consume` flag on cards** — it would be redundant. Every card consumes.
+- **No reshuffle.** When the draw pile empties, draws fizzle. The match continues card-free — the player still has chess to play.
+- **Pile UI labels:** "Spent: N" replaces "Discard: N". The deck count is also visible so the player can see how much card supply remains.
 
-- **Default disposal:** cycle.
-- **Consume keyword:** appears on cards that are consumed. The keyword is visible at all times on the card.
-- **Match-consume vs run-consume:** most consumes are match-only (return at the start of the next match); run-consume is rare and reserved for specific game-changing cards.
+The thematic reading: the spells run out, you finish with steel. Combined with banking energy, every play is a deliberate, finite use of two scarce resources (energy budget + card supply). A 20-card deck means roughly 20 plays over a match, so each play matters.
 
-Reshuffle policy: when the player needs to draw and the draw pile is empty, the discard pile is shuffled into a new draw pile *immediately and silently*. There is no penalty for reshuffling.
+Empty-deck mitigation (the "Card economy" section below) softens the cliff: generators create cards, revivers pull cards back from the spent pile, self-replicators keep a copy of themselves rotating, and capture-grants-Soul lets every captured enemy piece feed your deck.
+
+## Card economy
+
+Card-supply tools so a careful player can extend the match's card phase well past 20 plays:
+
+- **Generators** (Improvise, Trick Bag, Mark Target) create new cards in your hand: a random common, three "shiv" tokens, or a specific synergy follow-up.
+- **Revivers** (Recall, Recover) pull a card from your spent pile back to your hand — random or chosen.
+- **Self-replicators** (Pace, Hum, Drift) shuffle a copy of themselves into your draw pile when played, so each one stays in rotation.
+- **Capture-grants-Soul.** Capturing an enemy non-King piece during a chess move grants the matching Soul card (Pawn → Pawn Soul, Knight → Knight Soul, etc.) into your draw pile. King is never captured (game ends); all other enemy types map.
+
+See the per-archetype docs in `../cards/`:
+- [`generators.md`](../cards/generators.md) — Improvise, Trick Bag, Mark Target, Vine Pull, the Shiv pool.
+- [`revival.md`](../cards/revival.md) — Recall, Recover.
+- [`self-replicators.md`](../cards/self-replicators.md) — Pace, Hum, Drift.
 
 ## Card archetypes (the design space)
 
@@ -65,7 +79,7 @@ Cards group into a handful of archetypes. The prototype card pool should hit all
 4. **Disruption** — freeze enemy piece, force enemy piece to move toward a square, swap two pieces.
 5. **Resource / draw** — gain energy, draw cards, discard-and-redraw.
 6. **Defensive / setup** — shield a piece (one-time damage immunity from capture), promote a pawn early, ward a square.
-7. **Burst / win-condition** — high-cost cards that radically change the board (e.g., "summon a knight on a chosen empty square", "your queen makes two moves this turn"). Often consume.
+7. **Burst / win-condition** — high-cost cards that radically change the board (e.g., "destroy any enemy non-King piece", "your queen makes two moves this turn"). The upper end of the cost range; players bank energy for them.
 
 The prototype does not need a final card list; it needs enough cards to populate the starter deck plus reasonable drafts/shops. See `roadmap/milestones.md` for the rough sizing target. The current per-card reference, grouped by type, lives in [`../cards/`](../cards/) — see [`../cards/README.md`](../cards/README.md) for the full list and [`../cards/keywords.md`](../cards/keywords.md) for keyword definitions.
 
@@ -100,7 +114,6 @@ A card JSON has the shape:
   "cost": 2,
   "rarity": "common",
   "archetype": "disruption",
-  "consume": false,
   "description": "Freeze an enemy piece. It can't be moved on the opponent's next turn.",
   "target": { "kind": "enemy-piece" },
   "effect": { "kind": "freeze-piece" }
@@ -113,15 +126,16 @@ and `effect.kind` values for the prototype.
 
 ## Summary numbers (prototype starting values)
 
-| Knob                         | Value                                      |
-|------------------------------|--------------------------------------------|
-| Hand size                    | 5                                          |
-| Draw timing                  | Refill to 5 at start of player turn        |
-| Energy per turn              | 3                                          |
-| Energy carryover             | None (resets each turn)                    |
-| Card cost range              | 0 – 4                                      |
-| Cards-per-turn cap           | None beyond energy/hand                    |
-| Default disposal             | Cycle                                      |
-| Reshuffle penalty            | None                                       |
-| Reactions on opponent turn   | None (may revisit)                         |
-| Card upgrades                | Not in prototype                           |
+| Knob                         | Value                                                |
+|------------------------------|------------------------------------------------------|
+| Hand size                    | 5                                                    |
+| Draw timing                  | Refill to 5 at start of player turn                  |
+| Starting energy (turn 1)     | 1                                                    |
+| Energy gain per turn         | +1 (banks unspent)                                   |
+| Energy cap                   | 10                                                   |
+| Card cost range              | 0 – 10                                               |
+| Cards-per-turn cap           | None beyond energy/hand                              |
+| Disposal                     | Every card consumes; no reshuffle                    |
+| Reactions on opponent turn   | None (may revisit)                                   |
+| Card upgrades                | Not in prototype                                     |
+| Capture-grants-Soul          | Player captures of non-King enemies grant matching Soul |

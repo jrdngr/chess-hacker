@@ -1,0 +1,10 @@
+{
+  "id": "shiv-snag",
+  "name": "Shiv: Snag",
+  "cost": 1,
+  "rarity": "common",
+  "archetype": "disruption",
+  "description": "Disarm an enemy piece next turn (it can move but not capture).",
+  "target": { "kind": "enemy-piece" },
+  "effect": { "kind": "disarm-piece" }
+}

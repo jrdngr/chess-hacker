@@ -54,6 +54,21 @@ In **Royal**, promotion is unlimited.
 
 In **Skirmish**, promotion is allowed and the promoted piece exists for the rest of the match only. Promotion does **not** add to the persistent roster (i.e., promoting to queen does not give you a queen for next match's draft / placement).
 
+## Capture-grants-Soul (card-system extension)
+
+When the **player** captures an enemy piece during their chess move, the matching Soul card is shuffled into the player's draw pile:
+
+- pawn → Pawn Soul
+- knight → Knight Soul
+- bishop → Bishop Soul
+- rook → Rook Soul
+- queen → Queen Soul
+- king → (never reachable; the game ends on checkmate)
+
+This is an addition to standard rules — the chess movement and legality are unchanged, but the card-system reaches in and inserts a card on every successful player-side capture. The opposite direction (AI capturing one of the player's pieces) does **not** grant anything: souls flow *to* the player only.
+
+See [`cards.md`](cards.md) "Card economy" for the bigger picture and [`../cards/movement-extension.md`](../cards/movement-extension.md) for what the granted Soul cards actually do when played.
+
 ## Check
 
 A king in check must be the next move's resolution — that move must remove the check. Standard rules.

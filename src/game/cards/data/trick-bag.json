@@ -1,0 +1,10 @@
+{
+  "id": "trick-bag",
+  "name": "Trick Bag",
+  "cost": 2,
+  "rarity": "uncommon",
+  "archetype": "resource",
+  "description": "Add three random shiv-pool cards to your hand.",
+  "target": { "kind": "none" },
+  "effect": { "kind": "add-card-to-hand", "source": "shiv-pool", "count": 3 }
+}

@@ -34,7 +34,7 @@ export type AlgebraicSquare = string;
 // ---- Cards (M3) -------------------------------------------------------------
 
 export type CardId = string;
-export type CardCost = 0 | 1 | 2 | 3 | 4;
+export type CardCost = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 export type CardRarity = "common" | "uncommon" | "rare";
 export type CardArchetype =
   | "tempo"
@@ -52,24 +52,28 @@ export type CardArchetype =
  * What kind of input a card needs from the player when it's played.
  * See `docs/cards/` for the per-card target.
  *
- *  - "none":                  no target; resolve immediately on click.
- *  - "empty-square":          any empty, unwalled square on the board.
- *  - "empty-square-own-half": empty square in the player's half (ranks 1–4).
- *  - "enemy-piece":           a square holding an opponent piece.
- *  - "own-piece":             a square holding one of the player's pieces.
- *  - "own-non-king-piece":    same as own-piece, but the king is excluded.
- *  - "two-own-pieces":        two squares each holding a player piece (multi-step).
- *  - "marionette":            an enemy piece, then one of its legal destinations.
+ *  - "none":                       no target; resolve immediately on click.
+ *  - "empty-square":               any empty, unwalled square on the board.
+ *  - "empty-square-own-half":      empty square in the player's half (ranks 1–4).
+ *  - "enemy-piece":                a square holding an opponent piece.
+ *  - "enemy-non-king-piece":       same as enemy-piece, but the king is excluded.
+ *  - "own-piece":                  a square holding one of the player's pieces.
+ *  - "own-non-king-piece":         same as own-piece, but the king is excluded.
+ *  - "two-own-pieces":             two squares each holding a player piece (multi-step).
+ *  - "marionette":                 an enemy piece, then one of its legal destinations.
+ *  - "rooted-enemy-and-own-piece": a rooted enemy piece, then one of your pieces (multi-step).
  */
 export type CardTarget =
   | { kind: "none" }
   | { kind: "empty-square" }
   | { kind: "empty-square-own-half" }
   | { kind: "enemy-piece" }
+  | { kind: "enemy-non-king-piece" }
   | { kind: "own-piece" }
   | { kind: "own-non-king-piece" }
   | { kind: "two-own-pieces" }
-  | { kind: "marionette" };
+  | { kind: "marionette" }
+  | { kind: "rooted-enemy-and-own-piece" };
 
 /** Trap variant — picked per-card when the trap is placed. */
 export type TrapEffect = "capture" | "freeze" | "push";
@@ -86,7 +90,7 @@ export type CardEffect =
   | { kind: "draw"; count: number }
   | { kind: "scry"; count: number }
   | { kind: "freeze-piece" }
-  | { kind: "root-piece" }
+  | { kind: "root-piece"; durationTurns?: number }
   | { kind: "disarm-piece" }
   | { kind: "compel-piece" }
   | { kind: "shield-piece" }
@@ -105,9 +109,20 @@ export type CardEffect =
   | { kind: "place-sanctuary"; durationTurns: number }
   | { kind: "place-trap"; trapEffect: TrapEffect; durationTurns: number }
   | { kind: "swap-own-pieces" }
+  | { kind: "swap-rooted-with-own" }
   | { kind: "summon-piece"; pieceType: PieceType }
   | { kind: "sacrifice-piece"; drawCount: number; energyGain: number }
-  | { kind: "marionette" };
+  | { kind: "marionette" }
+  | { kind: "destroy-piece"; filter: "any" | "attacked-by-player" }
+  | {
+      kind: "add-card-to-hand";
+      source: "random-common" | "card-id" | "shiv-pool";
+      cardId?: CardId;
+      count?: number;
+    }
+  | { kind: "add-card-to-draw"; source: "self" | "card-id"; cardId?: CardId }
+  | { kind: "revive"; selection: "random" | "choose" }
+  | { kind: "compound"; effects: CardEffect[] };
 
 export type Card = {
   id: CardId;
@@ -115,7 +130,6 @@ export type Card = {
   cost: CardCost;
   rarity: CardRarity;
   archetype: CardArchetype;
-  consume: boolean;
   curse?: boolean;
   description: string;
   target: CardTarget;
@@ -184,10 +198,8 @@ export type Trap = {
 export type MatchCardState = {
   hand: Card[];
   drawPile: Card[];
-  discardPile: Card[];
   consumedPile: Card[];
   energy: number;
-  energyMax: number;
   /** 1-indexed player turn count. Bumped by `startPlayerTurn`. */
   turn: number;
   walls: Wall[];

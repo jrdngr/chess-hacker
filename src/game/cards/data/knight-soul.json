@@ -4,8 +4,7 @@
   "cost": 3,
   "rarity": "rare",
   "archetype": "movement",
-  "consume": true,
-  "description": "Infuse one of your pieces with a knight's soul this turn: it gains the knight L-shape as an additional movement pattern. Lost if you move a different piece first. Consume.",
+  "description": "Infuse one of your pieces with a knight's soul this turn: it gains the knight L-shape as an additional movement pattern. Lost if you move a different piece first.",
   "target": { "kind": "own-piece" },
   "effect": { "kind": "empower-piece", "pattern": "knight", "singleUse": true }
 }

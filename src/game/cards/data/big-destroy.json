@@ -1,0 +1,10 @@
+{
+  "id": "big-destroy",
+  "name": "Big Destroy",
+  "cost": 10,
+  "rarity": "rare",
+  "archetype": "burst",
+  "description": "Destroy any enemy non-King piece. Save up.",
+  "target": { "kind": "enemy-non-king-piece" },
+  "effect": { "kind": "destroy-piece", "filter": "any" }
+}

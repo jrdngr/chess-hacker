@@ -10,17 +10,31 @@ import type {
   AlgebraicSquare,
   Card,
   CardEffect,
+  CardId,
   EmpowerStatus,
   LightningStatus,
   MatchCardState,
   Piece,
   PieceStatus,
   PieceType,
+  Side,
 } from "../types";
+import { getCardById, getCardsByRarity, getShivPool } from "./library";
 
 /** Per `docs/design/cards.md`. */
 export const HAND_SIZE = 5;
-export const DEFAULT_ENERGY = 3;
+/** Energy gained on the very first player turn. */
+export const STARTING_ENERGY = 1;
+/** Energy added at the start of every subsequent player turn. */
+export const ENERGY_PER_TURN = 1;
+/** Hard cap on banked energy. */
+export const ENERGY_MAX = 10;
+
+export function clampEnergy(n: number): number {
+  if (n < 0) return 0;
+  if (n > ENERGY_MAX) return ENERGY_MAX;
+  return n;
+}
 
 export type Rng = () => number;
 
@@ -52,7 +66,7 @@ export function shuffle<T>(arr: ReadonlyArray<T>, rng: Rng = Math.random): T[] {
 /**
  * Initial match state: deck shuffled into the draw pile, hand empty,
  * energy 0, turn 0. Caller should immediately follow with `startPlayerTurn`
- * to deal the opening hand and set energy / turn = 1.
+ * to deal the opening hand and set turn = 1, energy = STARTING_ENERGY.
  */
 export function createMatchCardState(
   deck: ReadonlyArray<Card>,
@@ -61,10 +75,8 @@ export function createMatchCardState(
   return {
     hand: [],
     drawPile: shuffle(deck, rng),
-    discardPile: [],
     consumedPile: [],
     energy: 0,
-    energyMax: DEFAULT_ENERGY,
     turn: 0,
     walls: [],
     freezes: [],
@@ -81,9 +93,10 @@ export function createMatchCardState(
 }
 
 /**
- * Draw `n` cards from the draw pile. If the draw pile empties mid-draw, the
- * discard is reshuffled into a new draw pile (silently — no penalty, per
- * `docs/design/cards.md`). If both piles are empty we draw fewer than `n`.
+ * Draw `n` cards from the draw pile. When the draw pile empties, draws
+ * fizzle — there is no reshuffle (consume-all rule, see
+ * `docs/design/cards.md`). The match continues card-free once the deck
+ * runs out.
  *
  * Note: cards drawn this way may push the hand above HAND_SIZE — the size
  * cap only applies to the start-of-turn auto-refill (see `refillHand`).
@@ -91,20 +104,15 @@ export function createMatchCardState(
 export function drawCards(
   state: MatchCardState,
   n: number,
-  rng: Rng = Math.random,
+  _rng: Rng = Math.random,
 ): MatchCardState {
   const hand = state.hand.slice();
-  let drawPile = state.drawPile.slice();
-  let discardPile = state.discardPile.slice();
+  const drawPile = state.drawPile.slice();
   for (let i = 0; i < n; i++) {
-    if (drawPile.length === 0) {
-      if (discardPile.length === 0) break;
-      drawPile = shuffle(discardPile, rng);
-      discardPile = [];
-    }
+    if (drawPile.length === 0) break;
     hand.push(drawPile.shift()!);
   }
-  return { ...state, hand, drawPile, discardPile };
+  return { ...state, hand, drawPile };
 }
 
 /** Draw until the hand is at HAND_SIZE; never trims. */
@@ -120,16 +128,18 @@ export function refillHand(state: MatchCardState, rng: Rng = Math.random): Match
  *  - Expire walls / freezes / sanctuaries / traps / debuffs / shields /
  *    one-turn buffs (haste/empower/lightning) whose `expiresOnTurn <= turn`.
  *  - Refill hand to HAND_SIZE.
- *  - Reset energy to `energyMax`.
+ *  - Bank energy: first turn starts at STARTING_ENERGY; subsequent turns
+ *    add ENERGY_PER_TURN, capped at ENERGY_MAX. Unspent energy carries.
  */
 export function startPlayerTurn(state: MatchCardState, rng: Rng = Math.random): MatchCardState {
   const turn = state.turn + 1;
   const alive = <T extends { expiresOnTurn: number }>(arr: T[]) =>
     arr.filter((x) => x.expiresOnTurn > turn);
+  const energy = turn === 1 ? STARTING_ENERGY : clampEnergy(state.energy + ENERGY_PER_TURN);
   const next: MatchCardState = {
     ...state,
     turn,
-    energy: state.energyMax,
+    energy,
     walls: alive(state.walls),
     freezes: alive(state.freezes),
     roots: alive(state.roots),
@@ -172,18 +182,25 @@ export function isInPlayerHalf(square: AlgebraicSquare): boolean {
 export type BoardContext = {
   pieceAt: (sq: AlgebraicSquare) => Piece | null;
   hasWall: (sq: AlgebraicSquare) => boolean;
+  /** True iff `sq` is currently attacked by a piece on `by`'s side. */
+  isAttackedBy: (sq: AlgebraicSquare, by: Side) => boolean;
+  /** True iff the piece on `sq` carries a Tangled (root) status. */
+  isRooted: (sq: AlgebraicSquare) => boolean;
 };
 
 /**
- * Side-effects the resolver wants applied to the chess engine. The engine
- * boundary is owned by the React layer; we describe the change as data so
- * `playCard` stays pure.
+ * Side-effects the resolver wants applied to the chess engine or to the
+ * card state. The engine boundary is owned by the React layer; we describe
+ * the change as data so `playCard` stays pure.
  */
 export type CardSideEffect =
   | { kind: "place-piece"; square: AlgebraicSquare; pieceType: PieceType }
   | { kind: "remove-piece"; square: AlgebraicSquare }
   | { kind: "swap-pieces"; a: AlgebraicSquare; b: AlgebraicSquare }
-  | { kind: "foreign-move"; from: AlgebraicSquare; to: AlgebraicSquare };
+  | { kind: "foreign-move"; from: AlgebraicSquare; to: AlgebraicSquare }
+  | { kind: "add-card-to-hand"; card: Card }
+  | { kind: "add-card-to-draw"; card: Card }
+  | { kind: "revive-prompt" };
 
 export type PlayCardResult =
   | { ok: true; state: MatchCardState; sideEffects: CardSideEffect[] }
@@ -195,6 +212,9 @@ export type PlayCardFailure =
   | "missing-target"
   | "target-not-empty"
   | "target-not-enemy-piece"
+  | "target-not-enemy-non-king-piece"
+  | "target-not-attacked-by-player"
+  | "target-not-rooted"
   | "target-not-own-piece"
   | "target-not-own-non-king-piece"
   | "target-not-distinct"
@@ -219,21 +239,17 @@ export function playCard(
   const validation = validateTarget(card, target, ctx);
   if (validation) return { ok: false, reason: validation };
 
-  let next: MatchCardState = { ...state, energy: state.energy - card.cost };
+  let next: MatchCardState = { ...state, energy: clampEnergy(state.energy - card.cost) };
   const sideEffects: CardSideEffect[] = [];
 
-  const applied = applyEffect(card.effect, next, target, ctx, rng);
+  const applied = applyEffect(card.effect, next, target, ctx, rng, card);
   next = applied.state;
   sideEffects.push(...applied.sideEffects);
 
-  // Move the played card to its destination pile.
+  // Universal rule: every played card lands in the consumed pile.
   const hand = next.hand.slice();
   hand.splice(cardIndex, 1);
-  if (card.consume) {
-    next = { ...next, hand, consumedPile: [...next.consumedPile, card] };
-  } else {
-    next = { ...next, hand, discardPile: [...next.discardPile, card] };
-  }
+  next = { ...next, hand, consumedPile: [...next.consumedPile, card] };
   return { ok: true, state: next, sideEffects };
 }
 
@@ -258,6 +274,20 @@ function validateTarget(card: Card, target: PlayTarget, ctx: BoardContext): Play
       if (target.kind !== "square") return "missing-target";
       const p = ctx.pieceAt(target.square);
       if (!p || p.side !== "opponent") return "target-not-enemy-piece";
+      return null;
+    }
+    case "enemy-non-king-piece": {
+      if (target.kind !== "square") return "missing-target";
+      const p = ctx.pieceAt(target.square);
+      if (!p || p.side !== "opponent") return "target-not-enemy-piece";
+      if (p.type === "king") return "target-not-enemy-non-king-piece";
+      if (
+        card.effect.kind === "destroy-piece" &&
+        card.effect.filter === "attacked-by-player" &&
+        !ctx.isAttackedBy(target.square, "player")
+      ) {
+        return "target-not-attacked-by-player";
+      }
       return null;
     }
     case "own-piece": {
@@ -291,6 +321,18 @@ function validateTarget(card: Card, target: PlayTarget, ctx: BoardContext): Play
       if (!enemy || enemy.side !== "opponent") return "target-not-enemy-piece";
       return null;
     }
+    case "rooted-enemy-and-own-piece": {
+      // First square: rooted enemy non-king piece. Second: one of player's pieces.
+      if (target.kind !== "two-squares") return "missing-target";
+      if (target.first === target.second) return "target-not-distinct";
+      const enemy = ctx.pieceAt(target.first);
+      if (!enemy || enemy.side !== "opponent") return "target-not-enemy-piece";
+      if (enemy.type === "king") return "target-not-enemy-non-king-piece";
+      if (!ctx.isRooted(target.first)) return "target-not-rooted";
+      const own = ctx.pieceAt(target.second);
+      if (!own || own.side !== "player") return "target-not-own-piece";
+      return null;
+    }
   }
 }
 
@@ -300,12 +342,16 @@ function applyEffect(
   effect: CardEffect,
   state: MatchCardState,
   target: PlayTarget,
-  _ctx: BoardContext,
+  ctx: BoardContext,
   rng: Rng,
+  source: Card,
 ): EffectResult {
   switch (effect.kind) {
     case "gain-energy":
-      return { state: { ...state, energy: state.energy + effect.amount }, sideEffects: [] };
+      return {
+        state: { ...state, energy: clampEnergy(state.energy + effect.amount) },
+        sideEffects: [],
+      };
     case "draw":
       return { state: drawCards(state, effect.count, rng), sideEffects: [] };
     case "scry":
@@ -322,7 +368,13 @@ function applyEffect(
       };
     case "root-piece":
       return {
-        state: addStatus(state, "roots", squareTarget(target), state.turn + 1, "opponent"),
+        state: addStatus(
+          state,
+          "roots",
+          squareTarget(target),
+          state.turn + (effect.durationTurns ?? 1),
+          "opponent",
+        ),
         sideEffects: [],
       };
     case "disarm-piece":
@@ -442,6 +494,13 @@ function applyEffect(
         sideEffects: [{ kind: "swap-pieces", a: target.first, b: target.second }],
       };
     }
+    case "swap-rooted-with-own": {
+      if (target.kind !== "two-squares") return { state, sideEffects: [] };
+      return {
+        state,
+        sideEffects: [{ kind: "swap-pieces", a: target.first, b: target.second }],
+      };
+    }
     case "summon-piece": {
       const sq = squareTarget(target);
       return {
@@ -452,7 +511,7 @@ function applyEffect(
     case "sacrifice-piece": {
       const sq = squareTarget(target);
       let next = drawCards(state, effect.drawCount, rng);
-      next = { ...next, energy: next.energy + effect.energyGain };
+      next = { ...next, energy: clampEnergy(next.energy + effect.energyGain) };
       return {
         state: next,
         sideEffects: [{ kind: "remove-piece", square: sq }],
@@ -465,7 +524,98 @@ function applyEffect(
         sideEffects: [{ kind: "foreign-move", from: target.first, to: target.second }],
       };
     }
+    case "destroy-piece": {
+      const sq = squareTarget(target);
+      return {
+        state,
+        sideEffects: [{ kind: "remove-piece", square: sq }],
+      };
+    }
+    case "add-card-to-hand": {
+      const cards = pickCardsForSource(effect.source, effect.cardId, effect.count ?? 1, rng);
+      return {
+        state,
+        sideEffects: cards.map((card) => ({ kind: "add-card-to-hand", card })),
+      };
+    }
+    case "add-card-to-draw": {
+      const card =
+        effect.source === "self"
+          ? cloneCardDef(source)
+          : effect.cardId
+            ? cloneCardDef(getCardById(effect.cardId))
+            : null;
+      if (!card) return { state, sideEffects: [] };
+      return { state, sideEffects: [{ kind: "add-card-to-draw", card }] };
+    }
+    case "revive": {
+      if (effect.selection === "random") {
+        if (state.consumedPile.length === 0) return { state, sideEffects: [] };
+        const idx = Math.floor(rng() * state.consumedPile.length);
+        const picked = state.consumedPile[idx];
+        const consumedPile = state.consumedPile
+          .slice(0, idx)
+          .concat(state.consumedPile.slice(idx + 1));
+        return {
+          state: { ...state, consumedPile },
+          sideEffects: [{ kind: "add-card-to-hand", card: picked }],
+        };
+      }
+      // "choose": defer to UI prompt; the UI calls `completeRevive` once the
+      // player picks a card from the consumed pile.
+      return { state, sideEffects: [{ kind: "revive-prompt" }] };
+    }
+    case "compound": {
+      let next = state;
+      const sideEffects: CardSideEffect[] = [];
+      for (const child of effect.effects) {
+        const r = applyEffect(child, next, target, ctx, rng, source);
+        next = r.state;
+        sideEffects.push(...r.sideEffects);
+      }
+      return { state: next, sideEffects };
+    }
   }
+}
+
+/**
+ * Resolve the "source" of an `add-card-to-hand` effect into concrete `Card`s.
+ * Returns up to `count` fresh card-definition copies.
+ */
+function pickCardsForSource(
+  src: "random-common" | "card-id" | "shiv-pool",
+  cardId: CardId | undefined,
+  count: number,
+  rng: Rng,
+): Card[] {
+  if (src === "card-id") {
+    if (!cardId) return [];
+    return Array.from({ length: count }, () => cloneCardDef(getCardById(cardId)));
+  }
+  const pool = src === "random-common" ? getCardsByRarity("common") : getShivPool();
+  if (pool.length === 0) return [];
+  const out: Card[] = [];
+  for (let i = 0; i < count; i++) {
+    const idx = Math.floor(rng() * pool.length);
+    out.push(cloneCardDef(pool[idx]));
+  }
+  return out;
+}
+
+/**
+ * Returns a fresh `Card` value with the same definition. Cards are stored as
+ * structurally-equal records, but we shallow-clone so any future per-instance
+ * fields (e.g., upgrade markers) don't bleed across copies.
+ */
+function cloneCardDef(card: Card): Card {
+  return { ...card, target: { ...card.target }, effect: cloneEffect(card.effect) };
+}
+
+function cloneEffect(effect: CardEffect): CardEffect {
+  if (effect.kind === "compound") {
+    return { kind: "compound", effects: effect.effects.map(cloneEffect) };
+  }
+  return { ...effect };
 }
 
 function squareTarget(t: PlayTarget): AlgebraicSquare {
@@ -629,3 +779,78 @@ export function dropOtherSingleUseEmpowers(
     empowers: state.empowers.filter((e) => !e.singleUse || e.square === keepSquare),
   };
 }
+
+// ---- Card-economy helpers ---------------------------------------------------
+
+/**
+ * Splice `card` into the draw pile at a random index. The played card itself
+ * still goes to the consumed pile via `playCard` — this is how
+ * self-replicating cards keep a copy in rotation.
+ */
+export function shuffleIntoDraw(
+  state: MatchCardState,
+  card: Card,
+  rng: Rng = Math.random,
+): MatchCardState {
+  const idx = Math.floor(rng() * (state.drawPile.length + 1));
+  const drawPile = state.drawPile.slice();
+  drawPile.splice(idx, 0, card);
+  return { ...state, drawPile };
+}
+
+/**
+ * Append `card` to the hand. No HAND_SIZE enforcement — the cap is only
+ * applied at start-of-turn refill; transient overflow is allowed.
+ */
+export function addToHand(state: MatchCardState, card: Card): MatchCardState {
+  return { ...state, hand: [...state.hand, card] };
+}
+
+/**
+ * Complete a "choose" revive: move the picked card from `consumedPile` to
+ * `hand`. Used by the UI after the chooser closes. No-op if the id is no
+ * longer in the consumed pile (defensive — UI may have raced).
+ */
+export function completeRevive(state: MatchCardState, cardIndex: number): MatchCardState {
+  if (cardIndex < 0 || cardIndex >= state.consumedPile.length) return state;
+  const card = state.consumedPile[cardIndex];
+  const consumedPile = state.consumedPile
+    .slice(0, cardIndex)
+    .concat(state.consumedPile.slice(cardIndex + 1));
+  return { ...state, consumedPile, hand: [...state.hand, card] };
+}
+
+/**
+ * Capture-grants-Soul: when the player captures an enemy non-king piece,
+ * splice the matching Soul card into the player's draw pile. No-op for
+ * opponent captures, missing pieces, or kings (which can't be captured).
+ *
+ * The mapping (pawn/knight/bishop/rook/queen → corresponding Soul) is
+ * fixed; missing soul cards in the library no-op safely.
+ */
+export function grantSoulOnCapture(
+  state: MatchCardState,
+  captured: Piece | null,
+  by: Side,
+  rng: Rng = Math.random,
+): MatchCardState {
+  if (by !== "player") return state;
+  if (!captured || captured.side !== "opponent") return state;
+  const soulId = SOUL_BY_PIECE_TYPE[captured.type];
+  if (!soulId) return state;
+  let soul: Card;
+  try {
+    soul = cloneCardDef(getCardById(soulId));
+  } catch {
+    return state;
+  }
+  return shuffleIntoDraw(state, soul, rng);
+}
+
+const SOUL_BY_PIECE_TYPE: Partial<Record<PieceType, CardId>> = {
+  pawn: "pawn-soul",
+  knight: "knight-soul",
+  bishop: "bishop-soul",
+  rook: "rook-soul",
+  queen: "queen-soul",
+};

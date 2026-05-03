@@ -57,8 +57,8 @@ type SavedMatch = {
   overlays: { walls: Wall[]; squareEffects: SquareEffect[]; zoneBuffs: ZoneBuff[] };
   hand: Card[];
   drawPile: Card[];
-  discardPile: Card[];
-  energy: number;
+  consumedPile: Card[];   // every played card lives here for the rest of the match
+  energy: number;         // banks across turns, capped at 10
   turn: number;
   whoseTurn: Side;
   bossModifier?: BossModifier;

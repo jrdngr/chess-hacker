@@ -87,10 +87,9 @@ type Piece = { id: string; type: PieceType; owner: Side; };
 type Card = {
   id: string;
   name: string;
-  cost: 0 | 1 | 2 | 3 | 4;
+  cost: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
   rarity: "common" | "uncommon" | "rare";
   archetype: "tempo" | "spatial" | "movement" | "disruption" | "resource" | "defensive" | "burst";
-  consume: boolean;
   curse?: boolean;        // true for boss curse cards
   effect: CardEffect;     // resolved by the effect system
   description: string;
@@ -131,8 +130,8 @@ type MatchState = {
   overlays: Board;           // walls / square effects / zone buffs
   hand: Card[];
   drawPile: Card[];
-  discardPile: Card[];
-  energy: number;
+  consumedPile: Card[];      // every played card lands here for the rest of the match
+  energy: number;            // banks across turns, capped at 10
   turn: number;
   whoseTurn: Side;
   bossModifier?: BossModifier;

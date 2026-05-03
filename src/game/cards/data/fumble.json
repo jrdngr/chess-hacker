@@ -4,7 +4,6 @@
   "cost": 1,
   "rarity": "common",
   "archetype": "disruption",
-  "consume": false,
   "description": "Disarm an enemy piece: next turn it may move but may not capture.",
   "target": { "kind": "enemy-piece" },
   "effect": { "kind": "disarm-piece" }

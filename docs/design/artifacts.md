@@ -56,7 +56,7 @@ Modify how the player's pieces behave globally for the rest of the run.
 
 Modify the match's resources or rules.
 
-- "Start each match with +1 energy on turn 1 only."
+- "Start each match with +1 energy on turn 1 only." (i.e., turn 1 begins at 2 energy instead of 1.)
 - "Hand size +1."
 - "On turn 1 of every match, gain 1 gold."
 

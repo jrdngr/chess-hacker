@@ -1,0 +1,10 @@
+{
+  "id": "cheap-destroy",
+  "name": "Cheap Destroy",
+  "cost": 4,
+  "rarity": "rare",
+  "archetype": "burst",
+  "description": "Destroy an enemy non-King piece your forces are currently attacking.",
+  "target": { "kind": "enemy-non-king-piece" },
+  "effect": { "kind": "destroy-piece", "filter": "attacked-by-player" }
+}
