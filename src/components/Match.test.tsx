@@ -829,3 +829,262 @@ describe("Match — undo", () => {
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("3");
   });
 });
+
+// ---- Dev mode --------------------------------------------------------------
+
+describe("Match — dev mode", () => {
+  it("editor places a piece on an empty square; clear board removes it", async () => {
+    const user = userEvent.setup();
+    const ai = makeFakeAi([]);
+    render(
+      <Match
+        runMode="dev"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={ALL_FORESIGHT_DECK}
+        rng={makeRng(300)}
+      />,
+    );
+
+    // Turn editor on; pick the player rook brush.
+    await user.click(screen.getByRole("button", { name: /editor: off/i }));
+    await user.click(screen.getByRole("button", { name: /pick player rook/i }));
+
+    // e4 is empty in the standard start.
+    await user.click(squareCell("e4")!);
+    expect(squareCell("e4")?.getAttribute("aria-label")).toBe("e4, player rook");
+
+    // Clear board wipes all pieces (including the one we just placed).
+    await user.click(screen.getByRole("button", { name: /clear board/i }));
+    expect(squareCell("e4")?.getAttribute("aria-label")).toBe("e4");
+    expect(squareCell("e1")?.getAttribute("aria-label")).toBe("e1");
+  });
+
+  it("side-to-move toggle flips the engine turn", async () => {
+    const user = userEvent.setup();
+    const ai = makeFakeAi([]);
+    render(
+      <Match
+        runMode="dev"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={ALL_FORESIGHT_DECK}
+        rng={makeRng(301)}
+      />,
+    );
+
+    expect(screen.getByLabelText(/^side to move:/i)).toHaveTextContent(/white/i);
+
+    const sideGroup = screen.getByRole("radiogroup", { name: /side to move/i });
+    await user.click(within(sideGroup).getByRole("radio", { name: /^black$/i }));
+
+    expect(screen.getByLabelText(/^side to move:/i)).toHaveTextContent(/black/i);
+  });
+
+  it("library no-target card plays free — energy unchanged, spent pile unchanged", async () => {
+    const user = userEvent.setup();
+    const ai = makeFakeAi([]);
+    render(
+      <Match
+        runMode="dev"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={ALL_FORESIGHT_DECK}
+        rng={makeRng(302)}
+        initialEnergy={3}
+      />,
+    );
+
+    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("3");
+    expect(screen.getByLabelText(/^spent pile/i)).toHaveTextContent("0");
+
+    // Reconnaissance is no-target. Click the library entry (data-card-id is set
+    // on the dev panel button to disambiguate from the same card in hand).
+    const libraryCard = document.querySelector(
+      'aside button[data-card-id="reconnaissance"]',
+    ) as HTMLElement | null;
+    expect(libraryCard).toBeTruthy();
+    await user.click(libraryCard!);
+
+    // Energy and the spent pile are unchanged after a free library play.
+    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("3");
+    expect(screen.getByLabelText(/^spent pile/i)).toHaveTextContent("0");
+  });
+
+  it("library targeted card freezes a target without charging energy", async () => {
+    const user = userEvent.setup();
+    const ai = makeFakeAi([]);
+    render(
+      <Match
+        runMode="dev"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={ALL_FORESIGHT_DECK}
+        rng={makeRng(303)}
+        initialEnergy={3}
+      />,
+    );
+
+    const frostbite = document.querySelector(
+      'aside button[data-card-id="frostbite"]',
+    ) as HTMLElement | null;
+    expect(frostbite).toBeTruthy();
+    await user.click(frostbite!);
+
+    // Targeting prompt is now showing for Frostbite.
+    expect(screen.getByText(/Pick an enemy piece for Frostbite/i)).toBeInTheDocument();
+
+    // Pick e7 — a Black pawn.
+    await user.click(squareCell("e7")!);
+
+    expect(squareCell("e7")?.getAttribute("aria-label")).toMatch(/frozen/);
+    // Energy unchanged.
+    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("3");
+  });
+
+  it("hand card played in dev still costs energy", async () => {
+    const user = userEvent.setup();
+    const ai = makeFakeAi([]);
+    render(
+      <Match
+        runMode="dev"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={ALL_FROSTBITE_DECK}
+        rng={makeRng(304)}
+        initialEnergy={3}
+      />,
+    );
+
+    // Playing Frostbite from the hand: cost 2 → energy goes from 3 to 1.
+    await user.click(findCard("Frostbite")!);
+    await user.click(squareCell("e7")!);
+
+    expect(squareCell("e7")?.getAttribute("aria-label")).toMatch(/frozen/);
+    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("1");
+  });
+
+  it("+1 energy bumps the count and undo rewinds it", async () => {
+    const user = userEvent.setup();
+    const ai = makeFakeAi([]);
+    render(
+      <Match
+        runMode="dev"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={ALL_FORESIGHT_DECK}
+        rng={makeRng(305)}
+        initialEnergy={3}
+      />,
+    );
+
+    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("3");
+
+    await user.click(screen.getByRole("button", { name: /\+1 energy/i }));
+    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("4");
+
+    await user.click(screen.getByRole("button", { name: /undo turn/i }));
+    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("3");
+  });
+
+  it("AI single-move button plays one Black move and stops", async () => {
+    const user = userEvent.setup();
+    // Only one move scripted — if the loop fires twice the second call returns
+    // empty and nothing changes, but the loop shouldn't fire at all once the
+    // single-shot completes.
+    const ai = makeFakeAi(["e7e5"]);
+    render(
+      <Match
+        runMode="dev"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={ALL_FORESIGHT_DECK}
+        rng={makeRng(306)}
+      />,
+    );
+
+    // Move a White pawn first so it's Black's turn.
+    await user.click(squareCell("e2")!);
+    await user.click(squareCell("e4")!);
+
+    // No auto-AI: e7 is still a Black pawn.
+    expect(squareCell("e7")?.getAttribute("aria-label")).toBe("e7, opponent pawn");
+
+    // Trigger the single-move button.
+    await user.click(screen.getByRole("button", { name: /AI: play one move/i }));
+
+    await waitFor(() => {
+      expect(squareCell("e5")?.getAttribute("aria-label")).toBe("e5, opponent pawn");
+    });
+    // Side flipped back to white.
+    expect(screen.getByLabelText(/^side to move:/i)).toHaveTextContent(/white/i);
+  });
+
+  it("human-driven Black move triggers turn rollover (energy ramps, hand refills)", async () => {
+    const user = userEvent.setup();
+    const ai = makeFakeAi([]);
+    render(
+      <Match
+        runMode="dev"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={ALL_FORESIGHT_DECK}
+        rng={makeRng(307)}
+        initialEnergy={2}
+      />,
+    );
+
+    // Play Foresight (cost 0) and dismiss the modal so hand size is 4.
+    await user.click(findCard("Foresight")!);
+    await user.click(await screen.findByRole("button", { name: /confirm/i }));
+
+    const hand = () => screen.getByRole("list", { name: /^hand$/i });
+    expect(within(hand()).getAllByRole("listitem")).toHaveLength(4);
+    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("2");
+
+    // White move ends the player turn.
+    await user.click(squareCell("e2")!);
+    await user.click(squareCell("e4")!);
+    expect(screen.getByLabelText(/^side to move:/i)).toHaveTextContent(/black/i);
+
+    // Drive Black manually (no AI in dev). After this move, the rollover fires.
+    await user.click(squareCell("e7")!);
+    await user.click(squareCell("e5")!);
+
+    // Hand refilled to 5, energy banked to 3 (was 2 + 1 rollover).
+    expect(within(hand()).getAllByRole("listitem")).toHaveLength(5);
+    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("3");
+  });
+
+  it("Soul fix: Black capture in dev does NOT add a Soul card to the draw pile", async () => {
+    const user = userEvent.setup();
+    const ai = makeFakeAi([]);
+    // Position: White pawn on e4, Black pawn on d5 — Black can capture by exd4.
+    render(
+      <Match
+        runMode="dev"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={ALL_FORESIGHT_DECK}
+        rng={makeRng(308)}
+        initialFen="4k3/8/8/3p4/4P3/8/8/4K3 b - - 0 1"
+      />,
+    );
+
+    // Initial deck has 8 Foresights → drawPile starts at 3 (5 dealt to hand).
+    const drawPileText = () => screen.getByLabelText(/^draw pile/i).textContent ?? "";
+    expect(drawPileText()).toContain("3");
+
+    // Black captures the e4 pawn.
+    await user.click(squareCell("d5")!);
+    await user.click(squareCell("e4")!);
+
+    // Verify capture happened.
+    expect(squareCell("e4")?.getAttribute("aria-label")).toBe("e4, opponent pawn");
+
+    // Draw pile size is unchanged — no Soul granted (it's the player's enemy
+    // capturing). If we had passed the wrong side, the helper would have
+    // shuffled a Pawn Soul into the draw pile, bumping the count.
+    expect(drawPileText()).toContain("3");
+  });
+});

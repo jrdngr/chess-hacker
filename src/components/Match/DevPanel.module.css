@@ -1,0 +1,235 @@
+.devPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 280px;
+  padding: 16px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.heading {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--panel-border);
+}
+
+.section:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.sectionHeading {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toggle {
+  padding: 8px 10px;
+  border: 1px solid var(--panel-border);
+  background: transparent;
+  color: inherit;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.toggleOn {
+  background: rgba(244, 162, 60, 0.18);
+  border-color: var(--player);
+}
+
+.smallButton {
+  flex: 1;
+  padding: 6px 8px;
+  font-size: 12px;
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  color: inherit;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.smallButton:hover:not(:disabled) {
+  border-color: var(--player);
+}
+
+.smallButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.paletteGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.paletteRow {
+  display: grid;
+  grid-template-columns: 44px repeat(6, 1fr);
+  gap: 4px;
+  align-items: center;
+}
+
+.paletteLabel {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.paletteButton {
+  padding: 6px 0;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-family: var(--font-mono, monospace);
+}
+
+.paletteButton:hover {
+  border-color: var(--player);
+}
+
+.palettePlayer {
+  color: var(--player);
+}
+
+.paletteOpponent {
+  color: var(--opponent);
+}
+
+.paletteActive {
+  background: rgba(244, 162, 60, 0.22);
+  border-color: var(--player);
+}
+
+.eraseButton {
+  padding: 6px 10px;
+  font-size: 12px;
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  color: inherit;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.eraseButton:hover {
+  border-color: var(--player);
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.note {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.libraryList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.libraryGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.libraryGroupHeading {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  padding: 2px 0;
+}
+
+.libraryCard {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  row-gap: 2px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.libraryCard:hover:not(:disabled) {
+  border-color: var(--player);
+  background: rgba(244, 162, 60, 0.08);
+}
+
+.libraryCard:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.libraryCardCost {
+  grid-row: span 2;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--player);
+  align-self: center;
+}
+
+.libraryCardName {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.libraryCardDesc {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.3;
+}
