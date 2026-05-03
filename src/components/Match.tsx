@@ -89,10 +89,15 @@ type Props = {
 };
 
 /**
- * Engine + card-state captured at the start of a player turn. The Undo
- * button rolls the match back to one of these. We snapshot once per player
- * turn (not per individual card play), so undo always rewinds to the start
- * of a clean turn — including the AI's preceding move if there was one.
+ * Engine + card-state captured at the start of a player turn. The Undo /
+ * Redo buttons (a prototype-only convenience — not a game rule) walk this
+ * stack. We snapshot once per player turn, so undo rewinds to the start of
+ * a clean turn including the AI's preceding move.
+ *
+ * `cardState` carries the *full* match-side state at snapshot time —
+ * including the hand, draw pile, discard pile, energy, and every overlay
+ * list — so a restore reproduces the player's exact decision context (same
+ * hand, same energy, same threats on the board).
  */
 type TurnSnapshot = {
   engineSnapshot: EngineSnapshot;
@@ -211,8 +216,16 @@ export function Match({
    * `turnSnapshots[turnSnapshots.length - 1]` is the state at the start of
    * the player's CURRENT turn; the Undo button restores the entry before
    * that. Empty until the first effect-driven push (or in non-vs-AI mode).
+   * Undo is unlimited — you can rewind all the way to turn 1.
    */
   const [turnSnapshots, setTurnSnapshots] = useState<TurnSnapshot[]>([]);
+  /**
+   * Snapshots that have been undone but not yet replaced by a new line of
+   * play. Each Undo pushes onto this stack; Redo pops back. A new turn
+   * snapshot pushed by the AI loop clears the redo stack — once the player
+   * has chosen a different line, the previous future is discarded.
+   */
+  const [redoStack, setRedoStack] = useState<TurnSnapshot[]>([]);
 
   // Increments on new game / mode change so stale AI replies are ignored.
   const generationRef = useRef(0);
@@ -485,10 +498,14 @@ export function Match({
           const turnStarted = startPlayerTurn(nextCardState, rng);
           setCardState(turnStarted);
           // Snapshot the start-of-new-turn state so Undo can rewind here.
+          // The snapshot's cardState carries the freshly-drawn hand and full
+          // pile/energy/overlay state — restore is bit-exact.
           setTurnSnapshots((prev) => [
             ...prev,
             { engineSnapshot: engine.snapshot(), cardState: turnStarted },
           ]);
+          // A new line of play invalidates any redo path.
+          setRedoStack([]);
         }
       } catch (e) {
         if (cancelled) return;
@@ -799,6 +816,7 @@ export function Match({
     setMarionetteMoves([]);
     setScryPending(null);
     setTurnSnapshots([]);
+    setRedoStack([]);
     if (mode === "vs-ai") {
       setCardState(
         startPlayerTurn(createMatchCardState(initialDeck ?? makeStarterDeck(), rng), rng),
@@ -821,6 +839,7 @@ export function Match({
       setAiError(null);
       setTargetingIndex(null);
       setTurnSnapshots([]);
+      setRedoStack([]);
       if (next === "vs-ai") {
         setCardState(
           startPlayerTurn(createMatchCardState(initialDeck ?? makeStarterDeck(), rng), rng),
@@ -833,29 +852,55 @@ export function Match({
   );
 
   /**
-   * Roll the match back to the start of the previous player turn — including
-   * undoing the AI's most recent move. No-op until at least one full
-   * player+AI turn cycle has completed (i.e. snapshots has 2+ entries).
+   * Roll the match back to the start of the previous player turn —
+   * including undoing the AI's most recent move. Repeatable: each call
+   * peels one more turn off the stack, all the way back to turn 1.
    */
   const canUndo = cardsEnabled && turnSnapshots.length >= 2 && !aiThinking && !matchOver;
+  const canRedo = cardsEnabled && redoStack.length > 0 && !aiThinking && !matchOver;
+
+  const clearTransientUI = useCallback(() => {
+    setSelected(null);
+    setTargetingIndex(null);
+    setPartialTarget(null);
+    setMarionetteMoves([]);
+    setScryPending(null);
+  }, []);
+
   const undo = useCallback(() => {
     if (!canUndo) return;
-    // Drop the snapshot for the current turn; restore the previous one.
     setTurnSnapshots((prev) => {
       if (prev.length < 2) return prev;
+      const popped = prev[prev.length - 1];
       const next = prev.slice(0, -1);
       const target = next[next.length - 1];
       engine.restore(target.engineSnapshot);
       setCardState(target.cardState);
-      setSelected(null);
-      setTargetingIndex(null);
-      setPartialTarget(null);
-      setMarionetteMoves([]);
-      setScryPending(null);
+      // Stash the undone snapshot so Redo can re-apply it.
+      setRedoStack((r) => [...r, popped]);
+      clearTransientUI();
       setVersion((v) => v + 1);
       return next;
     });
-  }, [canUndo, engine]);
+  }, [canUndo, engine, clearTransientUI]);
+
+  /**
+   * Re-apply the most recently undone turn. Cleared when the player makes
+   * a new move (i.e. when the AI loop pushes a fresh snapshot).
+   */
+  const redo = useCallback(() => {
+    if (!canRedo) return;
+    setRedoStack((r) => {
+      if (r.length === 0) return r;
+      const target = r[r.length - 1];
+      engine.restore(target.engineSnapshot);
+      setCardState(target.cardState);
+      setTurnSnapshots((prev) => [...prev, target]);
+      clearTransientUI();
+      setVersion((v) => v + 1);
+      return r.slice(0, -1);
+    });
+  }, [canRedo, engine, clearTransientUI]);
 
   // ---- Render ---------------------------------------------------------------
 
@@ -957,9 +1002,14 @@ export function Match({
           </button>
         )}
         {cardsEnabled && !matchOver && (
-          <button type="button" onClick={undo} disabled={!canUndo} className={styles.resetButton}>
-            Undo turn
-          </button>
+          <>
+            <button type="button" onClick={undo} disabled={!canUndo} className={styles.resetButton}>
+              Undo turn
+            </button>
+            <button type="button" onClick={redo} disabled={!canRedo} className={styles.resetButton}>
+              Redo turn
+            </button>
+          </>
         )}
       </aside>
 

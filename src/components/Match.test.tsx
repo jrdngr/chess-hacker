@@ -689,4 +689,134 @@ describe("Match — undo", () => {
     // Back to white's turn.
     expect(screen.getByText(/^white/i)).toBeInTheDocument();
   });
+
+  it("undo can rewind multiple turns in a row (no per-turn cap)", async () => {
+    const user = userEvent.setup();
+    const ai = makeFakeAi(["e7e5", "d7d5", "g8f6"]);
+    render(
+      <Match
+        initialMode="vs-ai"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={ALL_FORESIGHT_DECK}
+        rng={makeRng(201)}
+      />,
+    );
+
+    // Play three full turns: e4/e5, d4/d5, Nc3/Nf6.
+    await user.click(squareCell("e2")!);
+    await user.click(squareCell("e4")!);
+    await waitFor(() => {
+      expect(squareCell("e5")?.getAttribute("aria-label")).toBe("e5, opponent pawn");
+    });
+    await user.click(squareCell("d2")!);
+    await user.click(squareCell("d4")!);
+    await waitFor(() => {
+      expect(squareCell("d5")?.getAttribute("aria-label")).toBe("d5, opponent pawn");
+    });
+    await user.click(squareCell("b1")!);
+    await user.click(squareCell("c3")!);
+    await waitFor(() => {
+      expect(squareCell("f6")?.getAttribute("aria-label")).toBe("f6, opponent knight");
+    });
+
+    const undoBtn = screen.getByRole("button", { name: /undo turn/i });
+    // Undo three times — back to the starting position.
+    await user.click(undoBtn);
+    await user.click(undoBtn);
+    await user.click(undoBtn);
+
+    expect(squareCell("e2")?.getAttribute("aria-label")).toBe("e2, player pawn");
+    expect(squareCell("d2")?.getAttribute("aria-label")).toBe("d2, player pawn");
+    expect(squareCell("b1")?.getAttribute("aria-label")).toBe("b1, player knight");
+    expect(squareCell("e4")?.getAttribute("aria-label")).toBe("e4");
+    // No more turns to undo at the very start.
+    expect(undoBtn).toBeDisabled();
+  });
+
+  it("redo replays an undone turn; new moves invalidate the redo stack", async () => {
+    const user = userEvent.setup();
+    // Need 2 AI moves: one for the initial line, one for the divergence.
+    const ai = makeFakeAi(["e7e5", "c7c5"]);
+    render(
+      <Match
+        initialMode="vs-ai"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={ALL_FORESIGHT_DECK}
+        rng={makeRng(202)}
+      />,
+    );
+
+    const redoBtn = screen.getByRole("button", { name: /redo turn/i });
+    expect(redoBtn).toBeDisabled(); // nothing to redo yet
+
+    // Play e4; AI replies e5.
+    await user.click(squareCell("e2")!);
+    await user.click(squareCell("e4")!);
+    await waitFor(() => {
+      expect(squareCell("e5")?.getAttribute("aria-label")).toBe("e5, opponent pawn");
+    });
+
+    // Undo: back to start. Redo should now be enabled.
+    await user.click(screen.getByRole("button", { name: /undo turn/i }));
+    expect(squareCell("e4")?.getAttribute("aria-label")).toBe("e4");
+    expect(redoBtn).not.toBeDisabled();
+
+    // Redo: e4/e5 reapply.
+    await user.click(redoBtn);
+    expect(squareCell("e4")?.getAttribute("aria-label")).toBe("e4, player pawn");
+    expect(squareCell("e5")?.getAttribute("aria-label")).toBe("e5, opponent pawn");
+    expect(redoBtn).toBeDisabled();
+
+    // Undo and play a different move: redo should be cleared once the AI replies.
+    await user.click(screen.getByRole("button", { name: /undo turn/i }));
+    expect(redoBtn).not.toBeDisabled();
+    await user.click(squareCell("d2")!);
+    await user.click(squareCell("d4")!);
+    await waitFor(() => {
+      expect(squareCell("c5")?.getAttribute("aria-label")).toBe("c5, opponent pawn");
+    });
+    expect(redoBtn).toBeDisabled();
+  });
+
+  it("undo restores the exact hand the player held at the start of that turn", async () => {
+    const user = userEvent.setup();
+    const ai = makeFakeAi(["e7e5"]);
+    render(
+      <Match
+        initialMode="vs-ai"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={ALL_FORESIGHT_DECK}
+        rng={makeRng(203)}
+      />,
+    );
+
+    const hand = () => screen.getByRole("list", { name: /^hand$/i });
+    const handSizeBefore = within(hand()).getAllByRole("listitem").length;
+    expect(handSizeBefore).toBe(5);
+
+    // Play a Foresight and dismiss the modal — that moves a card from hand
+    // to discard, taking the hand size to 4.
+    await user.click(findCard("Foresight")!);
+    const confirm = await screen.findByRole("button", { name: /confirm/i });
+    await user.click(confirm);
+    expect(within(hand()).getAllByRole("listitem")).toHaveLength(4);
+
+    // Make a chess move to end the turn.
+    await user.click(squareCell("e2")!);
+    await user.click(squareCell("e4")!);
+    await waitFor(() => {
+      expect(squareCell("e5")?.getAttribute("aria-label")).toBe("e5, opponent pawn");
+    });
+    // Next turn refilled the hand back to 5.
+    expect(within(hand()).getAllByRole("listitem")).toHaveLength(5);
+
+    // Undo: hand goes back to 5 (start of turn 1, before the Foresight play).
+    await user.click(screen.getByRole("button", { name: /undo turn/i }));
+    expect(within(hand()).getAllByRole("listitem")).toHaveLength(5);
+    // And energy is the start-of-turn value (full).
+    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("3");
+  });
 });
