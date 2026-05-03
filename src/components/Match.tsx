@@ -194,6 +194,12 @@ export function Match({
   const [version, setVersion] = useState(0);
   const [aiThinking, setAiThinking] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  /**
+   * "Chess vision" — when on, every square attacked by either side gets a
+   * coloured tint: blue for player-only, red for opponent-only, purple for
+   * both. Useful for spotting threats and overworked defenders at a glance.
+   */
+  const [chessVision, setChessVision] = useState(false);
 
   // ---- Card-system state (vs-ai only) --------------------------------------
 
@@ -303,6 +309,21 @@ export function Match({
     [rootedSet, disarmedSet, compelledSet, shieldedSet, sanctuarySet, empowerMap],
   );
   engine.setOverlays(walledSet, frozenSet, extraOverlays);
+
+  // Chess-vision overlays. Computed only when the toggle is on. Recomputed
+  // whenever the position or overlays change (version bumps after every
+  // chess move; walledSet/frozenSet/extraOverlays change after card plays).
+  const attackedByPlayer = useMemo<ReadonlySet<AlgebraicSquare>>(
+    () => (chessVision ? engine.attackedSquares("player") : new Set()),
+    // engine is mutable; deps below force recompute on relevant changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [chessVision, version, walledSet, frozenSet, extraOverlays],
+  );
+  const attackedByOpponent = useMemo<ReadonlySet<AlgebraicSquare>>(
+    () => (chessVision ? engine.attackedSquares("opponent") : new Set()),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [chessVision, version, walledSet, frozenSet, extraOverlays],
+  );
 
   // Per-square badges shown on top of pieces (root/disarm/compel/shield/haste/lightning/empower).
   const pieceBadges = useMemo(() => {
@@ -971,6 +992,17 @@ export function Match({
           <div className={styles.value}>{Math.floor(version / 2) + 1}</div>
         </div>
 
+        <div className={styles.statusBlock}>
+          <label className={styles.toggleRow}>
+            <input
+              type="checkbox"
+              checked={chessVision}
+              onChange={(e) => setChessVision(e.target.checked)}
+            />
+            <span>Chess vision</span>
+          </label>
+        </div>
+
         {cardsEnabled && (
           <div className={styles.statusBlock}>
             <div className={styles.label}>Energy</div>
@@ -1028,6 +1060,8 @@ export function Match({
           sanctuarySquares={sanctuarySet}
           trapSquares={trapSet}
           pieceBadges={pieceBadges}
+          attackedByPlayer={attackedByPlayer}
+          attackedByOpponent={attackedByOpponent}
           mode={boardMode}
           onSquareClick={onSquareClick}
           onSquareDragStart={onSquareDragStart}

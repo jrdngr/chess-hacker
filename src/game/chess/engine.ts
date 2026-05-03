@@ -10,9 +10,11 @@
 import type {
   AlgebraicSquare,
   EmpowerPattern,
+  FileIndex,
   MatchOutcome,
   Piece,
   PieceType,
+  RankIndex,
   Side,
 } from "../types";
 
@@ -144,6 +146,23 @@ export class ChoseEngine {
   pieces(): Array<{ square: AlgebraicSquare; piece: Piece }> {
     const out: Array<{ square: AlgebraicSquare; piece: Piece }> = [];
     for (const [square, piece] of this.position.pieces) out.push({ square, piece });
+    return out;
+  }
+
+  /**
+   * Every square attacked by `side` under the current overlays. Used by the
+   * "chess vision" UI overlay to colour squares the player or opponent
+   * threatens. Walls block sliding attacks; frozen pieces don't attack —
+   * same as the rule used for check evaluation.
+   */
+  attackedSquares(side: Side): Set<AlgebraicSquare> {
+    const out = new Set<AlgebraicSquare>();
+    for (let r = 0 as RankIndex; r < 8; r++) {
+      for (let f = 0 as FileIndex; f < 8; f++) {
+        const sq = squareName(f as FileIndex, r as RankIndex);
+        if (isSquareAttacked(this.position, this.overlays, sq, side)) out.add(sq);
+      }
+    }
     return out;
   }
 

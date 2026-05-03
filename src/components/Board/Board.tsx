@@ -40,6 +40,13 @@ type Props = {
   trapSquares?: ReadonlySet<AlgebraicSquare>;
   /** Player pieces with active status badges (root/disarm/compel/shield/haste/lightning/empower). */
   pieceBadges?: ReadonlyMap<AlgebraicSquare, string>;
+  /**
+   * "Chess vision" overlays: squares attacked by each side. When both sets
+   * contain a square, it renders purple; player-only is blue, opponent-only
+   * is red. Pass empty sets (or omit) to disable the overlay.
+   */
+  attackedByPlayer?: ReadonlySet<AlgebraicSquare>;
+  attackedByOpponent?: ReadonlySet<AlgebraicSquare>;
   /** Targeting mode for card play. Defaults to plain "play" (chess move). */
   mode?: BoardMode;
   onSquareClick: (square: AlgebraicSquare) => void;
@@ -69,6 +76,8 @@ export function Board({
   sanctuarySquares = EMPTY_SET,
   trapSquares = EMPTY_SET,
   pieceBadges = EMPTY_BADGES,
+  attackedByPlayer = EMPTY_SET,
+  attackedByOpponent = EMPTY_SET,
   mode = { kind: "play" },
   onSquareClick,
   onSquareDragStart,
@@ -128,6 +137,17 @@ export function Board({
               const isTrap = trapSquares.has(sq);
               const badge = pieceBadges.get(sq);
 
+              const attackedByUs = attackedByPlayer.has(sq);
+              const attackedByThem = attackedByOpponent.has(sq);
+              const visionClass =
+                attackedByUs && attackedByThem
+                  ? styles.visionBoth
+                  : attackedByUs
+                    ? styles.visionPlayer
+                    : attackedByThem
+                      ? styles.visionOpponent
+                      : null;
+
               const validTargetForCard = targeting && validTargets.has(sq);
 
               const draggable =
@@ -148,6 +168,7 @@ export function Board({
                 locked && styles.locked,
                 isWalled && styles.walled,
                 isFrozen && styles.frozen,
+                visionClass,
                 targeting && validTargetForCard && styles.cardTarget,
                 targeting && !validTargetForCard && styles.cardTargetDim,
               ]
