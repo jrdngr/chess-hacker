@@ -11,11 +11,15 @@
 }
 
 .board {
+  position: relative;
   display: flex;
   flex-direction: column;
   border: 2px solid var(--panel-border);
   border-radius: 4px;
-  overflow: hidden;
+  /* overflow stays visible so the hover tooltip can extend past the
+     board edges. The 4px border-radius is small enough that square-
+     corner bleed is barely perceptible. */
+  overflow: visible;
   /* The largest square that fits both axes of the wrapper. */
   width: min(100cqw, 100cqh);
   height: min(100cqw, 100cqh);
@@ -264,6 +268,47 @@
   font-size: 13px;
   white-space: nowrap;
   z-index: 5;
+}
+
+.tooltip {
+  position: absolute;
+  z-index: 20;
+  min-width: 140px;
+  max-width: 220px;
+  padding: 6px 8px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  color: var(--fg);
+  font-size: 12px;
+  line-height: 1.35;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.tooltipSection + .tooltipSection {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tooltipHeader {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+
+.tooltipRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tooltipDuration {
+  color: var(--muted);
+  white-space: nowrap;
 }
 
 .rankLabel,

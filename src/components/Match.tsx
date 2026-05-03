@@ -18,7 +18,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Board, type BoardMode } from "./Board/Board";
+import { Board, type BoardMode, type EffectInfo, type SquareEffects } from "./Board/Board";
 import { CapturedPieces } from "./Board/CapturedPieces";
 import { materialAdvantage } from "./Board/material";
 import { Hand } from "./Hand/Hand";
@@ -376,6 +376,86 @@ export function Match({
     cardState.hastes,
     cardState.lightnings,
     cardState.empowers,
+  ]);
+
+  // Per-square hover-tooltip data. We split into piece-applied and
+  // square-applied lists so the tooltip can render two sections when both
+  // exist on the same square. Remaining turns = expiresOnTurn - currentTurn
+  // (an effect with expiresOnTurn === turn+1 has 1 turn left).
+  const squareEffectsMap = useMemo<ReadonlyMap<AlgebraicSquare, SquareEffects>>(() => {
+    const m = new Map<AlgebraicSquare, SquareEffects>();
+    const get = (sq: AlgebraicSquare): SquareEffects => {
+      let entry = m.get(sq);
+      if (!entry) {
+        entry = { piece: [], square: [] };
+        m.set(sq, entry);
+      }
+      return entry;
+    };
+    const t = cardState.turn;
+    const remaining = (expiresOnTurn: number) => Math.max(0, expiresOnTurn - t);
+    const pushPiece = (sq: AlgebraicSquare, fx: EffectInfo) => get(sq).piece.push(fx);
+    const pushSquare = (sq: AlgebraicSquare, fx: EffectInfo) => get(sq).square.push(fx);
+
+    for (const f of cardState.freezes) {
+      pushPiece(f.square, { label: "Frozen", remaining: remaining(f.expiresOnTurn) });
+    }
+    for (const r of cardState.roots) {
+      pushPiece(r.square, { label: "Rooted", remaining: remaining(r.expiresOnTurn) });
+    }
+    for (const d of cardState.disarms) {
+      pushPiece(d.square, { label: "Disarmed", remaining: remaining(d.expiresOnTurn) });
+    }
+    for (const c of cardState.compels) {
+      pushPiece(c.square, { label: "Compelled", remaining: remaining(c.expiresOnTurn) });
+    }
+    for (const s of cardState.shields) {
+      pushPiece(s.square, { label: "Shielded", remaining: remaining(s.expiresOnTurn) });
+    }
+    for (const h of cardState.hastes) {
+      pushPiece(h.square, { label: "Haste", remaining: remaining(h.expiresOnTurn) });
+    }
+    for (const l of cardState.lightnings) {
+      pushPiece(l.square, {
+        label: "Lightning",
+        remaining: l.remaining,
+        unit: l.remaining === 1 ? "action" : "actions",
+      });
+    }
+    for (const e of cardState.empowers) {
+      const label = `Empowered (${e.pattern})`;
+      // Soul-card empowers are "use it or lose it" — they last the current
+      // turn only (and drop early if the player moves any other piece).
+      // Showing "1 turn" is accurate enough; the early-drop nuance lives in
+      // the card text.
+      pushPiece(e.square, { label, remaining: remaining(e.expiresOnTurn) });
+    }
+    for (const w of cardState.walls) {
+      pushSquare(w.square, { label: "Wall", remaining: remaining(w.expiresOnTurn) });
+    }
+    for (const s of cardState.sanctuaries) {
+      pushSquare(s.square, { label: "Sanctuary", remaining: remaining(s.expiresOnTurn) });
+    }
+    for (const tr of cardState.traps) {
+      pushSquare(tr.square, {
+        label: `Trap (${tr.effect})`,
+        remaining: remaining(tr.expiresOnTurn),
+      });
+    }
+    return m;
+  }, [
+    cardState.turn,
+    cardState.freezes,
+    cardState.roots,
+    cardState.disarms,
+    cardState.compels,
+    cardState.shields,
+    cardState.hastes,
+    cardState.lightnings,
+    cardState.empowers,
+    cardState.walls,
+    cardState.sanctuaries,
+    cardState.traps,
   ]);
 
   const turn: Side = engine.turn();
@@ -1197,6 +1277,7 @@ export function Match({
           sanctuarySquares={sanctuarySet}
           trapSquares={trapSet}
           pieceBadges={pieceBadges}
+          squareEffects={squareEffectsMap}
           attackedByPlayer={attackedByPlayer}
           attackedByOpponent={attackedByOpponent}
           mode={boardMode}

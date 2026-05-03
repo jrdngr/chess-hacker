@@ -5,11 +5,30 @@
 
 import { useState } from "react";
 
-import { squareName, type ChoseEngine, type LegalMove } from "../../game/chess/engine";
+import { squareCoords, squareName, type ChoseEngine, type LegalMove } from "../../game/chess/engine";
 import type { AlgebraicSquare, FileIndex, Piece, RankIndex, Side } from "../../game/types";
 
 import { PieceGlyph } from "./PieceGlyph";
 import styles from "./Board.module.css";
+
+/**
+ * One line in the hover tooltip — a single effect with its label and an
+ * optional remaining-turns count. `remaining` is in player turns; for
+ * lightning, it's the number of remaining actions on the piece.
+ */
+export type EffectInfo = {
+  label: string;
+  /** Remaining turns (or remaining actions for lightning). Undefined means untimed. */
+  remaining?: number;
+  /** Trailing units (e.g. "actions" for lightning, default "turns"). */
+  unit?: string;
+};
+
+/** Effects shown for a hovered square — split into piece-applied and square-applied. */
+export type SquareEffects = {
+  piece: EffectInfo[];
+  square: EffectInfo[];
+};
 
 /**
  * What the board is currently asking the player to do.
@@ -44,6 +63,12 @@ type Props = {
   /** Player pieces with active status badges (root/disarm/compel/shield/haste/lightning/empower). */
   pieceBadges?: ReadonlyMap<AlgebraicSquare, string>;
   /**
+   * Per-square hover-tooltip data: piece-applied and square-applied effects.
+   * Squares without entries get no tooltip. The Board does not interpret
+   * the contents — it just renders rows of {label, remaining}.
+   */
+  squareEffects?: ReadonlyMap<AlgebraicSquare, SquareEffects>;
+  /**
    * "Chess vision" overlays: squares attacked by each side. When both sets
    * contain a square, it renders purple; player-only is blue, opponent-only
    * is red. Pass empty sets (or omit) to disable the overlay.
@@ -69,6 +94,8 @@ const EMPTY_SET: ReadonlySet<AlgebraicSquare> = new Set();
 
 const EMPTY_BADGES: ReadonlyMap<AlgebraicSquare, string> = new Map();
 
+const EMPTY_EFFECTS: ReadonlyMap<AlgebraicSquare, SquareEffects> = new Map();
+
 export function Board({
   engine,
   selected,
@@ -79,6 +106,7 @@ export function Board({
   sanctuarySquares = EMPTY_SET,
   trapSquares = EMPTY_SET,
   pieceBadges = EMPTY_BADGES,
+  squareEffects = EMPTY_EFFECTS,
   attackedByPlayer = EMPTY_SET,
   attackedByOpponent = EMPTY_SET,
   mode = { kind: "play" },
@@ -111,6 +139,11 @@ export function Board({
   const turn = engine.turn();
   const lastMove = engine.lastMove();
   const [dragOverSquare, setDragOverSquare] = useState<AlgebraicSquare | null>(null);
+  // Square the mouse is currently over, for the effects tooltip. Separate
+  // from `dragOverSquare` (which only tracks card-targeting hover) so the
+  // tooltip can appear during ordinary play without interfering with the
+  // green/red targeting tints.
+  const [hoverSquare, setHoverSquare] = useState<AlgebraicSquare | null>(null);
 
   const targeting = mode.kind !== "play";
   const dropAnywhere = mode.kind === "drop-anywhere";
@@ -272,6 +305,7 @@ export function Board({
                     if (dragOverSquare === sq) setDragOverSquare(null);
                   }}
                   onMouseEnter={() => {
+                    setHoverSquare(sq);
                     // Cursor-hover feedback during click-driven targeting
                     // (no drag in progress). HTML5 drag suppresses mouseenter
                     // on most browsers, so this only fires when there isn't
@@ -279,6 +313,7 @@ export function Board({
                     if (targeting) setDragOverSquare(sq);
                   }}
                   onMouseLeave={() => {
+                    setHoverSquare((curr) => (curr === sq ? null : curr));
                     if (targeting && dragOverSquare === sq) setDragOverSquare(null);
                   }}
                   onDrop={(e) => {
@@ -308,7 +343,66 @@ export function Board({
             })}
           </div>
         ))}
+        {!targeting && hoverSquare && renderTooltip(hoverSquare, squareEffects)}
       </div>
+    </div>
+  );
+}
+
+function renderTooltip(
+  sq: AlgebraicSquare,
+  squareEffects: ReadonlyMap<AlgebraicSquare, SquareEffects>,
+) {
+  const fx = squareEffects.get(sq);
+  if (!fx) return null;
+  if (fx.piece.length === 0 && fx.square.length === 0) return null;
+  const { file, rank } = squareCoords(sq);
+  // Visual rows count from the top: rank 7 → row 0, rank 0 → row 7.
+  const visualRow = 7 - rank;
+  // Anchor above the hovered square unless it's in the top row, in which
+  // case anchor below so the tooltip stays inside the visible area.
+  const anchorAbove = visualRow > 0;
+  const leftPct = (file + 0.5) * 12.5;
+  const yPct = anchorAbove ? visualRow * 12.5 : (visualRow + 1) * 12.5;
+  const transform = anchorAbove
+    ? "translate(-50%, calc(-100% - 6px))"
+    : "translate(-50%, 6px)";
+  return (
+    <div
+      className={styles.tooltip}
+      role="tooltip"
+      style={{ left: `${leftPct}%`, top: `${yPct}%`, transform }}
+    >
+      {fx.piece.length > 0 && (
+        <div className={styles.tooltipSection}>
+          <div className={styles.tooltipHeader}>Piece</div>
+          {fx.piece.map((e, i) => (
+            <div key={i} className={styles.tooltipRow}>
+              <span>{e.label}</span>
+              {e.remaining !== undefined && (
+                <span className={styles.tooltipDuration}>
+                  {e.remaining} {e.unit ?? (e.remaining === 1 ? "turn" : "turns")}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      {fx.square.length > 0 && (
+        <div className={styles.tooltipSection}>
+          <div className={styles.tooltipHeader}>Square</div>
+          {fx.square.map((e, i) => (
+            <div key={i} className={styles.tooltipRow}>
+              <span>{e.label}</span>
+              {e.remaining !== undefined && (
+                <span className={styles.tooltipDuration}>
+                  {e.remaining} {e.unit ?? (e.remaining === 1 ? "turn" : "turns")}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
