@@ -4,6 +4,7 @@ import type { BoardContext, PlayTarget } from "./match";
 import {
   createMatchCardState,
   drawCards,
+  dropOtherSingleUseEmpowers,
   hasWallOn,
   isCompelled,
   isDisarmed,
@@ -401,21 +402,42 @@ describe("playCard — sacrifice / summon / swap / marionette", () => {
     expect(r.sideEffects).toEqual([{ kind: "remove-piece", square: "a2" }]);
   });
 
-  it("Knight Soul: rejects squares outside own half, accepts ranks 1-4, emits place-piece", () => {
+  it("Knight Soul: empowers an own piece with the knight pattern (single-use, this turn) and consumes", () => {
     const rng = makeRng(70);
     let st = startPlayerTurn(createMatchCardState([KNIGHT_SOUL], rng), rng);
     st = { ...st, energy: 10 };
     const idx = st.hand.findIndex((c) => c.id === "knight-soul");
+    const ctx = withPieces({
+      e2: { type: "pawn", side: "player" },
+      e7: { type: "pawn", side: "opponent" },
+    });
 
-    const rOpp = playCard(st, idx, { kind: "square", square: "e5" }, emptyBoard, rng);
-    expect(rOpp.ok).toBe(false);
-    if (!rOpp.ok) expect(rOpp.reason).toBe("target-not-in-own-half");
+    const rEnemy = playCard(st, idx, { kind: "square", square: "e7" }, ctx, rng);
+    expect(rEnemy.ok).toBe(false);
+    if (!rEnemy.ok) expect(rEnemy.reason).toBe("target-not-own-piece");
 
-    const r = playCard(st, idx, { kind: "square", square: "e3" }, emptyBoard, rng);
+    const r = playCard(st, idx, { kind: "square", square: "e2" }, ctx, rng);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.sideEffects).toEqual([{ kind: "place-piece", square: "e3", pieceType: "knight" }]);
+    expect(r.sideEffects).toEqual([]);
+    const status = empowerAt(r.state, "e2");
+    expect(status?.pattern).toBe("knight");
+    expect(status?.singleUse).toBe(true);
+    expect(status?.expiresOnTurn).toBe(r.state.turn + 1);
     expect(r.state.consumedPile.some((c) => c.id === "knight-soul")).toBe(true);
+  });
+
+  it("Soul empowers expire at the start of the next player turn", () => {
+    const rng = makeRng(71);
+    let st = startPlayerTurn(createMatchCardState([KNIGHT_SOUL], rng), rng);
+    st = { ...st, energy: 10 };
+    const idx = st.hand.findIndex((c) => c.id === "knight-soul");
+    const ctx = withPieces({ e2: { type: "pawn", side: "player" } });
+    const r = playCard(st, idx, { kind: "square", square: "e2" }, ctx, rng);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const next = startPlayerTurn(r.state, rng);
+    expect(empowerAt(next, "e2")).toBeNull();
   });
 
   it("Switch Files: requires two distinct own-piece squares; emits swap-pieces", () => {
@@ -495,6 +517,22 @@ describe("status helpers", () => {
     st = clearStatusesOn(st, "e7");
     expect(st.freezes).toEqual([]);
     expect(st.shields).toEqual([]);
+  });
+
+  it("dropOtherSingleUseEmpowers keeps the moved piece's empower and drops everyone else's", () => {
+    const rng = makeRng(110);
+    let st = startPlayerTurn(createMatchCardState(makeStarterDeck(), rng), rng);
+    st = {
+      ...st,
+      empowers: [
+        { square: "e2", side: "player", expiresOnTurn: 99, pattern: "knight", singleUse: true },
+        { square: "d2", side: "player", expiresOnTurn: 99, pattern: "knight", singleUse: true },
+        { square: "f1", side: "player", expiresOnTurn: 99, pattern: "knight" }, // non-singleUse
+      ],
+    };
+    const next = dropOtherSingleUseEmpowers(st, "e2");
+    const squares = next.empowers.map((e) => e.square).sort();
+    expect(squares).toEqual(["e2", "f1"]);
   });
 
   it("consumeHaste removes the status", () => {

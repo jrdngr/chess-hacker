@@ -347,14 +347,32 @@ function applyEffect(
       };
     case "empower-piece": {
       const sq = squareTarget(target);
+      // Both regular and single-use empowers expire at the start of the next
+      // player turn. Single-use additionally drops as soon as the player moves
+      // a different piece (handled by `dropOtherSingleUseEmpowers`).
       const status: EmpowerStatus = {
         square: sq,
         side: "player",
         expiresOnTurn: state.turn + 1,
         pattern: effect.pattern,
       };
+      if (effect.singleUse) status.singleUse = true;
+      // Stack patterns: keep one entry per (square, pattern). If the same
+      // pattern is applied twice, prefer the strictest variant — a non-single-
+      // use empower wins over a single-use one.
+      const existing = state.empowers.find(
+        (e) => e.square === sq && e.pattern === effect.pattern,
+      );
+      if (existing && !existing.singleUse) status.singleUse = false;
+      if (status.singleUse === false) delete (status as { singleUse?: boolean }).singleUse;
       return {
-        state: { ...state, empowers: [...state.empowers.filter((e) => e.square !== sq), status] },
+        state: {
+          ...state,
+          empowers: [
+            ...state.empowers.filter((e) => !(e.square === sq && e.pattern === effect.pattern)),
+            status,
+          ],
+        },
         sideEffects: [],
       };
     }
@@ -594,4 +612,20 @@ export function consumeLightningAction(
 /** Drop a haste status (e.g., after the second move was made). */
 export function consumeHaste(state: MatchCardState, square: AlgebraicSquare): MatchCardState {
   return { ...state, hastes: state.hastes.filter((h) => h.square !== square) };
+}
+
+/**
+ * Drop every single-use empower whose square doesn't match `keepSquare`.
+ * Called after a player chess move with the move's `from` square: the moving
+ * piece's empowers survive (and are then relocated to `to`); empowers on any
+ * other piece are consumed by the act of "moving someone else."
+ */
+export function dropOtherSingleUseEmpowers(
+  state: MatchCardState,
+  keepSquare: AlgebraicSquare,
+): MatchCardState {
+  return {
+    ...state,
+    empowers: state.empowers.filter((e) => !e.singleUse || e.square === keepSquare),
+  };
 }

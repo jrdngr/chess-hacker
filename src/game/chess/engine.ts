@@ -61,7 +61,7 @@ export type ExtraOverlays = {
   compels?: ReadonlySet<AlgebraicSquare>;
   shields?: ReadonlySet<AlgebraicSquare>;
   sanctuaries?: ReadonlySet<AlgebraicSquare>;
-  empowers?: ReadonlyMap<AlgebraicSquare, EmpowerPattern>;
+  empowers?: ReadonlyMap<AlgebraicSquare, ReadonlySet<EmpowerPattern>>;
 };
 
 type HistoryEntry = {

@@ -72,7 +72,13 @@ const VALID_EFFECT_KINDS = [
   "marionette",
 ] as const;
 const VALID_TRAP_EFFECTS: readonly TrapEffect[] = ["capture", "freeze", "push"];
-const VALID_EMPOWER_PATTERNS: readonly EmpowerPattern[] = ["knight"];
+const VALID_EMPOWER_PATTERNS: readonly EmpowerPattern[] = [
+  "pawn",
+  "knight",
+  "bishop",
+  "rook",
+  "queen",
+];
 const VALID_PIECE_TYPES: readonly PieceType[] = [
   "pawn",
   "knight",
@@ -157,7 +163,17 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
         );
         return null;
       }
-      return { kind: "empower-piece", pattern: p as EmpowerPattern };
+      const singleUse = raw.singleUse;
+      if (singleUse !== undefined && typeof singleUse !== "boolean") {
+        errors.push("'effect.singleUse' must be a boolean if present for kind 'empower-piece'");
+        return null;
+      }
+      const out: CardEffect & { kind: "empower-piece" } = {
+        kind: "empower-piece",
+        pattern: p as EmpowerPattern,
+      };
+      if (singleUse === true) out.singleUse = true;
+      return out;
     }
     case "lightning-piece": {
       if (!isPositiveInt(raw.actions)) {

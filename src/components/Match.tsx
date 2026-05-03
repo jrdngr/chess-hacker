@@ -43,6 +43,7 @@ import {
   consumeHaste,
   consumeLightningAction,
   createMatchCardState,
+  dropOtherSingleUseEmpowers,
   hasWallOn,
   hasteAt,
   isInPlayerHalf,
@@ -59,6 +60,7 @@ import { makeStarterDeck } from "../game/cards/library";
 import type {
   AlgebraicSquare,
   Card,
+  EmpowerPattern,
   MatchCardState,
   MatchOutcome,
   Piece,
@@ -293,10 +295,18 @@ export function Match({
     [cardState.sanctuaries],
   );
   const trapSet = useMemo(() => new Set(cardState.traps.map((t) => t.square)), [cardState.traps]);
-  const empowerMap = useMemo(
-    () => new Map(cardState.empowers.map((e) => [e.square, e.pattern] as const)),
-    [cardState.empowers],
-  );
+  const empowerMap = useMemo(() => {
+    const m = new Map<AlgebraicSquare, Set<EmpowerPattern>>();
+    for (const e of cardState.empowers) {
+      let set = m.get(e.square);
+      if (!set) {
+        set = new Set();
+        m.set(e.square, set);
+      }
+      set.add(e.pattern);
+    }
+    return m;
+  }, [cardState.empowers]);
   const extraOverlays: ExtraOverlays = useMemo(
     () => ({
       roots: rootedSet,
@@ -441,6 +451,13 @@ export function Match({
   const boardMode: BoardMode = useMemo(() => {
     if (!targetingCard) return { kind: "play" };
     const k = targetingCard.target.kind;
+    if (k === "none") {
+      return {
+        kind: "drop-anywhere",
+        cardName: targetingCard.name,
+        hint: `Drop anywhere on the board to play ${targetingCard.name}`,
+      };
+    }
     let hint = "";
     if (k === "empty-square") hint = `Pick an empty square for ${targetingCard.name}`;
     else if (k === "empty-square-own-half")
@@ -572,8 +589,11 @@ export function Match({
       const applied = engine.move({ from, to, promotion: legal.promotion });
       if (!applied) return false;
 
+      // Single-use empowers (Soul cards) on any *other* piece die the moment
+      // the player commits a chess move with someone else.
+      let next = dropOtherSingleUseEmpowers(cardState, from);
       // Statuses follow the piece.
-      let next = relocateStatuses(cardState, from, to);
+      next = relocateStatuses(next, from, to);
       // Captured-piece's statuses (if any) are dropped.
       if (applied.isCapture) next = clearStatusesOn(next, to);
 
@@ -718,6 +738,11 @@ export function Match({
       // Card-targeting takes priority over chess interaction.
       if (targetingIndex !== null && targetingCard) {
         const k = targetingCard.target.kind;
+        if (k === "none") {
+          // No-target card resolved by a drop on the board.
+          tryResolveCard(targetingIndex, { kind: "none" });
+          return;
+        }
         if (k === "two-own-pieces") {
           if (!partialTarget) {
             const piece = engine.pieceAt(sq);
@@ -808,18 +833,53 @@ export function Match({
   const onSquareDrop = useCallback(
     (sq: AlgebraicSquare) => {
       if (matchOver || aiThinking) return;
-      if (targetingIndex !== null) return; // drag is for chess moves, not card targeting
+      if (targetingIndex !== null) {
+        // A targeted card was dragged from the hand onto this square. Reuse
+        // the same resolution path as a click on the square.
+        onSquareClick(sq);
+        return;
+      }
       if (selected && selected !== sq) {
         if (tryPlay(selected, sq)) return;
       }
       // Drop on an invalid target leaves the piece where it was; clear selection.
       setSelected(null);
     },
-    [matchOver, aiThinking, targetingIndex, selected, tryPlay],
+    [matchOver, aiThinking, targetingIndex, selected, tryPlay, onSquareClick],
   );
 
   const onDragCancel = useCallback(() => {
     setSelected(null);
+  }, []);
+
+  // ---- Card drag (hand → board) -------------------------------------------
+
+  const onCardDragStart = useCallback(
+    (index: number) => {
+      if (matchOver || aiThinking) return;
+      if (mode !== "vs-ai") return;
+      if (turn !== HUMAN_SIDE) return;
+      const card = cardState.hand[index];
+      if (!card) return;
+      if (cardState.energy < card.cost) return;
+      // Enter targeting mode so the board highlights drop targets — this is
+      // the same setup as clicking the card. For no-target cards it triggers
+      // the "drop anywhere" board overlay; the drop will resolve immediately.
+      setSelected(null);
+      setPartialTarget(null);
+      setMarionetteMoves([]);
+      setTargetingIndex(index);
+    },
+    [matchOver, aiThinking, mode, turn, cardState],
+  );
+
+  const onCardDragEnd = useCallback(() => {
+    // If the drop landed on a valid target, the resolver already cleared
+    // targeting state. If it didn't (drop outside the board, drop on an
+    // invalid square), back out of targeting so the player isn't stuck.
+    setTargetingIndex(null);
+    setPartialTarget(null);
+    setMarionetteMoves([]);
   }, []);
 
   // ---- Game lifecycle -------------------------------------------------------
@@ -1082,6 +1142,8 @@ export function Match({
             drawPileCount={cardState.drawPile.length}
             discardPileCount={cardState.discardPile.length}
             onCardClick={onCardClick}
+            onCardDragStart={onCardDragStart}
+            onCardDragEnd={onCardDragEnd}
           />
         )}
       </div>

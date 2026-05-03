@@ -74,8 +74,8 @@ export type CardTarget =
 /** Trap variant — picked per-card when the trap is placed. */
 export type TrapEffect = "capture" | "freeze" | "push";
 
-/** Empower pattern — extra movement granted to a piece this turn. */
-export type EmpowerPattern = "knight";
+/** Empower pattern — extra movement granted to a piece. */
+export type EmpowerPattern = "pawn" | "knight" | "bishop" | "rook" | "queen";
 
 /**
  * Effect descriptor — interpreted by the resolver in `game/cards/match.ts`.
@@ -91,7 +91,15 @@ export type CardEffect =
   | { kind: "compel-piece" }
   | { kind: "shield-piece" }
   | { kind: "haste-piece" }
-  | { kind: "empower-piece"; pattern: EmpowerPattern }
+  | {
+      kind: "empower-piece";
+      pattern: EmpowerPattern;
+      /**
+       * "Use it or lose it" empower (e.g. Soul cards). Lasts the current turn,
+       * but is dropped immediately if the player moves any other piece first.
+       */
+      singleUse?: boolean;
+    }
   | { kind: "lightning-piece"; actions: number }
   | { kind: "place-wall"; durationTurns: number }
   | { kind: "place-sanctuary"; durationTurns: number }
@@ -146,6 +154,8 @@ export type FrozenPiece = PieceStatus;
 /** An empower status — like PieceStatus, plus the granted movement pattern. */
 export type EmpowerStatus = PieceStatus & {
   pattern: EmpowerPattern;
+  /** Drops as soon as the player moves a different piece (Soul cards). */
+  singleUse?: boolean;
 };
 
 /** A lightning status — N extra actions on the same piece this turn. */

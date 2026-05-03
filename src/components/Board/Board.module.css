@@ -218,6 +218,39 @@
   z-index: 3;
 }
 
+/* Cursor-hover feedback during card targeting. Painted as a tint behind the
+   piece so the entire square reads green/red, not just an outline. The
+   inset box-shadow trick (cf. .visionPlayer) keeps it under the piece SVG. */
+.cardHoverValid {
+  box-shadow: inset 0 0 0 9999px rgba(80, 200, 100, 0.55) !important;
+  outline: 3px solid rgba(60, 180, 90, 0.95);
+  outline-offset: -3px;
+}
+
+.cardHoverInvalid {
+  box-shadow: inset 0 0 0 9999px rgba(220, 70, 70, 0.55) !important;
+  outline: 3px solid rgba(200, 50, 50, 0.95);
+  outline-offset: -3px;
+  cursor: not-allowed;
+}
+
+/* No-target cards: every square is a valid drop, so paint the whole board
+   green via an overlay on the board container instead of 64 outlines. */
+.boardDropAnywhere {
+  position: relative;
+  outline: 3px solid rgba(60, 180, 90, 0.95);
+  outline-offset: -3px;
+}
+
+.boardDropAnywhere::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(80, 200, 100, 0.32);
+  pointer-events: none;
+  z-index: 4;
+}
+
 .targetingHint {
   position: absolute;
   top: -36px;

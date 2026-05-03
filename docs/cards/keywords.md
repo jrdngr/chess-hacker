@@ -57,10 +57,16 @@ A hasted piece **may move a second time on the same turn, but may not capture** 
 
 ### Empower
 
-An empowered piece **gains an additional movement pattern this turn**, defined per card (e.g., "knight L-shape", "1 step diagonal", "1 step backward as if pawn"). The piece keeps its normal moveset *and* the granted pattern; it picks one to use.
+An empowered piece **gains an additional movement pattern**, defined per card (e.g., "knight L-shape", "diagonal slide", "pawn forward step + diagonal capture"). The piece keeps its normal moveset *and* the granted pattern; it picks one to use. Patterns stack — multiple Empower effects on the same piece coexist.
 
-- **Duration:** the current turn only.
-- **Edge cases:** the granted pattern follows the same blocking rules as a real piece of that move-type (a knight L-shape ignores blockers; a sliding extension is blocked normally).
+- **Duration:** card-specified. Crooked Path lasts the current turn and freely buffs whichever piece moves. The **Soul** family (Pawn / Knight / Bishop / Rook / Queen Soul) is **single-use this turn**: it lasts the current turn AND drops immediately if the player moves a different piece first. Either way, the status drops if the empowered piece is captured or sacrificed.
+- **Patterns currently in the prototype:**
+  - **knight** — knight L-shape (ignores blockers).
+  - **bishop** — diagonal slide (blocked normally).
+  - **rook** — straight slide along files and ranks (blocked normally).
+  - **queen** — both straight and diagonal slides (= bishop + rook).
+  - **pawn** — one square forward in your direction, plus diagonal-forward captures. No double-push, no en passant, no promotion — those are intrinsic to actual pawns.
+- **Edge cases:** the granted pattern follows the same blocking rules as a real piece of that move-type. Granting a pattern the piece already covers is a no-op (e.g. Bishop Soul on a queen).
 
 ## Square / board effects
 

@@ -19,10 +19,13 @@ import styles from "./Board.module.css";
  *   The `hint` is shown above the board (e.g., "Pick an empty square for
  *   Barricade"). `valid` decides which squares are highlighted as legal
  *   targets and which are dimmed.
+ * - `drop-anywhere`: a no-target card is in flight; the entire board is a
+ *   valid drop. The board paints itself green and any drop resolves the card.
  */
 export type BoardMode =
   | { kind: "play" }
-  | { kind: "target"; cardName: string; hint: string; valid: ReadonlySet<AlgebraicSquare> };
+  | { kind: "target"; cardName: string; hint: string; valid: ReadonlySet<AlgebraicSquare> }
+  | { kind: "drop-anywhere"; cardName: string; hint: string };
 
 type Props = {
   engine: ChoseEngine;
@@ -110,16 +113,22 @@ export function Board({
   const [dragOverSquare, setDragOverSquare] = useState<AlgebraicSquare | null>(null);
 
   const targeting = mode.kind !== "play";
+  const dropAnywhere = mode.kind === "drop-anywhere";
   const validTargets = mode.kind === "target" ? mode.valid : EMPTY_SET;
 
   return (
     <div className={styles.boardWrapper} aria-label="Chess board">
-      {targeting && mode.kind === "target" && (
+      {targeting && (mode.kind === "target" || mode.kind === "drop-anywhere") && (
         <div className={styles.targetingHint} role="status">
           {mode.hint}
         </div>
       )}
-      <div className={styles.board} role="grid">
+      <div
+        className={[styles.board, dropAnywhere && styles.boardDropAnywhere]
+          .filter(Boolean)
+          .join(" ")}
+        role="grid"
+      >
         {RANKS_TOP_DOWN.map((rank) => (
           <div key={rank} className={styles.row} role="row">
             {FILES_LEFT_RIGHT.map((file) => {
@@ -130,7 +139,18 @@ export function Board({
               const target = targetMoves.get(sq);
               const isInCheck = sq === checkSquare;
               const isLastMoveSquare = lastMove?.from === sq || lastMove?.to === sq;
-              const isDragOver = dragOverSquare === sq && !!target;
+              const validTargetForCard =
+                dropAnywhere || (targeting && validTargets.has(sq));
+              const isPointerOver = dragOverSquare === sq;
+              // During card targeting, the cursor square gets a clear
+              // green-or-red tint so the player can see exactly which square
+              // their drag would land on. (Drop-anywhere skips the per-square
+              // tint — the whole board is already painted green.)
+              const isDragOver = isPointerOver && !targeting && !!target;
+              const cardHoverValid =
+                isPointerOver && targeting && !dropAnywhere && validTargetForCard;
+              const cardHoverInvalid =
+                isPointerOver && targeting && !dropAnywhere && !validTargetForCard;
               const isWalled = walledSquares.has(sq);
               const isFrozen = frozenSquares.has(sq);
               const isSanctuary = sanctuarySquares.has(sq);
@@ -147,8 +167,6 @@ export function Board({
                     : attackedByThem
                       ? styles.visionOpponent
                       : null;
-
-              const validTargetForCard = targeting && validTargets.has(sq);
 
               const draggable =
                 !targeting &&
@@ -169,8 +187,18 @@ export function Board({
                 isWalled && styles.walled,
                 isFrozen && styles.frozen,
                 visionClass,
-                targeting && validTargetForCard && styles.cardTarget,
-                targeting && !validTargetForCard && styles.cardTargetDim,
+                targeting &&
+                  !dropAnywhere &&
+                  validTargetForCard &&
+                  !cardHoverValid &&
+                  styles.cardTarget,
+                targeting &&
+                  !dropAnywhere &&
+                  !validTargetForCard &&
+                  !cardHoverInvalid &&
+                  styles.cardTargetDim,
+                cardHoverValid && styles.cardHoverValid,
+                cardHoverInvalid && styles.cardHoverInvalid,
               ]
                 .filter(Boolean)
                 .join(" ");
@@ -199,6 +227,18 @@ export function Board({
                     // Some browsers refuse a drag without setData.
                     e.dataTransfer.setData(DRAG_MIME, sq);
                     e.dataTransfer.setData("text/plain", sq);
+                    // Use just the piece glyph as the drag image so the
+                    // square's background doesn't trail along with the cursor.
+                    // (setDragImage is missing under jsdom — guard for tests.)
+                    const pieceEl = e.currentTarget.querySelector("img");
+                    if (pieceEl && typeof e.dataTransfer.setDragImage === "function") {
+                      const rect = pieceEl.getBoundingClientRect();
+                      e.dataTransfer.setDragImage(
+                        pieceEl,
+                        e.clientX - rect.left,
+                        e.clientY - rect.top,
+                      );
+                    }
                     onSquareDragStart(sq);
                   }}
                   onDragEnd={() => {
@@ -206,14 +246,40 @@ export function Board({
                     onDragCancel();
                   }}
                   onDragOver={(e) => {
-                    if (targetMoves.has(sq)) {
+                    // Accept the drop when the square is either a legal chess
+                    // destination (piece drag) or a valid card target (hand
+                    // drag). The drag source is irrelevant — both flows fire
+                    // here, and the dragOver highlight gives feedback.
+                    if (targetMoves.has(sq) || validTargetForCard) {
                       e.preventDefault();
                       e.dataTransfer.dropEffect = "move";
-                      if (dragOverSquare !== sq) setDragOverSquare(sq);
+                    } else if (targeting) {
+                      // Allow the dragover to register so the red "invalid"
+                      // tint shows; preventDefault here would also enable a
+                      // drop on this square, which we don't want, so leave it
+                      // off — the cursor will show "no-drop" instead.
+                    }
+                    // Track the hovered square in either case so we can paint
+                    // green/red feedback during card-targeting drags.
+                    if (
+                      dragOverSquare !== sq &&
+                      (targetMoves.has(sq) || targeting)
+                    ) {
+                      setDragOverSquare(sq);
                     }
                   }}
                   onDragLeave={() => {
                     if (dragOverSquare === sq) setDragOverSquare(null);
+                  }}
+                  onMouseEnter={() => {
+                    // Cursor-hover feedback during click-driven targeting
+                    // (no drag in progress). HTML5 drag suppresses mouseenter
+                    // on most browsers, so this only fires when there isn't
+                    // an active drag — exactly what we want.
+                    if (targeting) setDragOverSquare(sq);
+                  }}
+                  onMouseLeave={() => {
+                    if (targeting && dragOverSquare === sq) setDragOverSquare(null);
                   }}
                   onDrop={(e) => {
                     e.preventDefault();

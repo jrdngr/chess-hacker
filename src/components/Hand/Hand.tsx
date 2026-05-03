@@ -5,9 +5,17 @@
 // The hand is dumb: it renders the cards passed in and reports clicks back.
 // All state (energy gating, targeting, draw pile) lives in the Match.
 
-import type { Card } from "../../game/types";
+import type { Card, CardTarget } from "../../game/types";
 
 import styles from "./Hand.module.css";
+
+// Two-step targeting cards (pick A, then pick B) don't fit a single drag-and-
+// drop gesture; they must be played via click. Everything else — single-square
+// targets and no-target cards — is draggable from the hand.
+const NON_DRAGGABLE_TARGETS: ReadonlySet<CardTarget["kind"]> = new Set([
+  "two-own-pieces",
+  "marionette",
+]);
 
 type Props = {
   hand: ReadonlyArray<Card>;
@@ -19,6 +27,9 @@ type Props = {
   drawPileCount: number;
   discardPileCount: number;
   onCardClick: (index: number) => void;
+  /** Drag a targeted card from the hand onto a board square to play it. */
+  onCardDragStart?: (index: number) => void;
+  onCardDragEnd?: () => void;
 };
 
 export function Hand({
@@ -29,6 +40,8 @@ export function Hand({
   drawPileCount,
   discardPileCount,
   onCardClick,
+  onCardDragStart,
+  onCardDragEnd,
 }: Props) {
   return (
     <div className={styles.handArea}>
@@ -45,6 +58,10 @@ export function Hand({
             const affordable = energy >= card.cost;
             const isTargeting = targetingIndex === i;
             const playable = enabled && affordable;
+            // Two-step cards (Switch Files, Marionette) still resolve via
+            // click; everything else can be dragged onto the board. No-target
+            // cards drop "anywhere on the board" (the whole board lights up).
+            const draggable = playable && !NON_DRAGGABLE_TARGETS.has(card.target.kind);
             const cls = [styles.card, !playable && styles.disabled, isTargeting && styles.targeting]
               .filter(Boolean)
               .join(" ");
@@ -56,6 +73,24 @@ export function Hand({
                 className={cls}
                 onClick={() => playable && onCardClick(i)}
                 disabled={!playable}
+                draggable={draggable}
+                onDragStart={(e) => {
+                  if (!draggable || !onCardDragStart) {
+                    e.preventDefault();
+                    return;
+                  }
+                  e.dataTransfer.effectAllowed = "move";
+                  e.dataTransfer.setData("text/plain", String(i));
+                  // Anchor the drag preview at its top-left so the card
+                  // hangs down-right from the cursor instead of trailing
+                  // wherever the user grabbed it. (setDragImage is missing
+                  // under jsdom — guard for tests.)
+                  if (typeof e.dataTransfer.setDragImage === "function") {
+                    e.dataTransfer.setDragImage(e.currentTarget, 0, 0);
+                  }
+                  onCardDragStart(i);
+                }}
+                onDragEnd={() => onCardDragEnd?.()}
                 aria-label={`${card.name}, cost ${card.cost}. ${card.description}`}
                 data-card-id={card.id}
               >

@@ -82,12 +82,16 @@ export type Overlays = {
   shields?: ReadonlySet<AlgebraicSquare>;
   /** Squares where pieces standing on them cannot be captured. */
   sanctuaries?: ReadonlySet<AlgebraicSquare>;
-  /** Pieces with an additional movement pattern this turn. */
-  empowers?: ReadonlyMap<AlgebraicSquare, EmpowerPattern>;
+  /**
+   * Pieces with one or more additional movement patterns.
+   * Multiple Soul cards can stack on the same piece (e.g. Knight Soul +
+   * Bishop Soul); the value is the set of granted patterns.
+   */
+  empowers?: ReadonlyMap<AlgebraicSquare, ReadonlySet<EmpowerPattern>>;
 };
 
 const EMPTY_SET: ReadonlySet<AlgebraicSquare> = new Set();
-const EMPTY_EMPOWERS: ReadonlyMap<AlgebraicSquare, EmpowerPattern> = new Map();
+const EMPTY_EMPOWERS: ReadonlyMap<AlgebraicSquare, ReadonlySet<EmpowerPattern>> = new Map();
 
 const roots = (o: Overlays) => o.roots ?? EMPTY_SET;
 const disarms = (o: Overlays) => o.disarms ?? EMPTY_SET;
@@ -403,10 +407,11 @@ export function pseudoLegalMoves(
     const moves: RuleMove[] = [];
     addPieceMoves(moves, sq, piece, pos, overlays);
 
-    // Empower: append additional movement pattern.
-    const empower = empowers(overlays).get(sq);
-    if (empower === "knight" && piece.type !== "knight") {
-      addJumpMoves(moves, sq, piece, pos, overlays, KNIGHT_DELTAS);
+    // Empower: append additional movement pattern(s). A piece can have
+    // multiple patterns stacked on it (e.g. via multiple Soul cards).
+    const patterns = empowers(overlays).get(sq);
+    if (patterns) {
+      for (const pattern of patterns) addEmpowerMoves(moves, sq, piece, pos, overlays, pattern);
     }
 
     // Root: piece may move only to capture an immediately adjacent piece
@@ -611,6 +616,87 @@ function addPawnMoves(
           epVictim,
         });
       }
+    }
+  }
+}
+
+/**
+ * Dispatch the right move-generator for an Empower pattern. We skip patterns
+ * the piece already covers natively (a knight already has knight moves; a
+ * queen already has rook + bishop slides) so the move list stays
+ * duplicate-free.
+ *
+ * Empower-pawn ignores promotion, double-pushes, and en passant — those are
+ * intrinsic to actual pawns. The empowered piece just gets a forward step
+ * and diagonal-forward captures (in its side's forward direction).
+ */
+function addEmpowerMoves(
+  out: RuleMove[],
+  from: AlgebraicSquare,
+  piece: Piece,
+  pos: Position,
+  overlays: Overlays,
+  pattern: EmpowerPattern,
+): void {
+  switch (pattern) {
+    case "knight":
+      if (piece.type === "knight") return;
+      addJumpMoves(out, from, piece, pos, overlays, KNIGHT_DELTAS);
+      return;
+    case "bishop":
+      if (piece.type === "bishop" || piece.type === "queen") return;
+      addSlideMoves(out, from, piece, pos, overlays, BISHOP_DIRS);
+      return;
+    case "rook":
+      if (piece.type === "rook" || piece.type === "queen") return;
+      addSlideMoves(out, from, piece, pos, overlays, ROOK_DIRS);
+      return;
+    case "queen":
+      if (piece.type === "queen") return;
+      // Queen movement = bishop slides + rook slides. Skip whichever the
+      // piece already has.
+      if (piece.type !== "bishop") addSlideMoves(out, from, piece, pos, overlays, BISHOP_DIRS);
+      if (piece.type !== "rook") addSlideMoves(out, from, piece, pos, overlays, ROOK_DIRS);
+      return;
+    case "pawn":
+      if (piece.type === "pawn") return;
+      addEmpowerPawnMoves(out, from, piece, pos, overlays);
+      return;
+  }
+}
+
+function addEmpowerPawnMoves(
+  out: RuleMove[],
+  from: AlgebraicSquare,
+  piece: Piece,
+  pos: Position,
+  overlays: Overlays,
+): void {
+  const { file, rank } = squareCoords(from);
+  const dir = piece.side === "player" ? 1 : -1;
+  const fr1 = rank + dir;
+  if (inBounds(file, fr1)) {
+    const to = sqAt(file, fr1);
+    if (!overlays.walls.has(to) && !pos.pieces.has(to)) {
+      out.push({ from, to, isCapture: false, isDouble: false, isPromotion: false });
+    }
+  }
+  for (const df of [-1, 1] as const) {
+    const tf = file + df;
+    const tr = rank + dir;
+    if (!inBounds(tf, tr)) continue;
+    const to = sqAt(tf, tr);
+    if (overlays.walls.has(to)) continue;
+    const occ = pos.pieces.get(to);
+    if (occ && occ.side !== piece.side) {
+      out.push({
+        from,
+        to,
+        isCapture: true,
+        capturedPiece: occ,
+        isDouble: false,
+        isPromotion: false,
+      });
     }
   }
 }

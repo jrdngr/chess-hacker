@@ -144,13 +144,126 @@ describe("Empower (knight pattern)", () => {
     const pos = parseFen("4k3/8/8/8/8/8/8/R3K3 w - - 0 1");
     const overlays: Overlays = {
       ...baseOverlays(),
-      empowers: new Map([["a1", "knight" as const]]),
+      empowers: new Map([["a1", new Set(["knight" as const])]]),
     };
     const moves = legalMoves(pos, overlays, "a1").map((m) => m.to);
     expect(moves).toContain("b3");
     expect(moves).toContain("c2");
     // Original rook moves still present.
     expect(moves).toContain("a8");
+  });
+});
+
+describe("Empower (bishop pattern)", () => {
+  it("a non-bishop, non-queen piece gains diagonal slide moves", () => {
+    // White rook on a1 vs lone black king. With bishop empower, rook gains diagonals.
+    const pos = parseFen("4k3/8/8/8/8/8/8/R3K3 w - - 0 1");
+    const overlays: Overlays = {
+      ...baseOverlays(),
+      empowers: new Map([["a1", new Set(["bishop" as const])]]),
+    };
+    const moves = legalMoves(pos, overlays, "a1").map((m) => m.to);
+    expect(moves).toContain("h8");
+    expect(moves).toContain("a8"); // original rook move
+  });
+
+  it("queen with bishop empower gets no extra moves (already diagonal-capable)", () => {
+    const pos = parseFen("4k3/8/8/8/8/8/8/Q3K3 w - - 0 1");
+    const overlays: Overlays = { ...baseOverlays() };
+    const baseline = legalMoves(pos, overlays, "a1").map((m) => m.to).sort();
+    const overlaysWith: Overlays = {
+      ...baseOverlays(),
+      empowers: new Map([["a1", new Set(["bishop" as const])]]),
+    };
+    const empowered = legalMoves(pos, overlaysWith, "a1").map((m) => m.to).sort();
+    expect(empowered).toEqual(baseline);
+  });
+});
+
+describe("Empower (rook pattern)", () => {
+  it("a non-rook, non-queen piece gains straight slide moves", () => {
+    // White bishop on a1 with rook empower; kings tucked in corners so they
+    // don't block the bishop's straight slides.
+    const pos = parseFen("7k/8/8/8/8/8/8/B6K w - - 0 1");
+    const overlays: Overlays = {
+      ...baseOverlays(),
+      empowers: new Map([["a1", new Set(["rook" as const])]]),
+    };
+    const moves = legalMoves(pos, overlays, "a1").map((m) => m.to);
+    expect(moves).toContain("a8");
+    expect(moves).toContain("g1");
+    expect(moves).toContain("h8"); // original bishop diagonal
+  });
+});
+
+describe("Empower (pawn pattern)", () => {
+  it("a non-pawn gains a forward step (no double, no promotion)", () => {
+    // White rook on a7 vs lone black king. Pawn empower lets it step to a8
+    // without promoting, but since a8 is empty there's no diagonal capture.
+    const pos = parseFen("4k3/8/8/8/8/8/8/R3K3 w - - 0 1");
+    // Move the rook to a7 by reparsing.
+    const pos2 = parseFen("4k3/R7/8/8/8/8/8/4K3 w - - 0 1");
+    const overlays: Overlays = {
+      ...baseOverlays(),
+      empowers: new Map([["a7", new Set(["pawn" as const])]]),
+    };
+    const moves = legalMoves(pos2, overlays, "a7").map((m) => m.to);
+    expect(moves).toContain("a8");
+    // No promotion entries (i.e. no duplicate a8 with promotion).
+    const a8Moves = legalMoves(pos2, overlays, "a7").filter((m) => m.to === "a8");
+    expect(a8Moves.every((m) => !m.isPromotion)).toBe(true);
+    // Sanity: original pos parses unchanged
+    expect(pos.turn).toBe("player");
+  });
+
+  it("pawn empower grants diagonal-forward captures", () => {
+    // White knight on c3 with pawn empower; black piece on b4 and d4.
+    const pos = parseFen("4k3/8/8/8/1p1p4/2N5/8/4K3 w - - 0 1");
+    const overlays: Overlays = {
+      ...baseOverlays(),
+      empowers: new Map([["c3", new Set(["pawn" as const])]]),
+    };
+    const moves = legalMoves(pos, overlays, "c3");
+    const captures = moves.filter((m) => m.isCapture).map((m) => m.to);
+    expect(captures).toContain("b4");
+    expect(captures).toContain("d4");
+  });
+});
+
+describe("Empower (queen pattern)", () => {
+  it("a non-queen piece gains both bishop and rook slides", () => {
+    // White knight on d4 with queen empower; lone enemy king tucked away.
+    const pos = parseFen("7k/8/8/8/3N4/8/8/4K3 w - - 0 1");
+    const overlays: Overlays = {
+      ...baseOverlays(),
+      empowers: new Map([["d4", new Set(["queen" as const])]]),
+    };
+    const moves = legalMoves(pos, overlays, "d4").map((m) => m.to);
+    // Diagonal (bishop)
+    expect(moves).toContain("a7");
+    expect(moves).toContain("h8");
+    // Straight (rook)
+    expect(moves).toContain("d8");
+    expect(moves).toContain("a4");
+    // Original knight L still there.
+    expect(moves).toContain("e6");
+  });
+});
+
+describe("Empower (stacked patterns)", () => {
+  it("a piece can have multiple patterns at once", () => {
+    // White king on e1 with knight + bishop empower (just to verify both fire).
+    const pos = parseFen("4k3/8/8/8/8/8/8/4K3 w - - 0 1");
+    const overlays: Overlays = {
+      ...baseOverlays(),
+      empowers: new Map([["e1", new Set(["knight" as const, "bishop" as const])]]),
+    };
+    const moves = legalMoves(pos, overlays, "e1").map((m) => m.to);
+    // Knight pattern destinations from e1
+    expect(moves).toContain("f3");
+    expect(moves).toContain("d3");
+    // Bishop diagonal destinations from e1
+    expect(moves).toContain("h4");
   });
 });
 

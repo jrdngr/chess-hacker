@@ -22,6 +22,7 @@
     { "id": "knight-soul", "count": 1 },
     { "id": "bishop-soul", "count": 1 },
     { "id": "rook-soul", "count": 1 },
+    { "id": "queen-soul", "count": 1 },
     { "id": "switch-files", "count": 1 },
     { "id": "marionette", "count": 1 }
   ]
