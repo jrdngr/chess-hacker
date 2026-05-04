@@ -15,7 +15,7 @@ The 20 cards every fresh run begins with. The deck is sized to the top of the 16
 | 1 | [Barricade](spatial.md#barricade) | Spatial | Place wall, 3 turns. |
 | 1 | [Spike Pit](spatial.md#spike-pit) | Spatial | Trap (capture), 4 turns. |
 | 1 | [Snare](spatial.md#snare) | Spatial | Trap (freeze), 3 turns. |
-| 1 | [Quickstep](tempo.md#quickstep) | Tempo | Haste on own piece. |
+| 1 | [Quickstep](tempo.md#quickstep) | Tempo | Own piece takes 2 actions (moves and captures). |
 | 1 | [Crooked Path](movement-extension.md#crooked-path) | Movement-extension | Empower own piece w/ knight L (this turn). |
 | 1 | [Iron Guard](defensive.md#iron-guard) | Defensive | Shield own piece. |
 | 1 | [Martyr's Gift](sacrifice.md#martyrs-gift) | Sacrifice | Destroy own piece; +2 cards, +1 energy. |
@@ -45,8 +45,8 @@ Average cost: ~1.45. Turn 1 is workable on a 1-energy budget — half the deck i
 - **Empty-deck mitigation as a *floor*, not a feature.** Improvise + Recall + Pace + Hum are the four common card-economy tools. Together they keep the deck from collapsing in 20 plays — every card you spend can be partially recouped.
 - **Souls come from captures, not the starter.** Capture-grants-Soul (see `docs/design/cards.md`) means each enemy you take feeds a matching empower card into your draw pile. Starting with Pawn/Knight/etc. Soul cards in the deck would double up the supply line without adding decision space, so they're left to organic acquisition.
 - **Cheap Destroy as a showcase.** One copy demonstrates the upper-tier of the new banking system: at 4 energy it asks the player to set up the threat first (an enemy attacked by one of your pieces) before paying to remove the target.
-- **Drops vs current main:** Hallowed Ground (uncommon, niche), Spring Trap (redundant with Snare), Switch Files (corner-case), Pawn Soul (replaced by capture grant), and the Lightning Strike / Marionette / Knight/Bishop/Rook/Queen Soul / Big Destroy haymakers (all priced at 4–10 energy and unplayable from a 1-energy start without significant banking). Those cards live in the data folder for the future draft pool.
+- **Drops vs current main:** Hallowed Ground (uncommon, niche), Spring Trap (redundant with Snare), Switch Files (corner-case), Pawn Soul (replaced by capture grant), and the Marionette / Knight/Bishop/Rook/Queen Soul / Big Destroy haymakers (all priced at 4–10 energy and unplayable from a 1-energy start without significant banking). Those cards live in the data folder for the future draft pool.
 
 ## Future shape
 
-When drafts and shops land, the starter shrinks further (12–14 cards), and the rest of the library — including the haymaker tier (Lightning Strike, Big Destroy, Queen Soul, Marionette) — becomes draft-pool only. The capture-grants-Soul pipeline already gives a structural reason to leave Souls out of the starter.
+When drafts and shops land, the starter shrinks further (12–14 cards), and the rest of the library — including the haymaker tier (Big Destroy, Queen Soul, Marionette) — becomes draft-pool only. The capture-grants-Soul pipeline already gives a structural reason to leave Souls out of the starter.

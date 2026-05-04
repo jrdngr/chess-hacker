@@ -278,9 +278,9 @@ export class ChoseEngine {
   }
 
   /**
-   * Force the side-to-move. Used by Haste / Lightning Strike to grant a
-   * second action to the player after their first move (which would have
-   * otherwise flipped the turn to the opponent). Does not record history.
+   * Force the side-to-move. Used by Haste / Quickstep to grant a second
+   * action to the player after their first move (which would have otherwise
+   * flipped the turn to the opponent). Does not record history.
    */
   forceTurn(side: Side): void {
     if (this.position.turn === side) return;

@@ -617,7 +617,6 @@ export const SPRING_TRAP: Card = pick("spring-trap");
 export const QUICKSTEP: Card = pick("quickstep");
 export const CROOKED_PATH: Card = pick("crooked-path");
 export const IRON_GUARD: Card = pick("iron-guard");
-export const LIGHTNING_STRIKE: Card = pick("lightning-strike");
 export const MARTYRS_GIFT: Card = pick("martyrs-gift");
 export const KNIGHT_SOUL: Card = pick("knight-soul");
 export const SWITCH_FILES: Card = pick("switch-files");

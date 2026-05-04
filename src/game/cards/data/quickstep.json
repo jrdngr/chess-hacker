@@ -4,7 +4,7 @@
   "cost": 2,
   "rarity": "common",
   "archetype": "tempo",
-  "description": "Target own piece gains Haste this turn (move twice, no captures).",
+  "description": "Target own piece may take 2 actions this turn (moves and captures).",
   "target": { "kind": "own-piece" },
-  "effect": { "kind": "haste-piece" }
+  "effect": { "kind": "lightning-piece", "actions": 2 }
 }

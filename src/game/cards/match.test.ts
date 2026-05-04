@@ -44,7 +44,6 @@ import {
   FUMBLE,
   HALLOWED_GROUND,
   IRON_GUARD,
-  LIGHTNING_STRIKE,
   MARIONETTE,
   MARTYRS_GIFT,
   PROVOKE,
@@ -347,7 +346,7 @@ describe("playCard — buffs", () => {
     if (!r.ok) expect(r.reason).toBe("target-not-own-piece");
   });
 
-  it("Quickstep applies Haste on an own piece", () => {
+  it("Quickstep grants 2 actions and consumes the card", () => {
     const rng = makeRng(52);
     let st = startPlayerTurn(createMatchCardState([QUICKSTEP], rng), rng);
     st = { ...st, energy: ENERGY_MAX };
@@ -357,21 +356,8 @@ describe("playCard — buffs", () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     st = r.state;
-    expect(hasteAt(st, "d2")).not.toBeNull();
-  });
-
-  it("Lightning Strike grants 2 actions and consumes the card", () => {
-    const rng = makeRng(53);
-    let st = startPlayerTurn(createMatchCardState([LIGHTNING_STRIKE], rng), rng);
-    st = { ...st, energy: 10 };
-    const ctx = withPieces({ e1: { type: "queen", side: "player" } });
-    const idx = st.hand.findIndex((c) => c.id === "lightning-strike");
-    const r = playCard(st, idx, { kind: "square", square: "e1" }, ctx, rng);
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
-    st = r.state;
-    expect(lightningAt(st, "e1")?.remaining).toBe(2);
-    expect(st.consumedPile.some((c) => c.id === "lightning-strike")).toBe(true);
+    expect(lightningAt(st, "d2")?.remaining).toBe(2);
+    expect(st.consumedPile.some((c) => c.id === "quickstep")).toBe(true);
   });
 
   it("Crooked Path applies Empower with knight pattern", () => {

@@ -23,7 +23,7 @@ Per-card reference for choss. The mechanics doc is [`docs/design/cards.md`](../d
 
 ## All cards
 
-37 cards total (23 pre-existing + 2 destroy + 9 mitigation + 3 shiv tokens).
+36 cards total (23 pre-existing + 2 destroy + 9 mitigation + 3 shiv tokens, less the merged Lightning Strike).
 
 | Card | Type | Cost | Rarity | Effect summary |
 |---|---|---|---|---|
@@ -38,10 +38,9 @@ Per-card reference for choss. The mechanics doc is [`docs/design/cards.md`](../d
 | [Spike Pit](spatial.md#spike-pit) | Spatial | 2 | Uncommon | Trap (capture), 4 turns. |
 | [Snare](spatial.md#snare) | Spatial | 1 | Common | Trap (freeze), 3 turns. |
 | [Spring Trap](spatial.md#spring-trap) | Spatial | 1 | Common | Trap (push), 3 turns. |
-| [Quickstep](tempo.md#quickstep) | Tempo | 2 | Common | Haste on own piece. |
+| [Quickstep](tempo.md#quickstep) | Tempo | 2 | Common | Own piece takes 2 actions (moves and captures). |
 | [Crooked Path](movement-extension.md#crooked-path) | Movement-extension | 2 | Common | Empower own piece w/ knight L (this turn). |
 | [Iron Guard](defensive.md#iron-guard) | Defensive | 1 | Common | Shield own piece. |
-| [Lightning Strike](burst.md#lightning-strike) | Burst | 7 | Rare | Own piece takes 2 actions. |
 | [Cheap Destroy](burst.md#cheap-destroy) | Burst | 4 | Rare | Destroy enemy non-King piece your forces are attacking. |
 | [Big Destroy](burst.md#big-destroy) | Burst | 10 | Rare | Destroy any enemy non-King piece. Draft-pool only. |
 | [Martyr's Gift](sacrifice.md#martyrs-gift) | Sacrifice | 1 | Uncommon | Destroy own piece; +2 cards, +1 energy. |
@@ -67,8 +66,8 @@ Per-card reference for choss. The mechanics doc is [`docs/design/cards.md`](../d
 
 ## Counts
 
-- **By rarity:** 23 Common, 7 Uncommon, 7 Rare.
-- **By type:** Resource 11, Disruption 6, Spatial 6, Tempo 1, Movement-extension 6, Defensive 1, Burst 3, Sacrifice 1, Summon 0, Swap 3.
-- **By cost (0–10):** 1× 0-cost, 22× 1-cost, 9× 2-cost, 2× 3-cost, 2× 4-cost, 1× 5-cost, 0× 6-cost, 1× 7-cost, 0× 8/9-cost, 1× 10-cost.
+- **By rarity:** 23 Common, 7 Uncommon, 6 Rare.
+- **By type:** Resource 11, Disruption 6, Spatial 6, Tempo 1, Movement-extension 6, Defensive 1, Burst 2, Sacrifice 1, Summon 0, Swap 3.
+- **By cost (0–10):** 1× 0-cost, 22× 1-cost, 9× 2-cost, 2× 3-cost, 2× 4-cost, 1× 5-cost, 0× 6-cost, 0× 7-cost, 0× 8/9-cost, 1× 10-cost.
 
 Note: shiv-pool tokens (`shiv-strike`, `shiv-step`, `shiv-snag`) are data-only and only enter play via Trick Bag. They do not appear in the starter deck or draft pool.

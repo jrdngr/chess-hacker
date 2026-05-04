@@ -226,7 +226,8 @@ export type PlayCardFailure =
   | "target-not-own-non-king-piece"
   | "target-not-distinct"
   | "target-not-in-own-half"
-  | "target-not-empty-or-walled";
+  | "target-not-empty-or-walled"
+  | "target-soul-same-piece-type";
 
 /**
  * Resolve a card play. Returns the new match state, side effects, or a
@@ -301,6 +302,13 @@ function validateTarget(card: Card, target: PlayTarget, ctx: BoardContext): Play
       if (target.kind !== "square") return "missing-target";
       const p = ctx.pieceAt(target.square);
       if (!p || p.side !== "player") return "target-not-own-piece";
+      if (
+        card.effect.kind === "empower-piece" &&
+        card.effect.singleUse === true &&
+        card.effect.pattern === p.type
+      ) {
+        return "target-soul-same-piece-type";
+      }
       return null;
     }
     case "own-non-king-piece": {

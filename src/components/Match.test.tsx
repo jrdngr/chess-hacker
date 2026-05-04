@@ -1060,6 +1060,7 @@ describe("Match — dev mode", () => {
     render(
       <Match
         runMode="dev"
+        initialDevAiOn={false}
         createAi={() => ai}
         aiMinThinkMs={0}
         initialDeck={ALL_FORESIGHT_DECK}
@@ -1090,6 +1091,7 @@ describe("Match — dev mode", () => {
     render(
       <Match
         runMode="dev"
+        initialDevAiOn={false}
         createAi={() => ai}
         aiMinThinkMs={0}
         initialDeck={ALL_FORESIGHT_DECK}

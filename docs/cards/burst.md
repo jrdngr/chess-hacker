@@ -4,14 +4,6 @@ Burst cards radically change the board: extra actions, board-wide effects, or ga
 
 See [`keywords.md`](keywords.md) for keyword definitions.
 
-## Lightning Strike
-
-- **Cost:** 7
-- **Rarity:** Rare
-- **Target:** own piece
-- **Effect:** Target own piece may take **2 actions** this turn. Each action may be a move or a capture.
-- **Design note:** The classic haymaker. Unlike Haste (which forbids captures), Lightning Strike lets the targeted piece move and then capture, or capture and then move, or capture twice. The 7-energy price tag means it lands in turn 7+ at the earliest under the natural banking ramp — saving the deck's weight for a single decisive moment.
-
 ## Cheap Destroy
 
 - **Cost:** 4
@@ -30,4 +22,4 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 
 ## Why they're expensive
 
-Under banking energy (+1/turn, cap 10) the player gets one Lightning Strike-tier play around turn 7, one Big Destroy at the absolute earliest at turn 10. Burst cards are not for tempo; they are for *finishing*.
+Under banking energy (+1/turn, cap 10) the player gets a haymaker tier of play around turn 7+, with Big Destroy at the absolute earliest at turn 10. Burst cards are not for tempo; they are for *finishing*.

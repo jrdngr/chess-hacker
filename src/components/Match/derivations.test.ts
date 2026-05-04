@@ -12,9 +12,6 @@ const stateWith = (patch: Partial<MatchCardState>): MatchCardState => ({
 
 describe("buildExtraOverlays", () => {
   it("unions hasted squares into the disarms overlay so hasted pieces cannot capture", () => {
-    // Regression: Quickstep applies Haste, but for a long time hastes were
-    // not forwarded to the rule engine — letting hasted pieces capture on
-    // either of their two moves, contradicting docs/cards/keywords.md.
     const state = stateWith({
       hastes: [{ square: "e1", side: "player", expiresOnTurn: 99 }],
       disarms: [{ square: "a1", side: "player", expiresOnTurn: 99 }],

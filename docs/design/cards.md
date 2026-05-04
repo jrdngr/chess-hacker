@@ -18,7 +18,7 @@ The card system is the central self-expression mechanic. Cards augment chess; th
 - **No per-turn cap on cards played** other than the energy budget and hand contents.
 - Artifacts and rare cards may grant temporary or permanent extra energy; gains still respect the cap of 10.
 
-Banking is the central tempo mechanic. A typical line is one cheap card per turn, with mid cards every 2–3 turns and a haymaker (Lightning Strike, Big Destroy) every 7–10 turns. Saving means *not playing right now* so a future turn can land a single dominant effect.
+Banking is the central tempo mechanic. A typical line is one cheap card per turn, with mid cards every 2–3 turns and a haymaker (e.g. Big Destroy) every 7–10 turns. Saving means *not playing right now* so a future turn can land a single dominant effect.
 
 ## When can cards be played?
 

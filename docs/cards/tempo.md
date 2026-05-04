@@ -9,5 +9,5 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 - **Cost:** 2
 - **Rarity:** Common
 - **Target:** own piece
-- **Effect:** Target own piece gains **Haste** this turn.
-- **Design note:** the no-capture rider lives on Haste itself, so Quickstep reads as a clean positional tempo card — useful for re-positioning a slider into a fork or escaping a pin without trading.
+- **Effect:** Target own piece may take **2 actions** this turn (moves and captures).
+- **Design note:** the prototype's only "extra-action" card. Captures are allowed on either step — letting Quickstep set up a fork and follow through, or capture twice through a thin defensive line.

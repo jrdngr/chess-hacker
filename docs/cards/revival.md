@@ -24,6 +24,6 @@ Targeted revival. The energy cost reflects the precision: you're effectively *re
 
 ## Why they exist
 
-Revival keeps the highest-leverage plays from being one-shots. If your deck has a Lightning Strike (cost 7) and you've already cashed it, Recover at cost 4 plus another 7 banking turns can bring it back for a second swing — an 11-energy total but with an entire match between the two casts. Random revival via Recall is cheaper but riskier; chosen revival via Recover is the deliberate counterpunch.
+Revival keeps the highest-leverage plays from being one-shots. If your deck has a Big Destroy (cost 10) and you've already cashed it, Recover at cost 4 plus another 10 banking turns can bring it back for a second swing — a 14-energy total but with an entire match between the two casts. Random revival via Recall is cheaper but riskier; chosen revival via Recover is the deliberate counterpunch.
 
 Mechanically, the spent card moves from `consumedPile` back to `hand`. It's the same card instance — no copies are generated.

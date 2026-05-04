@@ -161,11 +161,9 @@ type Props = {
    */
   initialEnergy?: number;
   /**
-   * Override the initial value of `devAiOn`. Defaults to true for `run` mode
-   * (player faces an active AI) and false for `dev` mode (sandbox starts AI
-   * off so the user drives both sides). Tests use this to put dev-mode
-   * matches into the same "AI plays Black" mode that prototype mode used to
-   * provide implicitly.
+   * Override the initial value of `devAiOn`. Defaults to true (player faces
+   * an active AI in both `run` and `dev` modes). Tests use this to disable
+   * the AI when they want to drive both sides.
    */
   initialDevAiOn?: boolean;
 };
@@ -243,12 +241,11 @@ export function Match({
    */
   const devPanelEnabled = runMode === "dev" || (runMode === "run" && devPanelOpen);
   /**
-   * AI plays Black? In sandbox the AI is off by default (the user drives both
-   * sides). In a real run the AI always plays unless the dev panel is opened
-   * and the player explicitly toggles it off. The prototype ignores this and
-   * always plays.
+   * AI plays Black? Defaults to on in both sandbox and real runs — the player
+   * faces an active AI unless they explicitly toggle it off from the dev
+   * panel. The prototype ignores this and always plays.
    */
-  const [devAiOn, setDevAiOn] = useState(initialDevAiOn ?? runMode === "run");
+  const [devAiOn, setDevAiOn] = useState(initialDevAiOn ?? true);
   /**
    * Currently-selected editor brush. When non-null in dev mode, board clicks
    * place / overwrite / erase pieces instead of doing chess moves.
@@ -538,9 +535,15 @@ export function Match({
     }
     if (targetKind === "own-piece" || targetKind === "own-non-king-piece") {
       const excludeKing = targetKind === "own-non-king-piece";
+      const soulPattern =
+        targetingCard.effect.kind === "empower-piece" &&
+        targetingCard.effect.singleUse === true
+          ? targetingCard.effect.pattern
+          : null;
       for (const { square, piece } of allPieces) {
         if (piece.side !== "player") continue;
         if (excludeKing && piece.type === "king") continue;
+        if (soulPattern !== null && piece.type === soulPattern) continue;
         out.add(square);
       }
       return out;
@@ -1470,11 +1473,17 @@ export function Match({
   );
 
   const onDragCancel = useCallback(() => {
-    // Drop-elsewhere safety net for edit-mode drags: clear the origin ref so
-    // a subsequent drop on the Erase button doesn't act on a stale square.
+    // Drag ended without landing in a board square or on the Erase button —
+    // both of those handlers clear the ref themselves. In Edit mode, dragging
+    // a piece off the board deletes it (a more discoverable shortcut than
+    // hunting for the Erase button).
+    const from = editDragFromRef.current;
     editDragFromRef.current = null;
     setSelected(null);
-  }, []);
+    if (from && devPanelEnabled && editMode) {
+      applyEditorEdit(from, "erase");
+    }
+  }, [devPanelEnabled, editMode, applyEditorEdit]);
 
   // ---- Card drag (hand → board) -------------------------------------------
 
