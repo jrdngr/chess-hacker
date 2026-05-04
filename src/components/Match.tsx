@@ -178,8 +178,25 @@ export function Match({
   const [aiError, setAiError] = useState<string | null>(null);
 
   // ---- Dev-mode state ------------------------------------------------------
-  /** AI plays Black? Off by default in dev mode; the prototype always plays. */
-  const [devAiOn, setDevAiOn] = useState(false);
+  /**
+   * Whether the dev panel is visible. Always shown in sandbox; in real runs
+   * it's hidden by default and the player toggles it from the right edge.
+   * Prototype mode never exposes the dev panel.
+   */
+  const [devPanelOpen, setDevPanelOpen] = useState(runMode === "dev");
+  /**
+   * The dev panel is "active" — i.e. its hooks (editor brush, library
+   * free-play, side-to-move toggle) should affect Match interactions —
+   * whenever it's visible.
+   */
+  const devPanelEnabled = runMode === "dev" || (runMode === "run" && devPanelOpen);
+  /**
+   * AI plays Black? In sandbox the AI is off by default (the user drives both
+   * sides). In a real run the AI always plays unless the dev panel is opened
+   * and the player explicitly toggles it off. The prototype ignores this and
+   * always plays.
+   */
+  const [devAiOn, setDevAiOn] = useState(runMode === "run");
   /**
    * Currently-selected editor brush. When non-null in dev mode, board clicks
    * place / overwrite / erase pieces instead of doing chess moves.
@@ -323,10 +340,11 @@ export function Match({
     const won = outcome.kind === "checkmate" && outcome.winner === HUMAN_SIDE;
     onMatchEnd({ won, outcome, turnsPlayed: cardState.turn });
   }, [runMode, onMatchEnd, matchOver, outcome, cardState.turn]);
-  // In dev, the AI only fires when explicitly toggled on. Prototype + run
-  // (real Royal / Skirmish runs) always fire — the player is playing a chess
-  // match and expects an opponent.
-  const aiOn = runMode === "prototype" || runMode === "run" || devAiOn;
+  // In sandbox + run modes, the AI is gated by `devAiOn` (defaults: off in
+  // sandbox, on in run). Prototype always fires. This lets the dev panel
+  // disable the AI in a real Royal run for debugging without changing the
+  // default Royal experience.
+  const aiOn = runMode === "prototype" ? true : devAiOn;
   const isAiTurn = mode === "vs-ai" && turn === AI_SIDE && !matchOver && aiOn;
 
   const controllableSides = useMemo(
@@ -670,11 +688,11 @@ export function Match({
       setMarionetteMoves([]);
       setVersion((v) => v + 1);
 
-      // Dev mode: when the human drives Black with the AI off, the AI loop
-      // never fires, so we have to roll over to a fresh player turn here.
-      // For a White move (or any move with the AI on), just commit and push
-      // an action-granular snapshot so undo can rewind individual moves.
-      if (runMode === "dev" && !devAiOn && mover?.side === "opponent" && !consumeAndContinue) {
+      // Dev panel active + AI off: the human drives Black, so the AI loop
+      // never fires and we have to roll over to a fresh player turn here.
+      // Otherwise just commit; sandbox additionally pushes an action-granular
+      // snapshot so undo can rewind individual moves.
+      if (devPanelEnabled && !devAiOn && mover?.side === "opponent" && !consumeAndContinue) {
         applyTurnRollover(next);
       } else {
         setCardState(next);
@@ -682,7 +700,7 @@ export function Match({
       }
       return true;
     },
-    [engine, cardState, rng, runMode, devAiOn, applyTurnRollover, pushSnapshot],
+    [engine, cardState, rng, runMode, devPanelEnabled, devAiOn, applyTurnRollover, pushSnapshot],
   );
 
   /**
@@ -1010,11 +1028,11 @@ export function Match({
     (sq: AlgebraicSquare) => {
       if (matchOver || aiThinking) return;
 
-      // Editor takes priority while a brush is selected in dev mode — a click
-      // places / overwrites / erases the piece on the square per the current
-      // brush. The brush is consumed by the placement: the user clicks the
-      // palette piece again for each new placement.
-      if (runMode === "dev" && editorPiece !== null) {
+      // Editor takes priority while a brush is selected and the dev panel is
+      // active — a click places / overwrites / erases the piece on the square
+      // per the current brush. The brush is consumed by the placement: the
+      // user clicks the palette piece again for each new placement.
+      if (devPanelEnabled && editorPiece !== null) {
         applyEditorEdit(sq, editorPiece);
         setEditorPiece(null);
         return;
@@ -1094,7 +1112,7 @@ export function Match({
     [
       matchOver,
       aiThinking,
-      runMode,
+      devPanelEnabled,
       editorPiece,
       applyEditorEdit,
       targetingIndex,
@@ -1458,8 +1476,10 @@ export function Match({
           />
         )}
       </div>
-      {runMode === "dev" && (
+      {devPanelEnabled && (
         <DevPanel
+          heading={runMode === "dev" ? "Sandbox" : "Dev"}
+          onClose={runMode === "run" ? () => setDevPanelOpen(false) : undefined}
           editorPiece={editorPiece}
           onPickEditorPiece={setEditorPiece}
           onPaletteDragStart={(piece) => {
@@ -1487,6 +1507,17 @@ export function Match({
           onLibraryCardDragEnd={dragEndLibraryCard}
           onBumpEnergy={() => bumpEnergy(1)}
         />
+      )}
+      {runMode === "run" && !devPanelOpen && (
+        <button
+          type="button"
+          className={styles.devToggle}
+          onClick={() => setDevPanelOpen(true)}
+          aria-label="Show dev panel"
+          title="Show dev panel"
+        >
+          Dev
+        </button>
       )}
       {scryPending && (
         <ScryModal

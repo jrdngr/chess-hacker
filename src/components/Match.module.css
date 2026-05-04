@@ -179,3 +179,30 @@
   color: var(--fg);
   border-color: var(--player);
 }
+
+/*
+ * Collapsed-state toggle for the Royal-mode dev panel. Sits as a thin
+ * right-edge column so the board area shifts predictably when the panel is
+ * opened. When the panel is open the button is unmounted entirely (the
+ * panel's own header has the close button).
+ */
+.devToggle {
+  align-self: stretch;
+  width: 32px;
+  flex-shrink: 0;
+  padding: 12px 0;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  cursor: pointer;
+  writing-mode: vertical-rl;
+}
+
+.devToggle:hover {
+  color: var(--fg);
+  border-color: var(--player);
+}
