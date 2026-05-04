@@ -178,6 +178,7 @@ function makeFakeAi(moves: string[], searchMovesLog?: ReadonlyArray<string>[]): 
   let idx = 0;
   const fake: Partial<StockfishEngine> = {
     ready: () => Promise.resolve(),
+    setVariant: () => {},
     setPosition: () => {},
     getBestMove: (opts) => {
       if (searchMovesLog) searchMovesLog.push(opts.searchMoves ?? []);

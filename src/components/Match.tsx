@@ -57,10 +57,10 @@ import {
   legalMoveToUci,
   uciToMove,
   depthForDifficulty,
+  variantFor,
   type Difficulty,
   type StockfishOptions,
 } from "../ai/stockfish";
-import { pickBestMove as toyPickBestMove } from "../ai/toyAi";
 import { generateChess960Position } from "../game/chess/positions";
 import { parseFen } from "../game/chess/rules";
 import {
@@ -219,7 +219,6 @@ export function Match({
   const [mode, setMode] = useState<MatchMode>(runMode === "dev" ? "vs-ai" : initialMode);
   const [difficulty, setDifficulty] = useState<Difficulty>(initialDifficulty);
   const [engine, setEngine] = useState(() => new ChoseEngine(initialFen, initialBoardSize));
-  const isStandardSize = engine.size().files === 8 && engine.size().ranks === 8;
   const [selected, setSelected] = useState<AlgebraicSquare | null>(null);
   // Bumped after each move so derived render values recompute.
   const [version, setVersion] = useState(0);
@@ -378,12 +377,15 @@ export function Match({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [undoRedo.undoDepth, mode]);
 
-  // Spin up the Stockfish worker only when in vs-ai mode AND on an 8x8 board
-  // (Stockfish doesn't support non-8x8). Smaller boards use the synchronous
-  // toy AI in `src/ai/toyAi.ts` instead.
+  // Spin up the Fairy-Stockfish worker for every vs-ai match. The engine
+  // supports custom board sizes via the variant config (variantFor maps our
+  // BoardSize to the matching `chossNxM` variant declared in
+  // public/fairy-stockfish/variants.ini, falling back to standard `chess`
+  // for 8x8). Walls, freezes, etc. still ride the searchmoves filter in
+  // doAiMove since they're not part of the engine's variant geometry.
+  const variant = variantFor(engine.size());
   useEffect(() => {
     if (mode !== "vs-ai") return;
-    if (!isStandardSize) return;
     let ai: StockfishEngine | null = null;
     try {
       ai = createAi ? createAi() : new StockfishEngine();
@@ -392,14 +394,18 @@ export function Match({
       return;
     }
     aiRef.current = ai;
-    ai.ready().catch((e) => {
-      setAiError(e instanceof Error ? e.message : String(e));
-    });
+    ai.ready()
+      .then(() => {
+        ai?.setVariant(variant);
+      })
+      .catch((e) => {
+        setAiError(e instanceof Error ? e.message : String(e));
+      });
     return () => {
       ai?.destroy();
       aiRef.current = null;
     };
-  }, [mode, createAi, isStandardSize]);
+  }, [mode, createAi, variant]);
 
   // Sync the current overlays to the engine BEFORE any engine method
   // (legalMoves / inCheck / outcome) is called this render. The engine is
@@ -660,48 +666,31 @@ export function Match({
    * Both the auto AI loop and the dev "AI: play one move" button funnel
    * through here.
    *
-   * On 8x8 we use Stockfish; on non-8x8 the synchronous toy AI in
-   * `src/ai/toyAi.ts`. The toy AI is fast enough (small boards, shallow
-   * depth) to run inline; we still respect `minThinkMs` so its moves don't
-   * snap-resolve.
+   * Fairy-Stockfish handles every board size we use; the variant was set in
+   * the spawn effect. We restrict the root choice to our overlay-aware legal
+   * moves via UCI `searchmoves` so the engine can't pick a move that walks
+   * through a wall, moves a frozen piece, captures a shielded piece, etc.
    */
   const doAiMove = useCallback(
     async (myGen: number, isCancelled: () => boolean, minThinkMs?: number): Promise<void> => {
       const wait = minThinkMs ?? aiMinThinkMs;
 
-      let move: import("../game/chess/engine").EngineMove | null = null;
-      if (isStandardSize) {
-        const ai = aiRef.current;
-        if (!ai) return;
-        await ai.ready();
-        if (isCancelled() || generationRef.current !== myGen) return;
-        ai.setPosition(engine.fen());
-        // Stockfish doesn't know about overlays. We restrict its root choice
-        // to our wall/freeze/sanctuary/shield/compel-aware legal-move set via
-        // UCI `searchmoves`, so it can't pick a move that walks through a
-        // wall, moves a frozen piece, captures a shielded piece, etc.
-        const candidates = engine.legalMoves().map(legalMoveToUci);
-        const [uci] = await Promise.all([
-          ai.getBestMove({
-            depth: depthForDifficulty(difficulty),
-            searchMoves: candidates,
-          }),
-          new Promise<void>((resolve) => setTimeout(resolve, wait)),
-        ]);
-        if (isCancelled() || generationRef.current !== myGen) return;
-        if (!uci) return;
-        move = uciToMove(uci);
-      } else {
-        // Toy AI: synchronous. Pad with the cosmetic think delay so the
-        // small-board AI doesn't feel teleportingly fast.
-        const [picked] = await Promise.all([
-          Promise.resolve(toyPickBestMove(engine, difficulty)),
-          new Promise<void>((resolve) => setTimeout(resolve, wait)),
-        ]);
-        if (isCancelled() || generationRef.current !== myGen) return;
-        move = picked;
-        if (!move) return;
-      }
+      const ai = aiRef.current;
+      if (!ai) return;
+      await ai.ready();
+      if (isCancelled() || generationRef.current !== myGen) return;
+      ai.setPosition(engine.fen());
+      const candidates = engine.legalMoves().map(legalMoveToUci);
+      const [uci] = await Promise.all([
+        ai.getBestMove({
+          depth: depthForDifficulty(difficulty),
+          searchMoves: candidates,
+        }),
+        new Promise<void>((resolve) => setTimeout(resolve, wait)),
+      ]);
+      if (isCancelled() || generationRef.current !== myGen) return;
+      if (!uci) return;
+      const move: import("../game/chess/engine").EngineMove = uciToMove(uci);
 
       // Snapshot the moving piece BEFORE the engine applies the move; its
       // type drives the move-path computation used by trap resolution.
@@ -742,16 +731,7 @@ export function Match({
         applyTurnRollover(trapped);
       }
     },
-    [
-      engine,
-      difficulty,
-      aiMinThinkMs,
-      cardsEnabled,
-      cardState,
-      applyTurnRollover,
-      isStandardSize,
-      pushHistory,
-    ],
+    [engine, difficulty, aiMinThinkMs, cardsEnabled, cardState, applyTurnRollover, pushHistory],
   );
 
   useEffect(() => {
@@ -1346,6 +1326,24 @@ export function Match({
     },
     [pushSnapshot, pushHistory],
   );
+
+  /**
+   * Dev-only: synthesize a player checkmate so the Run shell advances to
+   * Reward + Shop and onto the next match. Lets us spot-check AI behaviour
+   * across every board size in one run without grinding through nine real
+   * matches. We flip `matchEndedRef` first so the natural-outcome useEffect
+   * doesn't refire `onMatchEnd` if the engine later reaches a real terminal
+   * state before this Match instance unmounts.
+   */
+  const skipMatchAndWin = useCallback(() => {
+    if (runMode !== "run" || !onMatchEnd || matchOver) return;
+    matchEndedRef.current = true;
+    onMatchEnd({
+      won: true,
+      outcome: { kind: "checkmate", winner: HUMAN_SIDE },
+      turnsPlayed: cardState.turn,
+    });
+  }, [runMode, onMatchEnd, matchOver, cardState.turn]);
 
   /**
    * Apply edits from the deck editor: replace draw + spent piles wholesale.
@@ -2035,6 +2033,8 @@ export function Match({
           consumedPile={cardState.consumedPile}
           onSaveDeck={saveDeck}
           onBumpEnergy={() => bumpEnergy(1)}
+          onSkipMatchAndWin={runMode === "run" ? skipMatchAndWin : undefined}
+          skipMatchDisabled={matchOver}
           canUndo={canUndo}
           canRedo={canRedo}
           onUndo={undo}

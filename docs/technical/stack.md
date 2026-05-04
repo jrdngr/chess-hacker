@@ -36,12 +36,13 @@ The prototype is a **single-player web app**. No backend services in the prototy
 
 Alternatives considered: chessops or other libs (rejected for the same reason — same wall-blocking limitation); a thinner wrap-and-postfilter on chess.js (tried; correctness issues piled up).
 
-### Stockfish.wasm
+### Fairy-Stockfish.wasm
 
 - Strong chess AI with adjustable depth/time controls. Tunable strength.
 - Runs entirely client-side (a worker thread).
-- Specifically: the `stockfish.js` npm package, which ships both a WASM build (`stockfish.wasm.js` + `stockfish.wasm`) and an asm.js fallback. We avoided the `stockfish.wasm` package because it requires `COOP` / `COEP` HTTP headers, which complicates the static-host story.
-- Doesn't know about our cards / walls / curses. We use a **layered AI** — Stockfish proposes moves on a **virtualized chess board** (where the rule extensions are simulated), and a custom layer decides curse-card insertion timing on the boss's behalf. See `ai.md`.
+- Specifically: the `fairy-stockfish-nnue.wasm` npm package (GPL-3.0). Fairy-Stockfish is a Stockfish fork with native chess-variant support, including custom board dimensions defined in a `variants.ini`. Standard mode uses 4×6 → 7×8 boards across the run; without variant support we'd be back to a homegrown toy AI on small boards.
+- **Cross-origin isolation required.** Fairy-Stockfish uses pthreads + SharedArrayBuffer, so the document must be served with `Cross-Origin-Embedder-Policy: require-corp` and `Cross-Origin-Opener-Policy: same-origin`. `vite.config.ts` adds these headers via middleware for the dev and preview servers; production deployments must configure the same headers at the host level. We accept this constraint to gain native non-8×8 support.
+- Doesn't know about our cards / walls / curses. We use a **layered AI** — Fairy-Stockfish proposes moves under our wall-/freeze-aware `searchmoves` filter, and a custom layer decides curse-card insertion timing on the boss's behalf. See `ai.md`.
 
 Alternatives considered: hand-rolled alpha-beta (rejected — far weaker chess play; we'd spend more time tuning than playing); heuristic AI (rejected for the same reason).
 
@@ -84,7 +85,7 @@ We will **JSON-serialize** the entire run/meta state. See `persistence.md` for t
 ```
 npm create vite@latest choss -- --template react-ts
 cd choss
-npm install stockfish.js zustand
+npm install fairy-stockfish-nnue.wasm zustand
 npm install -D vitest @testing-library/react @testing-library/jest-dom
 ```
 

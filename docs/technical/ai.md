@@ -2,39 +2,37 @@
 
 The opponent AI has two responsibilities:
 
-1. **Make legal chess moves.** On 8x8 boards we use **Stockfish.wasm**. On smaller boards (Standard mode's act 1 / 2 matches) we use a homegrown **toy AI** in `src/ai/toyAi.ts` because Stockfish only supports 8x8.
+1. **Make legal chess moves.** Every board size — 4×6 through 8×8 — uses **Fairy-Stockfish.wasm** via a single wrapper at `src/ai/stockfish.ts`. Fairy-Stockfish is a Stockfish fork with native chess-variant support, including custom board dimensions defined in a `variants.ini`.
 2. **Schedule and inject curse cards** (boss matches only). Handled by a small **custom curse-AI layer**.
 
-Stockfish and the toy AI are both black-box chess engines; neither knows about our cards, walls, or curses. The curse-AI layer is a deterministic scheduler that fires on triggers from the game state.
+Fairy-Stockfish is a black-box chess engine; it knows about board geometry (via the variant config) but not about our cards, walls, or curses. The curse-AI layer is a deterministic scheduler that fires on triggers from the game state.
 
-## AI selection per match
-
-The Match shell picks an AI based on the engine's board size at construction time:
-
-- **8x8 → Stockfish.** Web Worker, depth-tuned, full strength.
-- **Smaller than 8x8 → toy AI.** Synchronous negamax with material eval, depth 2/3/4 by difficulty. Fast (≤48 squares, shallow search).
-
-The same `aiMinThinkMs` cosmetic delay applies to both so the AI doesn't snap-resolve on small boards.
-
-## Toy AI (non-8x8)
-
-`src/ai/toyAi.ts` exports `pickBestMove(engine, difficulty)`. Implementation:
-
-- Negamax with alpha-beta over `rulesLegalMoves(pos, NO_OVERLAYS)` — the rule layer's wall-aware move set, with the engine's overlay set replaced by the empty default (same simplification we apply to Stockfish on 8x8).
-- Material-only eval: pawn 100 / knight 320 / bishop 330 / rook 500 / queen 900 / king 20000.
-- Depth: easy 2, normal 3, hard 4.
-- No transposition table, no quiescence search, no opening book. The toy AI's job is "playable opponent on small boards"; Standard's tuning targets rely on the piece curve, not on the AI getting smarter.
-
-The Match shell still gates the AI's pick through the wall-aware legal-move set and falls back to the first legal move if the chosen move was masked by an overlay (same as the Stockfish path).
-
-## Stockfish.wasm
+## Fairy-Stockfish.wasm
 
 ### Setup
 
-- Loaded from the `stockfish.js` npm package (which bundles both a WASM build, `stockfish.wasm.js` + `stockfish.wasm`, and an asm.js fallback). The WASM build is preferred when available. We picked this package over `stockfish.wasm` because it does **not** require `Cross-Origin-Embedder-Policy` / `Cross-Origin-Opener-Policy` headers — this keeps the static-host story simple for the prototype.
-- The engine files live in `public/stockfish/` so Vite serves them as static assets.
-- Runs in a **dedicated Web Worker** so it doesn't block the UI thread.
-- Configured per-match with a target depth (or move time) reflecting the difficulty.
+- Loaded from the `fairy-stockfish-nnue.wasm` npm package (1.7 MB unpacked, GPL-3.0). It ships a `Stockfish()` factory plus a pthread worker template and a wasm binary; we add a small UCI proxy worker (`public/fairy-stockfish/uci.worker.js`) that loads the engine inside a dedicated Web Worker and pipes UCI lines both ways.
+- All engine files live in `public/fairy-stockfish/`:
+  - `stockfish.js` — engine factory
+  - `stockfish.wasm` — wasm binary
+  - `stockfish.worker.js` — pthread worker template (loaded by the engine internally)
+  - `uci.worker.js` — choss-side UCI proxy
+  - `variants.ini` — custom variant declarations (one per non-8×8 size used by Standard mode)
+- **Cross-origin isolation is required.** Fairy-Stockfish.wasm uses pthreads + SharedArrayBuffer, so the document must be served with `Cross-Origin-Embedder-Policy: require-corp` and `Cross-Origin-Opener-Policy: same-origin`. `vite.config.ts` adds these headers via middleware for both the dev server and the preview server. Production deployments must configure the same headers at the host level.
+
+### Custom variants
+
+`public/fairy-stockfish/variants.ini` declares one variant per non-8×8 size we use, each inheriting from the built-in `chess`:
+
+```ini
+[choss4x6:chess]
+maxFile = 4
+maxRank = 6
+```
+
+The wrapper sends `setoption name VariantPath value /fairy-stockfish/variants.ini` during init so the engine loads the file. Match then calls `setVariant(variantFor(boardSize))` before each match — the helper maps `BoardSize` to either `"chess"` (for 8×8) or `"chossNxM"`. Castling is automatically inert on these boards because our FEN never sets `KQkq` for non-8-file positions (`castlingAvailable` in `src/game/chess/rules.ts`).
+
+We always feed positions via `position fen <our serializeFen>` after `setVariant`, so the per-variant `startFen` is unused.
 
 ### Wrapper API
 
@@ -43,10 +41,17 @@ The Match shell still gates the AI's pick through the wall-aware legal-move set 
 
 class StockfishEngine {
   async ready(): Promise<void> { ... }
-  async setPosition(fen: string): Promise<void> { ... }
-  async getBestMove(opts: { depth?: number; movetimeMs?: number }): Promise<string /* uci */> { ... }
+  setVariant(name: string): void { ... }
+  setPosition(fen: string): void { ... }
+  async getBestMove(opts: {
+    depth?: number;
+    movetimeMs?: number;
+    searchMoves?: ReadonlyArray<string>;
+  }): Promise<string /* uci */> { ... }
   destroy(): void { ... }
 }
+
+function variantFor(size: BoardSize): string;
 ```
 
 ### Difficulty tuning
@@ -74,25 +79,25 @@ between three depths via a Difficulty selector:
 
 ### Handling our rule extensions
 
-Stockfish only understands standard chess. When our cards have changed the rules (walls present, frozen pieces, etc.) we restrict Stockfish's search to our overlay-aware legal-move set, rather than virtualizing walls into the FEN.
+Fairy-Stockfish knows board geometry from the variant config but doesn't understand our overlays (walls, freezes, sanctuaries, etc.). When cards change the rules we restrict the engine's search to our overlay-aware legal-move set rather than virtualizing overlays into the FEN.
 
 **The pattern (`src/ai/stockfish.ts`):**
 
 ```
 1. Engine: legalMoves()                       — fully overlay-aware (walls, freezes, etc.)
 2. searchMoves = legal moves formatted as UCI
-3. Stockfish: position fen <vanilla>; go depth N searchmoves <list>
-4. Stockfish replies bestmove m
+3. setVariant(variantFor(size)); position fen <our fen>; go depth N searchmoves <list>
+4. Engine replies bestmove m
 5. engine.move(m) re-validates as a defensive guard;
    on null (impossible in steady state), play a random legal move.
 ```
 
-UCI's `searchmoves` filter restricts the root move set to our list, so Stockfish never picks a move that violates a wall or moves a frozen piece. It still searches deeply within that set.
+UCI's `searchmoves` filter restricts the root move set to our list, so the engine never picks a move that violates a wall or moves a frozen piece. It still searches deeply within that set.
 
-- **Walls** are enforced via `searchmoves` — Stockfish never considers blocked moves at the root.
+- **Walls** are enforced via `searchmoves` — the engine never considers blocked moves at the root.
 - **Player's extension moves** (e.g., "your knight may move diagonally this turn") only apply to the player; the AI is not affected.
-- **Square effects** that the AI triggers by moving onto a square: Stockfish doesn't know about them. The AI just plays its move; the effect fires after.
-- **Zone-control buffs that affect the AI:** for prototype, we **do not** make Stockfish "aware" of zone buffs — it plays optimal chess on the constrained move set and the player exploits the buffs.
+- **Square effects** that the AI triggers by moving onto a square: the engine doesn't know about them. The AI just plays its move; the effect fires after.
+- **Zone-control buffs that affect the AI:** for prototype, we **do not** make the engine "aware" of zone buffs — it plays optimal chess on the constrained move set and the player exploits the buffs.
 
 This last point is important: **the AI plays optimal chess; the cards/buffs are a player advantage.** This is intentional for the prototype.
 
@@ -132,7 +137,7 @@ Limit: **at most one curse may be inserted per turn**, regardless of how many tr
 
 Two reasonable places:
 
-- **In the worker** (alongside Stockfish): keeps all "AI logic" in one place; lets us simulate curse-aware look-ahead in future.
+- **In the worker** (alongside Fairy-Stockfish): keeps all "AI logic" in one place; lets us simulate curse-aware look-ahead in future.
 - **On the main thread**, alongside the rest of the game logic: simpler for the prototype.
 
 Default: **main thread**. The curse-AI is a tiny scheduler with no AI heuristics; it doesn't need to live in a worker.
@@ -150,9 +155,8 @@ CURSE-AI STEP (boss matches only)
 
 OPPONENT TURN
   → ChoseEngine.legalMoves() to get legal-under-our-rules moves
-  → Stockfish: get top-N moves on vanilla FEN
-  → pick first that's in our legal set
-  → execute move
+  → Fairy-Stockfish: position fen <our fen>; go depth N searchmoves <list>
+  → execute the returned move (or, defensively, fall back to the first legal move)
   → check for win/loss/draw
   → end-turn
 
@@ -167,13 +171,13 @@ Curse insertion happens at end of the player's turn so that the curse appears in
 - It does not see the player's hand.
 - It does not see the player's deck contents.
 - It does not adapt long-term across the run (no learning).
-- It does not bluff or "play dumb" — it plays the best Stockfish-suggested legal move.
+- It does not bluff or "play dumb" — it plays the best engine-suggested legal move.
 
 ## Future: AI difficulty modulation
 
 Beyond depth, we may explore:
 
-- **Skill level:** Stockfish has a `Skill Level` UCI option (0–20) that intentionally weakens play.
+- **Skill level:** Fairy-Stockfish has a `Skill Level` UCI option (0–20) that intentionally weakens play.
 - **Move time vs depth:** time-bounded search caps unpredictability.
 - **Temperature / random suboptimal selection:** for the lowest difficulty, occasionally pick a non-optimal move from the top-K.
 
@@ -181,6 +185,8 @@ These are tuning knobs we can reach for if depth alone produces too steep a curv
 
 ## Testing
 
-- Unit-test the Stockfish wrapper: position-setting, depth-bounded move retrieval.
+- Unit-test the wrapper: init handshake, variant selection, position-setting, depth-bounded move retrieval.
 - Unit-test the curse-AI scheduler: trigger evaluation, oncePerTurn enforcement, insertion.
 - Integration-test a full boss match scripted move-for-move.
+
+The Match dev panel exposes a **Skip match (auto-win)** button when `runMode === "run"`. It synthesizes a player checkmate via `onMatchEnd` so the run advances to Reward + Shop and onto the next match — useful for spot-checking the AI on every board size in one run without grinding through nine real matches.

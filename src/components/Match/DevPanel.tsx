@@ -87,6 +87,16 @@ type Props = {
   // Energy
   onBumpEnergy: () => void;
 
+  /**
+   * Dev-only: instantly win the current match and advance the run to the
+   * Reward + Shop steps. Provided by Match only when `runMode === "run"`;
+   * undefined in the standalone dev sandbox / prototype where there's no
+   * run shell to advance.
+   */
+  onSkipMatchAndWin?: () => void;
+  /** True when a real outcome has already fired and the skip is moot. */
+  skipMatchDisabled?: boolean;
+
   // History
   canUndo: boolean;
   canRedo: boolean;
@@ -133,6 +143,8 @@ export function DevPanel({
   consumedPile,
   onSaveDeck,
   onBumpEnergy,
+  onSkipMatchAndWin,
+  skipMatchDisabled,
   canUndo,
   canRedo,
   onUndo,
@@ -370,6 +382,22 @@ export function DevPanel({
           </button>
         </div>
       </Section>
+
+      {onSkipMatchAndWin && (
+        <Section>
+          <div className={styles.row}>
+            <button
+              type="button"
+              className={styles.smallButton}
+              disabled={skipMatchDisabled}
+              onClick={onSkipMatchAndWin}
+              title="Skip the rest of this match and advance to Reward + Shop"
+            >
+              Skip match (auto-win)
+            </button>
+          </div>
+        </Section>
+      )}
 
       <Section>
         <div className={styles.row}>

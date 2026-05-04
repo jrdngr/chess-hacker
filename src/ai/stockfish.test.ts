@@ -6,7 +6,13 @@
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { StockfishEngine, depthForDifficulty, legalMoveToUci, uciToMove } from "./stockfish";
+import {
+  StockfishEngine,
+  depthForDifficulty,
+  legalMoveToUci,
+  uciToMove,
+  variantFor,
+} from "./stockfish";
 import type { LegalMove } from "../game/chess/engine";
 
 class FakeWorker {
@@ -74,11 +80,13 @@ describe("depthForDifficulty", () => {
 });
 
 describe("StockfishEngine", () => {
-  it("sends 'uci' and 'isready' on construction", () => {
-    new StockfishEngine({ workerUrl: "/fake.js" });
+  it("sends 'uci' on construction and points at the variants.ini after uciok", () => {
+    new StockfishEngine({ workerUrl: "/fake.js", variantPath: "/v/test.ini" });
     expect(FakeWorker.instances).toHaveLength(1);
     const w = FakeWorker.instances[0]!;
-    expect(w.posted).toEqual(["uci", "isready"]);
+    expect(w.posted).toEqual(["uci"]);
+    w.emit("uciok");
+    expect(w.posted).toEqual(["uci", "setoption name VariantPath value /v/test.ini", "isready"]);
   });
 
   it("ready() resolves only after uciok + readyok", async () => {
@@ -95,6 +103,13 @@ describe("StockfishEngine", () => {
     w.emit("readyok");
     await new Promise((r) => setTimeout(r, 0));
     expect(resolved).toBe(true);
+  });
+
+  it("setVariant forwards a UCI_Variant setoption", () => {
+    const sf = new StockfishEngine({ workerUrl: "/fake.js" });
+    const w = FakeWorker.instances[0]!;
+    sf.setVariant("choss5x7");
+    expect(w.posted.at(-1)).toBe("setoption name UCI_Variant value choss5x7");
   });
 
   it("setPosition forwards a position fen command", () => {
@@ -194,6 +209,18 @@ describe("StockfishEngine", () => {
       w.onmessage?.({ data: 42 as unknown as string } as MessageEvent<string>),
     ).not.toThrow();
     sf.destroy();
+  });
+});
+
+describe("variantFor", () => {
+  it("returns 'chess' for 8x8", () => {
+    expect(variantFor({ files: 8, ranks: 8 })).toBe("chess");
+  });
+
+  it("returns chossNxM for non-standard sizes", () => {
+    expect(variantFor({ files: 4, ranks: 6 })).toBe("choss4x6");
+    expect(variantFor({ files: 5, ranks: 7 })).toBe("choss5x7");
+    expect(variantFor({ files: 7, ranks: 8 })).toBe("choss7x8");
   });
 });
 
