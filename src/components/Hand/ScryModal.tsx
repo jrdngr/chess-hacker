@@ -1,13 +1,13 @@
-// Modal for Foresight (scry).
-//
-// Shows the top N cards of the draw pile and lets the player reorder them.
-// On confirm, calls `onConfirm(newOrder)` with the cards in the order they
-// should be placed back on top of the deck (top-of-deck is index 0).
+// Foresight scry modal. Shows the top N cards of the draw pile and lets the
+// player reorder them. On confirm, calls `onConfirm(newOrder)` with the cards
+// in the order they should be placed back on top of the deck (top-of-deck is
+// index 0).
 
 import { useState } from "react";
 
 import type { Card } from "../../game/types";
-import styles from "./ScryModal.module.css";
+import { CardListModal } from "./CardListModal";
+import styles from "./CardListModal.module.css";
 
 type Props = {
   cards: Card[];
@@ -25,49 +25,37 @@ export function ScryModal({ cards, onConfirm }: Props) {
   };
 
   return (
-    <div className={styles.backdrop} role="dialog" aria-label="Foresight scry">
-      <div className={styles.dialog}>
-        <h2 className={styles.title}>Foresight</h2>
-        <p className={styles.hint}>
-          Top of your deck. Reorder them; the first card here will be the next one drawn.
-        </p>
-        <ul className={styles.cardList}>
-          {order.map((card, i) => (
-            <li key={`${card.id}-${i}`} className={styles.cardRow}>
-              <span className={styles.position}>{i + 1}.</span>
-              <span className={styles.cardName}>
-                <span className={styles.cost}>{card.cost}</span>
-                <span>{card.name}</span>
-              </span>
-              <span className={styles.controls}>
-                <button
-                  type="button"
-                  className={styles.moveButton}
-                  onClick={() => swap(i, i - 1)}
-                  disabled={i === 0}
-                  aria-label={`Move ${card.name} up`}
-                >
-                  ↑
-                </button>
-                <button
-                  type="button"
-                  className={styles.moveButton}
-                  onClick={() => swap(i, i + 1)}
-                  disabled={i === order.length - 1}
-                  aria-label={`Move ${card.name} down`}
-                >
-                  ↓
-                </button>
-              </span>
-            </li>
-          ))}
-        </ul>
-        <div className={styles.actions}>
-          <button type="button" className={styles.confirmButton} onClick={() => onConfirm(order)}>
-            Confirm
+    <CardListModal
+      title="Foresight"
+      hint="Top of your deck. Reorder them; the first card here will be the next one drawn."
+      cards={order}
+      renderControls={(card, i) => (
+        <>
+          <button
+            type="button"
+            className={styles.moveButton}
+            onClick={() => swap(i, i - 1)}
+            disabled={i === 0}
+            aria-label={`Move ${card.name} up`}
+          >
+            ↑
           </button>
-        </div>
-      </div>
-    </div>
+          <button
+            type="button"
+            className={styles.moveButton}
+            onClick={() => swap(i, i + 1)}
+            disabled={i === order.length - 1}
+            aria-label={`Move ${card.name} down`}
+          >
+            ↓
+          </button>
+        </>
+      )}
+      footer={
+        <button type="button" className={styles.confirmButton} onClick={() => onConfirm(order)}>
+          Confirm
+        </button>
+      }
+    />
   );
 }

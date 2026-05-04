@@ -15,10 +15,18 @@
 // The chess engine and the card state are deliberately separate. The card
 // state lives as React state here; pure helpers in `game/cards/match.ts`
 // produce new states.
+//
+// Decomposition (in-progress — partial):
+//   - Pure derivations of MatchCardState  → `Match/derivations.ts`
+//   - Pure side-effect appliers + outcome → `Match/sideEffects.ts`
+//   - Undo / redo snapshot stack          → `Match/useUndoRedo.ts`
+// The AI loop, dev editor, and card-play orchestration still live in this
+// file — extracting them is the next refactor pass and will likely happen
+// alongside the M5 store migration (see `docs/technical/architecture.md`).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Board, type BoardMode, type EffectInfo, type SquareEffects } from "./Board/Board";
+import { Board, type BoardMode } from "./Board/Board";
 import { CapturedPieces } from "./Board/CapturedPieces";
 import { materialAdvantage } from "./Board/material";
 import { DevPanel, type EditorPiece } from "./Match/DevPanel";
@@ -27,10 +35,21 @@ import { ReviveModal } from "./Hand/ReviveModal";
 import { PileInspector } from "./Hand/PileInspector";
 import { ScryModal } from "./Hand/ScryModal";
 import {
+  buildExtraOverlays,
+  deriveControllableSides,
+  deriveOverlaySets,
+  derivePieceBadges,
+  deriveSquareEffects,
+} from "./Match/derivations";
+import {
+  applyCardSideEffects as applyCardSideEffectsPure,
+  outcomeDetail,
+  outcomeHeadline,
+  resolveTrapForMove,
+} from "./Match/sideEffects";
+import { useUndoRedo } from "./Match/useUndoRedo";
+import {
   ChoseEngine,
-  movePath,
-  type EngineSnapshot,
-  type ExtraOverlays,
   type LegalMove,
 } from "../game/chess/engine";
 import {
@@ -43,7 +62,6 @@ import {
 } from "../ai/stockfish";
 import {
   ENERGY_MAX,
-  addToHand,
   clampEnergy,
   clearStatusesOn,
   completeRevive,
@@ -61,7 +79,6 @@ import {
   playCard,
   relocateStatuses,
   setDeckTop,
-  shuffleIntoDraw,
   startPlayerTurn,
   type BoardContext,
   type PlayTarget,
@@ -71,10 +88,8 @@ import { makeStarterDeck } from "../game/cards/library";
 import type {
   AlgebraicSquare,
   Card,
-  EmpowerPattern,
   MatchCardState,
   MatchOutcome,
-  Piece,
   PieceType,
   Side,
 } from "../game/types";
@@ -120,94 +135,10 @@ type Props = {
   initialEnergy?: number;
 };
 
-/**
- * Engine + card-state captured at the start of a player turn. The Undo /
- * Redo buttons (a prototype-only convenience — not a game rule) walk this
- * stack. We snapshot once per player turn, so undo rewinds to the start of
- * a clean turn including the AI's preceding move.
- *
- * `cardState` carries the *full* match-side state at snapshot time —
- * including the hand, draw pile, discard pile, energy, and every overlay
- * list — so a restore reproduces the player's exact decision context (same
- * hand, same energy, same threats on the board).
- */
-type TurnSnapshot = {
-  engineSnapshot: EngineSnapshot;
-  cardState: MatchCardState;
-};
-
 const DEFAULT_AI_MIN_THINK_MS = 500;
 
 const HUMAN_SIDE: Side = "player";
 const AI_SIDE: Side = "opponent";
-
-/**
- * Resolve any trap the moved piece walked into or crossed. Returns the new
- * card state. Mutates the engine in place if the trap displaces or captures
- * the piece.
- *
- * The first trap found along the move path (origin → destination, exclusive
- * of origin) fires; subsequent traps on the same path are not consulted
- * (the piece never made it that far).
- */
-function resolveTrapForMove(
-  engine: ChoseEngine,
-  cardState: MatchCardState,
-  mover: Piece,
-  from: AlgebraicSquare,
-  to: AlgebraicSquare,
-): MatchCardState {
-  const path = movePath(mover.type, from, to);
-  for (let i = 0; i < path.length; i++) {
-    const sq = path[i];
-    const trap = cardState.traps.find((t) => t.square === sq);
-    if (!trap) continue;
-
-    let next: MatchCardState = {
-      ...cardState,
-      traps: cardState.traps.filter((t) => t.square !== sq),
-    };
-    if (trap.effect === "capture") {
-      // The piece is captured at the trap square. Engine may have it on `to`
-      // (if the trap is at `to`) or at `to` after a pass-through; in either
-      // case removing from `to` is correct because the moved piece's final
-      // engine position is `to` regardless of where on the path the trap sat.
-      engine.removePiece(to);
-      next = clearStatusesOn(next, to);
-    } else if (trap.effect === "freeze") {
-      // If the trap was on an intermediate square, drag the piece back to it
-      // so it stops at the trigger point. (For a trap on `to` itself, no
-      // displacement is needed.)
-      if (sq !== to) {
-        engine.displacePiece(to, sq);
-        next = relocateStatuses(next, to, sq);
-      }
-      next = {
-        ...next,
-        freezes: [
-          ...next.freezes.filter((f) => f.square !== sq),
-          { square: sq, side: mover.side, expiresOnTurn: next.turn + 1 },
-        ],
-      };
-    } else if (trap.effect === "push") {
-      // Push back one square along the path. For a trap at index 0 (the only
-      // step away from origin) the push lands on `from`; for an intermediate
-      // trap it lands on the previous path square. If that square is occupied
-      // (e.g. the move originated there but it's now occupied by the same
-      // piece returning, which shouldn't happen — or some other piece was
-      // displaced into it) the push fizzles and the trap re-arms.
-      const pushBack = i === 0 ? from : path[i - 1];
-      if (engine.pieceAt(pushBack)) {
-        next = { ...next, traps: [...next.traps, trap] };
-      } else if (pushBack !== to) {
-        engine.displacePiece(to, pushBack);
-        next = relocateStatuses(next, to, pushBack);
-      }
-    }
-    return next;
-  }
-  return cardState;
-}
 
 export function Match({
   runMode = "prototype",
@@ -285,35 +216,25 @@ export function Match({
   const [revivePending, setRevivePending] = useState<boolean>(false);
   /** Which pile inspector is open, if any. */
   const [pileInspector, setPileInspector] = useState<"draw" | "spent" | null>(null);
-  /**
-   * Stack of engine + card-state snapshots, one per player turn.
-   * `turnSnapshots[turnSnapshots.length - 1]` is the state at the start of
-   * the player's CURRENT turn; the Undo button restores the entry before
-   * that. Empty until the first effect-driven push (or in non-vs-AI mode).
-   * Undo is unlimited — you can rewind all the way to turn 1.
-   */
-  const [turnSnapshots, setTurnSnapshots] = useState<TurnSnapshot[]>([]);
-  /**
-   * Snapshots that have been undone but not yet replaced by a new line of
-   * play. Each Undo pushes onto this stack; Redo pops back. A new turn
-   * snapshot pushed by the AI loop clears the redo stack — once the player
-   * has chosen a different line, the previous future is discarded.
-   */
-  const [redoStack, setRedoStack] = useState<TurnSnapshot[]>([]);
 
   // Increments on new game / mode change so stale AI replies are ignored.
   const generationRef = useRef(0);
   const aiRef = useRef<StockfishEngine | null>(null);
 
-  // Take the initial turn snapshot once on first mount (and again on reset/
-  // mode change — the reset paths reset `turnSnapshots` to []).
+  // Undo / redo stack — one snapshot per turn rollover (prototype) plus one
+  // per dev-mode action (editor edit, energy bump, library card play).
+  const undoRedo = useUndoRedo(engine);
+  const { pushSnapshot } = undoRedo;
+
+  // Seed the initial snapshot once per mount (and again on reset / mode
+  // change — both reset the stack first via undoRedo.reset()).
   useEffect(() => {
-    if (turnSnapshots.length > 0) return;
+    if (undoRedo.undoDepth > 0) return;
     if (mode !== "vs-ai") return;
-    setTurnSnapshots([{ engineSnapshot: engine.snapshot(), cardState }]);
+    undoRedo.seed({ engineSnapshot: engine.snapshot(), cardState });
     // engine + cardState are captured by the closure; intentional.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [turnSnapshots.length, mode]);
+  }, [undoRedo.undoDepth, mode]);
 
   // Spin up the Stockfish worker only when in vs-ai mode.
   useEffect(() => {
@@ -338,52 +259,15 @@ export function Match({
   // Sync the current overlays to the engine BEFORE any engine method
   // (legalMoves / inCheck / outcome) is called this render. The engine is
   // mutable and shared; setting overlays here is idempotent.
-  const walledSet = useMemo(() => new Set(cardState.walls.map((w) => w.square)), [cardState.walls]);
-  const frozenSet = useMemo(
-    () => new Set(cardState.freezes.map((f) => f.square)),
-    [cardState.freezes],
-  );
-  const rootedSet = useMemo(() => new Set(cardState.roots.map((r) => r.square)), [cardState.roots]);
-  const disarmedSet = useMemo(
-    () => new Set(cardState.disarms.map((d) => d.square)),
-    [cardState.disarms],
-  );
-  const compelledSet = useMemo(
-    () => new Set(cardState.compels.map((c) => c.square)),
-    [cardState.compels],
-  );
-  const shieldedSet = useMemo(
-    () => new Set(cardState.shields.map((s) => s.square)),
-    [cardState.shields],
-  );
-  const sanctuarySet = useMemo(
-    () => new Set(cardState.sanctuaries.map((s) => s.square)),
-    [cardState.sanctuaries],
-  );
-  const trapSet = useMemo(() => new Set(cardState.traps.map((t) => t.square)), [cardState.traps]);
-  const empowerMap = useMemo(() => {
-    const m = new Map<AlgebraicSquare, Set<EmpowerPattern>>();
-    for (const e of cardState.empowers) {
-      let set = m.get(e.square);
-      if (!set) {
-        set = new Set();
-        m.set(e.square, set);
-      }
-      set.add(e.pattern);
-    }
-    return m;
-  }, [cardState.empowers]);
-  const extraOverlays: ExtraOverlays = useMemo(
-    () => ({
-      roots: rootedSet,
-      disarms: disarmedSet,
-      compels: compelledSet,
-      shields: shieldedSet,
-      sanctuaries: sanctuarySet,
-      empowers: empowerMap,
-    }),
-    [rootedSet, disarmedSet, compelledSet, shieldedSet, sanctuarySet, empowerMap],
-  );
+  const overlays = useMemo(() => deriveOverlaySets(cardState), [cardState]);
+  const {
+    walledSet,
+    frozenSet,
+    rootedSet,
+    sanctuarySet,
+    trapSet,
+  } = overlays;
+  const extraOverlays = useMemo(() => buildExtraOverlays(overlays), [overlays]);
   engine.setOverlays(walledSet, frozenSet, extraOverlays);
 
   // Chess-vision overlays. Computed only when the toggle is on. Recomputed
@@ -401,109 +285,8 @@ export function Match({
     [chessVision, version, walledSet, frozenSet, extraOverlays],
   );
 
-  // Per-square badges shown on top of pieces (root/disarm/compel/shield/haste/lightning/empower).
-  const pieceBadges = useMemo(() => {
-    const m = new Map<AlgebraicSquare, string>();
-    for (const r of cardState.roots) m.set(r.square, "rooted");
-    for (const d of cardState.disarms) m.set(d.square, "disarmed");
-    for (const c of cardState.compels) m.set(c.square, "compelled");
-    for (const s of cardState.shields) m.set(s.square, "shielded");
-    for (const h of cardState.hastes) m.set(h.square, "haste");
-    for (const l of cardState.lightnings) m.set(l.square, "lightning");
-    for (const e of cardState.empowers) {
-      const existing = m.get(e.square);
-      m.set(e.square, existing ? `${existing}, empowered` : "empowered");
-    }
-    return m;
-  }, [
-    cardState.roots,
-    cardState.disarms,
-    cardState.compels,
-    cardState.shields,
-    cardState.hastes,
-    cardState.lightnings,
-    cardState.empowers,
-  ]);
-
-  // Per-square hover-tooltip data. We split into piece-applied and
-  // square-applied lists so the tooltip can render two sections when both
-  // exist on the same square. Remaining turns = expiresOnTurn - currentTurn
-  // (an effect with expiresOnTurn === turn+1 has 1 turn left).
-  const squareEffectsMap = useMemo<ReadonlyMap<AlgebraicSquare, SquareEffects>>(() => {
-    const m = new Map<AlgebraicSquare, SquareEffects>();
-    const get = (sq: AlgebraicSquare): SquareEffects => {
-      let entry = m.get(sq);
-      if (!entry) {
-        entry = { piece: [], square: [] };
-        m.set(sq, entry);
-      }
-      return entry;
-    };
-    const t = cardState.turn;
-    const remaining = (expiresOnTurn: number) => Math.max(0, expiresOnTurn - t);
-    const pushPiece = (sq: AlgebraicSquare, fx: EffectInfo) => get(sq).piece.push(fx);
-    const pushSquare = (sq: AlgebraicSquare, fx: EffectInfo) => get(sq).square.push(fx);
-
-    for (const f of cardState.freezes) {
-      pushPiece(f.square, { label: "Frozen", remaining: remaining(f.expiresOnTurn) });
-    }
-    for (const r of cardState.roots) {
-      pushPiece(r.square, { label: "Rooted", remaining: remaining(r.expiresOnTurn) });
-    }
-    for (const d of cardState.disarms) {
-      pushPiece(d.square, { label: "Disarmed", remaining: remaining(d.expiresOnTurn) });
-    }
-    for (const c of cardState.compels) {
-      pushPiece(c.square, { label: "Compelled", remaining: remaining(c.expiresOnTurn) });
-    }
-    for (const s of cardState.shields) {
-      pushPiece(s.square, { label: "Shielded", remaining: remaining(s.expiresOnTurn) });
-    }
-    for (const h of cardState.hastes) {
-      pushPiece(h.square, { label: "Haste", remaining: remaining(h.expiresOnTurn) });
-    }
-    for (const l of cardState.lightnings) {
-      pushPiece(l.square, {
-        label: "Lightning",
-        remaining: l.remaining,
-        unit: l.remaining === 1 ? "action" : "actions",
-      });
-    }
-    for (const e of cardState.empowers) {
-      const label = `Empowered (${e.pattern})`;
-      // Soul-card empowers are "use it or lose it" — they last the current
-      // turn only (and drop early if the player moves any other piece).
-      // Showing "1 turn" is accurate enough; the early-drop nuance lives in
-      // the card text.
-      pushPiece(e.square, { label, remaining: remaining(e.expiresOnTurn) });
-    }
-    for (const w of cardState.walls) {
-      pushSquare(w.square, { label: "Wall", remaining: remaining(w.expiresOnTurn) });
-    }
-    for (const s of cardState.sanctuaries) {
-      pushSquare(s.square, { label: "Sanctuary", remaining: remaining(s.expiresOnTurn) });
-    }
-    for (const tr of cardState.traps) {
-      pushSquare(tr.square, {
-        label: `Trap (${tr.effect})`,
-        remaining: remaining(tr.expiresOnTurn),
-      });
-    }
-    return m;
-  }, [
-    cardState.turn,
-    cardState.freezes,
-    cardState.roots,
-    cardState.disarms,
-    cardState.compels,
-    cardState.shields,
-    cardState.hastes,
-    cardState.lightnings,
-    cardState.empowers,
-    cardState.walls,
-    cardState.sanctuaries,
-    cardState.traps,
-  ]);
+  const pieceBadges = useMemo(() => derivePieceBadges(cardState), [cardState]);
+  const squareEffectsMap = useMemo(() => deriveSquareEffects(cardState), [cardState]);
 
   const turn: Side = engine.turn();
   const outcome: MatchOutcome = engine.outcome();
@@ -513,13 +296,10 @@ export function Match({
   const aiOn = runMode === "prototype" || devAiOn;
   const isAiTurn = mode === "vs-ai" && turn === AI_SIDE && !matchOver && aiOn;
 
-  // Sides the human is allowed to click / drag. In dev mode the human drives
-  // both colors (the AI is optional via the dev toggle).
-  const controllableSides = useMemo<ReadonlySet<Side>>(() => {
-    if (mode === "local-pvp") return new Set<Side>(["player", "opponent"]);
-    if (runMode === "dev") return new Set<Side>(["player", "opponent"]);
-    return new Set<Side>([HUMAN_SIDE]);
-  }, [mode, runMode]);
+  const controllableSides = useMemo(
+    () => deriveControllableSides(mode, runMode),
+    [mode, runMode],
+  );
 
   // Legal moves originating from the selected square. Recomputed when the
   // chess position OR the wall/freeze overlays change.
@@ -668,24 +448,6 @@ export function Match({
         : `Pick a rooted enemy piece for ${targetingCard.name}`;
     return { kind: "target", cardName: targetingCard.name, hint, valid: validTargetSquares };
   }, [targetingCard, partialTarget, validTargetSquares]);
-
-  // ---- Snapshot helper -----------------------------------------------------
-
-  /**
-   * Push a snapshot onto the undo stack and clear redo. In prototype mode
-   * the AI loop's tail is the only caller (turn-granularity); in dev mode
-   * many call sites push (action-granularity).
-   */
-  const pushSnapshot = useCallback(
-    (state: MatchCardState) => {
-      setTurnSnapshots((prev) => [
-        ...prev,
-        { engineSnapshot: engine.snapshot(), cardState: state },
-      ]);
-      setRedoStack([]);
-    },
-    [engine],
-  );
 
   // ---- AI move loop ---------------------------------------------------------
 
@@ -927,47 +689,15 @@ export function Match({
 
   /**
    * Apply the side effects produced by `playCard`. Returns the (possibly
-   * further-mutated) match state. Mutates the engine in place. Pulled out
-   * so the synchronous library-card path and the React-state-resolved
-   * targeting path share one body.
+   * further-mutated) match state. Mutates the engine in place. Thin wrapper
+   * over the pure `applyCardSideEffectsPure` so we can hook the revive prompt
+   * into React state.
    */
   const applyCardSideEffects = useCallback(
-    (result: { state: MatchCardState; sideEffects: ReadonlyArray<unknown> }): MatchCardState => {
-      let next = result.state;
-      for (const fx of result.sideEffects as ReadonlyArray<{
-        kind: string;
-        [k: string]: unknown;
-      }>) {
-        if (fx.kind === "place-piece") {
-          engine.placePiece(fx.square as AlgebraicSquare, {
-            type: fx.pieceType as PieceType,
-            side: "player",
-          });
-        } else if (fx.kind === "remove-piece") {
-          engine.removePiece(fx.square as AlgebraicSquare);
-          next = clearStatusesOn(next, fx.square as AlgebraicSquare);
-        } else if (fx.kind === "swap-pieces") {
-          next = relocateStatuses(next, fx.a as AlgebraicSquare, "__swap_tmp__");
-          next = relocateStatuses(next, fx.b as AlgebraicSquare, fx.a as AlgebraicSquare);
-          next = relocateStatuses(next, "__swap_tmp__", fx.b as AlgebraicSquare);
-          engine.swapPieces(fx.a as AlgebraicSquare, fx.b as AlgebraicSquare);
-        } else if (fx.kind === "foreign-move") {
-          const fxFrom = fx.from as AlgebraicSquare;
-          const fxTo = fx.to as AlgebraicSquare;
-          const mover = engine.pieceAt(fxFrom);
-          engine.applyForeignMove({ from: fxFrom, to: fxTo });
-          next = relocateStatuses(next, fxFrom, fxTo);
-          if (mover) next = resolveTrapForMove(engine, next, mover, fxFrom, fxTo);
-        } else if (fx.kind === "add-card-to-hand") {
-          next = addToHand(next, fx.card as Card);
-        } else if (fx.kind === "add-card-to-draw") {
-          next = shuffleIntoDraw(next, fx.card as Card, rng);
-        } else if (fx.kind === "revive-prompt") {
-          setRevivePending(true);
-        }
-      }
-      return next;
-    },
+    (result: { state: MatchCardState; sideEffects: ReadonlyArray<unknown> }): MatchCardState =>
+      applyCardSideEffectsPure(engine, result.state, result.sideEffects, rng, () =>
+        setRevivePending(true),
+      ),
     [engine, rng],
   );
 
@@ -1128,9 +858,8 @@ export function Match({
     setPaletteDragActive(false);
     libraryFreePlayRef.current = null;
     setLibraryFreePlayActive(false);
-    setTurnSnapshots([{ engineSnapshot: freshEngine.snapshot(), cardState: fresh }]);
-    setRedoStack([]);
-  }, [initialDeck, rng]);
+    undoRedo.seed({ engineSnapshot: freshEngine.snapshot(), cardState: fresh });
+  }, [initialDeck, rng, undoRedo]);
 
   const bumpEnergy = useCallback(
     (delta: number) => {
@@ -1437,8 +1166,7 @@ export function Match({
     setMarionetteMoves([]);
     setScryPending(null);
     setRevivePending(false);
-    setTurnSnapshots([]);
-    setRedoStack([]);
+    undoRedo.reset();
     setEditorPiece(null);
     paletteDragRef.current = null;
     setPaletteDragActive(false);
@@ -1451,7 +1179,7 @@ export function Match({
     } else {
       setCardState(createMatchCardState([], rng));
     }
-  }, [initialFen, initialDeck, mode, rng]);
+  }, [initialFen, initialDeck, mode, rng, undoRedo]);
 
   const onModeChange = useCallback(
     (next: MatchMode) => {
@@ -1465,8 +1193,7 @@ export function Match({
       setAiThinking(false);
       setAiError(null);
       setTargetingIndex(null);
-      setTurnSnapshots([]);
-      setRedoStack([]);
+      undoRedo.reset();
       setEditorPiece(null);
       paletteDragRef.current = null;
       setPaletteDragActive(false);
@@ -1480,16 +1207,17 @@ export function Match({
         setCardState(createMatchCardState([], rng));
       }
     },
-    [mode, initialFen, initialDeck, rng],
+    [mode, initialFen, initialDeck, rng, undoRedo],
   );
 
   /**
-   * Roll the match back to the start of the previous player turn —
-   * including undoing the AI's most recent move. Repeatable: each call
-   * peels one more turn off the stack, all the way back to turn 1.
+   * Undo / redo are unlimited and rewind across the AI's preceding move —
+   * a snapshot represents the start of a player turn (or the start of a
+   * dev-mode action). Both flows are gated on aiThinking / matchOver so
+   * the player can't tear down state while a worker reply is in flight.
    */
-  const canUndo = cardsEnabled && turnSnapshots.length >= 2 && !aiThinking && !matchOver;
-  const canRedo = cardsEnabled && redoStack.length > 0 && !aiThinking && !matchOver;
+  const canUndo = cardsEnabled && undoRedo.undoDepth >= 2 && !aiThinking && !matchOver;
+  const canRedo = cardsEnabled && undoRedo.redoDepth > 0 && !aiThinking && !matchOver;
 
   const clearTransientUI = useCallback(() => {
     setSelected(null);
@@ -1501,38 +1229,21 @@ export function Match({
 
   const undo = useCallback(() => {
     if (!canUndo) return;
-    setTurnSnapshots((prev) => {
-      if (prev.length < 2) return prev;
-      const popped = prev[prev.length - 1];
-      const next = prev.slice(0, -1);
-      const target = next[next.length - 1];
-      engine.restore(target.engineSnapshot);
-      setCardState(target.cardState);
-      // Stash the undone snapshot so Redo can re-apply it.
-      setRedoStack((r) => [...r, popped]);
+    undoRedo.undo((cs) => {
+      setCardState(cs);
       clearTransientUI();
       setVersion((v) => v + 1);
-      return next;
     });
-  }, [canUndo, engine, clearTransientUI]);
+  }, [canUndo, undoRedo, clearTransientUI]);
 
-  /**
-   * Re-apply the most recently undone turn. Cleared when the player makes
-   * a new move (i.e. when the AI loop pushes a fresh snapshot).
-   */
   const redo = useCallback(() => {
     if (!canRedo) return;
-    setRedoStack((r) => {
-      if (r.length === 0) return r;
-      const target = r[r.length - 1];
-      engine.restore(target.engineSnapshot);
-      setCardState(target.cardState);
-      setTurnSnapshots((prev) => [...prev, target]);
+    undoRedo.redo((cs) => {
+      setCardState(cs);
       clearTransientUI();
       setVersion((v) => v + 1);
-      return r.slice(0, -1);
     });
-  }, [canRedo, engine, clearTransientUI]);
+  }, [canRedo, undoRedo, clearTransientUI]);
 
   // ---- Render ---------------------------------------------------------------
 
@@ -1781,38 +1492,3 @@ export function Match({
   );
 }
 
-function outcomeHeadline(o: MatchOutcome): string {
-  switch (o.kind) {
-    case "checkmate":
-      return o.winner === "player" ? "White wins" : "Black wins";
-    case "stalemate":
-      return "Stalemate";
-    case "draw":
-      return "Draw";
-    case "ongoing":
-      return "";
-  }
-}
-
-function outcomeDetail(o: MatchOutcome): string {
-  switch (o.kind) {
-    case "checkmate":
-      return "by checkmate";
-    case "stalemate":
-      return "no legal moves";
-    case "draw":
-      switch (o.reason) {
-        case "insufficient-material":
-          return "insufficient material";
-        case "threefold-repetition":
-          return "threefold repetition";
-        case "fifty-move":
-          return "fifty-move rule";
-        case "other":
-          return "drawn position";
-      }
-      break;
-    case "ongoing":
-      return "";
-  }
-}

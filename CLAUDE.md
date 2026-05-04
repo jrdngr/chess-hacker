@@ -26,7 +26,8 @@ When you start work, **read `docs/README.md` first** — it is the index for eve
 | Visual / audio direction                        | `docs/design/theme.md`                                            |
 | Tech stack and rationale                        | `docs/technical/stack.md`                                         |
 | Code architecture / state model                 | `docs/technical/architecture.md`                                  |
-| chess.js integration + rule extension layer     | `docs/technical/chess-integration.md`                             |
+| Chess engine (custom, wall-aware)               | `docs/technical/chess-integration.md`                             |
+| Dev sandbox mode                                | `docs/technical/dev-mode.md`                                      |
 | AI opponent (Stockfish.wasm + curse-AI layer)   | `docs/technical/ai.md`                                            |
 | Save / load                                     | `docs/technical/persistence.md`                                   |
 | Implementation milestones / what to build next  | `docs/roadmap/milestones.md`                                      |
@@ -48,5 +49,6 @@ When you start work, **read `docs/README.md` first** — it is the index for eve
 
 ## Tech reminders
 
-- Stack: TypeScript + React (Vite) + chess.js + Stockfish.wasm + localStorage. See `docs/technical/stack.md` for rationale.
+- Stack: TypeScript + React (Vite) + custom chess engine (`src/game/chess/`) + Stockfish.wasm + localStorage. See `docs/technical/stack.md` for rationale.
+- State management: `useState` in `src/components/Match.tsx` and its sibling hooks under `src/components/Match/` today. Zustand is queued for M5.
 - The game is single-player only; do not add multiplayer scaffolding (`docs/design/overview.md` records this).

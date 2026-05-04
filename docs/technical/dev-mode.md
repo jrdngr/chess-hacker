@@ -1,0 +1,39 @@
+# Dev Mode (Sandbox)
+
+The **Sandbox** is the development testing surface — a permanent tool, not a stepping-stone toward the real game. It exists so designers / agents can poke at any board state, any card, any AI configuration without going through a run.
+
+Reach it via `App.tsx`'s mode menu → **Sandbox**. Code-side this mounts `<Match runMode="dev" />`.
+
+## What it gives you
+
+- **Board editor.** Click a piece in the palette to "load" a brush, then click a square to place / overwrite. Click "Erase" then a square to clear it. Drag from the palette directly to a square as a shortcut. Editor edits do not flip the side to move; use the side-to-move toggle for that.
+- **Standard start / Clear** buttons. Standard start sets up the canonical opening position; Clear empties the board entirely (kings included — useful for stress-testing edge cases).
+- **Side-to-move toggle.** Forces white or black to move next without playing a move.
+- **Energy controls.** Bump energy ±1; useful for testing high-cost cards.
+- **Optional AI.** "AI on" switches the dev sandbox into the same Stockfish loop the prototype uses, so you can play against the AI from any custom position. Off by default — most editor work doesn't want the AI replying.
+- **Card library overlay.** Browse the full card library grouped by archetype. Drag a card onto the board (or click "Play") to play it for free — energy is restored after the play resolves and the card is scrubbed from the consumed pile, so you can experiment with sequences without permanent state cost.
+- **Chess-vision overlay.** Toggle to colour squares by attacker side: blue (player only), red (opponent only), purple (both). Helpful for spotting threats and overworked defenders.
+- **Action-granular undo / redo.** Snapshots are pushed at each turn rollover *and* at each editor edit, energy bump, or library card play. Undo rewinds across that whole stream — including across the AI's preceding move. Redo replays. The stack is unbounded.
+
+## What it deliberately does not have
+
+- No win / loss screen — the sandbox doesn't end. (`outcome` is still computed and rendered for inspection, but doesn't gate anything.)
+- No run state, gold, artifacts, or shop. Dev mode is pure match-state experimentation.
+- No card-draft prompts — the deck stays whatever the dev panel + library card plays produce.
+
+## Architecture
+
+Match.tsx composes a quartet of hooks (`useMatchEngine`, `useCardSystem`, `useAiTurn`, `useUndoRedo`) plus, when `runMode === "dev"`, a fifth (`useDevEditor`) that owns the editor brush, palette / library drag refs, chess-vision toggle, and the editor-only handlers (`applyEditorEdit`, `clearBoard`, `standardStart`, `bumpEnergy`, `playLibraryCard`, …).
+
+Snapshots that drive undo/redo capture engine + card state together (`{engineSnapshot, cardState}`) — see `useUndoRedo.ts`. When run state lands in M5 the snapshot model will need to extend (so undo across a shop spend is sensible), but match-only undo today is correct.
+
+The DevPanel component (`src/components/Match/DevPanel.tsx`) is purely presentational; all state belongs to `useDevEditor` and is passed down as props.
+
+## When to extend it
+
+- Add new dev controls to `useDevEditor` (state) and `DevPanel.tsx` (UI).
+- M5 will likely grow it with run-side debug toggles (give yourself gold, force a specific reward, etc.) — those should mount only when a run is in progress, on the same panel.
+
+## Why it exists
+
+Hand-authored match scenarios are essential for tuning cards, testing rule edge cases (walls, freezes, traps interacting weirdly), and reproducing reported bugs. The sandbox is the cheapest way to get there. Keep it working.

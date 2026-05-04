@@ -39,6 +39,7 @@ docs/
 │   ├── stack.md
 │   ├── architecture.md
 │   ├── chess-integration.md
+│   ├── dev-mode.md
 │   ├── ai.md
 │   └── persistence.md
 └── roadmap/                    ← what to build, and what is undecided
@@ -49,7 +50,7 @@ docs/
 ## Conventions
 
 - These docs are the source of truth for design intent. When implementing, follow them. When you discover the design needs to change, **update the doc in the same PR/commit as the code**.
-- Numbers in these docs (energy = 3, hand size = 5, 9 matches per run, etc.) are **starting values for the prototype**. They are tuning knobs and likely to change once we playtest.
+- Numbers in these docs (starting energy = 1 with +1/turn ramp banking up to 10, hand size = 5, 9 matches per run, etc.) are **starting values for the prototype**. They are tuning knobs and likely to change once we playtest.
 - Open questions and explicit "TBD" items live in [`roadmap/open-questions.md`](roadmap/open-questions.md). If you make a decision while implementing, move it from open-questions into the relevant design doc.
 - This is a **prototype**. Don't over-engineer. Don't build for hypothetical future features (multiplayer, mobile, alternative themes) unless they are explicitly in scope here.
 
@@ -67,6 +68,6 @@ docs/
 - **Bosses:** 3 hand-crafted, visible at act start. Combine match-modifier rules + fixed board hazards + curse cards forced into the player's hand.
 - **Win conditions:** standard chess — checkmate, stalemate, draws all enforced. Draws count as run-loss. No clock.
 - **Meta-progression:** content unlocks only (no power buffs); Ascension/heat ladder for replay; single character.
-- **Stack:** TypeScript + React (Vite), chess.js, Stockfish.wasm, localStorage.
+- **Stack:** TypeScript + React (Vite), custom chess engine (`src/game/chess/`), Stockfish.wasm, localStorage.
 
 For everything else — the why, the details, the edge cases — read the per-topic docs above.

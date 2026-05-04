@@ -65,10 +65,10 @@ Loosely grouped by topic.
 
 ## Technical
 
-- **State management library.** Default: Zustand. May switch to React Context if the team prefers.
-- **CSS approach.** Default: CSS modules. May switch to Tailwind for speed.
+- **State management library.** Resolved: ship M0–M4 on React `useState`; adopt Zustand at M5 when run state crosses screens. See `docs/technical/stack.md`.
+- **CSS approach.** Resolved: CSS modules. May switch to Tailwind later if authoring slows iteration; no current pressure.
 - **Stockfish skill levels vs depth.** Default: depth-tuned only. Skill-level option is an additional knob if depth scaling is too coarse.
-- **Walls in Stockfish FEN.** MultiPV-and-filter approach (validate AI's move against our wrapper) is the chosen pattern. Performance impact unknown — may need to reconsider if AI thinking time bloats.
+- **Walls in Stockfish.** Resolved: UCI `searchmoves` filter restricts the AI to our wall/freeze-aware legal-move set; Stockfish never sees overlays. `engine.move()` re-validates as a defensive fallback. See `docs/technical/chess-integration.md`.
 - **Save format versioning.** Default: simple `version: number` integer. Migration policy: forward-only, fail-soft on incompatibility (drop saved run, preserve meta).
 - **Web Worker placement of curse-AI.** Default main-thread. Move to worker only if profiling shows a problem.
 
@@ -83,8 +83,21 @@ Loosely grouped by topic.
 
 - **Tutorial / onboarding.** Out of MVP. Consider a "first-run" mini-tutorial after content is stable.
 - **Audio.** No music in MVP. Consider after gameplay is locked.
-- **Debug tools.** A "developer panel" to give yourself gold, force draws of specific cards, set up specific board states — strongly recommended for tuning. Add when manual testing becomes painful.
+- **Debug tools.** Resolved: shipped as the **Sandbox** dev mode (board editor, free card library, optional AI, action-granular undo/redo). See `docs/technical/dev-mode.md`. M5 will likely add gold / artifact / boss debug toggles to the same panel.
 - **Version display.** Show a small build version somewhere in the UI. Lets us reproduce reported bugs.
+
+## UI / UX (continued)
+
+- **End-turn button.** Resolved: making a chess move ends the turn. Cards must be played BEFORE the move. No explicit End-Turn button — see `docs/technical/architecture.md`.
+
+## Card-design follow-ups
+
+Deferred from the energy + card-disposal redesign (formerly `TODO.md`). Not blocking, but worth revisiting after some playtest miles.
+
+- **Card naming.** 14 card ids are placeholders: `cheap-destroy`, `big-destroy`, `improvise`, `trick-bag`, `mark-target`, `vine-pull`, `recall`, `recover`, `pace`, `hum`, `drift`, `shiv-strike`, `shiv-step`, `shiv-snag`. Pick final names that fit the theme (see `docs/design/theme.md`).
+- **Self-replicator balance.** Pace and Hum at cost 1 may be too dominant — perpetual scry-1 / draw-1. Options: raise the cost, add a fatigue counter (each replication weakens or eventually stops), or cap replications per match.
+- **Drift's effect.** Currently a 1-cost compound that walls a square for 1 turn and shuffles a copy of itself back into the deck. The minor positional utility is a placeholder. Candidates for a swap-in: tag a piece for +1 movement next turn, briefly reveal opponent threats. Pick after seeing how Pace and Hum feel.
+- **Shiv-pool roster.** Three shivs (`shiv-strike`, `shiv-step`, `shiv-snag`) is an arbitrary starting point. Tune the pool size and per-shiv effects in playtest. Goal: each shiv should be useful but unspectacular — the value comes from getting three at once via Trick Bag.
 
 ## Process
 

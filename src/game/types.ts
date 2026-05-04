@@ -191,6 +191,93 @@ export type Trap = {
   expiresOnTurn: number;
 };
 
+// ---- Scaffolding for M5+ milestones -----------------------------------------
+//
+// These types are placeholders for the run loop, shop, artifacts, bosses, and
+// zone-control buffs. Each is minimal — just enough so future PRs can compile-
+// check against intended shapes without dead implementations. See `docs/
+// roadmap/milestones.md` for the per-milestone scope. Types will be expanded
+// in their respective PRs (M5/M6/M7/M8/M10).
+
+// === Run state (M5) ===
+export type RunMode = "royal" | "skirmish";
+export type RunPhase = "match" | "reward" | "shop" | "boss-preview" | "ended";
+export type RunState = {
+  mode: RunMode;
+  ascension: number;
+  act: 1 | 2 | 3;
+  matchInAct: 1 | 2 | 3;
+  gold: number;
+  deck: Card[];
+  artifacts: Artifact[];
+  /** Skirmish only — the player's persistent army roster. */
+  roster?: Piece[];
+  rngSeed: number;
+  phase: RunPhase;
+};
+
+// === Artifacts (M6) ===
+export type ArtifactRarity = "common" | "uncommon" | "rare";
+export type ArtifactTriggerKind =
+  | "card-played"
+  | "capture"
+  | "turn-start"
+  | "turn-end"
+  | "match-start"
+  | "match-won";
+export type Artifact = {
+  id: string;
+  name: string;
+  rarity: ArtifactRarity;
+  description: string;
+  triggers: ReadonlyArray<ArtifactTriggerKind>;
+  // The effect shape lands in M6 — likely a discriminated union mirroring
+  // CardEffect, but with hooks-style "when this trigger fires, do that".
+};
+
+// === Shop (M5) ===
+export type ShopOfferKind = "card" | "booster" | "artifact";
+export type ShopOffer =
+  | { kind: "card"; card: Card; price: number; sold?: boolean }
+  | { kind: "booster"; id: string; price: number; sold?: boolean }
+  | { kind: "artifact"; artifact: Artifact; price: number; sold?: boolean };
+export type Shop = {
+  offers: ShopOffer[];
+  rerollCost: number;
+  removalCost: number;
+};
+
+// === Bosses (M8) ===
+export type BossId = string;
+export type BossModifier = {
+  bossId: BossId;
+  // Modifier-rule shape lands in M8 — examples in docs/design/bosses.md
+  // include "all your pawns are rooted on turn 1", "the boss starts with
+  // an extra rook", etc.
+};
+export type CurseSchedule = {
+  curses: Card[];
+  // Scheduling shape lands in M8 — likely a list of triggers (turn N, on
+  // capture, on player check) each pointing at a curse to insert.
+};
+
+// === Zone-control buffs (M7) ===
+export type ZoneBuff = {
+  square: AlgebraicSquare;
+  pattern: "adjacent-orthogonal" | "adjacent-diagonal" | "king-radius";
+  /** Tightened in M7 — likely a discriminated union of buff effects. */
+  effect: string;
+};
+
+// === Skirmish piece identity (M10) ===
+// Piece today is just { type, side }. M10 needs identity so individual
+// pieces can be tracked across drafts and placement. The optional `id`
+// keeps existing call sites valid; M10 will tighten it to required for
+// roster pieces while leaving in-match Piece references unchanged.
+// (No type change here yet — documented for future reference.)
+
+// -----------------------------------------------------------------------------
+
 /**
  * Match-scoped card / overlay state. The chess board itself lives in the
  * `ChoseEngine`; this struct is the rest of the per-match state.

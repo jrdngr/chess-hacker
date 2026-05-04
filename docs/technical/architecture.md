@@ -2,145 +2,175 @@
 
 This is a prototype web app. The architecture should be **simple, testable, and easy to evolve.** It is *not* designed for multiplayer, real-time scaling, or modding.
 
+> **Document status (2026-05-03):** This describes the *target* architecture across M0–M11. Sections marked **(planned)** are not yet implemented. Today the codebase implements the chess engine, card system, and dev sandbox; the run / shop / artifact / boss / overlay / progression / persistence layers ship in M5 onward. See `docs/roadmap/milestones.md` for current status.
+
 ## Layers (top to bottom)
 
 ```
 ┌──────────────────────────────────────────────────┐
 │ React UI components (Board, Hand, Shop, Modals)  │
 ├──────────────────────────────────────────────────┤
-│ Run / Match state stores (Zustand)               │
+│ Run / Match state                                │
+│   - today: useState in Match.tsx (M0–M4)         │
+│   - planned: Zustand stores (M5+)                │
 ├──────────────────────────────────────────────────┤
 │ Game logic (pure TS modules)                     │
-│   - chess engine wrapper (chess-integration)     │
+│   - chess engine (chess-integration)             │
 │   - card system (cards, hand, energy)            │
 │   - effect resolution (apply card effects)       │
-│   - artifact triggers                            │
-│   - boss curse layer                             │
-│   - shop / draft logic                           │
+│   - artifact triggers      (planned, M6)         │
+│   - boss curse layer       (planned, M8)         │
+│   - shop / draft logic     (planned, M5)         │
 ├──────────────────────────────────────────────────┤
-│ AI worker (Stockfish.wasm) + curse-AI layer      │
+│ AI worker (Stockfish.wasm) + curse-AI (M8)       │
 ├──────────────────────────────────────────────────┤
-│ Persistence (localStorage adapter)               │
+│ Persistence (localStorage adapter, M9)           │
 ├──────────────────────────────────────────────────┤
-│ Static data (cards.json, artifacts.json, bosses) │
+│ Static data (cards JSON; artifacts/bosses M6–M8) │
 └──────────────────────────────────────────────────┘
 ```
 
 The **game logic layer must be pure TypeScript with no React dependencies.** This makes it testable in Vitest without DOM mocking and lets us pull it out into a worker if performance demands it.
 
-The **state stores** are the only place game state lives at runtime. UI components subscribe to slices of state. Game-logic functions return new state objects (immutable updates).
+**State management:** today match state lives in `src/components/Match.tsx` and its sibling hooks (`useMatchEngine`, `useCardSystem`, `useAiTurn`, `useUndoRedo`, `useDevEditor`) under `src/components/Match/`. The hook surface is shaped like store actions so the M5 migration to Zustand is mechanical. Once Zustand lands, components subscribe to slices of store state and game-logic functions return new state objects (immutable updates).
 
-## Suggested directory layout
+## Directory layout
+
+What exists today:
 
 ```
 src/
-├── main.tsx                  # Vite entry point
-├── App.tsx                   # Top-level router (mode select / run / match)
-├── components/               # React UI
+├── main.tsx                       # Vite entry point
+├── App.tsx                        # Top-level router (menu / sandbox; M5 will add run flow)
+├── components/                    # React UI
 │   ├── Board/
+│   │   ├── Board.tsx
+│   │   ├── CapturedPieces.tsx
+│   │   ├── PieceGlyph.tsx
+│   │   └── material.ts
 │   ├── Hand/
-│   ├── Shop/
-│   ├── Reward/
-│   ├── Placement/            # Skirmish placement screen
-│   ├── ArtifactSidebar/
-│   └── ...
-├── stores/                   # Zustand stores
-│   ├── runStore.ts           # Whole-run state (gold, deck, roster, artifacts, act/match index)
-│   ├── matchStore.ts         # Active match state (board, hand, energy, turn, overlays)
-│   └── metaStore.ts          # Cross-run state (unlocks, ascension, stats)
-├── game/                     # Pure TS game logic
-│   ├── chess/                # chess.js wrapper + rule-extension layer
-│   ├── cards/                # Card system: effects, resolution, library loader
-│   │   ├── data/             #   one JSON file per card (source of truth)
-│   │   ├── decks/            #   deck compositions ({ id, count } lists)
-│   │   ├── library.ts        #   loads + validates card JSON at startup
-│   │   └── match.ts          #   match-scoped state + effect resolver
-│   ├── artifacts/            # Artifact definitions, triggers
-│   ├── pieces/               # Piece-related logic (Skirmish drafts, soft caps)
-│   ├── shop/                 # Shop generation, reroll, removal
-│   ├── bosses/               # Boss definitions, curse-card insertion logic
-│   ├── overlays/             # Walls, square effects, zone-control
-│   ├── progression/          # Run flow (acts, matches, rewards)
-│   ├── ascension/            # Difficulty modifier definitions
-│   └── types.ts              # Shared types (Card, Piece, Artifact, etc.)
-├── ai/                       # AI worker code
-│   ├── worker.ts             # Web Worker entry; hosts Stockfish
-│   ├── stockfish.ts          # Stockfish.wasm wrapper
-│   └── curseAI.ts            # Boss curse-insertion scheduling
-├── data/                     # Static data (cards live under game/cards/data/)
-│   ├── artifacts.json
-│   └── bosses.ts             # Boss definitions are code (modifier rules) not just data
-├── persistence/              # localStorage adapter
-└── styles/                   # Global CSS
+│   │   ├── Hand.tsx
+│   │   ├── ScryModal.tsx
+│   │   ├── ReviveModal.tsx
+│   │   └── PileInspector.tsx
+│   ├── Match.tsx                  # Match shell; composes the hooks below
+│   └── Match/
+│       ├── DevPanel.tsx           # Dev sandbox UI (editor, library, AI toggle)
+│       ├── derivations.ts         # Pure overlay/badge derivations
+│       ├── sideEffects.ts         # Pure helpers (resolveTrapForMove, formatters)
+│       ├── useMatchEngine.ts      # Engine + selection + outcome
+│       ├── useCardSystem.ts       # cardState + targeting + modals
+│       ├── useAiTurn.ts           # Stockfish loop
+│       ├── useUndoRedo.ts         # Snapshot stack
+│       └── useDevEditor.ts        # Dev-only editor + chess-vision
+├── game/                          # Pure TS game logic — no React
+│   ├── chess/
+│   │   ├── rules.ts               # Wall-aware move gen, check, FEN
+│   │   └── engine.ts              # ChoseEngine (stateful wrapper over rules.ts)
+│   ├── cards/
+│   │   ├── data/                  # One JSON file per card (source of truth)
+│   │   ├── library.ts             # Loads + validates card JSON at startup
+│   │   └── match.ts               # Match-scoped card state + effect resolver
+│   └── types.ts                   # Shared types (Card, Piece, statuses, MatchCardState, …)
+└── ai/
+    └── stockfish.ts               # Stockfish.wasm wrapper (Web Worker)
 ```
 
-## Core types (sketch)
+What M5+ will add, in roughly milestone order:
+
+```
+src/
+├── stores/                        (planned, M5)  Zustand
+│   ├── runStore.ts                  # gold, deck, roster, artifacts, act/match
+│   ├── matchStore.ts                # board, hand, energy, turn, overlays
+│   └── metaStore.ts                 # unlocks, ascension, stats
+├── components/
+│   ├── Shop/                      (planned, M5)
+│   ├── Reward/                    (planned, M5)
+│   ├── Placement/                 (planned, M10) Skirmish placement screen
+│   └── ArtifactSidebar/           (planned, M6)
+├── game/
+│   ├── progression/               (planned, M5)  Run flow (acts, matches, rewards)
+│   ├── shop/                      (planned, M5)  Shop generation, reroll, removal
+│   ├── artifacts/                 (planned, M6)
+│   │   ├── data/                    #   one JSON file per artifact
+│   │   └── library.ts               #   loader + validation, sister to cards/library.ts
+│   ├── overlays/                  (planned, M7)  Zone-control buffs
+│   ├── bosses/                    (planned, M8)  Boss definitions + curse insertion
+│   ├── pieces/                    (planned, M10) Skirmish drafts, soft caps
+│   └── ascension/                 (planned, post-M11) Difficulty modifier definitions
+├── ai/
+│   └── curseAI.ts                 (planned, M8)  Curse-card insertion scheduling
+└── persistence/                   (planned, M9)  localStorage adapter
+```
+
+Empty folders are intentionally **not** created until their milestone starts — placeholder types live in `src/game/types.ts` so future PRs can compile-check against the intended shapes without dead code.
+
+## Core types
+
+The authoritative type definitions live in `src/game/types.ts`. The shape today:
 
 ```ts
-// game/types.ts (rough)
+// game/types.ts (current)
 
-type Square = { file: 0..7; rank: 0..7 }; // a1 = (0,0), h8 = (7,7)
+type FileIndex = 0|1|2|3|4|5|6|7;
+type RankIndex = 0|1|2|3|4|5|6|7;
+type Square = { file: FileIndex; rank: RankIndex };
+type AlgebraicSquare = string;                          // "e4" — used at the engine boundary
+
 type PieceType = "pawn" | "knight" | "bishop" | "rook" | "queen" | "king";
 type Side = "player" | "opponent";
-type Piece = { id: string; type: PieceType; owner: Side; };
+type Piece = { type: PieceType; side: Side };           // (no id today; M10 adds one for Skirmish)
 
 type Card = {
   id: string;
   name: string;
-  cost: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  cost: 0..10;
   rarity: "common" | "uncommon" | "rare";
-  archetype: "tempo" | "spatial" | "movement" | "disruption" | "resource" | "defensive" | "burst";
-  curse?: boolean;        // true for boss curse cards
-  effect: CardEffect;     // resolved by the effect system
+  archetype: "tempo" | "spatial" | "movement" | "disruption"
+           | "resource" | "defensive" | "burst" | "sacrifice" | "summon" | "swap";
+  curse?: boolean;
   description: string;
+  target: CardTarget;                                   // what input the player picks
+  effect: CardEffect;                                   // 25-way discriminated union
 };
 
-type Artifact = {
-  id: string;
-  name: string;
-  rarity: "common" | "uncommon" | "rare";
-  description: string;
-  effect: ArtifactEffect; // hooks into trigger system
-};
+// Overlays (M3 stores; M4 enforces walls in the chess engine)
+type Wall = { square: AlgebraicSquare; expiresOnTurn: number };
+type PieceStatus = { square: AlgebraicSquare; side: Side; expiresOnTurn: number };
+type EmpowerStatus = PieceStatus & { pattern: EmpowerPattern; singleUse?: boolean };
+type LightningStatus = PieceStatus & { remaining: number };
+type Sanctuary = { square: AlgebraicSquare; expiresOnTurn: number };
+type Trap = { square: AlgebraicSquare; effect: "capture"|"freeze"|"push"; expiresOnTurn: number };
 
-type Wall = { square: Square; destructible: boolean; expiresOn?: number /* turn */ };
-type SquareEffect = { square: Square; effect: SquareEffectKind; expiresOn: number };
-
-type Board = {
-  // Pieces and positions are owned by chess.js wrapper, but referenced here.
+type MatchCardState = {
+  hand: Card[]; drawPile: Card[]; consumedPile: Card[]; acquisitionLog: Card[];
+  energy: number;
+  turn: number;                                         // 1-indexed player turn
   walls: Wall[];
-  squareEffects: SquareEffect[];
-  zoneBuffs: ZoneBuff[];
-};
-
-type RunState = {
-  mode: "royal" | "skirmish";
-  ascension: number;
-  act: 1 | 2 | 3;
-  matchInAct: 1 | 2 | 3;
-  gold: number;
-  deck: Card[];
-  artifacts: Artifact[];
-  roster?: Piece[];          // Skirmish only
-  rngSeed: number;
-};
-
-type MatchState = {
-  board: ChessBoardSnapshot; // chess.js position
-  overlays: Board;           // walls / square effects / zone buffs
-  hand: Card[];
-  drawPile: Card[];
-  consumedPile: Card[];      // every played card lands here for the rest of the match
-  energy: number;            // banks across turns, capped at 10
-  turn: number;
-  whoseTurn: Side;
-  bossModifier?: BossModifier;
-  curseSchedule?: CurseSchedule;
-  outcome?: "playerWins" | "opponentWins" | "draw";
+  freezes: PieceStatus[];                               // FrozenPiece alias
+  roots: PieceStatus[]; disarms: PieceStatus[]; compels: PieceStatus[];
+  shields: PieceStatus[]; hastes: PieceStatus[];
+  lightnings: LightningStatus[];
+  empowers: EmpowerStatus[];
+  sanctuaries: Sanctuary[]; traps: Trap[];
 };
 ```
 
-These types are sketches. The actual code may evolve them; what matters is the shape:
+Scaffolding types added for M5+ milestones (no implementations yet — see the type file for current sketches):
+
+```ts
+// (planned shapes — defined in game/types.ts as scaffolding; refined per milestone)
+
+type RunState = { mode; ascension; act; matchInAct; gold; deck; artifacts; roster?; rngSeed; phase };  // M5
+type Artifact = { id; name; rarity; description; triggers };                                            // M6
+type Shop = { offers: ShopOffer[]; rerollCost; removalCost };                                           // M5
+type BossModifier = { bossId; /* rule shape M8 */ };                                                    // M8
+type CurseSchedule = { curses: Card[] };                                                                // M8
+type ZoneBuff = { square; pattern; effect };                                                            // M7
+```
+
+The chess board itself lives in the `ChoseEngine` instance — it is *not* duplicated in `MatchCardState`. The split: **engine** = position + history; **`MatchCardState`** = everything else per-match (cards, energy, overlays).
 
 - **Run state** is preserved across matches.
 - **Match state** is fresh per match.
@@ -160,11 +190,11 @@ boss-definition modules) once those systems are implemented.
 
 ## Update flow during a match
 
-1. **It's the player's turn.** State: `MatchState.whoseTurn === "player"`. Energy reset to 3. Hand drawn to 5.
-2. Player plays a card → resolve its effect against `MatchState`. Mutate immutably (return new state). Energy decrements. Card moves to discard or is consumed. UI re-renders.
-3. Player makes a chess move → call into chess engine wrapper. Update `MatchState.board` and overlays. Check for win/loss/draw.
-4. Player ends turn (explicit "End Turn" button after every play, or via making a move? — see UI design open question).
-5. **Opponent's turn.** Curse layer fires any scheduled triggers (inserts curses). Stockfish AI is asked for a move on a virtualized board (with rule extensions applied). Move executes. Check for win/loss/draw.
+1. **It's the player's turn.** `startPlayerTurn` ticks turn-bound overlays (statuses expire), refills hand to 5, banks +1 energy (capped at 10).
+2. Player plays any number of cards → `playCard` resolves each effect against `MatchCardState`, returning a new state plus a list of `CardSideEffect`s that the React layer applies to the engine (place/remove/swap pieces, foreign moves, etc.). The played card moves to `consumedPile` for the rest of the match.
+3. Player makes a chess move → `engine.move(...)`. The trap resolver (`resolveTrapForMove`) walks the move path and fires the first trap hit (capture / freeze / push). Outcome is checked.
+4. **Move ends the turn.** Cards must be played BEFORE moving. (No explicit End-Turn button; the chess move is the turn boundary.)
+5. **Opponent's turn.** `useAiTurn` asks Stockfish for a move on the legal-move set (UCI `searchmoves` filter). Move executes through the same engine path. Curse layer (planned, M8) fires any scheduled triggers before the AI is asked.
 6. Loop.
 
 ## State purity / determinism

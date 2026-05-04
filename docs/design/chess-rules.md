@@ -1,6 +1,6 @@
 # Chess Rules
 
-choss uses **standard chess** as its rule baseline. Where this doc says "standard", we mean the FIDE laws of chess as commonly implemented (and as chess.js implements). Cards, artifacts, and bosses can override these rules in specific ways; this doc covers the **defaults**, and `cards.md` / `artifacts.md` / `bosses.md` cover the override mechanisms.
+choss uses **standard chess** as its rule baseline. Where this doc says "standard", we mean the FIDE laws of chess as commonly implemented (the rule layer in `src/game/chess/rules.ts` enforces them). Cards, artifacts, and bosses can override these rules in specific ways; this doc covers the **defaults**, and `cards.md` / `artifacts.md` / `bosses.md` cover the override mechanisms.
 
 ## Win, loss, draw
 
@@ -95,7 +95,7 @@ Subject to specific card / artifact / boss text:
 
 ## Edge case: when chess rules and card rules conflict
 
-If a card's effect would create a board state inconsistent with standard chess (e.g., multiple kings, kings in check that can't be escaped), the card's effect is the **canonical state** and chess.js (or our chess rule layer) is updated to reflect it. See `technical/chess-integration.md` for how we layer rule extensions over chess.js.
+If a card's effect would create a board state inconsistent with standard chess (e.g., multiple kings, kings in check that can't be escaped), the card's effect is the **canonical state** and the chess rule layer (`src/game/chess/rules.ts`) accommodates it. See `technical/chess-integration.md` for how the engine threads card-spawned overlays through move generation and check evaluation.
 
 If a card would let the player make a move that puts their own king in check (illegal in standard chess), the card is interpreted strictly: **unless the card explicitly says "you may put your own king in check"**, the move remains illegal. We err toward standard chess conservatism.
 

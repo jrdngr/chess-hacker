@@ -66,7 +66,7 @@ The board is always an 8x8 grid. Internally it should be modeled as a 2D state o
 
 Zone-control buffs are not per-square; they are computed at the match level by inspecting which squares are "controlled" each turn (see `technical/architecture.md`).
 
-The chess.js library handles the **piece state**; we layer wall / square-effect state above it. See `technical/chess-integration.md`.
+The custom chess engine (`src/game/chess/`) handles the **piece state**; we layer wall / square-effect state above it via the engine's `Overlays`. See `technical/chess-integration.md`.
 
 ## Visual representation
 

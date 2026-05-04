@@ -9,10 +9,10 @@ The prototype is a **single-player web app**. No backend services in the prototy
 | Language               | TypeScript                                   |
 | Build tool             | Vite                                         |
 | UI framework           | React                                        |
-| Chess rules            | chess.js                                     |
+| Chess rules            | Custom in-repo engine (`src/game/chess/`) — chess.js was tried and replaced |
 | Chess AI               | Stockfish.wasm (depth-tuned)                 |
 | Save / persistence     | Browser localStorage                         |
-| State management       | Zustand or Context — pick the simplest one we don't outgrow (default: Zustand for global run state) |
+| State management       | React `useState` today (in `src/components/Match.tsx` + sibling hooks). **Zustand is queued for M5** when run state must survive across screens (`mode-select` → `match` → `reward` → `shop`). |
 | Styling                | Plain CSS modules (or Tailwind if we want speed). Prefer CSS modules for simpler debug. |
 | Routing                | React Router only if we end up with multiple pages; otherwise none |
 | Tests                  | Vitest                                       |
@@ -27,13 +27,14 @@ The prototype is a **single-player web app**. No backend services in the prototy
 - **React** is the most accessible UI framework for the kind of UI we're building (cards, drag/drop, modals, side-panels). Big ecosystem, huge documentation surface, easy to onboard new contributors.
 - **Vite** is the fastest-iterating modern build tool. Hot-module reload is essential for tuning a card-heavy game.
 
-### chess.js
+### Custom chess engine (replaced chess.js)
 
-- Battle-tested, MIT-licensed, ~5MB compressed footprint isn't an issue for a non-mobile web prototype.
-- Implements legal-move generation, check/checkmate/stalemate detection, FEN/PGN parsing, draw rules.
-- It does not natively support our card-induced rule extensions (extra moves, walls). We **wrap chess.js** and layer an extension layer on top — see `chess-integration.md` for the wrap pattern.
+- Originally we planned to wrap chess.js. We tried it and replaced it with a custom engine in `src/game/chess/` (rules in `rules.ts`, stateful wrapper in `engine.ts`).
+- The trigger was **wall-aware move generation**. chess.js doesn't expose hooks deep enough into ray attacks / check evaluation to treat walls as friendly blockers cleanly; doing it as a post-filter loses correctness on edge cases (sliding-piece pins, castling transit, en-passant target, attacker-set computation for in-check evaluation).
+- The custom engine implements: legal-move generation (including castling, en-passant, promotion), check/checkmate/stalemate, threefold repetition, 50-move draw, FEN parsing/serialization, attacker sets per side, and pluggable `Overlays` (walls, freezes, roots, disarms, compels, shields, sanctuaries, empowers) that all rule paths consult uniformly.
+- See `chess-integration.md` for the engine surface and how Stockfish moves are validated against it.
 
-Alternatives considered: writing a chess engine from scratch (rejected — too much surface area for a prototype); chessops or other libs (chess.js is the most popular and most documented).
+Alternatives considered: chessops or other libs (rejected for the same reason — same wall-blocking limitation); a thinner wrap-and-postfilter on chess.js (tried; correctness issues piled up).
 
 ### Stockfish.wasm
 
@@ -52,13 +53,12 @@ Alternatives considered: hand-rolled alpha-beta (rejected — far weaker chess p
 
 We will **JSON-serialize** the entire run/meta state. See `persistence.md` for the schema sketch.
 
-### Zustand for state
+### State management — `useState` today, Zustand at M5
 
-- Simpler API than Redux, less boilerplate than Context for cross-cutting state.
-- Good performance characteristics for the size of state we'll have.
-- Easy to mock for tests.
-
-(If the team has a strong preference for vanilla React Context + reducers, that's also fine for prototype scale. The choice should not be sacred.)
+- M0–M4 ship with React `useState` in `src/components/Match.tsx` (decomposed into a `useMatchEngine` / `useCardSystem` / `useAiTurn` / `useUndoRedo` / `useDevEditor` quartet under `src/components/Match/`). All match state lives in one component subtree, so prop-drilling is bounded and a store earns nothing yet.
+- **Zustand becomes load-bearing at M5**, when run state (gold, deck, artifacts, act/match index) must survive across `Match` → `Reward` → `Shop` → `Match` screen transitions. At that point the existing hooks migrate to a `runStore` + `matchStore` (the action-shaped hook surface makes this mechanical).
+- Reasons we picked Zustand specifically: simpler API than Redux, less boilerplate than Context for cross-cutting state, good selector-based subscription performance, easy to mock for tests, easy to serialize for persistence.
+- The dependency is already in `package.json` so the M5 PR can land without an install step.
 
 ### Plain CSS modules vs Tailwind
 
@@ -79,13 +79,13 @@ We will **JSON-serialize** the entire run/meta state. See `persistence.md` for t
 - Analytics / telemetry.
 - User accounts.
 
-## Project bootstrap (recommended)
+## Project bootstrap (historical, for reference)
 
 ```
 npm create vite@latest choss -- --template react-ts
 cd choss
-npm install chess.js stockfish.wasm zustand
+npm install stockfish.js zustand
 npm install -D vitest @testing-library/react @testing-library/jest-dom
 ```
 
-Then directory structure per `architecture.md`.
+(The actual bootstrap also installed chess.js, which has since been removed.) Directory structure follows `architecture.md`.

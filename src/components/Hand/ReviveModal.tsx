@@ -1,11 +1,8 @@
-// Modal for Recover (choose revive).
-//
-// Shows the consumed pile and lets the player pick one card to return to
-// hand. On pick, calls `onPick(index)` with the chosen card's index in the
-// consumed pile.
+// Recover modal — pick a card from the consumed pile to return to hand.
 
 import type { Card } from "../../game/types";
-import styles from "./ScryModal.module.css";
+import { CardListModal } from "./CardListModal";
+import styles from "./CardListModal.module.css";
 
 type Props = {
   cards: Card[];
@@ -15,39 +12,25 @@ type Props = {
 
 export function ReviveModal({ cards, onPick, onCancel }: Props) {
   return (
-    <div className={styles.backdrop} role="dialog" aria-label="Revive a consumed card">
-      <div className={styles.dialog}>
-        <h2 className={styles.title}>Revive a card</h2>
-        <p className={styles.hint}>
-          Pick a card from your consumed pile to return to your hand.
-        </p>
-        <ul className={styles.cardList}>
-          {cards.map((card, i) => (
-            <li key={`${card.id}-${i}`} className={styles.cardRow}>
-              <span className={styles.position}>{i + 1}.</span>
-              <span className={styles.cardName}>
-                <span className={styles.cost}>{card.cost}</span>
-                <span>{card.name}</span>
-              </span>
-              <span className={styles.controls}>
-                <button
-                  type="button"
-                  className={styles.confirmButton}
-                  onClick={() => onPick(i)}
-                  aria-label={`Pick ${card.name}`}
-                >
-                  Pick
-                </button>
-              </span>
-            </li>
-          ))}
-        </ul>
-        <div className={styles.actions}>
-          <button type="button" className={styles.confirmButton} onClick={onCancel}>
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
+    <CardListModal
+      title="Revive a card"
+      hint="Pick a card from your consumed pile to return to your hand."
+      cards={cards}
+      renderControls={(card, i) => (
+        <button
+          type="button"
+          className={styles.confirmButton}
+          onClick={() => onPick(i)}
+          aria-label={`Pick ${card.name}`}
+        >
+          Pick
+        </button>
+      )}
+      footer={
+        <button type="button" className={styles.confirmButton} onClick={onCancel}>
+          Cancel
+        </button>
+      }
+    />
   );
 }

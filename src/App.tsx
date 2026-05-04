@@ -1,6 +1,14 @@
 // Top-level shell. Picks a top-level run mode, then hands off to the
 // matching shell. Royal and Skirmish are reserved as future modes; Sandbox
 // is the development-only playground parallel to them.
+//
+// M5 routing surface (planned):
+//   menu  → run start (mode pick)
+//          → match  → reward  → shop  → match  → ...  → run end / menu
+// The run shell will live in a sibling component (e.g. `<Run mode="royal" />`)
+// driven by RunState (see src/game/types.ts). It will own gold, deck,
+// artifacts, and act/match indices, and pass the per-match Card[] / Piece[]
+// down to <Match>. Persistence (M9) attaches at the run boundary.
 
 import { useState } from "react";
 

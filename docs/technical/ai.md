@@ -54,31 +54,27 @@ between three depths via a Difficulty selector:
 
 ### Handling our rule extensions
 
-Stockfish only understands standard chess. When our cards have changed the rules (walls present, extension moves available to player only, etc.), we need to **virtualize** the position for Stockfish:
+Stockfish only understands standard chess. When our cards have changed the rules (walls present, frozen pieces, etc.) we restrict Stockfish's search to our overlay-aware legal-move set, rather than virtualizing walls into the FEN.
 
-- **Walls** that the AI's pieces cannot pass: represent as opaque enemy pieces of a non-attacking type? Or modify the FEN to remove squares?
-  - Actual approach: build a **virtual FEN** for Stockfish that represents the player's walls as **bystander pieces** (e.g., extra "dummy" rooks on the wall squares with castling rights / en passant disabled, or use chess.js to compute the attacked squares and prune the AI's legal moves manually).
-  - Simpler: pass Stockfish the position, get its `bestmove`, then **validate** the move against our wrapper's `legalMoves()`. If the move is illegal under our rules, ask Stockfish for a different move (use `setoption MultiPV 5` and pick the highest-scoring legal-under-our-rules option).
+**The pattern (`src/ai/stockfish.ts`):**
+
+```
+1. Engine: legalMoves()                       — fully overlay-aware (walls, freezes, etc.)
+2. searchMoves = legal moves formatted as UCI
+3. Stockfish: position fen <vanilla>; go depth N searchmoves <list>
+4. Stockfish replies bestmove m
+5. engine.move(m) re-validates as a defensive guard;
+   on null (impossible in steady state), play a random legal move.
+```
+
+UCI's `searchmoves` filter restricts the root move set to our list, so Stockfish never picks a move that violates a wall or moves a frozen piece. It still searches deeply within that set.
+
+- **Walls** are enforced via `searchmoves` — Stockfish never considers blocked moves at the root.
 - **Player's extension moves** (e.g., "your knight may move diagonally this turn") only apply to the player; the AI is not affected.
 - **Square effects** that the AI triggers by moving onto a square: Stockfish doesn't know about them. The AI just plays its move; the effect fires after.
-- **Zone-control buffs that affect the AI:** these should be reflected in the position by adjusting the search depth / contempt, OR baked into custom evaluation. For prototype, we **do not** make Stockfish "aware" of zone buffs — it plays optimal chess and the player exploits the buffs.
+- **Zone-control buffs that affect the AI:** for prototype, we **do not** make Stockfish "aware" of zone buffs — it plays optimal chess on the constrained move set and the player exploits the buffs.
 
 This last point is important: **the AI plays optimal chess; the cards/buffs are a player advantage.** This is intentional for the prototype.
-
-### MultiPV-and-filter pattern
-
-When walls/extensions might make Stockfish's chosen move illegal, use this pattern:
-
-```
-1. Set position FEN (vanilla, no walls).
-2. Stockfish: setoption MultiPV 5; go depth N.
-3. Get the top 5 candidate moves.
-4. For each candidate (best first), test against our wrapper's legalMoves().
-5. Pick the first that's legal under our rules.
-6. If none are legal, fall back to a random legal move (rare edge case).
-```
-
-This costs a small amount of perf overhead (5 candidate moves vs 1), but it cleanly handles the "Stockfish wants to push a piece through a wall" case.
 
 ## Curse-AI layer
 
