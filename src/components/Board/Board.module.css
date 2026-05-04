@@ -20,11 +20,21 @@
      board edges. The 4px border-radius is small enough that square-
      corner bleed is barely perceptible. */
   overflow: visible;
-  /* The largest square that fits both axes of the wrapper. */
-  width: min(100cqw, 100cqh);
-  height: min(100cqw, 100cqh);
+  /* Largest rectangle that fits both axes of the wrapper while honoring
+     the per-instance aspect-ratio (set inline by Board.tsx so non-square
+     boards like 6x8 render correctly). */
+  max-width: 100cqw;
+  max-height: 100cqh;
+  width: auto;
+  height: auto;
   aspect-ratio: 1 / 1;
   user-select: none;
+}
+
+.boardInvalid {
+  outline: 3px solid #d93444;
+  outline-offset: 2px;
+  box-shadow: 0 0 18px 2px rgba(217, 52, 68, 0.4);
 }
 
 .row {
@@ -113,6 +123,16 @@
 .walled {
   background: linear-gradient(135deg, #2a2620 0%, #1a1612 100%) !important;
   box-shadow: inset 0 0 0 2px #4d3d28;
+}
+
+.invalidPiece::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(217, 52, 68, 0.32);
+  box-shadow: inset 0 0 0 2px rgba(217, 52, 68, 0.85);
+  pointer-events: none;
+  z-index: 2;
 }
 
 .frozen::before {

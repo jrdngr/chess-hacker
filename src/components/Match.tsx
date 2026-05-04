@@ -60,6 +60,12 @@ import {
   type Difficulty,
   type StockfishOptions,
 } from "../ai/stockfish";
+import { pickBestMove as toyPickBestMove } from "../ai/toyAi";
+import { parseFen } from "../game/chess/rules";
+import {
+  offendingSquares as validationOffendingSquares,
+  validatePosition,
+} from "../game/chess/validate";
 import {
   ENERGY_MAX,
   clampEnergy,
@@ -87,6 +93,7 @@ import {
 import { makeStarterDeck } from "../game/cards/library";
 import type {
   AlgebraicSquare,
+  BoardSize,
   Card,
   MatchCardState,
   MatchOutcome,
@@ -128,6 +135,12 @@ type Props = {
   initialDifficulty?: Difficulty;
   /** Optional starting FEN. Used by tests to set up specific positions. */
   initialFen?: string;
+  /**
+   * Board dimensions. Defaults to 8x8 for back-compat. Standard-mode matches
+   * pass per-match sizes (6x6 / 6x8 / 8x8); the dev sandbox passes whatever
+   * the user picked from the size dropdowns.
+   */
+  initialBoardSize?: BoardSize;
   /** Hook to swap the AI engine in tests. */
   createAi?: (opts?: StockfishOptions) => StockfishEngine;
   /**
@@ -159,6 +172,7 @@ export function Match({
   initialMode = "vs-ai",
   initialDifficulty = "normal",
   initialFen,
+  initialBoardSize,
   createAi,
   aiMinThinkMs = DEFAULT_AI_MIN_THINK_MS,
   initialDeck,
@@ -170,7 +184,9 @@ export function Match({
   // gated separately by `devAiOn` below.
   const [mode, setMode] = useState<MatchMode>(runMode === "dev" ? "vs-ai" : initialMode);
   const [difficulty, setDifficulty] = useState<Difficulty>(initialDifficulty);
-  const [engine, setEngine] = useState(() => new ChoseEngine(initialFen));
+  const [engine, setEngine] = useState(() => new ChoseEngine(initialFen, initialBoardSize));
+  const isStandardSize =
+    engine.size().files === 8 && engine.size().ranks === 8;
   const [selected, setSelected] = useState<AlgebraicSquare | null>(null);
   // Bumped after each move so derived render values recompute.
   const [version, setVersion] = useState(0);
@@ -266,9 +282,12 @@ export function Match({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [undoRedo.undoDepth, mode]);
 
-  // Spin up the Stockfish worker only when in vs-ai mode.
+  // Spin up the Stockfish worker only when in vs-ai mode AND on an 8x8 board
+  // (Stockfish doesn't support non-8x8). Smaller boards use the synchronous
+  // toy AI in `src/ai/toyAi.ts` instead.
   useEffect(() => {
     if (mode !== "vs-ai") return;
+    if (!isStandardSize) return;
     let ai: StockfishEngine | null = null;
     try {
       ai = createAi ? createAi() : new StockfishEngine();
@@ -284,7 +303,7 @@ export function Match({
       ai?.destroy();
       aiRef.current = null;
     };
-  }, [mode, createAi]);
+  }, [mode, createAi, isStandardSize]);
 
   // Sync the current overlays to the engine BEFORE any engine method
   // (legalMoves / inCheck / outcome) is called this render. The engine is
@@ -317,6 +336,29 @@ export function Match({
 
   const pieceBadges = useMemo(() => derivePieceBadges(cardState), [cardState]);
   const squareEffectsMap = useMemo(() => deriveSquareEffects(cardState), [cardState]);
+
+  // Position validation — only meaningful when the dev panel is active.
+  // We re-derive from the current chess position on every render that bumps
+  // `version` (move applied / piece placed / piece removed / size change).
+  // The result drives red highlights on the Board and the message list in
+  // DevPanel. Validation flags but does not block edits.
+  const validation = useMemo(
+    () => {
+      if (!devPanelEnabled) return null;
+      return validatePosition(parseFen(engine.fen(), engine.size()));
+    },
+    // engine is mutable; depend on version so we rerun after every change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [devPanelEnabled, version],
+  );
+  const invalidSquares = useMemo<ReadonlySet<AlgebraicSquare>>(
+    () => (validation ? validationOffendingSquares(validation) : new Set()),
+    [validation],
+  );
+  const validationMessages = useMemo<ReadonlyArray<string>>(
+    () => (validation ? validation.violations.map((v) => v.message) : []),
+    [validation],
+  );
 
   const turn: Side = engine.turn();
   const outcome: MatchOutcome = engine.outcome();
@@ -398,12 +440,13 @@ export function Match({
     }
     if (targetKind === "empty-square" || targetKind === "empty-square-own-half") {
       const ownHalfOnly = targetKind === "empty-square-own-half";
-      for (let r = 1; r <= 8; r++) {
-        for (let f = 0; f < 8; f++) {
+      const { files, ranks } = engine.size();
+      for (let r = 1; r <= ranks; r++) {
+        for (let f = 0; f < files; f++) {
           const sq = "abcdefgh"[f] + r;
           if (engine.pieceAt(sq)) continue;
           if (walledSet.has(sq)) continue;
-          if (ownHalfOnly && !isInPlayerHalf(sq)) continue;
+          if (ownHalfOnly && !isInPlayerHalf(sq, ranks)) continue;
           out.add(sq);
         }
       }
@@ -522,30 +565,50 @@ export function Match({
    * has been applied (or the call was cancelled / the AI returned nothing).
    * Both the auto AI loop and the dev "AI: play one move" button funnel
    * through here.
+   *
+   * On 8x8 we use Stockfish; on non-8x8 the synchronous toy AI in
+   * `src/ai/toyAi.ts`. The toy AI is fast enough (small boards, shallow
+   * depth) to run inline; we still respect `minThinkMs` so its moves don't
+   * snap-resolve.
    */
   const doAiMove = useCallback(
     async (myGen: number, isCancelled: () => boolean, minThinkMs?: number): Promise<void> => {
-      const ai = aiRef.current;
-      if (!ai) return;
-      await ai.ready();
-      if (isCancelled() || generationRef.current !== myGen) return;
-      ai.setPosition(engine.fen());
-      // Stockfish doesn't know about overlays. We restrict its root choice
-      // to our wall/freeze/sanctuary/shield/compel-aware legal-move set via
-      // UCI `searchmoves`, so it can't pick a move that walks through a
-      // wall, moves a frozen piece, captures a shielded piece, etc.
-      const candidates = engine.legalMoves().map(legalMoveToUci);
       const wait = minThinkMs ?? aiMinThinkMs;
-      const [uci] = await Promise.all([
-        ai.getBestMove({
-          depth: depthForDifficulty(difficulty),
-          searchMoves: candidates,
-        }),
-        new Promise<void>((resolve) => setTimeout(resolve, wait)),
-      ]);
-      if (isCancelled() || generationRef.current !== myGen) return;
-      if (!uci) return;
-      const move = uciToMove(uci);
+
+      let move: import("../game/chess/engine").EngineMove | null = null;
+      if (isStandardSize) {
+        const ai = aiRef.current;
+        if (!ai) return;
+        await ai.ready();
+        if (isCancelled() || generationRef.current !== myGen) return;
+        ai.setPosition(engine.fen());
+        // Stockfish doesn't know about overlays. We restrict its root choice
+        // to our wall/freeze/sanctuary/shield/compel-aware legal-move set via
+        // UCI `searchmoves`, so it can't pick a move that walks through a
+        // wall, moves a frozen piece, captures a shielded piece, etc.
+        const candidates = engine.legalMoves().map(legalMoveToUci);
+        const [uci] = await Promise.all([
+          ai.getBestMove({
+            depth: depthForDifficulty(difficulty),
+            searchMoves: candidates,
+          }),
+          new Promise<void>((resolve) => setTimeout(resolve, wait)),
+        ]);
+        if (isCancelled() || generationRef.current !== myGen) return;
+        if (!uci) return;
+        move = uciToMove(uci);
+      } else {
+        // Toy AI: synchronous. Pad with the cosmetic think delay so the
+        // small-board AI doesn't feel teleportingly fast.
+        const [picked] = await Promise.all([
+          Promise.resolve(toyPickBestMove(engine, difficulty)),
+          new Promise<void>((resolve) => setTimeout(resolve, wait)),
+        ]);
+        if (isCancelled() || generationRef.current !== myGen) return;
+        move = picked;
+        if (!move) return;
+      }
+
       // Snapshot the moving piece BEFORE the engine applies the move; its
       // type drives the move-path computation used by trap resolution.
       let mover = engine.pieceAt(move.from);
@@ -564,7 +627,7 @@ export function Match({
         applyTurnRollover(trapped);
       }
     },
-    [engine, difficulty, aiMinThinkMs, cardsEnabled, cardState, applyTurnRollover],
+    [engine, difficulty, aiMinThinkMs, cardsEnabled, cardState, applyTurnRollover, isStandardSize],
   );
 
   useEffect(() => {
@@ -619,6 +682,7 @@ export function Match({
       hasWall: (sq) => hasWallOn(cardState, sq),
       isAttackedBy: (sq, by) => engine.isSquareAttackedBy(sq, by),
       isRooted: (sq) => isRooted(cardState, sq),
+      boardRanks: engine.size().ranks,
     }),
     // engine is mutable; version forces recompute on each move
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -886,6 +950,50 @@ export function Match({
     setVersion((v) => v + 1);
     pushSnapshot(next);
   }, [engine, cardState, pushSnapshot]);
+
+  /**
+   * Resize the dev sandbox board. We rebuild the engine from an empty FEN of
+   * the new size, dropping pieces that no longer fit. Per-piece statuses are
+   * cleared (their pieces may not exist on the new board) but square overlays
+   * (walls, sanctuaries, traps) survive if they're still in-bounds. Validation
+   * re-runs automatically via the version bump.
+   */
+  const resizeBoard = useCallback(
+    (size: BoardSize) => {
+      // Build an empty FEN of the new dimensions.
+      const emptyRow = String(size.files);
+      const board = Array.from({ length: size.ranks }, () => emptyRow).join("/");
+      const fresh = new ChoseEngine(`${board} w - - 0 1`, size);
+      // Carry over pieces that still fit on the new board.
+      for (const { square, piece } of engine.pieces()) {
+        const file = square.charCodeAt(0) - 97; // 'a' = 0
+        const rank = Number(square.slice(1)) - 1;
+        if (file < size.files && rank < size.ranks) {
+          fresh.placePiece(square, piece);
+        }
+      }
+      // Preserve side-to-move.
+      fresh.forceTurn(engine.turn());
+      setEngine(fresh);
+      // Drop per-piece statuses (squares may have moved out of bounds).
+      const next: MatchCardState = {
+        ...cardState,
+        freezes: [],
+        roots: [],
+        disarms: [],
+        compels: [],
+        shields: [],
+        hastes: [],
+        lightnings: [],
+        empowers: [],
+      };
+      setCardState(next);
+      setSelected(null);
+      setVersion((v) => v + 1);
+      pushSnapshot(next);
+    },
+    [engine, cardState, pushSnapshot],
+  );
 
   /**
    * Reseed the board to the standard chess starting position with a fresh
@@ -1207,7 +1315,7 @@ export function Match({
   const resetGame = useCallback(() => {
     generationRef.current++;
     aiRef.current?.stop();
-    setEngine(new ChoseEngine(initialFen));
+    setEngine(new ChoseEngine(initialFen, initialBoardSize));
     setSelected(null);
     setVersion(0);
     setAiThinking(false);
@@ -1230,7 +1338,7 @@ export function Match({
     } else {
       setCardState(createMatchCardState([], rng));
     }
-  }, [initialFen, initialDeck, mode, rng, undoRedo]);
+  }, [initialFen, initialBoardSize, initialDeck, mode, rng, undoRedo]);
 
   const onModeChange = useCallback(
     (next: MatchMode) => {
@@ -1238,7 +1346,7 @@ export function Match({
       generationRef.current++;
       aiRef.current?.stop();
       setMode(next);
-      setEngine(new ChoseEngine(initialFen));
+      setEngine(new ChoseEngine(initialFen, initialBoardSize));
       setSelected(null);
       setVersion(0);
       setAiThinking(false);
@@ -1258,7 +1366,7 @@ export function Match({
         setCardState(createMatchCardState([], rng));
       }
     },
-    [mode, initialFen, initialDeck, rng, undoRedo],
+    [mode, initialFen, initialBoardSize, initialDeck, rng, undoRedo],
   );
 
   /**
@@ -1455,6 +1563,8 @@ export function Match({
           onDragCancel={onDragCancel}
           locked={boardLocked}
           acceptAnyDrop={paletteDragActive}
+          invalidSquares={invalidSquares}
+          invalidBoard={validation !== null && !validation.ok}
         />
         <CapturedPieces
           pieces={captured.byPlayer}
@@ -1497,6 +1607,9 @@ export function Match({
           onSetSideToMove={setSideToMove}
           onClearBoard={clearBoard}
           onStandardStart={standardStart}
+          boardSize={engine.size()}
+          onResizeBoard={resizeBoard}
+          validationMessages={validationMessages}
           devAiOn={devAiOn}
           onToggleDevAi={() => setDevAiOn((v) => !v)}
           aiSingleMoveDisabled={devAiOn || aiThinking || matchOver || turn !== AI_SIDE}

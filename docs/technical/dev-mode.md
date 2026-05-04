@@ -9,13 +9,20 @@ The same panel is also available **inside a real Royal run** — a thin "Dev" ta
 ## What it gives you
 
 - **Board editor.** Click a piece in the palette to "load" a brush, then click a square to place / overwrite. Click "Erase" then a square to clear it. Drag from the palette directly to a square as a shortcut. Editor edits do not flip the side to move; use the side-to-move toggle for that.
-- **Standard start / Clear** buttons. Standard start sets up the canonical opening position; Clear empties the board entirely (kings included — useful for stress-testing edge cases).
+- **Resizable board.** Independent file (3..8) and rank (3..8) pickers — any rectangle from 3x3 to 8x8 is allowed. Resizing drops pieces that no longer fit on the new board and clears per-piece statuses (the squares may have moved out of bounds). The toy AI in `src/ai/toyAi.ts` replaces Stockfish whenever the board isn't 8x8 (Stockfish only supports 8x8).
+- **Live position validation.** After every change to the board (place / remove / move piece, side-to-move toggle, size change), the editor re-runs `validatePosition` and updates highlights. The board gets a red outline and offending pieces tint red. The panel lists every violation in plain English. Validation rules (see `src/game/chess/validate.ts`):
+  - Each side must have exactly one king.
+  - The two kings cannot be on adjacent squares.
+  - No pawn on rank 0 or rank `ranks - 1` (back ranks).
+  - The side **not** to move cannot already be in check (only the side to move may be).
+  - The editor flags invalid positions but **does not block** edits — odd positions can still be set up (a dev might be reproducing a bug).
+- **Standard start / Clear** buttons. Standard start sets up the canonical 8x8 opening position (also resizes back to 8x8 if needed); Clear empties the board entirely (kings included — useful for stress-testing edge cases).
 - **Side-to-move toggle.** Forces white or black to move next without playing a move.
 - **Energy controls.** Bump energy ±1; useful for testing high-cost cards.
-- **Optional AI.** "AI on" switches the dev sandbox into the same Stockfish loop the prototype uses, so you can play against the AI from any custom position. Off by default — most editor work doesn't want the AI replying.
+- **Optional AI.** "AI on" switches the dev sandbox into the same AI loop the prototype uses (Stockfish on 8x8; toy AI on smaller boards) so you can play against the AI from any custom position. Off by default — most editor work doesn't want the AI replying.
 - **Card library overlay.** Browse the full card library grouped by archetype. Drag a card onto the board (or click "Play") to play it for free — energy is restored after the play resolves and the card is scrubbed from the consumed pile, so you can experiment with sequences without permanent state cost.
 - **Chess-vision overlay.** Toggle to colour squares by attacker side: blue (player only), red (opponent only), purple (both). Helpful for spotting threats and overworked defenders.
-- **Action-granular undo / redo.** Snapshots are pushed at each turn rollover *and* at each editor edit, energy bump, or library card play. Undo rewinds across that whole stream — including across the AI's preceding move. Redo replays. The stack is unbounded.
+- **Action-granular undo / redo.** Snapshots are pushed at each turn rollover *and* at each editor edit, energy bump, library card play, or resize. Undo rewinds across that whole stream — including across the AI's preceding move. Redo replays. The stack is unbounded.
 
 ## What it deliberately does not have
 

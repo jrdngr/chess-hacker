@@ -1,10 +1,23 @@
 // Shared types for the game logic layer.
 // Keep this file free of React/DOM imports — see docs/technical/architecture.md.
 
-export type FileIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
-export type RankIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+// Indexes are wide `number`s now that boards can be 3..8 on each axis. Standard
+// mode walks the board from 6x6 → 6x8 → 8x8 across a run; the dev sandbox
+// supports any combination from 3x3 to 8x8. Compile-time coordinate safety is
+// traded for runtime board-size flexibility.
+export type FileIndex = number;
+export type RankIndex = number;
 
 export type Square = { file: FileIndex; rank: RankIndex };
+
+/**
+ * Board dimensions. `files` is the number of columns (a..h), `ranks` is the
+ * number of rows. Standard chess is 8x8; Standard mode also uses 6x6 and 6x8.
+ * The sandbox editor supports any size from 3x3 to 8x8 on each axis.
+ */
+export type BoardSize = { files: number; ranks: number };
+
+export const STANDARD_BOARD_SIZE: BoardSize = { files: 8, ranks: 8 };
 
 export type PieceType = "pawn" | "knight" | "bishop" | "rook" | "queen" | "king";
 
@@ -200,7 +213,17 @@ export type Trap = {
 // in their respective PRs (M5/M6/M7/M8/M10).
 
 // === Run state (M5) ===
-export type RunMode = "royal" | "skirmish";
+//
+// Three modes are scoped:
+//   - "standard": the active default. Variable board size + symmetric piece
+//     curve from K+4P on 6x6 → full armies on 8x8 across a 9-match run.
+//     Starting positions are Chess960-generalized to whatever board / piece
+//     set the current match uses.
+//   - "royal":   classic chess armies on 8x8. Spec'd post-prototype to default
+//                to Chess960 with a "standard start" opt-in. Currently disabled
+//                in the menu while Standard is the focus.
+//   - "skirmish": roguelite army-builder (M10). Currently disabled.
+export type RunMode = "standard" | "royal" | "skirmish";
 /**
  * Phases a run cycles through. M5 implements `match | reward | shop | won |
  * lost`; `boss-preview` lands in M8 once bosses arrive.
@@ -216,6 +239,17 @@ export type RunPhase = "match" | "reward" | "shop" | "boss-preview" | "won" | "l
 export type RunConfig = {
   actCount: 1 | 2 | 3;
   matchesPerAct: 1 | 2 | 3;
+};
+
+/**
+ * The non-pawn piece set used to seed a back rank for Standard mode. `pawns`
+ * is symmetric per side. `backRank` is the multiset of pieces placed on white's
+ * back rank by the Chess960 generator (mirrored to black). The generator
+ * accepts any size up to `files`; if `backRank.length > files`, it throws.
+ */
+export type PieceSet = {
+  backRank: PieceType[];
+  pawns: number;
 };
 
 export type RunState = {

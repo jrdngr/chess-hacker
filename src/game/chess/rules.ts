@@ -24,6 +24,7 @@
 
 import type {
   AlgebraicSquare,
+  BoardSize,
   EmpowerPattern,
   FileIndex,
   Piece,
@@ -34,17 +35,42 @@ import type {
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"] as const;
 
+export const STANDARD_SIZE: BoardSize = { files: 8, ranks: 8 };
+
 export function squareName(file: FileIndex, rank: RankIndex): AlgebraicSquare {
+  // Algebraic ranks have one or two digits ("a1".."h10" — we cap at 8 today,
+  // but the helper is robust either way).
   return `${FILES[file]}${rank + 1}`;
 }
 
 export function squareCoords(s: AlgebraicSquare): { file: FileIndex; rank: RankIndex } {
   const file = FILES.indexOf(s[0] as (typeof FILES)[number]);
-  const rank = Number(s[1]) - 1;
+  const rank = Number(s.slice(1)) - 1;
   return { file: file as FileIndex, rank: rank as RankIndex };
 }
 
 export const STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+/** Promotion rank for `side` on a board of `size.ranks` ranks. */
+export function promotionRank(size: BoardSize, side: Side): RankIndex {
+  return side === "player" ? size.ranks - 1 : 0;
+}
+
+/** Pawn double-move source rank ("starting rank") for `side`. */
+export function pawnStartRank(size: BoardSize, side: Side): RankIndex {
+  return side === "player" ? 1 : size.ranks - 2;
+}
+
+/**
+ * Whether castling is even possible on this board. We disable castling on
+ * boards narrower than 8 files: most small-board piece sets don't have two
+ * rooks, and adapting Chess960's "king to g-file / rook to f-file" landing
+ * squares to a 6-file board is not worth the complexity. Documented as a
+ * deliberate rule difference — see `docs/design/chess-rules.md`.
+ */
+export function castlingAvailable(size: BoardSize): boolean {
+  return size.files === 8;
+}
 
 export type CastlingRights = { K: boolean; Q: boolean; k: boolean; q: boolean };
 
@@ -61,6 +87,11 @@ export type Position = {
   enPassant: AlgebraicSquare | null;
   halfmove: number;
   fullmove: number;
+  /**
+   * Board dimensions. Defaults to 8x8 for back-compat. All move generation
+   * iterates within these bounds, never the historical hardcoded 8.
+   */
+  size: BoardSize;
 };
 
 /**
@@ -142,29 +173,47 @@ function fenCharFor(piece: Piece): string {
   return piece.side === "player" ? c.toUpperCase() : c;
 }
 
-export function parseFen(fen: string): Position {
+/**
+ * Parse a FEN. Standard 8x8 FEN works as-is. For non-8x8 boards, pass `size`
+ * explicitly — the parser then validates the board section against the given
+ * dimensions. We don't try to invent a wire-level FEN extension; callers that
+ * persist non-8x8 positions store `{ fen, size }` together (see
+ * `src/game/chess/positions.ts`).
+ */
+export function parseFen(fen: string, size: BoardSize = STANDARD_SIZE): Position {
   const parts = fen.trim().split(/\s+/);
   if (parts.length < 4) throw new Error(`invalid FEN: ${fen}`);
   const [board, turnPart, castlingPart, epPart, halfmovePart = "0", fullmovePart = "1"] = parts;
 
   const pieces = new Map<AlgebraicSquare, Piece>();
   const ranks = board.split("/");
-  if (ranks.length !== 8) throw new Error(`invalid FEN board: ${board}`);
-  for (let r = 0; r < 8; r++) {
+  if (ranks.length !== size.ranks) {
+    throw new Error(`invalid FEN board (expected ${size.ranks} ranks): ${board}`);
+  }
+  for (let r = 0; r < size.ranks; r++) {
     const row = ranks[r];
     let f = 0;
-    for (const c of row) {
-      if (/[1-8]/.test(c)) {
-        f += Number(c);
-      } else if (PIECE_FROM_FEN[c]) {
-        const rank = (7 - r) as RankIndex; // FEN rank 8 first
+    let i = 0;
+    while (i < row.length) {
+      const c = row[i];
+      if (/[0-9]/.test(c)) {
+        // Multi-digit empty count (so 6x6 / 6x8 boards can use "6" or "10").
+        let j = i + 1;
+        while (j < row.length && /[0-9]/.test(row[j])) j++;
+        f += Number(row.slice(i, j));
+        i = j;
+        continue;
+      }
+      if (PIECE_FROM_FEN[c]) {
+        const rank = (size.ranks - 1 - r) as RankIndex; // FEN top rank first
         pieces.set(squareName(f as FileIndex, rank), PIECE_FROM_FEN[c]);
         f++;
-      } else {
-        throw new Error(`invalid FEN char: ${c}`);
+        i++;
+        continue;
       }
+      throw new Error(`invalid FEN char: ${c}`);
     }
-    if (f !== 8) throw new Error(`invalid FEN row width: ${row}`);
+    if (f !== size.files) throw new Error(`invalid FEN row width: ${row}`);
   }
 
   const turn: Side = turnPart === "w" ? "player" : "opponent";
@@ -180,15 +229,16 @@ export function parseFen(fen: string): Position {
   const halfmove = Number(halfmovePart) || 0;
   const fullmove = Number(fullmovePart) || 1;
 
-  return { pieces, turn, castling, enPassant, halfmove, fullmove };
+  return { pieces, turn, castling, enPassant, halfmove, fullmove, size };
 }
 
 export function serializeFen(pos: Position): string {
+  const { files, ranks: rankCount } = pos.size;
   const ranks: string[] = [];
-  for (let r = 7; r >= 0; r--) {
+  for (let r = rankCount - 1; r >= 0; r--) {
     let row = "";
     let empty = 0;
-    for (let f = 0; f < 8; f++) {
+    for (let f = 0; f < files; f++) {
       const sq = squareName(f as FileIndex, r as RankIndex);
       const p = pos.pieces.get(sq);
       if (!p) {
@@ -242,8 +292,8 @@ const BISHOP_DIRS: ReadonlyArray<readonly [number, number]> = [
 const QUEEN_DIRS: ReadonlyArray<readonly [number, number]> = [...ROOK_DIRS, ...BISHOP_DIRS];
 const KING_DIRS = QUEEN_DIRS;
 
-function inBounds(file: number, rank: number): boolean {
-  return file >= 0 && file < 8 && rank >= 0 && rank < 8;
+function inBounds(size: BoardSize, file: number, rank: number): boolean {
+  return file >= 0 && file < size.files && rank >= 0 && rank < size.ranks;
 }
 function sqAt(file: number, rank: number): AlgebraicSquare {
   return squareName(file as FileIndex, rank as RankIndex);
@@ -321,6 +371,7 @@ export function isSquareAttacked(
   const { file: tf, rank: tr } = squareCoords(target);
   const isFrozen = (sq: AlgebraicSquare) => overlays.freezes.has(sq);
 
+  const size = pos.size;
   // Pawn attacks: an attacker pawn diagonally one rank "behind" the target.
   // Player (white) pawns advance +1 rank → they attack squares on their +1 diag.
   // So a player pawn attacking `target` sits at (tf±1, tr-1). Opponent: (tf±1, tr+1).
@@ -328,7 +379,7 @@ export function isSquareAttacked(
   for (const df of [-1, 1]) {
     const sf = tf + df;
     const sr = tr + pawnSrcDr;
-    if (!inBounds(sf, sr)) continue;
+    if (!inBounds(size, sf, sr)) continue;
     const sq = sqAt(sf, sr);
     const p = pos.pieces.get(sq);
     if (p && p.side === attacker && p.type === "pawn" && !isFrozen(sq)) return true;
@@ -338,7 +389,7 @@ export function isSquareAttacked(
   for (const [df, dr] of KNIGHT_DELTAS) {
     const sf = tf + df;
     const sr = tr + dr;
-    if (!inBounds(sf, sr)) continue;
+    if (!inBounds(size, sf, sr)) continue;
     const sq = sqAt(sf, sr);
     const p = pos.pieces.get(sq);
     if (p && p.side === attacker && p.type === "knight" && !isFrozen(sq)) return true;
@@ -348,7 +399,7 @@ export function isSquareAttacked(
   for (const [df, dr] of KING_DIRS) {
     const sf = tf + df;
     const sr = tr + dr;
-    if (!inBounds(sf, sr)) continue;
+    if (!inBounds(size, sf, sr)) continue;
     const sq = sqAt(sf, sr);
     const p = pos.pieces.get(sq);
     if (p && p.side === attacker && p.type === "king" && !isFrozen(sq)) return true;
@@ -360,7 +411,7 @@ export function isSquareAttacked(
     const isDiag = df !== 0 && dr !== 0;
     let sf = tf + df;
     let sr = tr + dr;
-    while (inBounds(sf, sr)) {
+    while (inBounds(size, sf, sr)) {
       const sq = sqAt(sf, sr);
       if (overlays.walls.has(sq)) break;
       const p = pos.pieces.get(sq);
@@ -488,10 +539,11 @@ function addJumpMoves(
   deltas: ReadonlyArray<readonly [number, number]>,
 ): void {
   const { file, rank } = squareCoords(from);
+  const size = pos.size;
   for (const [df, dr] of deltas) {
     const tf = file + df;
     const tr = rank + dr;
-    if (!inBounds(tf, tr)) continue;
+    if (!inBounds(size, tf, tr)) continue;
     const to = sqAt(tf, tr);
     if (overlays.walls.has(to)) continue;
     const occ = pos.pieces.get(to);
@@ -516,10 +568,11 @@ function addSlideMoves(
   dirs: ReadonlyArray<readonly [number, number]>,
 ): void {
   const { file, rank } = squareCoords(from);
+  const size = pos.size;
   for (const [df, dr] of dirs) {
     let tf = file + df;
     let tr = rank + dr;
-    while (inBounds(tf, tr)) {
+    while (inBounds(size, tf, tr)) {
       const to = sqAt(tf, tr);
       if (overlays.walls.has(to)) break;
       const occ = pos.pieces.get(to);
@@ -551,9 +604,10 @@ function addPawnMoves(
   overlays: Overlays,
 ): void {
   const { file, rank } = squareCoords(from);
+  const size = pos.size;
   const dir = piece.side === "player" ? 1 : -1;
-  const startRank = piece.side === "player" ? 1 : 6;
-  const promoRank = piece.side === "player" ? 7 : 0;
+  const startRank = pawnStartRank(size, piece.side);
+  const promoR = promotionRank(size, piece.side);
 
   const pushPromo = (m: Omit<RuleMove, "promotion" | "isPromotion">) => {
     for (const promo of ["q", "r", "b", "n"] as const) {
@@ -563,19 +617,21 @@ function addPawnMoves(
 
   // Forward 1 / 2
   const fr1 = rank + dir;
-  if (inBounds(file, fr1)) {
+  if (inBounds(size, file, fr1)) {
     const to1 = sqAt(file, fr1);
     if (!overlays.walls.has(to1) && !pos.pieces.has(to1)) {
-      if (fr1 === promoRank) {
+      if (fr1 === promoR) {
         pushPromo({ from, to: to1, isCapture: false, isDouble: false });
       } else {
         out.push({ from, to: to1, isCapture: false, isDouble: false, isPromotion: false });
       }
       if (rank === startRank) {
         const fr2 = rank + 2 * dir;
-        const to2 = sqAt(file, fr2);
-        if (!overlays.walls.has(to2) && !pos.pieces.has(to2)) {
-          out.push({ from, to: to2, isCapture: false, isDouble: true, isPromotion: false });
+        if (inBounds(size, file, fr2)) {
+          const to2 = sqAt(file, fr2);
+          if (!overlays.walls.has(to2) && !pos.pieces.has(to2)) {
+            out.push({ from, to: to2, isCapture: false, isDouble: true, isPromotion: false });
+          }
         }
       }
     }
@@ -585,12 +641,12 @@ function addPawnMoves(
   for (const df of [-1, 1] as const) {
     const tf = file + df;
     const tr = rank + dir;
-    if (!inBounds(tf, tr)) continue;
+    if (!inBounds(size, tf, tr)) continue;
     const to = sqAt(tf, tr);
     if (overlays.walls.has(to)) continue;
     const occ = pos.pieces.get(to);
     if (occ && occ.side !== piece.side) {
-      if (tr === promoRank) {
+      if (tr === promoR) {
         pushPromo({ from, to, isCapture: true, capturedPiece: occ, isDouble: false });
       } else {
         out.push({
@@ -673,9 +729,10 @@ function addEmpowerPawnMoves(
   overlays: Overlays,
 ): void {
   const { file, rank } = squareCoords(from);
+  const size = pos.size;
   const dir = piece.side === "player" ? 1 : -1;
   const fr1 = rank + dir;
-  if (inBounds(file, fr1)) {
+  if (inBounds(size, file, fr1)) {
     const to = sqAt(file, fr1);
     if (!overlays.walls.has(to) && !pos.pieces.has(to)) {
       out.push({ from, to, isCapture: false, isDouble: false, isPromotion: false });
@@ -684,7 +741,7 @@ function addEmpowerPawnMoves(
   for (const df of [-1, 1] as const) {
     const tf = file + df;
     const tr = rank + dir;
-    if (!inBounds(tf, tr)) continue;
+    if (!inBounds(size, tf, tr)) continue;
     const to = sqAt(tf, tr);
     if (overlays.walls.has(to)) continue;
     const occ = pos.pieces.get(to);
@@ -709,6 +766,11 @@ function addKingMoves(
   overlays: Overlays,
 ): void {
   addJumpMoves(out, from, piece, pos, overlays, KING_DIRS);
+
+  // Castling is only generated on standard 8-file boards. Smaller-board piece
+  // sets in Standard mode rarely have two rooks anyway, and the landing-square
+  // semantics don't generalize cleanly. Documented in chess-rules.md.
+  if (!castlingAvailable(pos.size)) return;
 
   const them = opp(piece.side);
   const rights = pos.castling;
@@ -858,6 +920,7 @@ export function applyMove(pos: Position, m: RuleMove): Position {
     enPassant,
     halfmove,
     fullmove,
+    size: pos.size,
   };
 }
 

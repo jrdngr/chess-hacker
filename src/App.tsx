@@ -2,8 +2,9 @@
 // matching shell.
 //
 //   menu  → sandbox        → Match (runMode="dev")
-//   menu  → royal          → Run (mode="royal")  [3-match mini-run, M5]
-//   menu  → skirmish       → Run (mode="skirmish") — disabled until M10
+//   menu  → standard       → Run (mode="standard") — the active default
+//   menu  → royal          → disabled (post-prototype)
+//   menu  → skirmish       → disabled (M10)
 //
 // The Run shell owns gold / deck / artifacts and routes between match,
 // reward, and shop phases. Persistence (M9) will attach at the Run boundary.
@@ -15,7 +16,7 @@ import { Run } from "./components/Run/Run";
 
 import styles from "./App.module.css";
 
-type Route = "menu" | "sandbox" | "royal" | "skirmish";
+type Route = "menu" | "sandbox" | "standard" | "royal" | "skirmish";
 
 type ModeOption = {
   id: Exclude<Route, "menu">;
@@ -26,21 +27,27 @@ type ModeOption = {
 
 const MODE_OPTIONS: ReadonlyArray<ModeOption> = [
   {
+    id: "standard",
+    label: "Standard",
+    description: "Variable board (6x6 → 8x8) with a fixed piece curve. Default mode.",
+    enabled: true,
+  },
+  {
     id: "royal",
     label: "Royal",
-    description: "Standard chess armies + cards. 3-match mini-run.",
-    enabled: true,
+    description: "Classic 8x8 armies. Reserved for post-prototype.",
+    enabled: false,
   },
   {
     id: "skirmish",
     label: "Skirmish",
-    description: "Roguelite army-builder + cards. Coming in M10.",
+    description: "Roguelite army-builder. Coming in M10.",
     enabled: false,
   },
   {
     id: "sandbox",
     label: "Sandbox",
-    description: "Board editor, free card library, optional AI.",
+    description: "Board editor (3x3–8x8), free card library, optional AI.",
     enabled: true,
   },
 ];
@@ -57,7 +64,7 @@ export function App() {
       <main className={styles.main}>
         {route === "menu" && <ModeMenu onPick={setRoute} />}
         {route === "sandbox" && <Match runMode="dev" onExit={() => setRoute("menu")} />}
-        {route === "royal" && <Run mode="royal" onExit={() => setRoute("menu")} />}
+        {route === "standard" && <Run mode="standard" onExit={() => setRoute("menu")} />}
       </main>
     </div>
   );

@@ -87,22 +87,26 @@ Build one boss end-to-end before generalizing. Pick Boss A — "The Iron Garriso
 
 **Done when:** the act-1 boss is playable, the modifier rule is enforced, hazards are placed, curses fire on the right triggers, and beating it grants the boss-tier reward.
 
-## M9 — Full Royal run [3d]
+## M9 — Full Standard run [done in this PR — variable board + Chess960 + boss rebalance]
 
-All 3 acts, 9 matches, all 3 bosses. Royal is shippable when this lands.
+Standard is the active default mode. Replaces the old "Full Royal run" milestone.
 
-- Wire all 3 acts (3 matches each, boss at match 3 / 6 / 9).
-- Implement Boss B and Boss C using the M8 pattern.
-- Run win / loss screens.
-- Save / resume on quit (single in-progress run in localStorage).
+- Variable board size (6x6 → 6x8 → 8x8) threaded through the engine, rules, FEN parser, Board UI, and Match shell.
+- Generalized Chess960 generator (`src/game/chess/positions.ts`) producing a per-match starting position for whatever board / piece set the run hands it.
+- Per-match piece curve table in `src/game/progression/standard.ts` (M1 K + 4P → M9 K + 4 minors + 2R + Q + 8P).
+- Toy AI (`src/ai/toyAi.ts`) for non-8x8 matches; Stockfish stays for 8x8.
+- Dev sandbox: 3..8 size pickers per axis, live position validation (extra kings, kings adjacent, pawns on back ranks, wrong-side-in-check) with red highlights on offending pieces.
+- Boss A (6x6) and Boss B (6x8) rebalanced; Boss C (8x8) unchanged.
 
-**Done when:** a player can complete (or lose) a full 9-match Royal run from the menu, quit mid-run, and resume from where they left off.
+**Done when:** a player can complete (or lose) a full 9-match Standard run from the menu, the board scales correctly across acts, and the dev editor flags invalid positions live.
+
+Royal stays disabled in the menu — when re-enabled it will default to Chess960 with a "standard start" opt-in. Save/resume (was M9 scope) moves to a follow-up milestone.
 
 ## M10 — Skirmish [3d]
 
-Most of the run scaffolding (M5 / M6 / M9) is shared with Royal, so Skirmish is mostly piece-economy work on top of the existing shell.
+Most of the run scaffolding (M5 / M6 / M9) is shared with Standard, so Skirmish is mostly piece-economy work on top of the existing shell.
 
-- Skirmish mode toggle in mode select.
+- Skirmish mode toggle in mode select (re-enable the disabled menu entry).
 - Skirmish starting roster (king + 2 pawns + 2 minors).
 - Piece-draft post-match (1 of 3, tiered rarity, soft caps).
 - Placement screen: drag-and-drop pieces onto ranks 1–2 before each match.

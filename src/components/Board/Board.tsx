@@ -1,4 +1,8 @@
-// 8x8 board.
+// Variable-size board. Standard mode walks 6x6 → 6x8 → 8x8 across a run; the
+// dev sandbox supports any size from 3x3 to 8x8 on each axis. The grid layout
+// derives ranks / files from the engine, and squares scale to fill the same
+// visible area regardless of dimensions.
+//
 // Two ways to move a piece:
 //   - Click the piece, then click a highlighted square.
 //   - Drag the piece onto a target square.
@@ -89,10 +93,19 @@ type Props = {
    * legal-target gate in onDragOver.
    */
   acceptAnyDrop?: boolean;
+  /**
+   * Squares to render with a red overlay — used by the dev panel to flag
+   * pieces contributing to an invalid position (extra kings, pawns on the
+   * back rank, the wrong side in check). Validation flags positions but
+   * never blocks edits.
+   */
+  invalidSquares?: ReadonlySet<AlgebraicSquare>;
+  /**
+   * When true, the entire board is wrapped in a red outline — used together
+   * with `invalidSquares` to signal a globally invalid position.
+   */
+  invalidBoard?: boolean;
 };
-
-const RANKS_TOP_DOWN: RankIndex[] = [7, 6, 5, 4, 3, 2, 1, 0];
-const FILES_LEFT_RIGHT: FileIndex[] = [0, 1, 2, 3, 4, 5, 6, 7];
 
 const DRAG_MIME = "application/x-choss-from";
 
@@ -122,11 +135,19 @@ export function Board({
   onDragCancel,
   locked,
   acceptAnyDrop = false,
+  invalidSquares = EMPTY_SET,
+  invalidBoard = false,
 }: Props) {
   // ChoseEngine mutates internally on move(), so we recompute these every render.
   // Memoizing on `[engine]` would serve stale data because the ref doesn't change.
   const piecesBySquare = new Map<AlgebraicSquare, Piece>();
   for (const { square, piece } of engine.pieces()) piecesBySquare.set(square, piece);
+
+  const { files: fileCount, ranks: rankCount } = engine.size();
+  const RANKS_TOP_DOWN: RankIndex[] = [];
+  for (let r = rankCount - 1; r >= 0; r--) RANKS_TOP_DOWN.push(r as RankIndex);
+  const FILES_LEFT_RIGHT: FileIndex[] = [];
+  for (let f = 0; f < fileCount; f++) FILES_LEFT_RIGHT.push(f as FileIndex);
 
   const targetMoves = new Map<AlgebraicSquare, LegalMove>();
   for (const mv of legalMovesFromSelected) targetMoves.set(mv.to, mv);
@@ -164,10 +185,15 @@ export function Board({
         </div>
       )}
       <div
-        className={[styles.board, dropAnywhere && styles.boardDropAnywhere]
+        className={[
+          styles.board,
+          dropAnywhere && styles.boardDropAnywhere,
+          invalidBoard && styles.boardInvalid,
+        ]
           .filter(Boolean)
           .join(" ")}
         role="grid"
+        style={{ aspectRatio: `${fileCount} / ${rankCount}` }}
       >
         {RANKS_TOP_DOWN.map((rank) => (
           <div key={rank} className={styles.row} role="row">
@@ -195,6 +221,7 @@ export function Board({
               const isFrozen = frozenSquares.has(sq);
               const isSanctuary = sanctuarySquares.has(sq);
               const isTrap = trapSquares.has(sq);
+              const isInvalid = invalidSquares.has(sq);
               const badge = pieceBadges.get(sq);
 
               const attackedByUs = attackedByPlayer.has(sq);
@@ -226,6 +253,7 @@ export function Board({
                 locked && styles.locked,
                 isWalled && styles.walled,
                 isFrozen && styles.frozen,
+                isInvalid && styles.invalidPiece,
                 visionClass,
                 targeting &&
                   !dropAnywhere &&

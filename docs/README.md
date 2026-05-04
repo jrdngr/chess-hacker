@@ -5,7 +5,7 @@ Welcome. This folder is the design and technical reference for **choss**: a sing
 ## Reading order for newcomers
 
 1. [`design/overview.md`](design/overview.md) — pillars, the run loop, the match loop.
-2. [`design/modes.md`](design/modes.md) — Skirmish vs Royal.
+2. [`design/modes.md`](design/modes.md) — Standard (default), Royal, Skirmish, Sandbox.
 3. [`design/cards.md`](design/cards.md) — cards, energy, hand, disposal.
 4. [`cards/`](cards/) — per-card reference grouped by type, plus the keyword and starter-deck pages.
 5. [`design/progression.md`](design/progression.md) — runs, acts, Ascension.
@@ -56,15 +56,15 @@ docs/
 
 ## At a glance — the locked-in design
 
-- **Genre:** chess (8x8) + deckbuilder + roguelite, single-player web app.
-- **Modes:** Skirmish (small starting army, draft pieces between matches) and Royal (standard chess army on both sides, only cards differ).
+- **Genre:** chess + deckbuilder + roguelite, single-player web app.
+- **Modes:** **Standard** (default — variable board 6x6 → 6x8 → 8x8 with a fixed piece curve, Chess960 starts). Royal and Skirmish are spec'd but disabled while Standard is the focus.
 - **Run shape:** 3 acts × 3 matches = 9 matches; each act ends in a hand-crafted boss (act 3 boss = finale). Linear path; no branching map.
 - **No HP system:** lose a match, lose the run.
 - **Cards:** hand of 5, draw to refill, energy +1/turn (banks unspent up to 10), costs 0–10. Every played card is consumed for the rest of the match; multiples in the deck enable repeats. Capturing an enemy piece grants the matching Soul card into your draw pile.
 - **Pieces (Skirmish):** 1-of-3 draft after each match; tiered by piece value; soft caps per piece type; player-placed before each match.
 - **Shop:** Balatro-style after every match. Buys: single cards + booster packs + artifacts. Services: reroll (scaling per shop), card removal (scaling per use). Currency: gold only. Skip rewards for gold. Balatro-style interest.
 - **Artifacts:** sources = shop + boss rewards. 3 rarity tiers (C/U/R). Cap of 5 slots. Effects span cards, pieces, resources, conditional triggers.
-- **Board:** always 8x8. Card-spawned square effects, zone-control buffs, walls/blocks. No portals.
+- **Board:** 8x8 maximum. Standard mode scales 6x6 → 6x8 → 8x8 across the run; the dev sandbox supports any size from 3x3 to 8x8. Card-spawned square effects, zone-control buffs, walls/blocks. No portals.
 - **Bosses:** 3 hand-crafted, visible at act start. Combine match-modifier rules + fixed board hazards + curse cards forced into the player's hand.
 - **Win conditions:** standard chess — checkmate, stalemate, draws all enforced. Draws count as run-loss. No clock.
 - **Meta-progression:** content unlocks only (no power buffs); Ascension/heat ladder for replay; single character.

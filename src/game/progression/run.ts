@@ -12,7 +12,10 @@
 
 import { CARD_LIBRARY, makeStarterDeck } from "../cards/library";
 import { makeRng, shuffle, type Rng } from "../cards/match";
+import { generateChess960Position } from "../chess/positions";
+import { standardMatchConfig } from "./standard";
 import type {
+  BoardSize,
   Card,
   CardId,
   CardRarity,
@@ -37,6 +40,8 @@ export const SKIP_DRAFT_GOLD = 5;
 
 /** Mini-run shape for M5 — 1 act × 3 matches, no boss. */
 export const MINI_RUN_CONFIG: RunConfig = { actCount: 1, matchesPerAct: 3 };
+/** Full Standard run — 3 acts × 3 matches, with bosses on matches 3, 6, 9. */
+export const STANDARD_RUN_CONFIG: RunConfig = { actCount: 3, matchesPerAct: 3 };
 
 // ---- Run lifecycle ---------------------------------------------------------
 
@@ -50,10 +55,12 @@ export type CreateRunOptions = {
 };
 
 export function createRun(opts: CreateRunOptions): RunState {
+  const config =
+    opts.config ?? (opts.mode === "standard" ? STANDARD_RUN_CONFIG : MINI_RUN_CONFIG);
   return {
     mode: opts.mode,
     ascension: opts.ascension ?? 0,
-    config: opts.config ?? MINI_RUN_CONFIG,
+    config,
     act: 1,
     matchInAct: 1,
     matchNumber: 1,
@@ -65,6 +72,27 @@ export function createRun(opts: CreateRunOptions): RunState {
     removalsUsed: 0,
     phase: "match",
   };
+}
+
+/**
+ * Per-match starting position. Standard mode generates a Chess960-style
+ * position from the per-match piece set; Royal (and the M5 mini-run) just
+ * use the standard FEN at 8x8. Returned alongside the run state with the
+ * RNG cursor advanced by one tick so successive matches don't share seeds.
+ */
+export function nextMatchSetup(state: RunState): {
+  fen?: string;
+  size: BoardSize;
+  next: RunState;
+} {
+  if (state.mode === "standard") {
+    const cfg = standardMatchConfig(state.matchNumber);
+    const { rng, next } = consumeRng(state);
+    const generated = generateChess960Position(cfg.pieceSet, cfg.size, rng);
+    return { fen: generated.fen, size: generated.size, next };
+  }
+  // Royal / Skirmish / mini-run — standard 8x8 chess.
+  return { fen: undefined, size: { files: 8, ranks: 8 }, next: state };
 }
 
 /**
@@ -80,12 +108,19 @@ export function consumeRng(state: RunState, n: number = 1): { rng: Rng; next: Ru
   return { rng, next: { ...state, rngCursor: state.rngCursor + Math.max(1, n) } };
 }
 
-/** Whether the current match is a boss match. M5 mini-run has no bosses. */
+/**
+ * Whether the current match is a boss match. The Standard run uses bosses
+ * on matches 3 / 6 / 9 (the per-match config tells us which); the M5
+ * mini-run has none, and Royal stays bossless until M8.
+ */
 export function isBossMatch(state: RunState): boolean {
-  // A boss is the last match of an act in the full Royal run. M5 mini-run
-  // has only 1 act with 3 matches and no boss, so this is always false there.
-  // Once M8 lands, plug the real predicate in here.
-  void state;
+  if (state.mode === "standard") {
+    try {
+      return standardMatchConfig(state.matchNumber).isBoss;
+    } catch {
+      return false;
+    }
+  }
   return false;
 }
 

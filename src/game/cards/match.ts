@@ -170,10 +170,14 @@ export type PlayTarget =
   | { kind: "square"; square: AlgebraicSquare }
   | { kind: "two-squares"; first: AlgebraicSquare; second: AlgebraicSquare };
 
-/** Per-card half-board limit for empty-square-own-half. Player half is ranks 1–4. */
-export function isInPlayerHalf(square: AlgebraicSquare): boolean {
-  const r = Number(square[1]);
-  return r >= 1 && r <= 4;
+/**
+ * Per-card half-board limit for empty-square-own-half. Player half is the
+ * lower half of the board: ranks 1..floor(totalRanks/2). Default of 8 keeps
+ * legacy callers (tests, prototype matches) seeing the standard 1–4 split.
+ */
+export function isInPlayerHalf(square: AlgebraicSquare, totalRanks: number = 8): boolean {
+  const r = Number(square.slice(1));
+  return r >= 1 && r <= Math.floor(totalRanks / 2);
 }
 
 /**
@@ -187,6 +191,8 @@ export type BoardContext = {
   isAttackedBy: (sq: AlgebraicSquare, by: Side) => boolean;
   /** True iff the piece on `sq` carries a Tangled (root) status. */
   isRooted: (sq: AlgebraicSquare) => boolean;
+  /** Number of ranks on the board. Defaults to 8 if unspecified. */
+  boardRanks?: number;
 };
 
 /**
@@ -266,7 +272,7 @@ function validateTarget(card: Card, target: PlayTarget, ctx: BoardContext): Play
     }
     case "empty-square-own-half": {
       if (target.kind !== "square") return "missing-target";
-      if (!isInPlayerHalf(target.square)) return "target-not-in-own-half";
+      if (!isInPlayerHalf(target.square, ctx.boardRanks)) return "target-not-in-own-half";
       if (ctx.pieceAt(target.square) !== null || ctx.hasWall(target.square))
         return "target-not-empty";
       return null;
