@@ -4,6 +4,8 @@ The **Sandbox** is the development testing surface — a permanent tool, not a s
 
 Reach it via `App.tsx`'s mode menu → **Sandbox**. Code-side this mounts `<Match runMode="dev" />`.
 
+The same panel is also available **inside a real Royal run** — a thin "Dev" tab on the right edge of the match view toggles it open. When closed it is fully unmounted, so no dev-only state leaks into the run. Opening it in a run defaults the AI to "on" (so the match still plays normally); the player can flip it off via the panel to drive both sides for debugging.
+
 ## What it gives you
 
 - **Board editor.** Click a piece in the palette to "load" a brush, then click a square to place / overwrite. Click "Erase" then a square to clear it. Drag from the palette directly to a square as a shortcut. Editor edits do not flip the side to move; use the side-to-move toggle for that.

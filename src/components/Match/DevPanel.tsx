@@ -41,6 +41,11 @@ type Props = {
 
   // Energy
   onBumpEnergy: () => void;
+
+  /** Heading shown at the top of the panel. Defaults to "Sandbox". */
+  heading?: string;
+  /** When provided, renders a close button in the panel header. */
+  onClose?: () => void;
 };
 
 const PIECE_TYPES: PieceType[] = ["king", "queen", "rook", "bishop", "knight", "pawn"];
@@ -63,6 +68,8 @@ export function DevPanel({
   onLibraryCardDragStart,
   onLibraryCardDragEnd,
   onBumpEnergy,
+  heading = "Sandbox",
+  onClose,
 }: Props) {
   const [showLibrary, setShowLibrary] = useState(false);
 
@@ -86,7 +93,19 @@ export function DevPanel({
 
   return (
     <aside className={styles.devPanel}>
-      <h3 className={styles.heading}>Sandbox</h3>
+      <div className={styles.libraryHeader}>
+        <h3 className={styles.heading}>{heading}</h3>
+        {onClose && (
+          <button
+            type="button"
+            className={styles.closeButton}
+            onClick={onClose}
+            aria-label="Hide dev panel"
+          >
+            ×
+          </button>
+        )}
+      </div>
 
       <Section label="Editor">
         <p className={styles.note}>
