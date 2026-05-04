@@ -61,11 +61,13 @@ import {
   type StockfishOptions,
 } from "../ai/stockfish";
 import { pickBestMove as toyPickBestMove } from "../ai/toyAi";
+import { generateChess960Position } from "../game/chess/positions";
 import { parseFen } from "../game/chess/rules";
 import {
   offendingSquares as validationOffendingSquares,
   validatePosition,
 } from "../game/chess/validate";
+import { STANDARD_MATCHES } from "../game/progression/standard";
 import {
   ENERGY_MAX,
   clampEnergy,
@@ -1020,6 +1022,34 @@ export function Match({
     undoRedo.seed({ engineSnapshot: freshEngine.snapshot(), cardState: fresh });
   }, [initialDeck, rng, undoRedo]);
 
+  /**
+   * Reseed the board to a Standard-mode starting position: pick one of the
+   * 9 STANDARD_MATCHES configs at random and run its piece set through the
+   * Chess960 generator. Resets the deck/hand/energy like Standard Start does.
+   */
+  const randomStart = useCallback(() => {
+    const r: Rng = rng ?? Math.random;
+    const cfg = STANDARD_MATCHES[Math.floor(r() * STANDARD_MATCHES.length)];
+    const { fen, size } = generateChess960Position(cfg.pieceSet, cfg.size, r);
+    const freshEngine = new ChoseEngine(fen, size);
+    setEngine(freshEngine);
+    const fresh = startPlayerTurn(createMatchCardState(initialDeck ?? makeStarterDeck(), rng), rng);
+    setCardState(fresh);
+    setSelected(null);
+    setVersion(0);
+    setTargetingIndex(null);
+    setPartialTarget(null);
+    setMarionetteMoves([]);
+    setScryPending(null);
+    setRevivePending(false);
+    setEditorPiece(null);
+    paletteDragRef.current = null;
+    setPaletteDragActive(false);
+    libraryFreePlayRef.current = null;
+    setLibraryFreePlayActive(false);
+    undoRedo.seed({ engineSnapshot: freshEngine.snapshot(), cardState: fresh });
+  }, [initialDeck, rng, undoRedo]);
+
   const bumpEnergy = useCallback(
     (delta: number) => {
       setCardState((s) => {
@@ -1134,17 +1164,21 @@ export function Match({
 
   const onSquareClick = useCallback(
     (sq: AlgebraicSquare) => {
-      if (matchOver || aiThinking) return;
+      if (aiThinking) return;
 
       // Editor takes priority while a brush is selected and the dev panel is
       // active — a click places / overwrites / erases the piece on the square
       // per the current brush. The brush is consumed by the placement: the
       // user clicks the palette piece again for each new placement.
+      // Bypasses matchOver: invalid positions register as stalemate, and the
+      // user needs to keep editing precisely to fix that.
       if (devPanelEnabled && editorPiece !== null) {
         applyEditorEdit(sq, editorPiece);
         setEditorPiece(null);
         return;
       }
+
+      if (matchOver) return;
 
       // Card-targeting takes priority over chess interaction.
       if (targetingIndex !== null && targetingCard) {
@@ -1246,11 +1280,12 @@ export function Match({
 
   const onSquareDrop = useCallback(
     (sq: AlgebraicSquare) => {
-      if (matchOver || aiThinking) return;
+      if (aiThinking) return;
       // Palette drag (sandbox editor): drop applies the brush regardless of
       // any other in-flight selection. We clear editorPiece here too — the
       // dragend handler also clears it, but dragend is unreliable across
       // browsers, so don't depend on it for the visible highlight.
+      // Bypasses matchOver so editor edits can recover from invalid positions.
       if (paletteDragRef.current !== null) {
         applyEditorEdit(sq, paletteDragRef.current);
         paletteDragRef.current = null;
@@ -1258,6 +1293,7 @@ export function Match({
         setEditorPiece(null);
         return;
       }
+      if (matchOver) return;
       if (targetingIndex !== null) {
         // A targeted card was dragged from the hand onto this square. Reuse
         // the same resolution path as a click on the square.
@@ -1406,7 +1442,10 @@ export function Match({
 
   // ---- Render ---------------------------------------------------------------
 
-  const boardLocked = matchOver || aiThinking;
+  // In dev mode the board must remain interactive even when the engine reports
+  // checkmate / stalemate (which is what an invalid editor position registers
+  // as) — otherwise the user can't edit their way back to a valid state.
+  const boardLocked = aiThinking || (matchOver && !devPanelEnabled);
 
   // Recompute on each move (version bump invalidates).
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1607,6 +1646,7 @@ export function Match({
           onSetSideToMove={setSideToMove}
           onClearBoard={clearBoard}
           onStandardStart={standardStart}
+          onRandomStart={randomStart}
           boardSize={engine.size()}
           onResizeBoard={resizeBoard}
           validationMessages={validationMessages}

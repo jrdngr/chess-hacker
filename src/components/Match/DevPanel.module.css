@@ -193,6 +193,47 @@
   border-radius: 4px;
 }
 
+.sizeStepper {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.sizeStepperLabel {
+  margin-right: 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.sizeStepperButton {
+  padding: 2px 6px;
+  font-size: 13px;
+  line-height: 1;
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  color: inherit;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.sizeStepperButton:hover:not(:disabled) {
+  border-color: var(--player);
+}
+
+.sizeStepperButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.sizeStepperValue {
+  min-width: 16px;
+  text-align: center;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
 .validationBlock {
   border: 1px solid #d93444;
   background: rgba(217, 52, 68, 0.08);

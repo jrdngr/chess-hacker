@@ -7,7 +7,7 @@
 //   - Click the piece, then click a highlighted square.
 //   - Drag the piece onto a target square.
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 
 import { squareCoords, squareName, type ChoseEngine, type LegalMove } from "../../game/chess/engine";
 import type { AlgebraicSquare, FileIndex, Piece, RankIndex, Side } from "../../game/types";
@@ -193,7 +193,7 @@ export function Board({
           .filter(Boolean)
           .join(" ")}
         role="grid"
-        style={{ aspectRatio: `${fileCount} / ${rankCount}` }}
+        style={{ "--board-aspect": fileCount / rankCount } as CSSProperties}
       >
         {RANKS_TOP_DOWN.map((rank) => (
           <div key={rank} className={styles.row} role="row">

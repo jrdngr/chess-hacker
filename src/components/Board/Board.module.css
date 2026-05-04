@@ -21,13 +21,10 @@
      corner bleed is barely perceptible. */
   overflow: visible;
   /* Largest rectangle that fits both axes of the wrapper while honoring
-     the per-instance aspect-ratio (set inline by Board.tsx so non-square
-     boards like 6x8 render correctly). */
-  max-width: 100cqw;
-  max-height: 100cqh;
-  width: auto;
-  height: auto;
-  aspect-ratio: 1 / 1;
+     the per-instance aspect-ratio. Board.tsx sets --board-aspect inline
+     (files / ranks) so non-square boards like 6x8 render correctly. */
+  width: min(100cqw, calc(100cqh * var(--board-aspect, 1)));
+  aspect-ratio: var(--board-aspect, 1);
   user-select: none;
 }
 

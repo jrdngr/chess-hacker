@@ -63,7 +63,24 @@ export function App() {
       </header>
       <main className={styles.main}>
         {route === "menu" && <ModeMenu onPick={setRoute} />}
-        {route === "sandbox" && <Match runMode="dev" onExit={() => setRoute("menu")} />}
+        {route === "sandbox" && (
+          <div className={styles.sandbox}>
+            <div className={styles.sandboxBanner}>
+              <span className={styles.sandboxBannerSegment}>
+                <span className={styles.sandboxBannerLabel}>Mode</span>
+                <span className={styles.sandboxBannerValue}>Sandbox</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setRoute("menu")}
+                className={styles.sandboxQuit}
+              >
+                Quit sandbox
+              </button>
+            </div>
+            <Match runMode="dev" />
+          </div>
+        )}
         {route === "standard" && <Run mode="standard" onExit={() => setRoute("menu")} />}
       </main>
     </div>

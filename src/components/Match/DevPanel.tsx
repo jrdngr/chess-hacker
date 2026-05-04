@@ -14,7 +14,8 @@ import styles from "./DevPanel.module.css";
 /** A piece picked in the editor palette, or "erase" to clear a square. */
 export type EditorPiece = { type: PieceType; side: Side } | "erase" | null;
 
-const SIZE_OPTIONS = [3, 4, 5, 6, 7, 8] as const;
+const MIN_BOARD_SIZE = 3;
+const MAX_BOARD_SIZE = 8;
 
 type Props = {
   // Editor
@@ -27,6 +28,11 @@ type Props = {
   onSetSideToMove: (side: Side) => void;
   onClearBoard: () => void;
   onStandardStart: () => void;
+  /**
+   * Wipe the board and seed a Chess960 starting position drawn from one of
+   * the Standard-mode match configs (random match number → random layout).
+   */
+  onRandomStart: () => void;
   /**
    * Current board size. Pickers are shown for files (3..8) and ranks (3..8)
    * independently — devs can build any rectangle for testing.
@@ -73,6 +79,7 @@ export function DevPanel({
   onSetSideToMove,
   onClearBoard,
   onStandardStart,
+  onRandomStart,
   boardSize,
   onResizeBoard,
   validationMessages,
@@ -188,6 +195,9 @@ export function DevPanel({
           <button type="button" className={styles.smallButton} onClick={onStandardStart}>
             Standard start
           </button>
+          <button type="button" className={styles.smallButton} onClick={onRandomStart}>
+            Random start
+          </button>
         </div>
         <div className={styles.row} role="radiogroup" aria-label="Side to move">
           <span className={styles.label}>To move</span>
@@ -212,40 +222,16 @@ export function DevPanel({
         </div>
         <div className={styles.row}>
           <span className={styles.label}>Size</span>
-          <label className={styles.sizeLabel}>
-            files
-            <select
-              className={styles.select}
-              value={boardSize.files}
-              onChange={(e) =>
-                onResizeBoard({ files: Number(e.target.value), ranks: boardSize.ranks })
-              }
-              aria-label="Board files"
-            >
-              {SIZE_OPTIONS.map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className={styles.sizeLabel}>
-            ranks
-            <select
-              className={styles.select}
-              value={boardSize.ranks}
-              onChange={(e) =>
-                onResizeBoard({ files: boardSize.files, ranks: Number(e.target.value) })
-              }
-              aria-label="Board ranks"
-            >
-              {SIZE_OPTIONS.map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-          </label>
+          <SizeStepper
+            label="files"
+            value={boardSize.files}
+            onChange={(files) => onResizeBoard({ files, ranks: boardSize.ranks })}
+          />
+          <SizeStepper
+            label="ranks"
+            value={boardSize.ranks}
+            onChange={(ranks) => onResizeBoard({ files: boardSize.files, ranks })}
+          />
         </div>
         {validationMessages.length > 0 && (
           <div className={styles.validationBlock} role="status" aria-live="polite">
@@ -383,6 +369,49 @@ function LibraryOverlay({
         ))}
       </div>
     </aside>
+  );
+}
+
+function SizeStepper({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  const dec = () => {
+    if (value > MIN_BOARD_SIZE) onChange(value - 1);
+  };
+  const inc = () => {
+    if (value < MAX_BOARD_SIZE) onChange(value + 1);
+  };
+  return (
+    <div className={styles.sizeStepper}>
+      <span className={styles.sizeStepperLabel}>{label}</span>
+      <button
+        type="button"
+        className={styles.sizeStepperButton}
+        onClick={dec}
+        disabled={value <= MIN_BOARD_SIZE}
+        aria-label={`Decrease ${label}`}
+      >
+        −
+      </button>
+      <span className={styles.sizeStepperValue} aria-live="polite">
+        {value}
+      </span>
+      <button
+        type="button"
+        className={styles.sizeStepperButton}
+        onClick={inc}
+        disabled={value >= MAX_BOARD_SIZE}
+        aria-label={`Increase ${label}`}
+      >
+        +
+      </button>
+    </div>
   );
 }
 

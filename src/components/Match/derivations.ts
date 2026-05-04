@@ -26,6 +26,7 @@ export type OverlaySets = {
   shieldedSet: ReadonlySet<AlgebraicSquare>;
   sanctuarySet: ReadonlySet<AlgebraicSquare>;
   trapSet: ReadonlySet<AlgebraicSquare>;
+  hastedSet: ReadonlySet<AlgebraicSquare>;
   empowerMap: ReadonlyMap<AlgebraicSquare, ReadonlySet<EmpowerPattern>>;
 };
 
@@ -49,15 +50,23 @@ export function deriveOverlaySets(state: MatchCardState): OverlaySets {
     shieldedSet: new Set(state.shields.map((s) => s.square)),
     sanctuarySet: new Set(state.sanctuaries.map((s) => s.square)),
     trapSet: new Set(state.traps.map((t) => t.square)),
+    hastedSet: new Set(state.hastes.map((h) => h.square)),
     empowerMap,
   };
 }
 
 /** Pack the rule-layer's "extra overlays" struct from the derived sets. */
 export function buildExtraOverlays(o: OverlaySets): ExtraOverlays {
+  // Haste shares Disarm's "may move, may not capture" rule at the move-gen
+  // layer (see docs/cards/keywords.md). Union them so a hasted piece cannot
+  // capture on either of its two moves.
+  const disarms =
+    o.hastedSet.size === 0
+      ? o.disarmedSet
+      : new Set<AlgebraicSquare>([...o.disarmedSet, ...o.hastedSet]);
   return {
     roots: o.rootedSet,
-    disarms: o.disarmedSet,
+    disarms,
     compels: o.compelledSet,
     shields: o.shieldedSet,
     sanctuaries: o.sanctuarySet,
