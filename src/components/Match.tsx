@@ -1173,6 +1173,30 @@ export function Match({
   );
 
   /**
+   * Apply edits from the deck editor: replace draw + spent piles wholesale.
+   * Newly added cards are appended to `acquisitionLog` so the draw-pile
+   * inspector can find them. Removed cards are *not* scrubbed from the log —
+   * its purpose is "what entered the deck", not "what's in it now" (the
+   * inspector multi-set-diffs against drawPile). Pushes a snapshot so undo
+   * rewinds the edit in one step.
+   */
+  const saveDeck = useCallback(
+    (next: { drawPile: Card[]; consumedPile: Card[]; addedCards: Card[] }) => {
+      setCardState((prev) => {
+        const updated: MatchCardState = {
+          ...prev,
+          drawPile: next.drawPile,
+          consumedPile: next.consumedPile,
+          acquisitionLog: [...prev.acquisitionLog, ...next.addedCards],
+        };
+        pushSnapshot(updated);
+        return updated;
+      });
+    },
+    [pushSnapshot],
+  );
+
+  /**
    * Library card play (dev only). Cards played from the library are free
    * (no energy charged) and never enter the consumed pile (they were never
    * in the player's deck). Effect-driven mutations — statuses, traps, cards
@@ -1828,6 +1852,9 @@ export function Match({
           onPlayLibraryCard={playLibraryCard}
           onLibraryCardDragStart={dragStartLibraryCard}
           onLibraryCardDragEnd={dragEndLibraryCard}
+          drawPile={cardState.drawPile}
+          consumedPile={cardState.consumedPile}
+          onSaveDeck={saveDeck}
           onBumpEnergy={() => bumpEnergy(1)}
           canUndo={canUndo}
           canRedo={canRedo}

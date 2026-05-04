@@ -3,7 +3,7 @@
 // `runMode` is "dev". All state lives in Match; this component is purely
 // presentational.
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { PieceGlyph } from "../Board/PieceGlyph";
 import { CARD_LIBRARY } from "../../game/cards/library";
@@ -71,6 +71,23 @@ type Props = {
   onLibraryCardDragStart: (card: Card) => void;
   onLibraryCardDragEnd: () => void;
 
+  // Deck
+  /** Cards still in the player's draw pile. */
+  drawPile: ReadonlyArray<Card>;
+  /** Cards already played this match. */
+  consumedPile: ReadonlyArray<Card>;
+  /**
+   * Commit the deck-editor changes: replace draw / spent piles wholesale.
+   * `addedCards` is the subset of `drawPile` that wasn't in the deck before
+   * (so Match can append it to acquisitionLog). Match is responsible for any
+   * rng-y reshuffle.
+   */
+  onSaveDeck: (next: {
+    drawPile: Card[];
+    consumedPile: Card[];
+    addedCards: Card[];
+  }) => void;
+
   // Energy
   onBumpEnergy: () => void;
 
@@ -112,6 +129,9 @@ export function DevPanel({
   onPlayLibraryCard,
   onLibraryCardDragStart,
   onLibraryCardDragEnd,
+  drawPile,
+  consumedPile,
+  onSaveDeck,
   onBumpEnergy,
   canUndo,
   canRedo,
@@ -121,6 +141,7 @@ export function DevPanel({
   onClose,
 }: Props) {
   const [showLibrary, setShowLibrary] = useState(false);
+  const [showDeckEditor, setShowDeckEditor] = useState(false);
 
   if (showLibrary) {
     return (
@@ -130,6 +151,20 @@ export function DevPanel({
         onLibraryCardDragStart={onLibraryCardDragStart}
         onLibraryCardDragEnd={onLibraryCardDragEnd}
         onClose={() => setShowLibrary(false)}
+      />
+    );
+  }
+
+  if (showDeckEditor) {
+    return (
+      <DeckEditorOverlay
+        drawPile={drawPile}
+        consumedPile={consumedPile}
+        onSave={(next) => {
+          onSaveDeck(next);
+          setShowDeckEditor(false);
+        }}
+        onClose={() => setShowDeckEditor(false)}
       />
     );
   }
@@ -156,7 +191,28 @@ export function DevPanel({
         )}
       </div>
 
-      <Section label="Editor">
+      <Section>
+        <div className={styles.row}>
+          <button
+            type="button"
+            className={styles.smallButton}
+            onClick={onUndo}
+            disabled={!canUndo}
+          >
+            Undo turn
+          </button>
+          <button
+            type="button"
+            className={styles.smallButton}
+            onClick={onRedo}
+            disabled={!canRedo}
+          >
+            Redo turn
+          </button>
+        </div>
+      </Section>
+
+      <Section>
         <p className={styles.note}>
           Click a piece to select it, then click a square to place. Or drag the piece straight onto
           the board. Each placement consumes the brush — pick again to place another.
@@ -290,7 +346,7 @@ export function DevPanel({
         )}
       </Section>
 
-      <Section label="AI">
+      <Section>
         <label className={styles.checkboxRow}>
           <input type="checkbox" checked={devAiOn} onChange={onToggleDevAi} />
           <span>AI plays Black</span>
@@ -305,7 +361,7 @@ export function DevPanel({
         </button>
       </Section>
 
-      <Section label="Energy">
+      <Section>
         <div className={styles.row}>
           <button type="button" className={styles.smallButton} onClick={onBumpEnergy}>
             +1 energy
@@ -313,29 +369,21 @@ export function DevPanel({
         </div>
       </Section>
 
-      <Section label="Library">
-        <button type="button" className={styles.smallButton} onClick={() => setShowLibrary(true)}>
-          Open library
-        </button>
-      </Section>
-
-      <Section label="History">
+      <Section>
         <div className={styles.row}>
           <button
             type="button"
             className={styles.smallButton}
-            onClick={onUndo}
-            disabled={!canUndo}
+            onClick={() => setShowLibrary(true)}
           >
-            Undo turn
+            Library
           </button>
           <button
             type="button"
             className={styles.smallButton}
-            onClick={onRedo}
-            disabled={!canRedo}
+            onClick={() => setShowDeckEditor(true)}
           >
-            Redo turn
+            Deck
           </button>
         </div>
       </Section>
@@ -438,6 +486,203 @@ function LibraryOverlay({
   );
 }
 
+/**
+ * Deck-editor entry: a single row in the editor, tagged with where it came
+ * from so saving can rebuild the draw / spent piles correctly. `kind: "new"`
+ * rows came from the library and append to the draw pile on save; existing
+ * rows preserve their position in their original pile if not removed.
+ */
+type DeckEntry =
+  | { kind: "draw"; card: Card; key: string; removed: boolean }
+  | { kind: "spent"; card: Card; key: string; removed: boolean }
+  | { kind: "new"; card: Card; key: string };
+
+type DeckEditorProps = {
+  drawPile: ReadonlyArray<Card>;
+  consumedPile: ReadonlyArray<Card>;
+  onSave: (next: { drawPile: Card[]; consumedPile: Card[]; addedCards: Card[] }) => void;
+  onClose: () => void;
+};
+
+function DeckEditorOverlay({ drawPile, consumedPile, onSave, onClose }: DeckEditorProps) {
+  const [entries, setEntries] = useState<DeckEntry[]>(() => {
+    const out: DeckEntry[] = [];
+    drawPile.forEach((card, i) => {
+      out.push({ kind: "draw", card, key: `draw-${i}`, removed: false });
+    });
+    consumedPile.forEach((card, i) => {
+      out.push({ kind: "spent", card, key: `spent-${i}`, removed: false });
+    });
+    return out;
+  });
+  const [exportText, setExportText] = useState<string | null>(null);
+  // Counter for unique keys on newly-added cards.
+  const newKeyRef = useRef(0);
+
+  const libraryCards = useMemo(() => {
+    const groups = new Map<string, Card[]>();
+    for (const card of Object.values(CARD_LIBRARY)) {
+      const key = card.archetype;
+      const list = groups.get(key);
+      if (list) list.push(card);
+      else groups.set(key, [card]);
+    }
+    for (const list of groups.values()) {
+      list.sort((a, b) => a.cost - b.cost || a.name.localeCompare(b.name));
+    }
+    return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, []);
+
+  const liveCards = entries.filter((e) => e.kind === "new" || !e.removed);
+  const liveCount = liveCards.length;
+  const removedCount = entries.filter((e) => e.kind !== "new" && e.removed).length;
+  const addedCount = entries.filter((e) => e.kind === "new").length;
+
+  const toggleRemove = (key: string) => {
+    setEntries((prev) =>
+      prev.flatMap((e) => {
+        if (e.key !== key) return [e];
+        if (e.kind === "new") return []; // newly added → drop entirely
+        return [{ ...e, removed: !e.removed }];
+      }),
+    );
+  };
+
+  const addCard = (card: Card) => {
+    setEntries((prev) => [
+      ...prev,
+      { kind: "new", card, key: `new-${newKeyRef.current++}` },
+    ]);
+  };
+
+  const handleSave = () => {
+    const newDraw: Card[] = [];
+    const newSpent: Card[] = [];
+    const added: Card[] = [];
+    for (const entry of entries) {
+      if (entry.kind === "draw" && !entry.removed) newDraw.push(entry.card);
+      else if (entry.kind === "spent" && !entry.removed) newSpent.push(entry.card);
+      else if (entry.kind === "new") {
+        newDraw.push(entry.card);
+        added.push(entry.card);
+      }
+    }
+    onSave({ drawPile: newDraw, consumedPile: newSpent, addedCards: added });
+  };
+
+  const handleExport = () => {
+    const ids = liveCards.map((e) => e.card.id).join(",");
+    setExportText(ids);
+  };
+
+  return (
+    <aside className={`${styles.devPanel} ${styles.libraryPanel}`}>
+      <div className={styles.libraryHeader}>
+        <h3 className={styles.heading}>Deck editor</h3>
+        <button
+          type="button"
+          className={styles.closeButton}
+          onClick={onClose}
+          aria-label="Close deck editor"
+        >
+          ×
+        </button>
+      </div>
+      <p className={styles.note}>
+        Edit your draw + spent piles. Removed cards leave both piles; added cards drop into the
+        draw pile. Hand cards are unaffected. Changes apply on Save.
+      </p>
+
+      <div className={styles.deckSummaryRow}>
+        <span>{liveCount} cards</span>
+        {addedCount > 0 && <span className={styles.deckSummaryAdded}>+{addedCount}</span>}
+        {removedCount > 0 && <span className={styles.deckSummaryRemoved}>−{removedCount}</span>}
+      </div>
+
+      <div className={styles.deckActions}>
+        <button type="button" className={styles.smallButton} onClick={handleSave}>
+          Save deck
+        </button>
+        <button type="button" className={styles.smallButton} onClick={onClose}>
+          Cancel
+        </button>
+        <button type="button" className={styles.smallButton} onClick={handleExport}>
+          Export deck
+        </button>
+      </div>
+
+      {exportText !== null && (
+        <div className={styles.exportBlock}>
+          <textarea
+            className={styles.exportTextarea}
+            readOnly
+            value={exportText}
+            rows={3}
+            onFocus={(e) => e.currentTarget.select()}
+          />
+        </div>
+      )}
+
+      <div className={styles.libraryListFull}>
+        <div className={styles.libraryGroup}>
+          <div className={styles.libraryGroupHeading}>Current deck</div>
+          {entries.length === 0 && <div className={styles.note}>Deck is empty.</div>}
+          {entries.map((entry) => {
+            const removed = entry.kind !== "new" && entry.removed;
+            const tag =
+              entry.kind === "new" ? "new" : entry.kind === "spent" ? "spent" : "draw";
+            return (
+              <div
+                key={entry.key}
+                className={`${styles.deckEntry} ${removed ? styles.deckEntryRemoved : ""}`}
+              >
+                <span className={styles.libraryCardCost}>{entry.card.cost}</span>
+                <span className={styles.deckEntryBody}>
+                  <span className={styles.libraryCardName}>{entry.card.name}</span>
+                  <span className={styles.libraryCardDesc}>{entry.card.description}</span>
+                </span>
+                <span className={`${styles.deckEntryTag} ${styles[`deckEntryTag_${tag}`] ?? ""}`}>
+                  {tag}
+                </span>
+                <button
+                  type="button"
+                  className={styles.deckEntryRemoveButton}
+                  onClick={() => toggleRemove(entry.key)}
+                  aria-label={removed ? "Restore card" : "Remove card"}
+                >
+                  {entry.kind === "new" ? "×" : removed ? "↺" : "×"}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className={styles.libraryGroup}>
+          <div className={styles.libraryGroupHeading}>Add from library</div>
+          {libraryCards.map(([archetype, cards]) => (
+            <div key={archetype} className={styles.libraryGroup}>
+              <div className={styles.libraryGroupHeading}>{archetype}</div>
+              {cards.map((card) => (
+                <button
+                  key={card.id}
+                  type="button"
+                  className={styles.libraryCard}
+                  onClick={() => addCard(card)}
+                  data-card-id={card.id}
+                >
+                  <span className={styles.libraryCardCost}>{card.cost}</span>
+                  <span className={styles.libraryCardName}>{card.name}</span>
+                  <span className={styles.libraryCardDesc}>{card.description}</span>
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </aside>
+  );
+}
+
 function SizeStepper({
   label,
   value,
@@ -481,11 +726,6 @@ function SizeStepper({
   );
 }
 
-function Section({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className={styles.section}>
-      <div className={styles.sectionHeading}>{label}</div>
-      {children}
-    </div>
-  );
+function Section({ children }: { children: React.ReactNode }) {
+  return <div className={styles.section}>{children}</div>;
 }

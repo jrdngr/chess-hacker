@@ -28,7 +28,7 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 - **Rarity:** Uncommon
 - **Target:** enemy non-King piece
 - **Effect:** Root the targeted enemy for **2 turns** (it cannot move on either of its next two turns except to capture an adjacent piece). Add Vine Pull to your hand.
-- **Design note:** the setup half of a 2-turn combo. The 2-turn root window is the deliberate mismatch from Tangled Roots' 1-turn root: you need the extra turn to bank energy for Vine Pull and pick the swap target. Mark Target is also the standard generator for Vine Pull cards in your deck — Vine Pull is otherwise unobtainable in the prototype.
+- **Design note:** the setup half of a 2-turn combo. The 2-turn root window is the deliberate mismatch from Tangled Roots' 1-turn root: you need the extra turn to bank energy for Vine Pull and pick the swap target. Mark Target is also the primary generator for additional Vine Pulls beyond the single starter copy.
 
   Listed under Generators in the per-archetype docs ([`generators.md`](generators.md)) because the "add a card to hand" half is what makes this archetype tick. Listed under Swap here because the *combo's payoff* is a swap.
 

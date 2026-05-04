@@ -6,24 +6,21 @@ The 20 cards every fresh run begins with. The deck is sized to the top of the 16
 
 | Count | Card | Type | Effect |
 |---|---|---|---|
-| 2 | [Reconnaissance](resource.md#reconnaissance) | Resource | Draw 2. |
 | 2 | [Frostbite](disruption.md#frostbite) | Disruption | Freeze enemy piece. |
-| 1 | [Foresight](resource.md#foresight) | Resource | Scry top 3 of deck. |
-| 1 | [Tangled Roots](disruption.md#tangled-roots) | Disruption | Root enemy piece. |
-| 1 | [Fumble](disruption.md#fumble) | Disruption | Disarm enemy piece. |
+| 2 | [Tangled Roots](disruption.md#tangled-roots) | Disruption | Root enemy piece. |
+| 2 | [Fumble](disruption.md#fumble) | Disruption | Disarm enemy piece. |
 | 1 | [Provoke](disruption.md#provoke) | Disruption | Compel enemy piece. |
-| 1 | [Barricade](spatial.md#barricade) | Spatial | Place wall, 3 turns. |
-| 1 | [Spike Pit](spatial.md#spike-pit) | Spatial | Trap (capture), 4 turns. |
+| 2 | [Barricade](spatial.md#barricade) | Spatial | Place wall, 3 turns. |
 | 1 | [Snare](spatial.md#snare) | Spatial | Trap (freeze), 3 turns. |
-| 1 | [Quickstep](tempo.md#quickstep) | Tempo | Own piece takes 2 actions (moves and captures). |
-| 1 | [Crooked Path](movement-extension.md#crooked-path) | Movement-extension | Empower own piece w/ knight L (this turn). |
-| 1 | [Iron Guard](defensive.md#iron-guard) | Defensive | Shield own piece. |
+| 1 | [Hallowed Ground](spatial.md#hallowed-ground) | Spatial | Place sanctuary, 3 turns. |
+| 2 | [Iron Guard](defensive.md#iron-guard) | Defensive | Shield own piece. |
 | 1 | [Martyr's Gift](sacrifice.md#martyrs-gift) | Sacrifice | Destroy own piece; +2 cards, +1 energy. |
+| 1 | [Quickstep](tempo.md#quickstep) | Tempo | Own piece takes 2 actions (moves and captures). |
+| 1 | [Switch Files](swap.md#switch-files) | Swap | Swap two of your own pieces. |
+| 1 | [Vine Pull](generators.md#vine-pull) | Swap | Swap one of your pieces with a rooted enemy. |
+| 1 | [Marionette](swap.md#marionette) | Swap | Move an enemy piece using one of its legal moves. |
 | 1 | [Cheap Destroy](burst.md#cheap-destroy) | Burst | Destroy enemy non-King piece your forces are attacking. |
-| 1 | [Improvise](generators.md#improvise) | Resource | Add a random common card to your hand. |
-| 1 | [Recall](revival.md#recall) | Resource | Return a random spent card to your hand. |
-| 1 | [Pace](self-replicators.md#pace) | Resource | Scry 1; shuffle a copy of Pace into draw. |
-| 1 | [Hum](self-replicators.md#hum) | Resource | Draw 1; shuffle a copy of Hum into draw. |
+| 1 | [Big Destroy](burst.md#big-destroy) | Burst | Destroy any enemy non-King piece. |
 
 **Total: 20 cards.**
 
@@ -31,22 +28,22 @@ The 20 cards every fresh run begins with. The deck is sized to the top of the 16
 
 | Cost | Count | Cards |
 |---|---|---|
-| 0 | 1 | Foresight |
-| 1 | 12 | 2× Reconnaissance, Tangled Roots, Fumble, Barricade, Snare, Iron Guard, Martyr's Gift, Improvise, Recall, Pace, Hum |
-| 2 | 6 | 2× Frostbite, Provoke, Spike Pit, Quickstep, Crooked Path |
+| 1 | 10 | 2× Iron Guard, 2× Fumble, 2× Tangled Roots, 2× Barricade, Martyr's Gift, Snare |
+| 2 | 7 | 2× Frostbite, Provoke, Hallowed Ground, Switch Files, Quickstep, Vine Pull |
 | 4 | 1 | Cheap Destroy |
+| 5 | 1 | Marionette |
+| 10 | 1 | Big Destroy |
 
-Average cost: ~1.45. Turn 1 is workable on a 1-energy budget — half the deck is cost-1.
+Average cost: ~2.4. Half the deck is cost-1, so turn 1 is workable on a 1-energy budget; the cost-4/5/10 haymakers reward banking through midgame.
 
 ## Rationale
 
-- **Tempo-feasible from turn 1.** Banking energy starts at 1; the heavy cost-1 weighting means the player can almost always play something on the first turn. Frostbite/Quickstep/etc. need turn 2+ banking before they fire.
-- **Multiples on the cheap utilities.** Reconnaissance and Frostbite get duplicates because they're both highly versatile and the consume-all rule weakens single-shot copies. Two of each creates a soft "if you've used it, there's another coming."
-- **Empty-deck mitigation as a *floor*, not a feature.** Improvise + Recall + Pace + Hum are the four common card-economy tools. Together they keep the deck from collapsing in 20 plays — every card you spend can be partially recouped.
+- **Disruption-heavy core.** 7 of the 20 cards are status disablers (Frostbite/Tangled Roots/Fumble/Provoke). Multiples on Frostbite, Tangled Roots, and Fumble keep the deck reactive — the consume-all rule punishes single-shots, so duplicates exist for the workhorse disruption.
+- **Spatial coverage.** Two Barricades plus one each of Snare and Hallowed Ground give the player wall, trap, and sanctuary tools without overloading the deck on overlapping spatial effects.
+- **Two destroy haymakers.** Cheap Destroy (cost 4, attacked-only) and Big Destroy (cost 10, any non-King) bracket the burst archetype: one playable mid-match after a few turns of banking, one true late-game finisher.
+- **Swap toolkit.** Switch Files reorganises your own back rank; Vine Pull pays off the rooted enemies created by Tangled Roots; Marionette is the late-game single-shot. Three different swap angles for one slot each — variety over redundancy.
 - **Souls come from captures, not the starter.** Capture-grants-Soul (see `docs/design/cards.md`) means each enemy you take feeds a matching empower card into your draw pile. Starting with Pawn/Knight/etc. Soul cards in the deck would double up the supply line without adding decision space, so they're left to organic acquisition.
-- **Cheap Destroy as a showcase.** One copy demonstrates the upper-tier of the new banking system: at 4 energy it asks the player to set up the threat first (an enemy attacked by one of your pieces) before paying to remove the target.
-- **Drops vs current main:** Hallowed Ground (uncommon, niche), Spring Trap (redundant with Snare), Switch Files (corner-case), Pawn Soul (replaced by capture grant), and the Marionette / Knight/Bishop/Rook/Queen Soul / Big Destroy haymakers (all priced at 4–10 energy and unplayable from a 1-energy start without significant banking). Those cards live in the data folder for the future draft pool.
 
 ## Future shape
 
-When drafts and shops land, the starter shrinks further (12–14 cards), and the rest of the library — including the haymaker tier (Big Destroy, Queen Soul, Marionette) — becomes draft-pool only. The capture-grants-Soul pipeline already gives a structural reason to leave Souls out of the starter.
+When drafts and shops land, the starter shrinks further (12–14 cards), and the rest of the library becomes draft-pool only. The capture-grants-Soul pipeline already gives a structural reason to leave Souls out of the starter.

@@ -16,14 +16,6 @@ When you capture an enemy non-King piece during a chess move, the matching Soul 
 
 This is the primary way Souls enter your deck — none of them appear in the starter (see [`starter-deck.md`](starter-deck.md)). Capturing more pieces means a richer movement-extension supply line.
 
-## Crooked Path
-
-- **Cost:** 2
-- **Rarity:** Common
-- **Target:** own piece
-- **Effect:** Target own piece: **Empower** with knight L-shape as an additional movement pattern this turn.
-- **Design note:** the introductory Empower card — turns any piece into a temporary knight. Most interesting on rooks and bishops (suddenly threatens forks) and on pawns (a one-turn jump break). The empowered move is a knight L, so it ignores blockers like a real knight. Cost 2 (vs 1 for the single-use Soul) reflects the *whole-turn* duration: you can move someone else first and still tap the empowered pattern when the right piece moves.
-
 ## Pawn Soul
 
 - **Cost:** 1
@@ -38,7 +30,7 @@ This is the primary way Souls enter your deck — none of them appear in the sta
 - **Rarity:** Rare
 - **Target:** own piece
 - **Effect:** Target own piece: **Empower** with the knight L-shape as an additional movement pattern **this turn**. Lost if you move a different piece first.
-- **Design note:** the single-use counterpart to Crooked Path — costs more, but the "use it or lose it" clause prevents pre-buffing across turns.
+- **Design note:** Empower with the knight L-shape — the granted pattern ignores blockers like a real knight, so it's strongest on rooks/bishops (sudden forks) and on pawns (a one-turn jump break). The "use it or lose it" clause prevents pre-buffing across turns.
 
 ## Bishop Soul
 

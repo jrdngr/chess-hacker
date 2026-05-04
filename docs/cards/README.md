@@ -39,7 +39,6 @@ Per-card reference for choss. The mechanics doc is [`docs/design/cards.md`](../d
 | [Snare](spatial.md#snare) | Spatial | 1 | Common | Trap (freeze), 3 turns. |
 | [Spring Trap](spatial.md#spring-trap) | Spatial | 1 | Common | Trap (push), 3 turns. |
 | [Quickstep](tempo.md#quickstep) | Tempo | 2 | Common | Own piece takes 2 actions (moves and captures). |
-| [Crooked Path](movement-extension.md#crooked-path) | Movement-extension | 2 | Common | Empower own piece w/ knight L (this turn). |
 | [Iron Guard](defensive.md#iron-guard) | Defensive | 1 | Common | Shield own piece. |
 | [Cheap Destroy](burst.md#cheap-destroy) | Burst | 4 | Rare | Destroy enemy non-King piece your forces are attacking. |
 | [Big Destroy](burst.md#big-destroy) | Burst | 10 | Rare | Destroy any enemy non-King piece. Draft-pool only. |

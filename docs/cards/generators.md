@@ -46,7 +46,7 @@ The setup half of the Mark Target → Vine Pull combo. Two-turn root gives you t
 - **Target:** A rooted enemy non-King piece + one of your pieces (two-step pick).
 - **Effect:** Swap the two pieces' positions. The rooted enemy ends up where your piece was; your piece takes the rooted square.
 
-The payoff half of the combo. Vine Pull is generally only created by Mark Target — it requires a rooted target to fire, and the only persistent root source in the prototype is Mark Target's 2-turn root.
+The payoff half of the combo. The starter deck includes one copy of Vine Pull alongside Tangled Roots; Mark Target generates additional copies. Vine Pull requires a rooted target to fire — the persistent root sources in the prototype are Tangled Roots (1 turn) and Mark Target's 2-turn root.
 
 ## Shiv pool
 

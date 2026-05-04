@@ -957,7 +957,7 @@ describe("Match — dev mode", () => {
     expect(screen.getByLabelText(/^spent pile/i)).toHaveTextContent("0");
 
     // Library lives behind a button in sandbox; open the overlay first.
-    await user.click(screen.getByRole("button", { name: /open library/i }));
+    await user.click(screen.getByRole("button", { name: /^library$/i }));
 
     // Reconnaissance is no-target. Click the library entry (data-card-id is set
     // on the dev panel button to disambiguate from the same card in hand).
@@ -987,7 +987,7 @@ describe("Match — dev mode", () => {
     );
 
     // Library lives behind a button in sandbox; open the overlay first.
-    await user.click(screen.getByRole("button", { name: /open library/i }));
+    await user.click(screen.getByRole("button", { name: /^library$/i }));
 
     const frostbite = document.querySelector(
       'aside button[data-card-id="frostbite"]',

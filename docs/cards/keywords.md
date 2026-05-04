@@ -59,7 +59,7 @@ A hasted piece **may move a second time on the same turn, but may not capture** 
 
 An empowered piece **gains an additional movement pattern**, defined per card (e.g., "knight L-shape", "diagonal slide", "pawn forward step + diagonal capture"). The piece keeps its normal moveset *and* the granted pattern; it picks one to use. Patterns stack — multiple Empower effects on the same piece coexist.
 
-- **Duration:** card-specified. Crooked Path lasts the current turn and freely buffs whichever piece moves. The **Soul** family (Pawn / Knight / Bishop / Rook / Queen Soul) is **single-use this turn**: it lasts the current turn AND drops immediately if the player moves a different piece first. Either way, the status drops if the empowered piece is captured or sacrificed.
+- **Duration:** card-specified. The **Soul** family (Pawn / Knight / Bishop / Rook / Queen Soul) is **single-use this turn**: the status lasts the current turn AND drops immediately if the player moves a different piece first. Either way, the status drops if the empowered piece is captured or sacrificed.
 - **Patterns currently in the prototype:**
   - **knight** — knight L-shape (ignores blockers).
   - **bishop** — diagonal slide (blocked normally).

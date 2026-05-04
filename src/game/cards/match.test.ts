@@ -37,7 +37,6 @@ import {
 import {
   BARRICADE,
   KNIGHT_SOUL,
-  CROOKED_PATH,
   FORESIGHT,
   FROSTBITE,
   TANGLED_ROOTS,
@@ -360,18 +359,6 @@ describe("playCard — buffs", () => {
     expect(st.consumedPile.some((c) => c.id === "quickstep")).toBe(true);
   });
 
-  it("Crooked Path applies Empower with knight pattern", () => {
-    const rng = makeRng(54);
-    let st = startPlayerTurn(createMatchCardState([CROOKED_PATH], rng), rng);
-    st = { ...st, energy: ENERGY_MAX };
-    const ctx = withPieces({ a1: { type: "rook", side: "player" } });
-    const idx = st.hand.findIndex((c) => c.id === "crooked-path");
-    const r = playCard(st, idx, { kind: "square", square: "a1" }, ctx, rng);
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
-    st = r.state;
-    expect(empowerAt(st, "a1")?.pattern).toBe("knight");
-  });
 });
 
 describe("playCard — sacrifice / summon / swap / marionette", () => {
