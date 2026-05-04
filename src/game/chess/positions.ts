@@ -29,11 +29,7 @@ export type GeneratedPosition = { fen: string; size: BoardSize };
  * Place the back-rank pieces randomly, respecting the bishop and rook
  * constraints. Throws if the piece set won't fit (`backRank.length > files`).
  */
-export function placeBackRank(
-  pieceSet: PieceSet,
-  files: number,
-  rng: Rng,
-): (PieceType | null)[] {
+export function placeBackRank(pieceSet: PieceSet, files: number, rng: Rng): (PieceType | null)[] {
   const back = pieceSet.backRank;
   if (back.length > files) {
     throw new Error(`backRank has ${back.length} pieces but board has ${files} files`);
@@ -109,9 +105,10 @@ export function generateChess960Position(
     pieces.set(squareName(f, whiteBack), { type: t, side: "player" });
     pieces.set(squareName(f, blackBack), { type: t, side: "opponent" });
   }
-  // Pawns. `pieceSet.pawns` may be fewer than `size.files` (Standard's act 1
-  // is K + 4 pawns on 6x6 — only 4 pawn files). Pick the pawn files randomly,
-  // keeping white and black symmetric (same files for both).
+  // Pawns. `pieceSet.pawns` may be fewer than `size.files` (e.g. a sandbox
+  // setup with reduced pawn counts). Pick the pawn files randomly, keeping
+  // white and black symmetric (same files for both). Standard mode currently
+  // sets `pawns === size.files`, so the front rank is fully populated.
   const wPawnRank = 1;
   const bPawnRank = size.ranks - 2;
   const pawnFileCount = Math.min(pieceSet.pawns, size.files);

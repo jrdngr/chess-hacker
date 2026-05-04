@@ -12,12 +12,12 @@ const SET_8x8: PieceSet = {
   pawns: 8,
 };
 
-const SET_6x6_M1: PieceSet = { backRank: ["king"], pawns: 4 };
-const SET_6x6_M3: PieceSet = {
+const SET_4x6_KP: PieceSet = { backRank: ["king"], pawns: 4 };
+const SET_6x6_KNBR: PieceSet = {
   backRank: ["king", "knight", "bishop", "rook"],
   pawns: 4,
 };
-const SET_6x8_M5: PieceSet = {
+const SET_6x8_KNNBR: PieceSet = {
   backRank: ["king", "knight", "knight", "bishop", "rook"],
   pawns: 6,
 };
@@ -33,9 +33,7 @@ describe("placeBackRank", () => {
 
   it("places two bishops on opposite-color squares on 8x8 standard set", () => {
     const slots = placeBackRank(SET_8x8, 8, makeRng(42));
-    const bishopFiles = slots
-      .map((s, i) => (s === "bishop" ? i : -1))
-      .filter((i) => i >= 0);
+    const bishopFiles = slots.map((s, i) => (s === "bishop" ? i : -1)).filter((i) => i >= 0);
     expect(bishopFiles).toHaveLength(2);
     expect(bishopFiles[0] % 2).not.toBe(bishopFiles[1] % 2);
   });
@@ -54,16 +52,20 @@ describe("placeBackRank", () => {
 
   it("throws when the piece set is wider than the board", () => {
     expect(() =>
-      placeBackRank({ backRank: ["king", "queen"] as PieceSet["backRank"], pawns: 0 }, 1, makeRng(1)),
+      placeBackRank(
+        { backRank: ["king", "queen"] as PieceSet["backRank"], pawns: 0 },
+        1,
+        makeRng(1),
+      ),
     ).toThrow();
   });
 });
 
 describe("generateChess960Position", () => {
-  it("produces a 6x6 starting position with 5 pieces per side for K + 4P", () => {
-    const { fen, size } = generateChess960Position(SET_6x6_M1, { files: 6, ranks: 6 }, makeRng(1));
+  it("produces a 4x6 starting position with 5 pieces per side for K + 4P", () => {
+    const { fen, size } = generateChess960Position(SET_4x6_KP, { files: 4, ranks: 6 }, makeRng(1));
     const pos = parseFen(fen, size);
-    expect(size).toEqual({ files: 6, ranks: 6 });
+    expect(size).toEqual({ files: 4, ranks: 6 });
     let player = 0;
     let opponent = 0;
     for (const [, p] of pos.pieces) {
@@ -75,7 +77,11 @@ describe("generateChess960Position", () => {
   });
 
   it("places pawns on rank 1 and rank ranks-2 for both sides", () => {
-    const { fen, size } = generateChess960Position(SET_6x6_M3, { files: 6, ranks: 6 }, makeRng(1));
+    const { fen, size } = generateChess960Position(
+      SET_6x6_KNBR,
+      { files: 6, ranks: 6 },
+      makeRng(1),
+    );
     const pos = parseFen(fen, size);
     let whitePawnsOnRank1 = 0;
     let blackPawnsOnRank4 = 0;
@@ -85,18 +91,26 @@ describe("generateChess960Position", () => {
       if (p.side === "player" && rank === 1) whitePawnsOnRank1++;
       if (p.side === "opponent" && rank === size.ranks - 2) blackPawnsOnRank4++;
     }
-    // 4 pawns per side per the M3 spec.
+    // 4 pawns per side for this fixture.
     expect(whitePawnsOnRank1).toBe(4);
     expect(blackPawnsOnRank4).toBe(4);
   });
 
   it("FEN round-trips on a 6x8 starting position", () => {
-    const { fen, size } = generateChess960Position(SET_6x8_M5, { files: 6, ranks: 8 }, makeRng(99));
+    const { fen, size } = generateChess960Position(
+      SET_6x8_KNNBR,
+      { files: 6, ranks: 8 },
+      makeRng(99),
+    );
     expect(serializeFen(parseFen(fen, size))).toBe(fen);
   });
 
   it("mirrors white's back rank to black", () => {
-    const { fen, size } = generateChess960Position(SET_6x6_M3, { files: 6, ranks: 6 }, makeRng(123));
+    const { fen, size } = generateChess960Position(
+      SET_6x6_KNBR,
+      { files: 6, ranks: 6 },
+      makeRng(123),
+    );
     const pos = parseFen(fen, size);
     for (let f = 0; f < size.files; f++) {
       const w = pos.pieces.get(`${"abcdefgh"[f]}1`);

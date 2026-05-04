@@ -71,22 +71,22 @@ A boss's mechanics should:
 
 ## The three bosses (Standard mode)
 
-Coordinates are given for the active default mode (Standard). Standard places Boss A on a 6x6 board, Boss B on 6x8, and Boss C on 8x8 — see `progression.md` and the per-match table in `modes.md`. Royal would place all three on 8x8 if/when re-enabled; the original 8x8 sketches for A and B are kept at the bottom of this file as a record.
+Coordinates are given for the active default mode (Standard). Standard places Boss A on a 5×6 board, Boss B on 7×7, and Boss C on 8×8 — see `progression.md` and the per-match table in `modes.md`. Royal would place all three on 8×8 if/when re-enabled; the original 8×8 sketches for A and B are kept at the bottom of this file as a record.
 
-### Boss A — "The Iron Garrison" (Act 1, match 3, 6x6, K + 4P + 2 minors + 1 R per side)
+### Boss A — "The Iron Garrison" (Act 1, match 3, 5×6, K + 5P + N + B + R per side)
 
 - **Modifier:** Walls cannot be placed by the player.
-- **Hazards:** Two indestructible wall-pillars on **c3 and d4** (the central adjacent squares of a 6x6 — same intent as the d4/e5 pillars on 8x8: split the board, force play around the pillars).
+- **Hazards:** Two indestructible wall-pillars on **c3 and c4** (a vertical center-file pillar that splits the 5-file board down the middle — same intent as the d4/e5 pillars on 8×8: split the board, force play around the pillars).
 - **Curses:** Whenever the player checks the boss, draws a *Stalwart* curse: "Your next move must be a non-checking move."
 
 Teaches: bosses break your assumptions; play around fixed hazards; sometimes cards are disabled.
 
-Note: with only 8 pieces per side and the two central walls, mate paths get tight. Rebalance check during playtest — if Boss A becomes unwinnable, drop to a single wall pillar (c3 only).
+Note: with only 9 pieces per side and the two central walls, mate paths get tight. Rebalance check during playtest — if Boss A becomes unwinnable, drop to a single wall pillar (c3 only).
 
-### Boss B — "The Gambit" (Act 2, match 6, 6x8, K + 6P + 4 minors + 2 R per side)
+### Boss B — "The Gambit" (Act 2, match 6, 7×7, K + 7P + 2 N + 2 B + 2 R per side)
 
 - **Modifier:** Captures grant the *captured* side +1 energy next turn.
-- **Hazards:** A boss-controlled zone-buff square at **c1** (the center of the player's back rank on a 6-file board). Granting boss +1 energy. Player must contest it.
+- **Hazards:** A boss-controlled zone-buff square at **d1** (the center of the player's back rank on a 7-file board). Granting boss +1 energy. Player must contest it.
 - **Curses:** Every 4 turns, draws a *Greed* curse: "Capture an enemy piece this turn, or lose 1 energy next turn."
 
 Teaches: not all captures are good. Pressure piece economy.

@@ -91,12 +91,12 @@ Build one boss end-to-end before generalizing. Pick Boss A — "The Iron Garriso
 
 Standard is the active default mode. Replaces the old "Full Royal run" milestone.
 
-- Variable board size (6x6 → 6x8 → 8x8) threaded through the engine, rules, FEN parser, Board UI, and Match shell.
+- Variable board size (4×6 → 8×8 across seven distinct sizes, one file or one rank per match) threaded through the engine, rules, FEN parser, Board UI, and Match shell.
 - Generalized Chess960 generator (`src/game/chess/positions.ts`) producing a per-match starting position for whatever board / piece set the run hands it.
-- Per-match piece curve table in `src/game/progression/standard.ts` (M1 K + 4P → M9 K + 4 minors + 2R + Q + 8P).
-- Toy AI (`src/ai/toyAi.ts`) for non-8x8 matches; Stockfish stays for 8x8.
+- Per-match curve table in `src/game/progression/standard.ts` — points-budget driven for non-bosses (M1 K + 4P + ~2 minors → M9 full standard chess army), explicit hand-tuned compositions for bosses.
+- Toy AI (`src/ai/toyAi.ts`) for non-8×8 matches; Stockfish stays for 8×8.
 - Dev sandbox: 3..8 size pickers per axis, live position validation (extra kings, kings adjacent, pawns on back ranks, wrong-side-in-check) with red highlights on offending pieces.
-- Boss A (6x6) and Boss B (6x8) rebalanced; Boss C (8x8) unchanged.
+- Boss A (5×6) and Boss B (7×7) rebalanced; Boss C (8×8) unchanged.
 
 **Done when:** a player can complete (or lose) a full 9-match Standard run from the menu, the board scales correctly across acts, and the dev editor flags invalid positions live.
 

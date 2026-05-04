@@ -36,7 +36,7 @@ Standard chess castling rules apply on 8x8 boards:
 - King is not in check.
 - King does not pass through or end on a square attacked by an enemy piece.
 
-**Castling is disabled on boards smaller than 8 files.** Standard mode's act-1 (6x6) and act-2 (6x8) matches don't generate castling moves, and the engine's move generator skips the castling branch when `size.files < 8`. The "king to g-file / rook to f-file" landing-square rule from Chess960 doesn't generalize cleanly to a 6-file board, and most small-board piece sets in Standard don't have two rooks anyway.
+**Castling is disabled on boards smaller than 8 files.** Standard mode runs across seven board sizes (4×6 → 8×8) — only the final two matches reach 8 files, so castling is unavailable for most of a Standard run. The engine's move generator skips the castling branch when `size.files < 8`. The "king to g-file / rook to f-file" landing-square rule from Chess960 doesn't generalize cleanly to a smaller board, and small-board piece sets often don't have two rooks anyway.
 
 In **Royal**, castling is straightforward (pieces start on standard squares). When Royal is re-enabled with Chess960 starts, the back-rank generator places the king between the rooks specifically so castling rights are unambiguous.
 
@@ -52,7 +52,7 @@ Note (see `board.md`): if the en passant capture target square is walled, en pas
 
 ### Pawn promotion
 
-Enabled. A pawn reaching the **far** rank promotes. The far rank is `ranks - 1` for white and `0` for black, scaling with the current board: rank 5 / rank 0 on 6x6, rank 7 / rank 0 on 8x8. The player chooses any piece type **other than king** (typically queen, rook, bishop, or knight).
+Enabled. A pawn reaching the **far** rank promotes. The far rank is `ranks - 1` for white and `0` for black, scaling with the current board: rank 5 / rank 0 on a 6-rank board, rank 7 / rank 0 on 8×8. The player chooses any piece type **other than king** (typically queen, rook, bishop, or knight).
 
 In **Standard / Royal**, promotion is unlimited.
 

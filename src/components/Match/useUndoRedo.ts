@@ -1,9 +1,10 @@
 // Undo / redo stack for the Match shell.
 //
 // A snapshot captures the engine's mutable state plus the full MatchCardState
-// at a point in time. The stack is pushed at every turn rollover (prototype
-// mode) and additionally at editor edits / energy bumps / library card plays
-// (dev mode). Redo holds undone snapshots until a fresh push clears it.
+// and the chronological history-event log at a point in time. The stack is
+// pushed at every turn rollover (prototype mode) and additionally at editor
+// edits / energy bumps / library card plays (dev mode). Redo holds undone
+// snapshots until a fresh push clears it.
 //
 // NOTE: when M5 lands, snapshots will need to extend to cover run state too —
 // today the stack is purely match-scoped. See `docs/technical/dev-mode.md`.
@@ -12,10 +13,12 @@ import { useCallback, useState } from "react";
 
 import type { ChoseEngine, EngineSnapshot } from "../../game/chess/engine";
 import type { MatchCardState } from "../../game/types";
+import type { HistoryEvent } from "./history";
 
 export type TurnSnapshot = {
   engineSnapshot: EngineSnapshot;
   cardState: MatchCardState;
+  history: HistoryEvent[];
 };
 
 export type UndoRedo = {
@@ -29,18 +32,17 @@ export type UndoRedo = {
    * meaningful unit of action completes — turn rollover (the prototype's only
    * caller) or any dev-mode action (editor edit, energy bump, library play).
    */
-  pushSnapshot: (state: MatchCardState) => void;
+  pushSnapshot: (state: MatchCardState, history: HistoryEvent[]) => void;
 
   /**
    * Rewind the engine + card state to the previous snapshot. Calls
-   * `onRestore` with the restored card state so the caller can sync React
-   * state for things the snapshot doesn't carry (e.g. transient UI flags).
-   * Returns true iff anything was popped.
+   * `onRestore` with the restored card state and history so the caller can
+   * sync React state. Returns true iff anything was popped.
    */
-  undo: (onRestore: (cardState: MatchCardState) => void) => boolean;
+  undo: (onRestore: (cardState: MatchCardState, history: HistoryEvent[]) => void) => boolean;
 
   /** Re-apply the most recently undone snapshot. Mirror of `undo`. */
-  redo: (onRestore: (cardState: MatchCardState) => void) => boolean;
+  redo: (onRestore: (cardState: MatchCardState, history: HistoryEvent[]) => void) => boolean;
 
   /**
    * Reset the entire stack. Used when the match resets / mode changes —
@@ -49,7 +51,7 @@ export type UndoRedo = {
   reset: () => void;
 
   /**
-   * Seed the stack with a single snapshot. Used at first mount in vs-AI
+   * Seed the stack with a single snapshot. Used at first mount in vs-ai
    * mode — the initial position is the "turn 1" entry that subsequent
    * undos can rewind to.
    */
@@ -61,10 +63,10 @@ export function useUndoRedo(engine: ChoseEngine): UndoRedo {
   const [redoStack, setRedoStack] = useState<TurnSnapshot[]>([]);
 
   const pushSnapshot = useCallback(
-    (state: MatchCardState) => {
+    (state: MatchCardState, history: HistoryEvent[]) => {
       setStack((prev) => [
         ...prev,
-        { engineSnapshot: engine.snapshot(), cardState: state },
+        { engineSnapshot: engine.snapshot(), cardState: state, history: history.slice() },
       ]);
       setRedoStack([]);
     },
@@ -72,7 +74,7 @@ export function useUndoRedo(engine: ChoseEngine): UndoRedo {
   );
 
   const doUndo = useCallback(
-    (onRestore: (cardState: MatchCardState) => void) => {
+    (onRestore: (cardState: MatchCardState, history: HistoryEvent[]) => void) => {
       let popped = false;
       setStack((prev) => {
         if (prev.length < 2) return prev;
@@ -80,7 +82,7 @@ export function useUndoRedo(engine: ChoseEngine): UndoRedo {
         const next = prev.slice(0, -1);
         const target = next[next.length - 1];
         engine.restore(target.engineSnapshot);
-        onRestore(target.cardState);
+        onRestore(target.cardState, target.history.slice());
         setRedoStack((r) => [...r, top]);
         popped = true;
         return next;
@@ -91,13 +93,13 @@ export function useUndoRedo(engine: ChoseEngine): UndoRedo {
   );
 
   const doRedo = useCallback(
-    (onRestore: (cardState: MatchCardState) => void) => {
+    (onRestore: (cardState: MatchCardState, history: HistoryEvent[]) => void) => {
       let applied = false;
       setRedoStack((r) => {
         if (r.length === 0) return r;
         const target = r[r.length - 1];
         engine.restore(target.engineSnapshot);
-        onRestore(target.cardState);
+        onRestore(target.cardState, target.history.slice());
         setStack((prev) => [...prev, target]);
         applied = true;
         return r.slice(0, -1);
@@ -113,7 +115,7 @@ export function useUndoRedo(engine: ChoseEngine): UndoRedo {
   }, []);
 
   const seed = useCallback((snapshot: TurnSnapshot) => {
-    setStack([snapshot]);
+    setStack([{ ...snapshot, history: snapshot.history.slice() }]);
     setRedoStack([]);
   }, []);
 

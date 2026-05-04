@@ -152,9 +152,7 @@ describe("removeCard", () => {
     const gen = generateShop(run);
     expect(removeCard(gen.next, gen.shop, 0)).toBeNull();
     expect(removeCard({ ...gen.next, gold: 200 }, gen.shop, -1)).toBeNull();
-    expect(
-      removeCard({ ...gen.next, gold: 200 }, gen.shop, gen.next.deck.length + 5),
-    ).toBeNull();
+    expect(removeCard({ ...gen.next, gold: 200 }, gen.shop, gen.next.deck.length + 5)).toBeNull();
   });
 });
 

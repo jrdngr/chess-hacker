@@ -1,7 +1,7 @@
-// Variable-size board. Standard mode walks 6x6 → 6x8 → 8x8 across a run; the
-// dev sandbox supports any size from 3x3 to 8x8 on each axis. The grid layout
-// derives ranks / files from the engine, and squares scale to fill the same
-// visible area regardless of dimensions.
+// Variable-size board. Standard mode walks 4×6 → 8×8 across a run (seven
+// distinct sizes); the dev sandbox supports any size from 3×3 to 8×8 on each
+// axis. The grid layout derives ranks / files from the engine, and squares
+// scale to fill the same visible area regardless of dimensions.
 //
 // Two ways to move a piece:
 //   - Click the piece, then click a highlighted square.
@@ -9,7 +9,12 @@
 
 import { useState, type CSSProperties } from "react";
 
-import { squareCoords, squareName, type ChoseEngine, type LegalMove } from "../../game/chess/engine";
+import {
+  squareCoords,
+  squareName,
+  type ChoseEngine,
+  type LegalMove,
+} from "../../game/chess/engine";
 import type { AlgebraicSquare, FileIndex, Piece, RankIndex, Side } from "../../game/types";
 
 import { PieceGlyph } from "./PieceGlyph";
@@ -212,8 +217,7 @@ export function Board({
               const target = targetMoves.get(sq);
               const isInCheck = sq === checkSquare;
               const isLastMoveSquare = lastMove?.from === sq || lastMove?.to === sq;
-              const validTargetForCard =
-                dropAnywhere || (targeting && validTargets.has(sq));
+              const validTargetForCard = dropAnywhere || (targeting && validTargets.has(sq));
               const isPointerOver = dragOverSquare === sq;
               // During card targeting, the cursor square gets a clear
               // green-or-red tint so the player can see exactly which square
@@ -335,10 +339,7 @@ export function Board({
                     }
                     // Track the hovered square in either case so we can paint
                     // green/red feedback during card-targeting drags.
-                    if (
-                      dragOverSquare !== sq &&
-                      (targetMoves.has(sq) || targeting)
-                    ) {
+                    if (dragOverSquare !== sq && (targetMoves.has(sq) || targeting)) {
                       setDragOverSquare(sq);
                     }
                   }}
@@ -405,9 +406,7 @@ function renderTooltip(
   const anchorAbove = visualRow > 0;
   const leftPct = (file + 0.5) * 12.5;
   const yPct = anchorAbove ? visualRow * 12.5 : (visualRow + 1) * 12.5;
-  const transform = anchorAbove
-    ? "translate(-50%, calc(-100% - 6px))"
-    : "translate(-50%, 6px)";
+  const transform = anchorAbove ? "translate(-50%, calc(-100% - 6px))" : "translate(-50%, 6px)";
   return (
     <div
       className={styles.tooltip}

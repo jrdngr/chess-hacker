@@ -5,18 +5,8 @@
 
 import { CARD_LIBRARY } from "../cards/library";
 import { type Rng } from "../cards/match";
-import {
-  consumeRng,
-  pickRandomCards,
-  eligibleCardsByRarity,
-} from "../progression/run";
-import type {
-  BoosterPack,
-  Card,
-  RunState,
-  Shop,
-  ShopOffer,
-} from "../types";
+import { consumeRng, pickRandomCards, eligibleCardsByRarity } from "../progression/run";
+import type { BoosterPack, Card, RunState, Shop, ShopOffer } from "../types";
 
 // ---- Tuning knobs (see docs/design/economy.md) -----------------------------
 
@@ -108,10 +98,7 @@ function generateCommonPack(rng: Rng, slot: number): BoosterPack {
 // ---- Reroll ----------------------------------------------------------------
 
 /** Pay for a reroll: regenerate offers, bump per-shop reroll count. */
-export function rerollShop(
-  state: RunState,
-  shop: Shop,
-): { state: RunState; shop: Shop } | null {
+export function rerollShop(state: RunState, shop: Shop): { state: RunState; shop: Shop } | null {
   if (state.gold < shop.rerollCost) return null;
   const { rng, next } = consumeRng(state);
   const offers: ShopOffer[] = [];

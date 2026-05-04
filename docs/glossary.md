@@ -37,10 +37,10 @@ Terms used across the choss design and technical docs.
 | **Placement**       | Pre-match step where players position pieces. Standard FIDE in Royal; player-chosen in Skirmish. |
 | **Root**            | Status keyword: enemy piece cannot move on its next turn except to capture.             |
 | **Roster**          | Skirmish-only persistent army across the run.                                           |
-| **BoardSize**       | `{ files, ranks }` describing the active board. Standard mode walks 6x6 → 6x8 → 8x8 across the run; the dev sandbox supports any size from 3x3 to 8x8. |
+| **BoardSize**       | `{ files, ranks }` describing the active board. Standard mode walks 4×6 → 8×8 across the run (seven distinct sizes); the dev sandbox supports any size from 3×3 to 8×8. |
 | **Chess960**        | Randomized starting position (from the official 960). The Standard generator generalizes the rules (bishops on opposite colors, king between rooks) to any board / piece set. |
 | **Royal**           | One of three run modes — both sides start with the standard 16-piece chess army on 8x8. Currently disabled in the menu (post-prototype). |
-| **Standard**        | The default run mode — variable board (6x6 → 8x8) with a fixed, symmetric piece curve from K + 4 pawns up to a full 16-piece army. |
+| **Standard**        | The default run mode — variable board (4×6 → 8×8) with a points-budget piece curve that grows from K + 4 pawns + ~2 minor pieces up to a full 16-piece army. |
 | **Run**             | A single playthrough — 9 matches across 3 acts. Single elimination.                     |
 | **Sanctuary**       | Square keyword: pieces standing on the square cannot be captured.                       |
 | **Shield**          | Buff keyword: captures targeting the shielded piece are not legal moves.                |

@@ -6,12 +6,7 @@
 
 import type { ExtraOverlays } from "../../game/chess/engine";
 import type { EffectInfo, SquareEffects } from "../Board/Board";
-import type {
-  AlgebraicSquare,
-  EmpowerPattern,
-  MatchCardState,
-  Side,
-} from "../../game/types";
+import type { AlgebraicSquare, EmpowerPattern, MatchCardState, Side } from "../../game/types";
 
 /**
  * Wall, freeze, root, disarm, compel, shield, sanctuary, trap, empower —
@@ -79,9 +74,7 @@ export function buildExtraOverlays(o: OverlaySets): ExtraOverlays {
  * haste / lightning / empower. A single square can carry multiple statuses
  * (e.g. shielded + empowered); they're concatenated with ", ".
  */
-export function derivePieceBadges(
-  state: MatchCardState,
-): ReadonlyMap<AlgebraicSquare, string> {
+export function derivePieceBadges(state: MatchCardState): ReadonlyMap<AlgebraicSquare, string> {
   const m = new Map<AlgebraicSquare, string>();
   for (const r of state.roots) m.set(r.square, "rooted");
   for (const d of state.disarms) m.set(d.square, "disarmed");

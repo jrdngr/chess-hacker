@@ -13,12 +13,7 @@ import {
   removeCard,
   rerollShop,
 } from "../../game/shop/shop";
-import type {
-  BoosterPack,
-  Card,
-  RunState,
-  Shop as ShopState,
-} from "../../game/types";
+import type { BoosterPack, Card, RunState, Shop as ShopState } from "../../game/types";
 
 import styles from "./Shop.module.css";
 import cardListStyles from "../Hand/CardListModal.module.css";
@@ -104,9 +99,7 @@ export function Shop({ run, shop, onUpdate, onLeave }: Props) {
                   {offer.card.archetype} · {offer.card.rarity}
                 </span>
                 <span className={styles.description}>{offer.card.description}</span>
-                <span className={styles.price}>
-                  {offer.sold ? "sold" : `${offer.price}g`}
-                </span>
+                <span className={styles.price}>{offer.sold ? "sold" : `${offer.price}g`}</span>
               </button>
             )}
             {offer.kind === "booster" && (
@@ -123,15 +116,11 @@ export function Shop({ run, shop, onUpdate, onLeave }: Props) {
               >
                 <span className={styles.packBadge}>Pack</span>
                 <span className={styles.name}>{offer.pack.name}</span>
-                <span className={styles.archetype}>
-                  Pick 1 of {offer.pack.contents.length}
-                </span>
+                <span className={styles.archetype}>Pick 1 of {offer.pack.contents.length}</span>
                 <span className={styles.description}>
                   {offer.pack.contents.map((c) => c.name).join(", ")}
                 </span>
-                <span className={styles.price}>
-                  {offer.sold ? "opened" : `${offer.price}g`}
-                </span>
+                <span className={styles.price}>{offer.sold ? "opened" : `${offer.price}g`}</span>
               </button>
             )}
           </li>

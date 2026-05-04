@@ -160,7 +160,9 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
     case "root-piece": {
       const dt = raw.durationTurns;
       if (dt !== undefined && (typeof dt !== "number" || !Number.isInteger(dt) || dt < 1)) {
-        errors.push("'effect.durationTurns' must be a positive integer if present for 'root-piece'");
+        errors.push(
+          "'effect.durationTurns' must be a positive integer if present for 'root-piece'",
+        );
         return null;
       }
       const out: CardEffect = { kind: "root-piece" };
@@ -295,7 +297,10 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
         return null;
       }
       const count = raw.count;
-      if (count !== undefined && (typeof count !== "number" || !Number.isInteger(count) || count < 1)) {
+      if (
+        count !== undefined &&
+        (typeof count !== "number" || !Number.isInteger(count) || count < 1)
+      ) {
         errors.push("'effect.count' must be a positive integer if present for 'add-card-to-hand'");
         return null;
       }

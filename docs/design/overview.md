@@ -55,7 +55,7 @@ See [`cards.md`](cards.md), [`chess-rules.md`](chess-rules.md) for details.
 
 The active prototype mode is **Standard**. Two more — Royal and Skirmish — are spec'd but disabled in the menu while Standard is the focus.
 
-- **Standard (default)** — variable board size (6x6 → 6x8 → 8x8 across the run) with a fixed, symmetric piece curve from K + 4 pawns up to a full 16-piece army. No piece drafting. Starting positions are Chess960-style every match, generalized to whatever board / piece set the current match uses.
+- **Standard (default)** — variable board size (4×6 → 8×8 across the run, growing one file or one rank per match) with a points-budget piece curve that climbs from K + 4 pawns + ~2 minor pieces up to a full 16-piece army. No piece drafting. Starting positions are Chess960-style every match, generalized to whatever board / piece set the current match uses.
 - **Royal** (post-prototype) — both sides start with the standard 16-piece army on 8x8. Will default to Chess960 starts when re-enabled.
 - **Skirmish** (M10) — small starting army; player drafts and places pieces between matches.
 

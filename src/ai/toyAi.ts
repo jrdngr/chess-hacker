@@ -1,11 +1,11 @@
-// Toy AI for non-8x8 matches.
+// Toy AI for non-8×8 matches.
 //
-// Stockfish doesn't support boards other than 8x8, so Standard-mode matches on
-// 6x6 and 6x8 need a homegrown opponent. This is a depth-tuned negamax with a
-// material + mobility eval, scoped to the wall-aware legal-move set the engine
-// produces. It's not strong — it's a *playable opponent* for short games on
-// small boards. Tuning targets across the run rely on the piece curve, not on
-// the AI getting smarter.
+// Stockfish doesn't support boards other than 8×8, so Standard-mode matches on
+// the 4×6 → 7×8 boards need a homegrown opponent. This is a depth-tuned negamax
+// with a material + mobility eval, scoped to the wall-aware legal-move set the
+// engine produces. It's not strong — it's a *playable opponent* for short games
+// on small boards. Tuning targets across the run rely on the piece curve, not
+// on the AI getting smarter.
 //
 // Design constraints:
 // - No async, no worker. The boards are tiny (≤48 squares, ≤16 pieces) so a
@@ -109,9 +109,10 @@ function evaluate(pos: Position, me: Side): number {
 }
 
 /**
- * Depth scaling for the toy AI. 6x6 and 6x8 are small enough that even depth
- * 4 is responsive on a modern laptop; bigger numbers only kick in if a curse
- * scenario explodes the branching factor.
+ * Depth scaling for the toy AI. The non-8×8 boards in Standard top out at
+ * 7×8, small enough that even depth 4 is responsive on a modern laptop;
+ * bigger numbers only kick in if a curse scenario explodes the branching
+ * factor.
  */
 export function depthForToyAi(d: Difficulty): number {
   switch (d) {

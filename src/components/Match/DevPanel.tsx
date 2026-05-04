@@ -82,11 +82,7 @@ type Props = {
    * (so Match can append it to acquisitionLog). Match is responsible for any
    * rng-y reshuffle.
    */
-  onSaveDeck: (next: {
-    drawPile: Card[];
-    consumedPile: Card[];
-    addedCards: Card[];
-  }) => void;
+  onSaveDeck: (next: { drawPile: Card[]; consumedPile: Card[]; addedCards: Card[] }) => void;
 
   // Energy
   onBumpEnergy: () => void;
@@ -96,6 +92,10 @@ type Props = {
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
+  /** Total recorded match-history events. Shown next to the History button. */
+  historyCount: number;
+  /** Open the History modal. */
+  onShowHistory: () => void;
 
   /** Heading shown at the top of the panel. Defaults to "Sandbox". */
   heading?: string;
@@ -137,6 +137,8 @@ export function DevPanel({
   canRedo,
   onUndo,
   onRedo,
+  historyCount,
+  onShowHistory,
   heading = "Sandbox",
   onClose,
 }: Props) {
@@ -193,21 +195,21 @@ export function DevPanel({
 
       <Section>
         <div className={styles.row}>
-          <button
-            type="button"
-            className={styles.smallButton}
-            onClick={onUndo}
-            disabled={!canUndo}
-          >
+          <button type="button" className={styles.smallButton} onClick={onUndo} disabled={!canUndo}>
             Undo turn
           </button>
+          <button type="button" className={styles.smallButton} onClick={onRedo} disabled={!canRedo}>
+            Redo turn
+          </button>
+        </div>
+        <div className={styles.row}>
           <button
             type="button"
             className={styles.smallButton}
-            onClick={onRedo}
-            disabled={!canRedo}
+            onClick={onShowHistory}
+            aria-label="Show match history"
           >
-            Redo turn
+            History ({historyCount})
           </button>
         </div>
       </Section>
@@ -371,11 +373,7 @@ export function DevPanel({
 
       <Section>
         <div className={styles.row}>
-          <button
-            type="button"
-            className={styles.smallButton}
-            onClick={() => setShowLibrary(true)}
-          >
+          <button type="button" className={styles.smallButton} onClick={() => setShowLibrary(true)}>
             Library
           </button>
           <button
@@ -549,10 +547,7 @@ function DeckEditorOverlay({ drawPile, consumedPile, onSave, onClose }: DeckEdit
   };
 
   const addCard = (card: Card) => {
-    setEntries((prev) => [
-      ...prev,
-      { kind: "new", card, key: `new-${newKeyRef.current++}` },
-    ]);
+    setEntries((prev) => [...prev, { kind: "new", card, key: `new-${newKeyRef.current++}` }]);
   };
 
   const handleSave = () => {
@@ -589,8 +584,8 @@ function DeckEditorOverlay({ drawPile, consumedPile, onSave, onClose }: DeckEdit
         </button>
       </div>
       <p className={styles.note}>
-        Edit your draw + spent piles. Removed cards leave both piles; added cards drop into the
-        draw pile. Hand cards are unaffected. Changes apply on Save.
+        Edit your draw + spent piles. Removed cards leave both piles; added cards drop into the draw
+        pile. Hand cards are unaffected. Changes apply on Save.
       </p>
 
       <div className={styles.deckSummaryRow}>
@@ -629,8 +624,7 @@ function DeckEditorOverlay({ drawPile, consumedPile, onSave, onClose }: DeckEdit
           {entries.length === 0 && <div className={styles.note}>Deck is empty.</div>}
           {entries.map((entry) => {
             const removed = entry.kind !== "new" && entry.removed;
-            const tag =
-              entry.kind === "new" ? "new" : entry.kind === "spent" ? "spent" : "draw";
+            const tag = entry.kind === "new" ? "new" : entry.kind === "spent" ? "spent" : "draw";
             return (
               <div
                 key={entry.key}

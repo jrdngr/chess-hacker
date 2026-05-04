@@ -29,7 +29,7 @@ const MODE_OPTIONS: ReadonlyArray<ModeOption> = [
   {
     id: "standard",
     label: "Standard",
-    description: "Variable board (6x6 → 8x8) with a fixed piece curve. Default mode.",
+    description: "Variable board (4×6 → 8×8) with a points-budget piece curve. Default mode.",
     enabled: true,
   },
   {
@@ -70,11 +70,7 @@ export function App() {
                 <span className={styles.sandboxBannerLabel}>Mode</span>
                 <span className={styles.sandboxBannerValue}>Sandbox</span>
               </span>
-              <button
-                type="button"
-                onClick={() => setRoute("menu")}
-                className={styles.sandboxQuit}
-              >
+              <button type="button" onClick={() => setRoute("menu")} className={styles.sandboxQuit}>
                 Quit sandbox
               </button>
             </div>

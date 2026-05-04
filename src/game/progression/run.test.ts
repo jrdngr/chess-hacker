@@ -7,13 +7,17 @@ import {
   enterShop,
   generateDraftOffer,
   leaveShop,
+  nextMatchSetup,
   pickDraftCard,
   skipDraft,
+  STANDARD_RUN_CONFIG,
   totalMatches,
   WIN_BONUS_NORMAL,
 } from "./run";
 import { FORESIGHT, FROSTBITE, RECONNAISSANCE } from "../cards/library";
-import type { RunMatchOutcome } from "../types";
+import { parseFen } from "../chess/rules";
+import { standardMatchConfig } from "./standard";
+import type { PieceType, RunMatchOutcome, RunState } from "../types";
 
 const MOCK_OUTCOME_WIN: RunMatchOutcome = {
   won: true,
@@ -147,6 +151,64 @@ describe("phase transitions: reward → shop → next match", () => {
 
     run = applyMatchOutcome(run, MOCK_OUTCOME_LOSS);
     expect(run.phase).toBe("lost");
+  });
+});
+
+describe("nextMatchSetup (Standard mode)", () => {
+  const startStandard = (matchNumber: number, seed = 1): RunState => ({
+    ...createRun({ mode: "standard", rngSeed: seed, config: STANDARD_RUN_CONFIG }),
+    matchNumber,
+  });
+
+  it("returns the configured board size for each match in the curve", () => {
+    for (let m = 1; m <= 9; m++) {
+      const cfg = standardMatchConfig(m);
+      const { size } = nextMatchSetup(startStandard(m));
+      expect(size).toEqual(cfg.size);
+    }
+  });
+
+  it("produces a parseable FEN for every match", () => {
+    for (let m = 1; m <= 9; m++) {
+      const { fen, size } = nextMatchSetup(startStandard(m, m * 7));
+      expect(fen).toBeDefined();
+      const pos = parseFen(fen!, size);
+      // Each side should have at least the king plus full pawn rank.
+      let players = 0;
+      let opponents = 0;
+      for (const [, p] of pos.pieces) {
+        if (p.side === "player") players++;
+        else opponents++;
+      }
+      expect(players).toBeGreaterThanOrEqual(1 + standardMatchConfig(m).pawns);
+      expect(players).toBe(opponents);
+    }
+  });
+
+  const explicitBackRank = (m: number, expected: PieceType[]) => {
+    const { fen, size } = nextMatchSetup(startStandard(m));
+    const pos = parseFen(fen!, size);
+    const back: Array<{ file: number; type: PieceType }> = [];
+    for (const [sq, p] of pos.pieces) {
+      if (p.side !== "player") continue;
+      const rank = Number(sq.slice(1)) - 1;
+      if (rank !== 0 || p.type === "pawn") continue;
+      back.push({ file: "abcdefgh".indexOf(sq[0]), type: p.type });
+    }
+    const sortedTypes = back.sort((a, b) => a.file - b.file).map((b) => b.type);
+    expect([...sortedTypes].sort()).toEqual([...expected].sort());
+  };
+
+  it("Boss A (match 3) places exactly K + N + B + R on a 5×6 board", () => {
+    explicitBackRank(3, ["king", "knight", "bishop", "rook"]);
+  });
+
+  it("Boss B (match 6) places exactly K + 2N + 2B + 2R on a 7×7 board", () => {
+    explicitBackRank(6, ["king", "knight", "knight", "bishop", "bishop", "rook", "rook"]);
+  });
+
+  it("Boss C (match 9) places exactly K + 2N + 2B + 2R + Q on an 8×8 board", () => {
+    explicitBackRank(9, ["king", "knight", "knight", "bishop", "bishop", "rook", "rook", "queen"]);
   });
 });
 

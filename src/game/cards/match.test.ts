@@ -358,7 +358,6 @@ describe("playCard — buffs", () => {
     expect(lightningAt(st, "d2")?.remaining).toBe(2);
     expect(st.consumedPile.some((c) => c.id === "quickstep")).toBe(true);
   });
-
 });
 
 describe("playCard — sacrifice / summon / swap / marionette", () => {
@@ -617,7 +616,10 @@ describe("energy economy", () => {
 describe("disposal: every card consumes", () => {
   it("Reconnaissance (formerly cycle) lands in the consumed pile", () => {
     const rng = makeRng(210);
-    let st = startPlayerTurn(createMatchCardState([RECONNAISSANCE, BARRICADE, BARRICADE], rng), rng);
+    let st = startPlayerTurn(
+      createMatchCardState([RECONNAISSANCE, BARRICADE, BARRICADE], rng),
+      rng,
+    );
     const idx = st.hand.findIndex((c) => c.id === "reconnaissance");
     const r = playCard(st, idx, noTarget(), emptyBoard, rng);
     expect(r.ok).toBe(true);
@@ -905,12 +907,7 @@ describe("capture-grants-soul", () => {
     const rng = makeRng(250);
     const st = createMatchCardState(makeStarterDeck(), rng);
     const before = st.drawPile.length;
-    const next = grantSoulOnCapture(
-      st,
-      { type: "knight", side: "opponent" },
-      "player",
-      seedRng,
-    );
+    const next = grantSoulOnCapture(st, { type: "knight", side: "opponent" }, "player", seedRng);
     expect(next.drawPile.length).toBe(before + 1);
     expect(next.drawPile.some((c) => c.id === "knight-soul")).toBe(true);
   });
@@ -935,12 +932,7 @@ describe("capture-grants-soul", () => {
     const rng = makeRng(252);
     const st = createMatchCardState(makeStarterDeck(), rng);
     const before = st.drawPile.length;
-    const next = grantSoulOnCapture(
-      st,
-      { type: "pawn", side: "player" },
-      "opponent",
-      seedRng,
-    );
+    const next = grantSoulOnCapture(st, { type: "pawn", side: "player" }, "opponent", seedRng);
     expect(next.drawPile.length).toBe(before);
   });
 
@@ -948,12 +940,7 @@ describe("capture-grants-soul", () => {
     const rng = makeRng(253);
     const st = createMatchCardState(makeStarterDeck(), rng);
     const before = st.drawPile.length;
-    const next = grantSoulOnCapture(
-      st,
-      { type: "king", side: "opponent" },
-      "player",
-      seedRng,
-    );
+    const next = grantSoulOnCapture(st, { type: "king", side: "opponent" }, "player", seedRng);
     expect(next.drawPile.length).toBe(before);
   });
 

@@ -427,9 +427,7 @@ function applyEffect(
       // Stack patterns: keep one entry per (square, pattern). If the same
       // pattern is applied twice, prefer the strictest variant — a non-single-
       // use empower wins over a single-use one.
-      const existing = state.empowers.find(
-        (e) => e.square === sq && e.pattern === effect.pattern,
-      );
+      const existing = state.empowers.find((e) => e.square === sq && e.pattern === effect.pattern);
       if (existing && !existing.singleUse) status.singleUse = false;
       if (status.singleUse === false) delete (status as { singleUse?: boolean }).singleUse;
       return {

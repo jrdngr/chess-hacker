@@ -13,7 +13,7 @@
 import { CARD_LIBRARY, makeStarterDeck } from "../cards/library";
 import { makeRng, shuffle, type Rng } from "../cards/match";
 import { generateChess960Position } from "../chess/positions";
-import { standardMatchConfig } from "./standard";
+import { resolvePieceSet, standardMatchConfig } from "./standard";
 import type {
   BoardSize,
   Card,
@@ -55,8 +55,7 @@ export type CreateRunOptions = {
 };
 
 export function createRun(opts: CreateRunOptions): RunState {
-  const config =
-    opts.config ?? (opts.mode === "standard" ? STANDARD_RUN_CONFIG : MINI_RUN_CONFIG);
+  const config = opts.config ?? (opts.mode === "standard" ? STANDARD_RUN_CONFIG : MINI_RUN_CONFIG);
   return {
     mode: opts.mode,
     ascension: opts.ascension ?? 0,
@@ -88,7 +87,8 @@ export function nextMatchSetup(state: RunState): {
   if (state.mode === "standard") {
     const cfg = standardMatchConfig(state.matchNumber);
     const { rng, next } = consumeRng(state);
-    const generated = generateChess960Position(cfg.pieceSet, cfg.size, rng);
+    const pieceSet = resolvePieceSet(cfg, rng);
+    const generated = generateChess960Position(pieceSet, cfg.size, rng);
     return { fen: generated.fen, size: generated.size, next };
   }
   // Royal / Skirmish / mini-run — standard 8x8 chess.
@@ -131,10 +131,7 @@ export function isBossMatch(state: RunState): boolean {
  * phase with gold + a draft offer prepared on the side. Losing transitions
  * to `phase: "lost"` and keeps the run readable for the loss screen.
  */
-export function applyMatchOutcome(
-  state: RunState,
-  outcome: RunMatchOutcome,
-): RunState {
+export function applyMatchOutcome(state: RunState, outcome: RunMatchOutcome): RunState {
   if (!outcome.won) {
     return { ...state, phase: "lost" };
   }
@@ -180,7 +177,7 @@ export function pickRandomCards(count: number, rng: Rng): Card[] {
     const r = rng();
     let pool: Card[];
     if (r < 0.05 && rares.length > 0) pool = rares;
-    else if (r < 0.30 && uncommons.length > 0) pool = uncommons;
+    else if (r < 0.3 && uncommons.length > 0) pool = uncommons;
     else pool = commons;
     const candidates = pool.filter((c) => !usedIds.has(c.id));
     if (candidates.length === 0) {

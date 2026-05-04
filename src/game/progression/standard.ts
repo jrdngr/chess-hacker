@@ -1,77 +1,117 @@
-// Standard-mode per-match config: board size + piece set per match.
+// Standard-mode per-match config: board size + piece-set spec per match.
 //
 // Standard is the default mode. Both sides start each match with a small
 // piece set on a small board and grow on a fixed curve to a full 16-piece
-// army on 8x8 across the 9-match run. There's no piece drafting in Standard;
-// the curve is symmetric and deterministic.
+// army on 8x8 across the 9-match run. There's no piece drafting in Standard.
+//
+// Composition is "points-budget driven" for non-boss matches: each match
+// names a non-pawn points budget plus a pool of allowed piece types, and we
+// roll a Chess960-legal back rank from that. Pawns fill the front rank
+// (`pawns = files`). Bosses keep hand-tuned explicit compositions; their
+// hazards in `docs/design/bosses.md` are designed around them.
 //
 // Tuning knobs live here. The numbers below are first-pass picks; playtest
 // will move them.
 
-import type { BoardSize, PieceSet } from "../types";
+import type { Rng } from "../cards/match";
+import type { BoardSize, PieceSet, PieceType } from "../types";
+
+/** Standard chess piece values, used by the random-roll budget. */
+export const PIECE_VALUE: Readonly<Record<PieceType, number>> = {
+  pawn: 0,
+  knight: 3,
+  bishop: 3,
+  rook: 5,
+  queen: 9,
+  king: 0,
+};
+
+/**
+ * Chess960-legal per-side caps. The roll skips a piece type once its count
+ * hits the cap, so a generated army can never have e.g. 3 knights or 2 queens.
+ */
+export const PIECE_CAP: Readonly<Record<PieceType, number>> = {
+  pawn: Number.POSITIVE_INFINITY,
+  knight: 2,
+  bishop: 2,
+  rook: 2,
+  queen: 1,
+  king: 1,
+};
+
+/**
+ * Spec for the back rank of a match.
+ *
+ * - `explicit`: hand-listed multiset (used by bosses). The list must include
+ *   the king and obey the per-type caps.
+ * - `random`: roll non-pawn pieces from `allowedPieces` until a non-pawn
+ *   points budget is exhausted; cap-respecting, so the result is always a
+ *   Chess960-legal army.
+ */
+export type PieceSpec =
+  | { kind: "explicit"; backRank: PieceType[] }
+  | { kind: "random"; allowedPieces: PieceType[]; nonPawnPointsBudget: number };
 
 export type StandardMatchConfig = {
   /** 1-indexed match number across the run (1..9). */
   matchNumber: number;
   size: BoardSize;
-  pieceSet: PieceSet;
+  /**
+   * Pawn count per side. Equals `size.files` for the current curve (full
+   * pawn rank), but kept explicit so future tuning can decouple the two.
+   */
+  pawns: number;
+  pieceSpec: PieceSpec;
   /** Whether this match is the act-end boss. */
   isBoss: boolean;
   /** Approximate target move-count for an average player. */
   moveTarget: number;
 };
 
+const explicit = (backRank: PieceType[]): PieceSpec => ({ kind: "explicit", backRank });
+const random = (allowedPieces: PieceType[], nonPawnPointsBudget: number): PieceSpec => ({
+  kind: "random",
+  allowedPieces,
+  nonPawnPointsBudget,
+});
+
 const M = (
   matchNumber: number,
   files: number,
   ranks: number,
-  backRank: PieceSet["backRank"],
-  pawns: number,
+  pieceSpec: PieceSpec,
   isBoss: boolean,
   moveTarget: number,
 ): StandardMatchConfig => ({
   matchNumber,
   size: { files, ranks },
-  pieceSet: { backRank, pawns },
+  pawns: files,
+  pieceSpec,
   isBoss,
   moveTarget,
 });
 
+const MINORS_AND_ROOK: PieceType[] = ["knight", "bishop", "rook"];
+const MINORS_ROOK_QUEEN: PieceType[] = ["knight", "bishop", "rook", "queen"];
+
 /**
- * The Standard run: 9 matches, three boards (6x6 → 6x8 → 8x8), three boss
- * matches (3, 6, 9). The piece curve grows monotonically.
+ * The Standard run: 9 matches, seven distinct board sizes (4×6 → 8×8),
+ * three boss matches (3, 6, 9). The piece curve grows monotonically.
  */
 export const STANDARD_MATCHES: ReadonlyArray<StandardMatchConfig> = [
-  M(1, 6, 6, ["king"], 4, false, 10),
-  M(2, 6, 6, ["king", "knight", "bishop"], 4, false, 12),
-  M(3, 6, 6, ["king", "knight", "bishop", "rook"], 4, true, 15),
-  M(4, 6, 8, ["king", "knight", "bishop", "rook"], 5, false, 18),
-  M(5, 6, 8, ["king", "knight", "knight", "bishop", "rook"], 6, false, 22),
-  M(6, 6, 8, ["king", "knight", "knight", "bishop", "bishop", "rook", "rook"], 6, true, 28),
-  M(
-    7,
-    8,
-    8,
-    ["king", "knight", "knight", "bishop", "bishop", "rook", "rook"],
-    7,
-    false,
-    35,
-  ),
-  M(
-    8,
-    8,
-    8,
-    ["king", "knight", "knight", "bishop", "bishop", "rook", "rook"],
-    8,
-    false,
-    42,
-  ),
+  M(1, 4, 6, random(MINORS_AND_ROOK, 6), false, 8),
+  M(2, 4, 6, random(MINORS_AND_ROOK, 9), false, 11),
+  M(3, 5, 6, explicit(["king", "knight", "bishop", "rook"]), true, 14),
+  M(4, 5, 7, random(MINORS_AND_ROOK, 14), false, 18),
+  M(5, 6, 7, random(MINORS_AND_ROOK, 17), false, 22),
+  M(6, 7, 7, explicit(["king", "knight", "knight", "bishop", "bishop", "rook", "rook"]), true, 28),
+  M(7, 7, 8, random(MINORS_ROOK_QUEEN, 22), false, 35),
+  M(8, 8, 8, random(MINORS_ROOK_QUEEN, 25), false, 42),
   M(
     9,
     8,
     8,
-    ["king", "knight", "knight", "bishop", "bishop", "rook", "rook", "queen"],
-    8,
+    explicit(["king", "knight", "knight", "bishop", "bishop", "rook", "rook", "queen"]),
     true,
     50,
   ),
@@ -82,4 +122,44 @@ export function standardMatchConfig(matchNumber: number): StandardMatchConfig {
   const cfg = STANDARD_MATCHES[matchNumber - 1];
   if (!cfg) throw new Error(`no Standard config for match ${matchNumber}`);
   return cfg;
+}
+
+/**
+ * Roll a Chess960-legal back rank from a budget + allowed pool. King is
+ * always at index 0. Non-pawn pieces are drawn until no allowed type both
+ * fits within the remaining budget and is below its per-type cap.
+ *
+ * Caps + budgets are tuned so the result always fits within the back rank,
+ * but a defensive slot guard (`back.length < files`) is included anyway.
+ */
+export function rollPieceSet(
+  spec: Extract<PieceSpec, { kind: "random" }>,
+  pawns: number,
+  files: number,
+  rng: Rng,
+): PieceSet {
+  const back: PieceType[] = ["king"];
+  const counts = new Map<PieceType, number>([["king", 1]]);
+  let budget = spec.nonPawnPointsBudget;
+  while (back.length < files) {
+    const affordable = spec.allowedPieces.filter((p) => {
+      const v = PIECE_VALUE[p];
+      const c = counts.get(p) ?? 0;
+      return v > 0 && v <= budget && c < PIECE_CAP[p];
+    });
+    if (affordable.length === 0) break;
+    const pick = affordable[Math.floor(rng() * affordable.length)];
+    back.push(pick);
+    counts.set(pick, (counts.get(pick) ?? 0) + 1);
+    budget -= PIECE_VALUE[pick];
+  }
+  return { backRank: back, pawns };
+}
+
+/** Resolve a match config to a concrete `PieceSet`, rolling if random. */
+export function resolvePieceSet(cfg: StandardMatchConfig, rng: Rng): PieceSet {
+  if (cfg.pieceSpec.kind === "explicit") {
+    return { backRank: [...cfg.pieceSpec.backRank], pawns: cfg.pawns };
+  }
+  return rollPieceSet(cfg.pieceSpec, cfg.pawns, cfg.size.files, rng);
 }

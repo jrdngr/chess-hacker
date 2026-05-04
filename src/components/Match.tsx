@@ -41,6 +41,8 @@ import {
   derivePieceBadges,
   deriveSquareEffects,
 } from "./Match/derivations";
+import { HistoryModal } from "./Match/HistoryModal";
+import type { HistoryEvent } from "./Match/history";
 import {
   applyCardSideEffects as applyCardSideEffectsPure,
   outcomeDetail,
@@ -48,10 +50,7 @@ import {
   resolveTrapForMove,
 } from "./Match/sideEffects";
 import { useUndoRedo } from "./Match/useUndoRedo";
-import {
-  ChoseEngine,
-  type LegalMove,
-} from "../game/chess/engine";
+import { ChoseEngine, type LegalMove } from "../game/chess/engine";
 import {
   StockfishEngine,
   legalMoveToUci,
@@ -67,7 +66,7 @@ import {
   offendingSquares as validationOffendingSquares,
   validatePosition,
 } from "../game/chess/validate";
-import { STANDARD_MATCHES } from "../game/progression/standard";
+import { STANDARD_MATCHES, resolvePieceSet } from "../game/progression/standard";
 import {
   ENERGY_MAX,
   clampEnergy,
@@ -138,9 +137,9 @@ type Props = {
   /** Optional starting FEN. Used by tests to set up specific positions. */
   initialFen?: string;
   /**
-   * Board dimensions. Defaults to 8x8 for back-compat. Standard-mode matches
-   * pass per-match sizes (6x6 / 6x8 / 8x8); the dev sandbox passes whatever
-   * the user picked from the size dropdowns.
+   * Board dimensions. Defaults to 8×8 for back-compat. Standard-mode matches
+   * pass per-match sizes (4×6 → 8×8 across the curve in `standard.ts`); the
+   * dev sandbox passes whatever the user picked from the size dropdowns.
    */
   initialBoardSize?: BoardSize;
   /** Hook to swap the AI engine in tests. */
@@ -219,8 +218,7 @@ export function Match({
   const [mode, setMode] = useState<MatchMode>(runMode === "dev" ? "vs-ai" : initialMode);
   const [difficulty, setDifficulty] = useState<Difficulty>(initialDifficulty);
   const [engine, setEngine] = useState(() => new ChoseEngine(initialFen, initialBoardSize));
-  const isStandardSize =
-    engine.size().files === 8 && engine.size().ranks === 8;
+  const isStandardSize = engine.size().files === 8 && engine.size().ranks === 8;
   const [selected, setSelected] = useState<AlgebraicSquare | null>(null);
   // Bumped after each move so derived render values recompute.
   const [version, setVersion] = useState(0);
@@ -316,14 +314,55 @@ export function Match({
   // Undo / redo stack — one snapshot per turn rollover (prototype) plus one
   // per dev-mode action (editor edit, energy bump, library card play).
   const undoRedo = useUndoRedo(engine);
-  const { pushSnapshot } = undoRedo;
+
+  // ---- History log ---------------------------------------------------------
+  // A chronological, JSON-serializable log of every action taken in the match.
+  // Powers the History modal + its export button. Carried inside each undo
+  // snapshot, so undo / redo rewind the log alongside the engine and card
+  // state. The ref is the canonical source so callbacks can append synchronously
+  // without reading stale React state.
+  const historyRef = useRef<HistoryEvent[]>([]);
+  const [history, setHistory] = useState<HistoryEvent[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  const pushHistory = useCallback((event: HistoryEvent): HistoryEvent[] => {
+    const next = [...historyRef.current, event];
+    historyRef.current = next;
+    setHistory(next);
+    return next;
+  }, []);
+
+  const replaceHistory = useCallback((next: HistoryEvent[]) => {
+    historyRef.current = next.slice();
+    setHistory(next.slice());
+  }, []);
+
+  // Wrapper around the raw `pushSnapshot` so callers don't need to thread
+  // history through every callsite — we always pull from the ref.
+  const pushSnapshot = useCallback(
+    (state: MatchCardState) => {
+      undoRedo.pushSnapshot(state, historyRef.current);
+    },
+    [undoRedo],
+  );
 
   // Seed the initial snapshot once per mount (and again on reset / mode
   // change — both reset the stack first via undoRedo.reset()).
   useEffect(() => {
     if (undoRedo.undoDepth > 0) return;
     if (mode !== "vs-ai") return;
-    undoRedo.seed({ engineSnapshot: engine.snapshot(), cardState });
+    const initial: HistoryEvent[] = [
+      {
+        kind: "match-start",
+        turn: cardState.turn,
+        fen: engine.fen(),
+        size: engine.size(),
+        mode,
+      },
+    ];
+    historyRef.current = initial;
+    setHistory(initial);
+    undoRedo.seed({ engineSnapshot: engine.snapshot(), cardState, history: initial });
     // engine + cardState are captured by the closure; intentional.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [undoRedo.undoDepth, mode]);
@@ -355,13 +394,7 @@ export function Match({
   // (legalMoves / inCheck / outcome) is called this render. The engine is
   // mutable and shared; setting overlays here is idempotent.
   const overlays = useMemo(() => deriveOverlaySets(cardState), [cardState]);
-  const {
-    walledSet,
-    frozenSet,
-    rootedSet,
-    sanctuarySet,
-    trapSet,
-  } = overlays;
+  const { walledSet, frozenSet, rootedSet, sanctuarySet, trapSet } = overlays;
   const extraOverlays = useMemo(() => buildExtraOverlays(overlays), [overlays]);
   engine.setOverlays(walledSet, frozenSet, extraOverlays);
 
@@ -435,10 +468,7 @@ export function Match({
   const aiOn = runMode === "prototype" ? true : devAiOn;
   const isAiTurn = mode === "vs-ai" && turn === AI_SIDE && !matchOver && aiOn;
 
-  const controllableSides = useMemo(
-    () => deriveControllableSides(mode, runMode),
-    [mode, runMode],
-  );
+  const controllableSides = useMemo(() => deriveControllableSides(mode, runMode), [mode, runMode]);
 
   // Legal moves originating from the selected square. Recomputed when the
   // chess position OR the wall/freeze overlays change.
@@ -536,8 +566,7 @@ export function Match({
     if (targetKind === "own-piece" || targetKind === "own-non-king-piece") {
       const excludeKing = targetKind === "own-non-king-piece";
       const soulPattern =
-        targetingCard.effect.kind === "empower-piece" &&
-        targetingCard.effect.singleUse === true
+        targetingCard.effect.kind === "empower-piece" && targetingCard.effect.singleUse === true
           ? targetingCard.effect.pattern
           : null;
       for (const { square, piece } of allPieces) {
@@ -664,22 +693,52 @@ export function Match({
       // Snapshot the moving piece BEFORE the engine applies the move; its
       // type drives the move-path computation used by trap resolution.
       let mover = engine.pieceAt(move.from);
+      // Capture victim must be read BEFORE applying the move — once the engine
+      // resolves, the target square is gone or repopulated.
+      let captured = engine.pieceAt(move.to);
       let applied = engine.move(move);
       if (!applied) {
         const fallback = engine.legalMoves()[0];
         if (fallback) {
           mover = engine.pieceAt(fallback.from);
+          captured = engine.pieceAt(fallback.to);
           applied = engine.move(fallback);
         }
       }
       setVersion((v) => v + 1);
+      if (applied && mover) {
+        pushHistory({
+          kind: "move",
+          turn: cardState.turn,
+          by: mover.side,
+          from: applied.from,
+          to: applied.to,
+          san: applied.san,
+          isCapture: applied.isCapture,
+          isPromotion: applied.isPromotion,
+          isCastle: applied.isCastle,
+          promotion: applied.promotion,
+          capturedType: captured?.type,
+          capturedSide: captured?.side,
+          fenAfter: engine.fen(),
+        });
+      }
       if (applied && cardsEnabled && mover) {
         const trapped = resolveTrapForMove(engine, cardState, mover, applied.from, applied.to);
         setVersion((v) => v + 1);
         applyTurnRollover(trapped);
       }
     },
-    [engine, difficulty, aiMinThinkMs, cardsEnabled, cardState, applyTurnRollover, isStandardSize],
+    [
+      engine,
+      difficulty,
+      aiMinThinkMs,
+      cardsEnabled,
+      cardState,
+      applyTurnRollover,
+      isStandardSize,
+      pushHistory,
+    ],
   );
 
   useEffect(() => {
@@ -764,11 +823,16 @@ export function Match({
       // Single-use empowers (Soul cards) on any *other* piece die the moment
       // the player commits a chess move with someone else.
       let next = dropOtherSingleUseEmpowers(cardState, from);
-      // Statuses follow the piece.
-      next = relocateStatuses(next, from, to);
-      // Captured-piece's statuses (if any) are dropped.
+      // On a capture, drop the captured piece's per-square statuses BEFORE
+      // we relocate the mover's statuses onto `to`. Doing this in the wrong
+      // order would clobber the mover's freshly-relocated shield/haste/etc.
+      // and let opponents capture a shielded piece next turn.
       if (applied.isCapture) {
         next = clearStatusesOn(next, to);
+      }
+      // Statuses follow the piece.
+      next = relocateStatuses(next, from, to);
+      if (applied.isCapture) {
         // Capture-grants-Soul: feed the matching Soul card into the draw
         // pile. The helper filters by side itself (only player captures grant
         // souls). In dev mode the human can drive Black, so we pass the
@@ -804,6 +868,24 @@ export function Match({
       setMarionetteMoves([]);
       setVersion((v) => v + 1);
 
+      // Log the move into the history before any snapshot fires so the
+      // snapshot picks up the new event and undo rewinds the log too.
+      pushHistory({
+        kind: "move",
+        turn: next.turn,
+        by: mover?.side ?? "player",
+        from: applied.from,
+        to: applied.to,
+        san: applied.san,
+        isCapture: applied.isCapture,
+        isPromotion: applied.isPromotion,
+        isCastle: applied.isCastle,
+        promotion: applied.promotion,
+        capturedType: captured?.type,
+        capturedSide: captured?.side,
+        fenAfter: engine.fen(),
+      });
+
       // Dev panel active + AI off: the human drives Black, so the AI loop
       // never fires and we have to roll over to a fresh player turn here.
       // Otherwise just commit; sandbox additionally pushes an action-granular
@@ -819,7 +901,17 @@ export function Match({
       }
       return true;
     },
-    [engine, cardState, rng, runMode, devPanelEnabled, devAiOn, applyTurnRollover, pushSnapshot],
+    [
+      engine,
+      cardState,
+      rng,
+      runMode,
+      devPanelEnabled,
+      devAiOn,
+      applyTurnRollover,
+      pushSnapshot,
+      pushHistory,
+    ],
   );
 
   /**
@@ -898,6 +990,15 @@ export function Match({
       setTargetingIndex(null);
       setPartialTarget(null);
       setMarionetteMoves([]);
+      pushHistory({
+        kind: "card-played",
+        turn: next.turn,
+        cardId: card.id,
+        cardName: card.name,
+        cost: card.cost,
+        energyAfter: next.energy,
+        target,
+      });
       // Foresight: open scry modal showing the new top of deck.
       if (card.effect.kind === "scry") {
         const top = next.drawPile.slice(0, card.effect.count);
@@ -912,7 +1013,16 @@ export function Match({
       if (runMode === "dev" && !devAiOn) pushSnapshot(next);
       return true;
     },
-    [cardState, boardContext, rng, applyCardSideEffects, runMode, devAiOn, pushSnapshot],
+    [
+      cardState,
+      boardContext,
+      rng,
+      applyCardSideEffects,
+      runMode,
+      devAiOn,
+      pushSnapshot,
+      pushHistory,
+    ],
   );
 
   const onCardClick = useCallback(
@@ -968,9 +1078,21 @@ export function Match({
       const next = clearStatusesOn(cardState, sq);
       setCardState(next);
       setVersion((v) => v + 1);
+      pushHistory(
+        brush === "erase"
+          ? { kind: "editor-edit", turn: next.turn, square: sq, action: "erase" }
+          : {
+              kind: "editor-edit",
+              turn: next.turn,
+              square: sq,
+              action: "place",
+              pieceType: brush.type,
+              side: brush.side,
+            },
+      );
       pushSnapshot(next);
     },
-    [engine, cardState, pushSnapshot],
+    [engine, cardState, pushSnapshot, pushHistory],
   );
 
   /**
@@ -1068,8 +1190,7 @@ export function Match({
         const newFile = remapAxis(file, oldSize.files, size.files);
         const newRank = remapAxis(rank, oldSize.ranks, size.ranks);
         if (newFile === null || newRank === null) continue;
-        const newSquare =
-          `${String.fromCharCode(97 + newFile)}${newRank + 1}` as AlgebraicSquare;
+        const newSquare = `${String.fromCharCode(97 + newFile)}${newRank + 1}` as AlgebraicSquare;
         fresh.placePiece(newSquare, piece);
       }
       // Preserve side-to-move.
@@ -1117,8 +1238,22 @@ export function Match({
     setPaletteDragActive(false);
     libraryFreePlayRef.current = null;
     setLibraryFreePlayActive(false);
-    undoRedo.seed({ engineSnapshot: freshEngine.snapshot(), cardState: fresh });
-  }, [initialDeck, rng, undoRedo]);
+    const initialHistory: HistoryEvent[] = [
+      {
+        kind: "match-start",
+        turn: fresh.turn,
+        fen: freshEngine.fen(),
+        size: freshEngine.size(),
+        mode,
+      },
+    ];
+    replaceHistory(initialHistory);
+    undoRedo.seed({
+      engineSnapshot: freshEngine.snapshot(),
+      cardState: fresh,
+      history: initialHistory,
+    });
+  }, [initialDeck, rng, undoRedo, mode, replaceHistory]);
 
   /**
    * Reseed the board to a Chess960-style starting position on the *current*
@@ -1129,12 +1264,11 @@ export function Match({
   const randomStart = useCallback(() => {
     const r: Rng = rng ?? Math.random;
     const currentSize = engine.size();
-    const fitting = STANDARD_MATCHES.filter(
-      (m) => m.pieceSet.backRank.length <= currentSize.files,
-    );
+    const fitting = STANDARD_MATCHES.filter((m) => m.size.files <= currentSize.files);
     const pool = fitting.length > 0 ? fitting : STANDARD_MATCHES;
     const cfg = pool[Math.floor(r() * pool.length)];
-    const { fen, size } = generateChess960Position(cfg.pieceSet, currentSize, r);
+    const pieceSet = resolvePieceSet(cfg, r);
+    const { fen, size } = generateChess960Position(pieceSet, currentSize, r);
     const freshEngine = new ChoseEngine(fen, size);
     // Cancel any in-flight AI reply — `randomStart` doubles as the "New game"
     // action on match-over in sandbox, where the AI loop is idle but the
@@ -1158,18 +1292,38 @@ export function Match({
     setPaletteDragActive(false);
     libraryFreePlayRef.current = null;
     setLibraryFreePlayActive(false);
-    undoRedo.seed({ engineSnapshot: freshEngine.snapshot(), cardState: fresh });
-  }, [engine, initialDeck, rng, undoRedo]);
+    const initialHistory: HistoryEvent[] = [
+      {
+        kind: "match-start",
+        turn: fresh.turn,
+        fen: freshEngine.fen(),
+        size: freshEngine.size(),
+        mode,
+      },
+    ];
+    replaceHistory(initialHistory);
+    undoRedo.seed({
+      engineSnapshot: freshEngine.snapshot(),
+      cardState: fresh,
+      history: initialHistory,
+    });
+  }, [engine, initialDeck, rng, undoRedo, mode, replaceHistory]);
 
   const bumpEnergy = useCallback(
     (delta: number) => {
       setCardState((s) => {
         const next = { ...s, energy: clampEnergy(s.energy + delta) };
+        pushHistory({
+          kind: "energy-bump",
+          turn: next.turn,
+          delta,
+          energyAfter: next.energy,
+        });
         pushSnapshot(next);
         return next;
       });
     },
-    [pushSnapshot],
+    [pushSnapshot, pushHistory],
   );
 
   /**
@@ -1558,6 +1712,7 @@ export function Match({
     setScryPending(null);
     setRevivePending(false);
     undoRedo.reset();
+    replaceHistory([]);
     setEditorPiece(null);
     paletteDragRef.current = null;
     setPaletteDragActive(false);
@@ -1570,7 +1725,7 @@ export function Match({
     } else {
       setCardState(createMatchCardState([], rng));
     }
-  }, [initialFen, initialBoardSize, initialDeck, mode, rng, undoRedo]);
+  }, [initialFen, initialBoardSize, initialDeck, mode, rng, undoRedo, replaceHistory]);
 
   const onModeChange = useCallback(
     (next: MatchMode) => {
@@ -1585,6 +1740,7 @@ export function Match({
       setAiError(null);
       setTargetingIndex(null);
       undoRedo.reset();
+      replaceHistory([]);
       setEditorPiece(null);
       paletteDragRef.current = null;
       setPaletteDragActive(false);
@@ -1598,7 +1754,7 @@ export function Match({
         setCardState(createMatchCardState([], rng));
       }
     },
-    [mode, initialFen, initialBoardSize, initialDeck, rng, undoRedo],
+    [mode, initialFen, initialBoardSize, initialDeck, rng, undoRedo, replaceHistory],
   );
 
   /**
@@ -1620,21 +1776,23 @@ export function Match({
 
   const undo = useCallback(() => {
     if (!canUndo) return;
-    undoRedo.undo((cs) => {
+    undoRedo.undo((cs, h) => {
       setCardState(cs);
+      replaceHistory(h);
       clearTransientUI();
       setVersion((v) => v + 1);
     });
-  }, [canUndo, undoRedo, clearTransientUI]);
+  }, [canUndo, undoRedo, clearTransientUI, replaceHistory]);
 
   const redo = useCallback(() => {
     if (!canRedo) return;
-    undoRedo.redo((cs) => {
+    undoRedo.redo((cs, h) => {
       setCardState(cs);
+      replaceHistory(h);
       clearTransientUI();
       setVersion((v) => v + 1);
     });
-  }, [canRedo, undoRedo, clearTransientUI]);
+  }, [canRedo, undoRedo, clearTransientUI, replaceHistory]);
 
   // ---- Render ---------------------------------------------------------------
 
@@ -1860,6 +2018,8 @@ export function Match({
           canRedo={canRedo}
           onUndo={undo}
           onRedo={redo}
+          historyCount={history.length}
+          onShowHistory={() => setHistoryOpen(true)}
         />
       )}
       {runMode === "run" && !devPanelOpen && (
@@ -1908,7 +2068,7 @@ export function Match({
           onClose={() => setPileInspector(null)}
         />
       )}
+      {historyOpen && <HistoryModal events={history} onClose={() => setHistoryOpen(false)} />}
     </div>
   );
 }
-

@@ -6,23 +6,25 @@ A fourth mode, **Sandbox** (a.k.a. Dev), sits parallel to the player-facing mode
 
 ## Standard (default)
 
-The active default mode. Both sides start each match with a small piece set on a small board and grow on a fixed, symmetric curve to a full 16-piece army on 8x8 across the 9-match run. There is no piece drafting in Standard — the curve is deterministic. Starting positions are Chess960-style, generalized to whatever board / piece set the current match uses.
+The active default mode. Both sides start each match with a small piece set on a small board and grow on a fixed, symmetric curve to a full 16-piece army on 8x8 across the 9-match run. There is no piece drafting in Standard. Starting positions are Chess960-style, generalized to whatever board / piece set the current match uses. Boards span seven distinct sizes (4×6 → 8×8); each match grows by at most one file or one rank.
 
 Per-match piece curve:
 
 | Match | Board | Per-side composition | Total | Move target |
 |---|---|---|---|---|
-| 1 | 6x6 | K + 4 pawns | 5 | ~10 |
-| 2 | 6x6 | K + 4 pawns + 1 N + 1 B | 7 | ~12 |
-| 3 (Boss A) | 6x6 | K + 4 pawns + 2 minors + 1 R | 8 | ~15 |
-| 4 | 6x8 | K + 5 pawns + 2 minors + 1 R | 9 | ~18 |
-| 5 | 6x8 | K + 6 pawns + 3 minors + 1 R | 11 | ~22 |
-| 6 (Boss B) | 6x8 | K + 6 pawns + 4 minors + 2 R | 13 | ~28 |
-| 7 | 8x8 | K + 7 pawns + 4 minors + 2 R | 14 | ~35 |
-| 8 | 8x8 | K + 8 pawns + 4 minors + 2 R | 15 | ~42 |
-| 9 (Boss C) | 8x8 | K + 8 pawns + 4 minors + 2 R + 1 Q | 16 | ~50 |
+| 1 | 4×6 | K + 4 pawns + 2 random minors *or* 1 random rook | 6–7 | ~8 |
+| 2 | 4×6 | K + 4 pawns + random pieces (budget 9 pts, pool {N,B,R}) | 6–7 | ~11 |
+| 3 (Boss A) | 5×6 | K + 5 pawns + N + B + R | 9 | ~14 |
+| 4 | 5×7 | K + 5 pawns + random pieces (budget 14 pts, pool {N,B,R}) | 8–10 | ~18 |
+| 5 | 6×7 | K + 6 pawns + random pieces (budget 17 pts, pool {N,B,R}) | 10–12 | ~22 |
+| 6 (Boss B) | 7×7 | K + 7 pawns + 2 N + 2 B + 2 R | 14 | ~28 |
+| 7 | 7×8 | K + 7 pawns + random pieces (budget 22 pts, pool {N,B,R,Q}) | 11–14 | ~35 |
+| 8 | 8×8 | K + 8 pawns + random pieces (budget 25 pts, pool {N,B,R,Q}) | 13–16 | ~42 |
+| 9 (Boss C) | 8×8 | K + 8 pawns + 2 N + 2 B + 2 R + Q | 16 | ~50 |
 
-Numbers are tuning knobs (centralized in `src/game/progression/standard.ts`). The aim: an average player should checkmate match 1 in ~10 moves; match 9 should average ~50.
+The composition for non-boss matches is **rolled per match** from a non-pawn points budget plus a pool of allowed piece types (knight = 3, bishop = 3, rook = 5, queen = 9). Pieces are drawn until no allowed type both fits the remaining budget and is below its Chess960 cap (≤2 N, ≤2 B, ≤2 R, ≤1 Q). Pawns fill the front rank fully (`pawns = files`); the king is always present. Bosses keep hand-tuned explicit compositions because their hazards (`bosses.md`) are designed around them.
+
+Numbers are tuning knobs (centralized in `src/game/progression/standard.ts`). The aim: an average player should checkmate match 1 in roughly 8 moves; match 9 should average ~50.
 
 ### Generalized Chess960
 
@@ -34,7 +36,7 @@ For each match, the back-rank piece set (everything except pawns) is shuffled on
 4. Mirror white's back rank to black.
 5. Pawns fill rank 1 (white) and rank `ranks - 2` (black).
 
-Castling is **disabled on boards smaller than 8 files** — it's awkward to generalize the king-to-g-file landing rule on a 6-file board, and small-board piece sets rarely have two rooks anyway. See `chess-rules.md`.
+Castling is **disabled on boards smaller than 8 files** — it's awkward to generalize the king-to-g-file landing rule on smaller boards, and small-board piece sets often don't have two rooks anyway. See `chess-rules.md`.
 
 - **Starting position:** Chess960-style every match (per the table above).
 - **Roster management:** none. Both armies reset per match per the curve.

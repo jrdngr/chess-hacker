@@ -170,12 +170,16 @@ describe("Empower (bishop pattern)", () => {
   it("queen with bishop empower gets no extra moves (already diagonal-capable)", () => {
     const pos = parseFen("4k3/8/8/8/8/8/8/Q3K3 w - - 0 1");
     const overlays: Overlays = { ...baseOverlays() };
-    const baseline = legalMoves(pos, overlays, "a1").map((m) => m.to).sort();
+    const baseline = legalMoves(pos, overlays, "a1")
+      .map((m) => m.to)
+      .sort();
     const overlaysWith: Overlays = {
       ...baseOverlays(),
       empowers: new Map([["a1", new Set(["bishop" as const])]]),
     };
-    const empowered = legalMoves(pos, overlaysWith, "a1").map((m) => m.to).sort();
+    const empowered = legalMoves(pos, overlaysWith, "a1")
+      .map((m) => m.to)
+      .sort();
     expect(empowered).toEqual(baseline);
   });
 });

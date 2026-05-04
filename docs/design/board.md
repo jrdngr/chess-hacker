@@ -1,6 +1,6 @@
 # Board
 
-The board has a **maximum size of 8x8** but scales across a Standard run: 6x6 in act 1, 6x8 in act 2, 8x8 in act 3. Royal (when re-enabled) stays at 8x8. The dev sandbox supports any size from 3x3 to 8x8. Within a single match the board size is fixed. Variety on the board comes from **overlays** — square effects, zone buffs, and walls — that cards spawn during play.
+The board has a **maximum size of 8×8** but scales across a Standard run, growing one file or one rank at a time across seven distinct sizes (4×6 → 5×6 → 5×7 → 6×7 → 7×7 → 7×8 → 8×8) — see `modes.md` for the per-match table. Royal (when re-enabled) stays at 8×8. The dev sandbox supports any size from 3×3 to 8×8. Within a single match the board size is fixed. Variety on the board comes from **overlays** — square effects, zone buffs, and walls — that cards spawn during play.
 
 ## What's deliberately NOT in the design
 

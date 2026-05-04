@@ -4,7 +4,14 @@ import userEvent from "@testing-library/user-event";
 
 import { Match } from "./Match";
 import { StockfishEngine } from "../ai/stockfish";
-import { BARRICADE, FORESIGHT, FROSTBITE, RECONNAISSANCE, SPIKE_PIT } from "../game/cards/library";
+import {
+  BARRICADE,
+  FORESIGHT,
+  FROSTBITE,
+  IRON_GUARD,
+  RECONNAISSANCE,
+  SPIKE_PIT,
+} from "../game/cards/library";
 import { makeRng } from "../game/cards/match";
 
 function squareCell(aria: string): HTMLElement | undefined {
@@ -586,6 +593,46 @@ describe("Match (cards — M3)", () => {
     expect(offered.some((uci) => uci.startsWith("g8"))).toBe(false);
     // Plenty of other moves should still be on offer.
     expect(offered.length).toBeGreaterThan(10);
+  });
+
+  // Regression: Iron Guard cast on a piece that then captures must follow the
+  // piece to its destination square. Bug was that we were clearing the captured
+  // piece's statuses AFTER relocating, which wiped the freshly-relocated shield.
+  it("Iron Guard on a piece that then captures still shields it after the capture", async () => {
+    const user = userEvent.setup();
+    const calls: ReadonlyArray<string>[] = [];
+    // Knight c3 about to capture rook on d5; black knight on e7 could recapture.
+    // White king h1, black king h8; otherwise empty.
+    const ai = makeFakeAi(["e7c6"], calls);
+    render(
+      <Match
+        initialMode="vs-ai"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={Array.from({ length: 8 }, () => IRON_GUARD)}
+        rng={makeRng(99)}
+        initialFen="7k/4n3/8/3r4/8/2N5/8/7K w - - 0 1"
+        initialEnergy={3}
+      />,
+    );
+
+    // Cast Iron Guard on the c3 knight.
+    await user.click(findCard("Iron Guard")!);
+    await user.click(squareCell("c3")!);
+
+    // Knight captures rook on d5.
+    await user.click(squareCell("c3")!);
+    await user.click(squareCell("d5")!);
+
+    // AI got a chance to think. Its searchmoves must NOT include the e7→d5
+    // recapture — the shield followed our knight to d5.
+    await waitFor(() => {
+      expect(calls.length).toBeGreaterThan(0);
+    });
+    const offered = calls[0];
+    expect(offered).not.toContain("e7d5");
+    // Sanity: the AI was offered some moves (otherwise the assertion is vacuous).
+    expect(offered.length).toBeGreaterThan(0);
   });
 });
 

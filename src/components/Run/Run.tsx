@@ -23,10 +23,7 @@ import {
   skipDraft,
   totalMatches,
 } from "../../game/progression/run";
-import {
-  applyInterest,
-  generateShop,
-} from "../../game/shop/shop";
+import { applyInterest, generateShop } from "../../game/shop/shop";
 import type {
   BoardSize,
   Card,
@@ -179,7 +176,16 @@ export function Run({ mode, onExit, rngSeed }: Props) {
         </button>
       </div>
     ),
-    [run.mode, run.matchNumber, run.gold, run.deck.length, run.phase, total, extras.lastInterest, onExit],
+    [
+      run.mode,
+      run.matchNumber,
+      run.gold,
+      run.deck.length,
+      run.phase,
+      total,
+      extras.lastInterest,
+      onExit,
+    ],
   );
 
   return (
@@ -197,24 +203,12 @@ export function Run({ mode, onExit, rngSeed }: Props) {
         />
       )}
       {run.phase === "reward" && extras.draftOffer && (
-        <Reward
-          run={run}
-          offer={extras.draftOffer}
-          onPick={onPickDraftCard}
-          onSkip={onSkipDraft}
-        />
+        <Reward run={run} offer={extras.draftOffer} onPick={onPickDraftCard} onSkip={onSkipDraft} />
       )}
       {run.phase === "shop" && extras.shop && (
-        <Shop
-          run={run}
-          shop={extras.shop}
-          onUpdate={onShopUpdate}
-          onLeave={onLeaveShop}
-        />
+        <Shop run={run} shop={extras.shop} onUpdate={onShopUpdate} onLeave={onLeaveShop} />
       )}
-      {(run.phase === "won" || run.phase === "lost") && (
-        <RunSummary run={run} onExit={onExit} />
-      )}
+      {(run.phase === "won" || run.phase === "lost") && <RunSummary run={run} onExit={onExit} />}
     </div>
   );
 }
