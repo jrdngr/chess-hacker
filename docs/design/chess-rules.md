@@ -44,9 +44,9 @@ In **Skirmish**, castling is possible only when the player happens to place thei
 
 ### En passant
 
-Enabled, but only on full-height (8-rank) boards. Standard rules: when an enemy pawn advances two squares from its starting rank and lands beside one of your pawns, your pawn may, on the very next move only, capture the enemy pawn diagonally as if it had advanced only one square.
+Enabled. Standard rules: when an enemy pawn advances two squares from its starting rank and lands beside one of your pawns, your pawn may, on the very next move only, capture the enemy pawn diagonally as if it had advanced only one square. Available on any board size where a double-push is possible.
 
-Pawn double-pushes are **gated on `ranks === 8`**. On any board with fewer than 8 ranks, pawns advance one square at a time even from their starting rank — a single push from rank 1 already crosses a substantial fraction of a 6-rank board, and removing the double-push (and en passant with it) keeps tactics on tight grids predictable.
+Pawn double-pushes are available on every board size — a pawn on its starting rank may advance one or two squares whenever both squares are empty (and not walled).
 
 Note (see `board.md`): if the en passant capture target square is walled, en passant cannot be performed.
 

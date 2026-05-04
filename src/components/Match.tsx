@@ -29,6 +29,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Board, type BoardMode } from "./Board/Board";
 import { CapturedPieces } from "./Board/CapturedPieces";
 import { materialAdvantage } from "./Board/material";
+import { PromotionModal, type PromotionChoice } from "./Board/PromotionModal";
 import { DevPanel, type EditorPiece } from "./Match/DevPanel";
 import { Hand } from "./Hand/Hand";
 import { ReviveModal } from "./Hand/ReviveModal";
@@ -304,6 +305,16 @@ export function Match({
   const [scryPending, setScryPending] = useState<{ cards: Card[] } | null>(null);
   /** When true, Recover is asking the player to pick a card from consumedPile. */
   const [revivePending, setRevivePending] = useState<boolean>(false);
+  /**
+   * In flight while the player has clicked a pawn promotion target but hasn't
+   * picked which piece to promote to. The chess move itself is not applied
+   * until they choose, so AI turn / outcome detection are paused naturally.
+   */
+  const [promotionPending, setPromotionPending] = useState<{
+    from: AlgebraicSquare;
+    to: AlgebraicSquare;
+    side: Side;
+  } | null>(null);
   /** Which pile inspector is open, if any. */
   const [pileInspector, setPileInspector] = useState<"draw" | "spent" | null>(null);
 
@@ -458,7 +469,9 @@ export function Match({
     }
     if (matchEndedRef.current) return;
     matchEndedRef.current = true;
-    const won = outcome.kind === "checkmate" && outcome.winner === HUMAN_SIDE;
+    const won =
+      (outcome.kind === "checkmate" || outcome.kind === "king-captured") &&
+      outcome.winner === HUMAN_SIDE;
     onMatchEnd({ won, outcome, turnsPlayed: cardState.turn });
   }, [runMode, onMatchEnd, matchOver, outcome, cardState.turn]);
   // In sandbox + run modes, the AI is gated by `devAiOn` (defaults: off in
@@ -808,8 +821,16 @@ export function Match({
    * the turn back to the player and decrement / consume the buff.
    */
   const tryPlay = useCallback(
-    (from: AlgebraicSquare, to: AlgebraicSquare): boolean => {
-      const legal = engine.legalMoves(from).find((m) => m.to === to);
+    (from: AlgebraicSquare, to: AlgebraicSquare, promotion?: PromotionChoice): boolean => {
+      const candidates = engine.legalMoves(from).filter((m) => m.to === to);
+      if (candidates.length === 0) return false;
+      // Promotion: defer the move until the player picks via the modal.
+      // Multiple candidates with the same from/to differ only by promotion piece.
+      if (candidates[0].isPromotion && !promotion) {
+        setPromotionPending({ from, to, side: engine.turn() });
+        return true;
+      }
+      const legal = promotion ? candidates.find((m) => m.promotion === promotion) : candidates[0];
       if (!legal) return false;
       const haste = hasteAt(cardState, from);
       const lightning = lightningAt(cardState, from);
@@ -2050,6 +2071,20 @@ export function Match({
             setRevivePending(false);
           }}
           onCancel={() => setRevivePending(false)}
+        />
+      )}
+      {promotionPending && (
+        <PromotionModal
+          side={promotionPending.side}
+          onPick={(choice) => {
+            const { from, to } = promotionPending;
+            setPromotionPending(null);
+            tryPlay(from, to, choice);
+          }}
+          onCancel={() => {
+            setPromotionPending(null);
+            setSelected(null);
+          }}
         />
       )}
       {pileInspector === "draw" && (

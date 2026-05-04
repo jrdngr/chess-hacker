@@ -36,6 +36,7 @@ export type Piece = {
 export type MatchOutcome =
   | { kind: "ongoing" }
   | { kind: "checkmate"; winner: Side }
+  | { kind: "king-captured"; winner: Side }
   | { kind: "stalemate" }
   | {
       kind: "draw";

@@ -155,6 +155,7 @@ export function applyCardSideEffects(
 export function outcomeHeadline(o: MatchOutcome): string {
   switch (o.kind) {
     case "checkmate":
+    case "king-captured":
       return o.winner === "player" ? "White wins" : "Black wins";
     case "stalemate":
       return "Stalemate";
@@ -169,6 +170,8 @@ export function outcomeDetail(o: MatchOutcome): string {
   switch (o.kind) {
     case "checkmate":
       return "by checkmate";
+    case "king-captured":
+      return "by king capture";
     case "stalemate":
       return "no legal moves";
     case "draw":

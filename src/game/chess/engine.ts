@@ -366,6 +366,15 @@ export class ChoseEngine {
   }
 
   outcome(): MatchOutcome {
+    // King capture ends the match for whichever side still has a king. This
+    // can only arise from card-driven moves (e.g. an empowered piece moving
+    // through a normal-rules-illegal capture) — the standard legality filter
+    // never permits capturing the king.
+    const playerKing = findKing(this.position, "player");
+    const opponentKing = findKing(this.position, "opponent");
+    if (!playerKing && opponentKing) return { kind: "king-captured", winner: "opponent" };
+    if (playerKing && !opponentKing) return { kind: "king-captured", winner: "player" };
+
     const moves = rulesLegalMoves(this.position, this.overlays);
     if (moves.length === 0) {
       if (isInCheck(this.position, this.overlays)) {

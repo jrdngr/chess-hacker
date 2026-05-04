@@ -1,0 +1,69 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.dialog {
+  background: #1f1f24;
+  color: #f4f4f4;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.title {
+  margin: 0;
+  font-size: 18px;
+}
+
+.choices {
+  display: flex;
+  gap: 12px;
+}
+
+.choice {
+  width: 64px;
+  height: 64px;
+  background: #2a2a30;
+  border: 1px solid #4a4a50;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.choice:hover {
+  background: #3a3a40;
+  border-color: #6c7df0;
+}
+
+.choice:focus-visible {
+  outline: 2px solid #6c7df0;
+  outline-offset: 2px;
+}
+
+.cancel {
+  padding: 6px 18px;
+  background: transparent;
+  color: #b8b8be;
+  border: 1px solid #4a4a50;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.cancel:hover {
+  background: #2a2a30;
+  color: #f4f4f4;
+}

@@ -62,6 +62,17 @@ describe("ChoseEngine", () => {
     expect(e.outcome()).toEqual({ kind: "draw", reason: "insufficient-material" });
   });
 
+  it("treats a missing king as a king-capture win for the surviving side", () => {
+    // Card-driven moves can capture the king (the standard legality filter
+    // never permits this, but an empowered piece bypassing those rules can).
+    // The side that still has a king wins.
+    const blackKingMissing = new ChoseEngine("8/8/8/8/8/8/8/4K3 w - - 0 1");
+    expect(blackKingMissing.outcome()).toEqual({ kind: "king-captured", winner: "player" });
+
+    const whiteKingMissing = new ChoseEngine("4k3/8/8/8/8/8/8/8 w - - 0 1");
+    expect(whiteKingMissing.outcome()).toEqual({ kind: "king-captured", winner: "opponent" });
+  });
+
   it("capturedPieces() partitions captures by captor side", () => {
     const e = new ChoseEngine();
     expect(e.capturedPieces()).toEqual({ byPlayer: [], byOpponent: [] });
