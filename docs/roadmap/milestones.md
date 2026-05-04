@@ -6,7 +6,7 @@ The milestones are roughly sequential — each builds on the previous — but se
 
 ## Status as of 2026-05-03
 
-The chess core, card system, walls, dev sandbox, and the first half of the square-effect overlays are built. The remaining work is the run loop and everything that hangs off it (shop, artifacts, bosses, full Royal, then Skirmish).
+The chess core, card system, walls, dev sandbox, the first half of the square-effect overlays, and the M5 run loop (3-match Royal mini-run + shop + reward) are built. The remaining work is artifacts, bosses, zone-control buffs, the full 9-match run, then Skirmish.
 
 Already shipped:
 
@@ -14,9 +14,10 @@ Already shipped:
 - **Stockfish AI.** `src/ai/stockfish.ts`, depth-tuned (`easy=2 / normal=6 / hard=10`). AI moves are validated against our wall-aware legal-move set before being applied.
 - **Cards.** 37 cards in `src/game/cards/data/`. Hand / draw pile / consumed pile / energy state in `src/game/cards/match.ts`. 25 effect kinds spanning tempo, disruption, spatial, movement, summon, swap, sacrifice, revival, and generators. Card UI + targeting via `src/components/Hand` + `src/components/Board`.
 - **Walls.** Wall storage and lifetimes in the engine; ray-blocking in move generation; check evaluation respects walls.
-- **Dev sandbox.** Top-level "Sandbox" mode in `src/App.tsx`; full editor / library / energy controls / undo-redo in `src/components/Match/DevPanel.tsx`. Royal and Skirmish are present as disabled menu items.
+- **Dev sandbox.** Top-level "Sandbox" mode in `src/App.tsx`; full editor / library / energy controls / undo-redo in `src/components/Match/DevPanel.tsx`.
 - **Square effects (partial).** Sanctuaries and traps are stored, triggered, and rendered with hover info on the board. Zone-control buffs (auras that grant adjacent-square buffs) are not yet implemented — see M7 below.
 - **Tooltips.** Square / piece tooltips on the board (commit `80d3ee7`).
+- **Run loop + shop (M5).** Top-level Royal mode kicks off a 3-match mini-run in `src/components/Run/`. State machine + reward generation in `src/game/progression/run.ts`; shop / reroll / removal / interest in `src/game/shop/shop.ts`. Post-match draft (1-of-3) with skip-for-gold, then a shop with rotating card / booster offers, reroll service (per-shop scaling), card removal (per-run scaling), and Balatro-style interest tally on shop close.
 
 State management note: zustand was planned and skipped — match state currently lives in `Match.tsx` with `useState`. Adopt zustand only if cross-component state grows painful.
 
@@ -46,22 +47,9 @@ Live in `src/components/Match/DevPanel.tsx`. Provides editor, library, energy co
 
 ---
 
-## M5 — Preliminary Royal: run scaffolding + shop [3d]
+## M5 — Preliminary Royal: run scaffolding + shop [done]
 
-The first player-facing run loop. Three matches, no bosses, no artifacts. Establishes the surfaces (mode-select, post-match reward, shop) that everything later hangs off of. Combines the original M5 + M6.
-
-- Top-level run state machine: `mode-select → match → reward → shop → match → ...`.
-- Hard-coded 3-match Royal mini-run for testing.
-- Post-match reward step: card draft (1 of 3) and gold reward.
-- Skip-for-gold.
-- Gold tracking on the run.
-- Shop generation: rotating cards + booster packs (artifacts deferred to M6).
-- Reroll service (scaling per shop).
-- Card removal service (scaling per use).
-- Interest tally.
-- Buying / spending UI.
-
-**Done when:** the player can complete a 3-match scripted Royal run from the menu, drafting a card and visiting the shop after each match. Gold persists across the run, interest accrues, reroll and removal both work.
+Live in `src/components/Run/` + `src/game/progression/run.ts` + `src/game/shop/shop.ts`. Top-level Royal kicks off a 3-match mini-run; reward step offers a 1-of-3 card draft (or skip-for-gold); shop offers rotating cards + booster packs with reroll (per-shop scaling) and card removal (per-run scaling); +1 gold per 5 saved at shop close (capped +5). Boss / artifact pieces are stubbed for the milestones below.
 
 ## M6 — Artifacts [2d]
 

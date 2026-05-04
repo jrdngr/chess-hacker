@@ -1,0 +1,200 @@
+// Run shell — owns the run state machine and routes between match, reward,
+// and shop phases.
+//
+// State management note: the run is small enough that useState is fine here.
+// Architecture doc earmarks zustand for "if cross-component state grows
+// painful" — the M5 mini-run touches at most three siblings (Match, Reward,
+// Shop), all owned by this shell.
+
+import { useEffect, useMemo, useState } from "react";
+
+import { Match } from "../Match";
+import { Reward } from "./Reward";
+import { Shop } from "./Shop";
+import { RunSummary } from "./RunSummary";
+import {
+  applyMatchOutcome,
+  createRun,
+  enterShop,
+  generateDraftOffer,
+  leaveShop,
+  pickDraftCard,
+  skipDraft,
+  totalMatches,
+} from "../../game/progression/run";
+import {
+  applyInterest,
+  generateShop,
+} from "../../game/shop/shop";
+import type {
+  Card,
+  DraftOffer,
+  RunMatchOutcome,
+  RunMode,
+  RunState,
+  Shop as ShopState,
+} from "../../game/types";
+
+import styles from "./Run.module.css";
+
+type Props = {
+  mode: RunMode;
+  /** Called when the user wants to leave the run (back to menu). */
+  onExit: () => void;
+  /** Optional seed for deterministic runs (tests). */
+  rngSeed?: number;
+};
+
+/**
+ * Phase-local state held alongside the run. Generated when entering the
+ * phase so reroll / re-show transitions don't accidentally reuse a stale
+ * offer that was meant for the previous match.
+ */
+type PhaseExtras = {
+  draftOffer: DraftOffer | null;
+  shop: ShopState | null;
+  /** Last-tally interest amount, shown briefly on the next match's banner. */
+  lastInterest: number;
+};
+
+export function Run({ mode, onExit, rngSeed }: Props) {
+  const [run, setRun] = useState<RunState>(() => createRun({ mode, rngSeed }));
+  const [extras, setExtras] = useState<PhaseExtras>({
+    draftOffer: null,
+    shop: null,
+    lastInterest: 0,
+  });
+
+  // Lazy-generate the draft / shop on phase entry. The phase transitions
+  // happen via setRun(...) and the new state lands here as a fresh `run`;
+  // we mirror that into `extras` so the phase UI has its prepared content.
+  useEffect(() => {
+    if (run.phase === "reward" && extras.draftOffer === null) {
+      const { offer, next } = generateDraftOffer(run);
+      setExtras((e) => ({ ...e, draftOffer: offer }));
+      setRun(next);
+      return;
+    }
+    if (run.phase === "shop" && extras.shop === null) {
+      const { shop, next } = generateShop(run);
+      setExtras((e) => ({ ...e, shop }));
+      setRun(next);
+      return;
+    }
+    if (run.phase === "match") {
+      // Stale draft / shop from previous round must not leak into the next
+      // entry to that phase — drop them as we leave them behind.
+      if (extras.draftOffer !== null || extras.shop !== null) {
+        setExtras((e) => ({ ...e, draftOffer: null, shop: null }));
+      }
+    }
+  }, [run, extras.draftOffer, extras.shop]);
+
+  // ---- Match phase --------------------------------------------------------
+
+  const onMatchEnd = (outcome: RunMatchOutcome) => {
+    setRun((r) => applyMatchOutcome(r, outcome));
+  };
+
+  // ---- Reward phase -------------------------------------------------------
+
+  const onPickDraftCard = (card: Card) => {
+    setRun((r) => enterShop(pickDraftCard(r, card)));
+    setExtras((e) => ({ ...e, draftOffer: null }));
+  };
+
+  const onSkipDraft = () => {
+    if (!extras.draftOffer) return;
+    const skipGold = extras.draftOffer.skipGold;
+    setRun((r) => enterShop(skipDraft(r, skipGold)));
+    setExtras((e) => ({ ...e, draftOffer: null }));
+  };
+
+  // ---- Shop phase ---------------------------------------------------------
+
+  const onShopUpdate = (next: { state: RunState; shop: ShopState }) => {
+    setRun(next.state);
+    setExtras((e) => ({ ...e, shop: next.shop }));
+  };
+
+  const onLeaveShop = () => {
+    setRun((r) => {
+      const { state, interest } = applyInterest(r);
+      setExtras((e) => ({ ...e, shop: null, lastInterest: interest }));
+      return leaveShop(state);
+    });
+  };
+
+  // ---- Render -------------------------------------------------------------
+
+  const total = totalMatches(run);
+  const banner = useMemo(
+    () => (
+      <div className={styles.banner} aria-label="Run progress">
+        <span className={styles.bannerSegment}>
+          <span className={styles.bannerLabel}>Mode</span>
+          <span className={styles.bannerValue}>{titleCase(run.mode)}</span>
+        </span>
+        <span className={styles.bannerSegment}>
+          <span className={styles.bannerLabel}>Match</span>
+          <span className={styles.bannerValue}>
+            {run.matchNumber} / {total}
+          </span>
+        </span>
+        <span className={styles.bannerSegment}>
+          <span className={styles.bannerLabel}>Gold</span>
+          <span className={styles.bannerValue}>{run.gold}</span>
+        </span>
+        <span className={styles.bannerSegment}>
+          <span className={styles.bannerLabel}>Deck</span>
+          <span className={styles.bannerValue}>{run.deck.length}</span>
+        </span>
+        {extras.lastInterest > 0 && run.phase === "match" && (
+          <span className={styles.bannerInterest}>+{extras.lastInterest} interest</span>
+        )}
+        <button type="button" onClick={onExit} className={styles.quit}>
+          Quit run
+        </button>
+      </div>
+    ),
+    [run.mode, run.matchNumber, run.gold, run.deck.length, run.phase, total, extras.lastInterest, onExit],
+  );
+
+  return (
+    <div className={styles.run}>
+      {banner}
+      {run.phase === "match" && (
+        <Match
+          // Re-mount each match so the engine + card state both reset cleanly.
+          key={`m-${run.matchNumber}`}
+          runMode="run"
+          initialDeck={run.deck.slice()}
+          onMatchEnd={onMatchEnd}
+        />
+      )}
+      {run.phase === "reward" && extras.draftOffer && (
+        <Reward
+          run={run}
+          offer={extras.draftOffer}
+          onPick={onPickDraftCard}
+          onSkip={onSkipDraft}
+        />
+      )}
+      {run.phase === "shop" && extras.shop && (
+        <Shop
+          run={run}
+          shop={extras.shop}
+          onUpdate={onShopUpdate}
+          onLeave={onLeaveShop}
+        />
+      )}
+      {(run.phase === "won" || run.phase === "lost") && (
+        <RunSummary run={run} onExit={onExit} />
+      )}
+    </div>
+  );
+}
+
+function titleCase(s: string): string {
+  return s.length === 0 ? s : s[0].toUpperCase() + s.slice(1);
+}

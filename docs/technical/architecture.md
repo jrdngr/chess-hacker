@@ -2,7 +2,7 @@
 
 This is a prototype web app. The architecture should be **simple, testable, and easy to evolve.** It is *not* designed for multiplayer, real-time scaling, or modding.
 
-> **Document status (2026-05-03):** This describes the *target* architecture across M0–M11. Sections marked **(planned)** are not yet implemented. Today the codebase implements the chess engine, card system, and dev sandbox; the run / shop / artifact / boss / overlay / progression / persistence layers ship in M5 onward. See `docs/roadmap/milestones.md` for current status.
+> **Document status (2026-05-03):** This describes the *target* architecture across M0–M11. Sections marked **(planned)** are not yet implemented. Today the codebase implements the chess engine, card system, dev sandbox, and the M5 run / shop loop; the artifact / boss / zone-buff / persistence layers ship in M6 onward. See `docs/roadmap/milestones.md` for current status.
 
 ## Layers (top to bottom)
 
@@ -32,7 +32,7 @@ This is a prototype web app. The architecture should be **simple, testable, and 
 
 The **game logic layer must be pure TypeScript with no React dependencies.** This makes it testable in Vitest without DOM mocking and lets us pull it out into a worker if performance demands it.
 
-**State management:** today match state lives in `src/components/Match.tsx` and its sibling hooks (`useMatchEngine`, `useCardSystem`, `useAiTurn`, `useUndoRedo`, `useDevEditor`) under `src/components/Match/`. The hook surface is shaped like store actions so the M5 migration to Zustand is mechanical. Once Zustand lands, components subscribe to slices of store state and game-logic functions return new state objects (immutable updates).
+**State management:** today match state lives in `src/components/Match.tsx` and its sibling hooks under `src/components/Match/`. Run state (added in M5) lives in `src/components/Run/Run.tsx` via `useState`. Both surfaces are small enough that local component state is fine; Zustand is queued for whenever cross-component sharing becomes painful (probably once persistence and artifacts land).
 
 ## Directory layout
 
@@ -76,22 +76,29 @@ src/
     └── stockfish.ts               # Stockfish.wasm wrapper (Web Worker)
 ```
 
-What M5+ will add, in roughly milestone order:
+M5 added (live now):
 
 ```
 src/
-├── stores/                        (planned, M5)  Zustand
-│   ├── runStore.ts                  # gold, deck, roster, artifacts, act/match
-│   ├── matchStore.ts                # board, hand, energy, turn, overlays
-│   └── metaStore.ts                 # unlocks, ascension, stats
 ├── components/
-│   ├── Shop/                      (planned, M5)
-│   ├── Reward/                    (planned, M5)
+│   └── Run/                          # Run shell + reward + shop + summary UIs
+│       ├── Run.tsx
+│       ├── Reward.tsx
+│       ├── Shop.tsx
+│       └── RunSummary.tsx
+└── game/
+    ├── progression/run.ts            # Run state machine, draft generation
+    └── shop/shop.ts                  # Shop generation, reroll, removal, interest
+```
+
+What M6+ will add, in roughly milestone order:
+
+```
+src/
+├── components/
 │   ├── Placement/                 (planned, M10) Skirmish placement screen
 │   └── ArtifactSidebar/           (planned, M6)
 ├── game/
-│   ├── progression/               (planned, M5)  Run flow (acts, matches, rewards)
-│   ├── shop/                      (planned, M5)  Shop generation, reroll, removal
 │   ├── artifacts/                 (planned, M6)
 │   │   ├── data/                    #   one JSON file per artifact
 │   │   └── library.ts               #   loader + validation, sister to cards/library.ts

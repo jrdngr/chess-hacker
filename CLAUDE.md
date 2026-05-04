@@ -50,5 +50,5 @@ When you start work, **read `docs/README.md` first** — it is the index for eve
 ## Tech reminders
 
 - Stack: TypeScript + React (Vite) + custom chess engine (`src/game/chess/`) + Stockfish.wasm + localStorage. See `docs/technical/stack.md` for rationale.
-- State management: `useState` in `src/components/Match.tsx` and its sibling hooks under `src/components/Match/` today. Zustand is queued for M5.
+- State management: per-match state in `src/components/Match.tsx` (+ sibling hooks under `src/components/Match/`); per-run state in `src/components/Run/Run.tsx`. Both are local `useState`. Zustand is still queued — adopt only when cross-component state grows painful.
 - The game is single-player only; do not add multiplayer scaffolding (`docs/design/overview.md` records this).

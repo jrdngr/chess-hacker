@@ -169,7 +169,7 @@ export function deriveSquareEffects(
  */
 export function deriveControllableSides(
   mode: "local-pvp" | "vs-ai",
-  runMode: "prototype" | "dev",
+  runMode: "prototype" | "dev" | "run",
 ): ReadonlySet<Side> {
   if (mode === "local-pvp") return new Set<Side>(["player", "opponent"]);
   if (runMode === "dev") return new Set<Side>(["player", "opponent"]);

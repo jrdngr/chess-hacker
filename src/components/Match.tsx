@@ -91,6 +91,7 @@ import type {
   MatchCardState,
   MatchOutcome,
   PieceType,
+  RunMatchOutcome,
   Side,
 } from "../game/types";
 
@@ -99,18 +100,29 @@ import styles from "./Match.module.css";
 export type MatchMode = "local-pvp" | "vs-ai";
 
 /**
- * Top-level run mode. "prototype" is the existing vs-ai / local-pvp playground;
- * "dev" is the development sandbox (board editor, free card library, optional
- * AI). Royal and Skirmish are reserved for future modes; they are exposed at
- * the App level only — Match itself only knows about prototype vs dev.
+ * Top-level run mode.
+ *  - "prototype": the existing vs-ai / local-pvp playground.
+ *  - "dev":       the development sandbox (board editor, free card library,
+ *                 optional AI).
+ *  - "run":       a match inside a real run. The Run shell holds RunState and
+ *                 owns post-match flow (reward + shop), so Match hides its
+ *                 own "New game" / mode-toggle / Reset chrome and instead
+ *                 reports the outcome via `onMatchEnd`.
+ * Skirmish lives on top of "run" — that's just a different deck / starting
+ * board passed in from the Run shell, not a different Match mode.
  */
-export type RunMode = "prototype" | "dev";
+export type RunMode = "prototype" | "dev" | "run";
 
 type Props = {
   /** Top-level run mode. Defaults to "prototype" so existing tests keep working. */
   runMode?: RunMode;
   /** Called when the user wants to leave the match shell (back to menu). */
   onExit?: () => void;
+  /**
+   * Run mode: fires once when the match transitions out of "ongoing". The
+   * Run shell consumes this to advance to the reward / loss phase.
+   */
+  onMatchEnd?: (outcome: RunMatchOutcome) => void;
   /** Default mode. Defaults to "vs-ai". Tests pass "local-pvp" to skip AI. */
   initialMode?: MatchMode;
   initialDifficulty?: Difficulty;
@@ -143,6 +155,7 @@ const AI_SIDE: Side = "opponent";
 export function Match({
   runMode = "prototype",
   onExit,
+  onMatchEnd,
   initialMode = "vs-ai",
   initialDifficulty = "normal",
   initialFen,
@@ -292,8 +305,28 @@ export function Match({
   const outcome: MatchOutcome = engine.outcome();
   const matchOver = outcome.kind !== "ongoing";
   const inCheck = engine.inCheck();
-  // In dev, the AI only fires when explicitly toggled on. Prototype always fires.
-  const aiOn = runMode === "prototype" || devAiOn;
+
+  // Run mode: report the match outcome up to the Run shell exactly once. The
+  // shell drives the reward / loss screen — Match itself just plays chess.
+  // We compare against the previous outcome.kind so the fire-once trigger
+  // survives renders, undo, and the React strict-mode double-invoke pattern.
+  const matchEndedRef = useRef(false);
+  useEffect(() => {
+    if (runMode !== "run") return;
+    if (!onMatchEnd) return;
+    if (!matchOver) {
+      matchEndedRef.current = false;
+      return;
+    }
+    if (matchEndedRef.current) return;
+    matchEndedRef.current = true;
+    const won = outcome.kind === "checkmate" && outcome.winner === HUMAN_SIDE;
+    onMatchEnd({ won, outcome, turnsPlayed: cardState.turn });
+  }, [runMode, onMatchEnd, matchOver, outcome, cardState.turn]);
+  // In dev, the AI only fires when explicitly toggled on. Prototype + run
+  // (real Royal / Skirmish runs) always fire — the player is playing a chess
+  // match and expects an opponent.
+  const aiOn = runMode === "prototype" || runMode === "run" || devAiOn;
   const isAiTurn = mode === "vs-ai" && turn === AI_SIDE && !matchOver && aiOn;
 
   const controllableSides = useMemo(
@@ -1355,17 +1388,19 @@ export function Match({
           <div className={styles.outcome} role="status" aria-live="polite">
             <div className={styles.outcomeHeadline}>{outcomeHeadline(outcome)}</div>
             <div className={styles.outcomeDetail}>{outcomeDetail(outcome)}</div>
-            <button type="button" onClick={resetGame} className={styles.newGame}>
-              New game
-            </button>
+            {runMode !== "run" && (
+              <button type="button" onClick={resetGame} className={styles.newGame}>
+                New game
+              </button>
+            )}
           </div>
         )}
-        {!matchOver && (
+        {!matchOver && runMode !== "run" && (
           <button type="button" onClick={resetGame} className={styles.resetButton}>
             Reset
           </button>
         )}
-        {cardsEnabled && !matchOver && (
+        {cardsEnabled && !matchOver && runMode !== "run" && (
           <>
             <button type="button" onClick={undo} disabled={!canUndo} className={styles.resetButton}>
               Undo turn

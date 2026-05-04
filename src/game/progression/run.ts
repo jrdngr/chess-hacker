@@ -1,0 +1,242 @@
+// Run state machine + reward generation.
+//
+// Pure helpers — no React, no DOM. The Run shell holds a single RunState and
+// drives the phase transitions through these functions.
+//
+// M5 implements a 1-act × 3-match Royal mini-run:
+//   match → reward → shop → match → ... → reward → won
+// A loss at any match ends the run with phase = "lost". Bosses (M8), full
+// 3-act Royal (M9), and Skirmish (M10) layer on top of the same shape — the
+// per-milestone delta is the RunConfig and reward generation, not this state
+// machine.
+
+import { CARD_LIBRARY, makeStarterDeck } from "../cards/library";
+import { makeRng, shuffle, type Rng } from "../cards/match";
+import type {
+  Card,
+  CardId,
+  CardRarity,
+  DraftOffer,
+  RunConfig,
+  RunMatchOutcome,
+  RunMode,
+  RunState,
+} from "../types";
+
+// ---- Tuning knobs (prototype starting values, see docs/design/economy.md) --
+
+/** Per-match gold reward for a normal (non-boss) win. */
+export const WIN_BONUS_NORMAL = 8;
+/** Per-match gold reward for a boss win (placeholder; bosses land in M8). */
+export const WIN_BONUS_BOSS = 25;
+
+/** Number of cards offered in a post-match draft. */
+export const DRAFT_CARD_COUNT = 3;
+/** Gold awarded for skipping a card draft (constant across acts in M5). */
+export const SKIP_DRAFT_GOLD = 5;
+
+/** Mini-run shape for M5 — 1 act × 3 matches, no boss. */
+export const MINI_RUN_CONFIG: RunConfig = { actCount: 1, matchesPerAct: 3 };
+
+// ---- Run lifecycle ---------------------------------------------------------
+
+export type CreateRunOptions = {
+  mode: RunMode;
+  ascension?: number;
+  rngSeed?: number;
+  config?: RunConfig;
+  /** Override starting deck — tests pass a deterministic deck. */
+  startingDeck?: Card[];
+};
+
+export function createRun(opts: CreateRunOptions): RunState {
+  return {
+    mode: opts.mode,
+    ascension: opts.ascension ?? 0,
+    config: opts.config ?? MINI_RUN_CONFIG,
+    act: 1,
+    matchInAct: 1,
+    matchNumber: 1,
+    gold: 0,
+    deck: opts.startingDeck ?? makeStarterDeck(),
+    artifacts: [],
+    rngSeed: opts.rngSeed ?? Math.floor(Math.random() * 0xffffffff),
+    rngCursor: 0,
+    removalsUsed: 0,
+    phase: "match",
+  };
+}
+
+/**
+ * RNG for a single deterministic draw from the run's seed. Each call bumps
+ * `rngCursor` so subsequent calls are independent — important for tests where
+ * we want the draft after match 1 to differ from the shop after match 1.
+ */
+export function consumeRng(state: RunState, n: number = 1): { rng: Rng; next: RunState } {
+  const rng = makeRng(state.rngSeed + state.rngCursor);
+  // Pre-burn `n` calls so callers that pull a single value share the same
+  // cursor advance regardless of how many random numbers they consume.
+  for (let i = 0; i < n; i++) rng();
+  return { rng, next: { ...state, rngCursor: state.rngCursor + Math.max(1, n) } };
+}
+
+/** Whether the current match is a boss match. M5 mini-run has no bosses. */
+export function isBossMatch(state: RunState): boolean {
+  // A boss is the last match of an act in the full Royal run. M5 mini-run
+  // has only 1 act with 3 matches and no boss, so this is always false there.
+  // Once M8 lands, plug the real predicate in here.
+  void state;
+  return false;
+}
+
+// ---- Match → reward transition ---------------------------------------------
+
+/**
+ * Apply the outcome of a finished match. Winning advances to the reward
+ * phase with gold + a draft offer prepared on the side. Losing transitions
+ * to `phase: "lost"` and keeps the run readable for the loss screen.
+ */
+export function applyMatchOutcome(
+  state: RunState,
+  outcome: RunMatchOutcome,
+): RunState {
+  if (!outcome.won) {
+    return { ...state, phase: "lost" };
+  }
+  const winGold = isBossMatch(state) ? WIN_BONUS_BOSS : WIN_BONUS_NORMAL;
+  return { ...state, gold: state.gold + winGold, phase: "reward" };
+}
+
+// ---- Card pools ------------------------------------------------------------
+
+/** Cards eligible to appear in shops and drafts — excludes curses and Souls. */
+function rewardEligibleCards(): Card[] {
+  return Object.values(CARD_LIBRARY).filter((c) => {
+    if (c.curse) return false;
+    if (c.id.endsWith("-soul")) return false; // Souls are earned via captures.
+    if (c.id.startsWith("shiv-")) return false; // Shivs only spawn from Trick Bag.
+    return true;
+  });
+}
+
+const EXCLUDED_FROM_REWARDS: ReadonlySet<CardId> = new Set<CardId>();
+
+export function eligibleCardsByRarity(rarity: CardRarity): Card[] {
+  return rewardEligibleCards().filter(
+    (c) => c.rarity === rarity && !EXCLUDED_FROM_REWARDS.has(c.id),
+  );
+}
+
+/**
+ * Pick `count` distinct random cards weighted by rarity. We bias toward
+ * commons (~70%) with a long tail of uncommons (~25%) and rares (~5%). The
+ * weights are tuning knobs — bumped via the rare-rate roll per pick.
+ */
+export function pickRandomCards(count: number, rng: Rng): Card[] {
+  const commons = eligibleCardsByRarity("common");
+  const uncommons = eligibleCardsByRarity("uncommon");
+  const rares = eligibleCardsByRarity("rare");
+
+  const out: Card[] = [];
+  const usedIds = new Set<CardId>();
+  // Defensive: guard against asking for more cards than the pool can provide.
+  const cap = Math.min(count, commons.length + uncommons.length + rares.length);
+  while (out.length < cap) {
+    const r = rng();
+    let pool: Card[];
+    if (r < 0.05 && rares.length > 0) pool = rares;
+    else if (r < 0.30 && uncommons.length > 0) pool = uncommons;
+    else pool = commons;
+    const candidates = pool.filter((c) => !usedIds.has(c.id));
+    if (candidates.length === 0) {
+      // Pool exhausted at this rarity — fall back to whatever's left.
+      const all = [...commons, ...uncommons, ...rares].filter((c) => !usedIds.has(c.id));
+      if (all.length === 0) break;
+      const pick = all[Math.floor(rng() * all.length)];
+      out.push(pick);
+      usedIds.add(pick.id);
+      continue;
+    }
+    const pick = candidates[Math.floor(rng() * candidates.length)];
+    out.push(pick);
+    usedIds.add(pick.id);
+  }
+  return out;
+}
+
+// ---- Reward (post-match draft) ---------------------------------------------
+
+/** Generate a card-draft offer for the current run state. */
+export function generateDraftOffer(state: RunState): { offer: DraftOffer; next: RunState } {
+  const { rng, next } = consumeRng(state);
+  const cards = pickRandomCards(DRAFT_CARD_COUNT, rng);
+  return {
+    offer: { cards, skipGold: SKIP_DRAFT_GOLD },
+    next,
+  };
+}
+
+/** Pick a card from the draft — adds it to the deck. */
+export function pickDraftCard(state: RunState, card: Card): RunState {
+  return { ...state, deck: [...state.deck, card] };
+}
+
+/** Skip the draft for gold instead. */
+export function skipDraft(state: RunState, skipGold: number): RunState {
+  return { ...state, gold: state.gold + skipGold };
+}
+
+// ---- Reward → shop transition ----------------------------------------------
+
+/**
+ * Move the run from the reward phase into the shop phase. After the final
+ * match there's no next match to spend for, so we short-circuit to `won`.
+ */
+export function enterShop(state: RunState): RunState {
+  const total = state.config.actCount * state.config.matchesPerAct;
+  if (state.matchNumber >= total) return { ...state, phase: "won" };
+  return { ...state, phase: "shop" };
+}
+
+// ---- Shop → next match (or run end) ----------------------------------------
+
+/**
+ * Leave the shop and either advance to the next match or end the run as a
+ * win if all matches have been played. Caller should apply the interest
+ * tally first via `applyInterest`.
+ */
+export function leaveShop(state: RunState): RunState {
+  const total = state.config.actCount * state.config.matchesPerAct;
+  if (state.matchNumber >= total) {
+    return { ...state, phase: "won" };
+  }
+  let act = state.act;
+  let matchInAct = state.matchInAct + 1;
+  if (matchInAct > state.config.matchesPerAct) {
+    matchInAct = 1;
+    act = (act + 1) as 1 | 2 | 3;
+  }
+  return {
+    ...state,
+    act,
+    matchInAct: matchInAct as 1 | 2 | 3,
+    matchNumber: state.matchNumber + 1,
+    phase: "match",
+  };
+}
+
+// ---- Helpers ---------------------------------------------------------------
+
+/** Total number of matches in the run (for progress UI). */
+export function totalMatches(state: RunState): number {
+  return state.config.actCount * state.config.matchesPerAct;
+}
+
+/**
+ * Shuffle a deck with the run's seeded RNG. Used to deal a fresh draw pile
+ * for the next match without cross-match correlation.
+ */
+export function dealDeck(state: RunState): { deck: Card[]; next: RunState } {
+  const { rng, next } = consumeRng(state);
+  return { deck: shuffle(state.deck, rng), next };
+}

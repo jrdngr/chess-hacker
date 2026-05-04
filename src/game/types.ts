@@ -201,19 +201,64 @@ export type Trap = {
 
 // === Run state (M5) ===
 export type RunMode = "royal" | "skirmish";
-export type RunPhase = "match" | "reward" | "shop" | "boss-preview" | "ended";
+/**
+ * Phases a run cycles through. M5 implements `match | reward | shop | won |
+ * lost`; `boss-preview` lands in M8 once bosses arrive.
+ */
+export type RunPhase = "match" | "reward" | "shop" | "boss-preview" | "won" | "lost";
+
+/**
+ * How many matches each act contains. Real Royal runs are 3 acts × 3 matches;
+ * the M5 mini-run is 1 act × 3 matches and uses no boss. Held in run config so
+ * the shape is shared — extending to the full 9-match run in M9 only changes
+ * `actCount`/`matchesPerAct`, not the surrounding logic.
+ */
+export type RunConfig = {
+  actCount: 1 | 2 | 3;
+  matchesPerAct: 1 | 2 | 3;
+};
+
 export type RunState = {
   mode: RunMode;
   ascension: number;
+  config: RunConfig;
+  /** 1-indexed current act. */
   act: 1 | 2 | 3;
+  /** 1-indexed match within the current act. */
   matchInAct: 1 | 2 | 3;
+  /** 1-indexed total match number across the run (for display + scaling). */
+  matchNumber: number;
   gold: number;
   deck: Card[];
   artifacts: Artifact[];
   /** Skirmish only — the player's persistent army roster. */
   roster?: Piece[];
   rngSeed: number;
+  /** PRNG state — bumped each time a draft / shop / etc. consumes randomness. */
+  rngCursor: number;
+  /**
+   * Number of card removals already performed this run. The Nth removal in a
+   * run costs `BASE + STEP * N` (see shop economy doc).
+   */
+  removalsUsed: number;
   phase: RunPhase;
+};
+
+/** Outcome of a single match, surfaced from <Match> back to the run shell. */
+export type RunMatchOutcome = {
+  won: boolean;
+  /** Standard outcome wrapper from the engine. */
+  outcome: MatchOutcome;
+  /** Total player turns played in the match — used by performance bonuses. */
+  turnsPlayed: number;
+};
+
+/** A single card-draft offer, as shown to the player after a match win. */
+export type DraftOffer = {
+  /** 1-of-N cards the player picks between. */
+  cards: Card[];
+  /** Gold awarded if the player skips the draft. */
+  skipGold: number;
 };
 
 // === Artifacts (M6) ===
@@ -237,13 +282,32 @@ export type Artifact = {
 
 // === Shop (M5) ===
 export type ShopOfferKind = "card" | "booster" | "artifact";
+
+/**
+ * Booster pack — opens to a 1-of-N pick from the contained cards. Pack types
+ * could be archetype-themed later (`flavor` enum), but the prototype generates
+ * random commons.
+ */
+export type BoosterPack = {
+  /** Pack id (e.g. "common-pack"). Distinct from a pack instance in shop. */
+  id: string;
+  name: string;
+  /** Cards revealed when the pack is opened — player picks 1. */
+  contents: Card[];
+};
+
 export type ShopOffer =
   | { kind: "card"; card: Card; price: number; sold?: boolean }
-  | { kind: "booster"; id: string; price: number; sold?: boolean }
+  | { kind: "booster"; pack: BoosterPack; price: number; sold?: boolean }
   | { kind: "artifact"; artifact: Artifact; price: number; sold?: boolean };
+
 export type Shop = {
   offers: ShopOffer[];
+  /** Gold cost of the next reroll in this shop visit. */
   rerollCost: number;
+  /** Number of rerolls used so far in this shop visit. */
+  rerollsUsed: number;
+  /** Gold cost of the next card-removal — scales across the run. */
   removalCost: number;
 };
 
