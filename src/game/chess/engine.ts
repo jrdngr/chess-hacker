@@ -9,6 +9,7 @@
 
 import type {
   AlgebraicSquare,
+  BoardSize,
   EmpowerPattern,
   FileIndex,
   MatchOutcome,
@@ -19,6 +20,7 @@ import type {
 } from "../types";
 
 import {
+  STANDARD_SIZE,
   STARTING_FEN,
   applyMove,
   findKing,
@@ -90,8 +92,19 @@ export class ChoseEngine {
   private overlays: Overlays = EMPTY_OVERLAYS;
   private history: HistoryEntry[] = [];
 
-  constructor(fen?: string) {
-    this.position = parseFen(fen ?? STARTING_FEN);
+  /**
+   * Build an engine for a given starting position.
+   * - `fen` defaults to the standard 8x8 chess opening.
+   * - `size` defaults to 8x8. Pass it explicitly for non-8x8 positions
+   *   (Standard mode matches and the dev sandbox); the FEN must match.
+   */
+  constructor(fen?: string, size: BoardSize = STANDARD_SIZE) {
+    this.position = parseFen(fen ?? STARTING_FEN, size);
+  }
+
+  /** Current board dimensions. */
+  size(): BoardSize {
+    return this.position.size;
   }
 
   /**
@@ -167,8 +180,9 @@ export class ChoseEngine {
    */
   attackedSquares(side: Side): Set<AlgebraicSquare> {
     const out = new Set<AlgebraicSquare>();
-    for (let r = 0 as RankIndex; r < 8; r++) {
-      for (let f = 0 as FileIndex; f < 8; f++) {
+    const { files, ranks } = this.position.size;
+    for (let r = 0; r < ranks; r++) {
+      for (let f = 0; f < files; f++) {
         const sq = squareName(f as FileIndex, r as RankIndex);
         if (isSquareAttacked(this.position, this.overlays, sq, side)) out.add(sq);
       }

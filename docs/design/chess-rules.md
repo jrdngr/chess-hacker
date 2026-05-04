@@ -29,30 +29,34 @@ Standard chess movement, no override unless specified by an active card / artifa
 
 ### Castling
 
-Standard chess castling rules apply:
+Standard chess castling rules apply on 8x8 boards:
 
 - King and rook have not moved.
 - No pieces between them.
 - King is not in check.
 - King does not pass through or end on a square attacked by an enemy piece.
 
-In **Royal**, castling is straightforward (pieces start on standard squares).
+**Castling is disabled on boards smaller than 8 files.** Standard mode's act-1 (6x6) and act-2 (6x8) matches don't generate castling moves, and the engine's move generator skips the castling branch when `size.files < 8`. The "king to g-file / rook to f-file" landing-square rule from Chess960 doesn't generalize cleanly to a 6-file board, and most small-board piece sets in Standard don't have two rooks anyway.
 
-In **Skirmish**, castling is possible only when the player happens to place their king on its standard square (e1) AND a rook on a standard square (a1 or h1). Most placements won't satisfy this — that's intended.
+In **Royal**, castling is straightforward (pieces start on standard squares). When Royal is re-enabled with Chess960 starts, the back-rank generator places the king between the rooks specifically so castling rights are unambiguous.
+
+In **Skirmish**, castling is possible only when the player happens to place their king on its standard square (e1) AND a rook on a standard square (a1 or h1).
 
 ### En passant
 
 Enabled. Standard rules: when an enemy pawn advances two squares from its starting rank and lands beside one of your pawns, your pawn may, on the very next move only, capture the enemy pawn diagonally as if it had advanced only one square.
 
+Pawn double-pushes are tied to the **starting rank for the current board size**: rank 1 for white and rank `ranks - 2` for black. So on 6x6, white pawns start on rank 1 and may double-push to rank 3; black pawns start on rank 4 and may double-push to rank 2.
+
 Note (see `board.md`): if the en passant capture target square is walled, en passant cannot be performed.
 
 ### Pawn promotion
 
-Enabled. A pawn reaching the back rank promotes. The player chooses any piece type **other than king** (typically queen, rook, bishop, or knight).
+Enabled. A pawn reaching the **far** rank promotes. The far rank is `ranks - 1` for white and `0` for black, scaling with the current board: rank 5 / rank 0 on 6x6, rank 7 / rank 0 on 8x8. The player chooses any piece type **other than king** (typically queen, rook, bishop, or knight).
 
-In **Royal**, promotion is unlimited.
+In **Standard / Royal**, promotion is unlimited.
 
-In **Skirmish**, promotion is allowed and the promoted piece exists for the rest of the match only. Promotion does **not** add to the persistent roster (i.e., promoting to queen does not give you a queen for next match's draft / placement).
+In **Skirmish**, promotion is allowed and the promoted piece exists for the rest of the match only. Promotion does **not** add to the persistent roster.
 
 ## Capture-grants-Soul (card-system extension)
 

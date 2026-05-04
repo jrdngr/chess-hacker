@@ -7,12 +7,14 @@ import { useMemo, useState } from "react";
 
 import { PieceGlyph } from "../Board/PieceGlyph";
 import { CARD_LIBRARY } from "../../game/cards/library";
-import type { Card, Piece, PieceType, Side } from "../../game/types";
+import type { BoardSize, Card, Piece, PieceType, Side } from "../../game/types";
 
 import styles from "./DevPanel.module.css";
 
 /** A piece picked in the editor palette, or "erase" to clear a square. */
 export type EditorPiece = { type: PieceType; side: Side } | "erase" | null;
+
+const SIZE_OPTIONS = [3, 4, 5, 6, 7, 8] as const;
 
 type Props = {
   // Editor
@@ -25,6 +27,18 @@ type Props = {
   onSetSideToMove: (side: Side) => void;
   onClearBoard: () => void;
   onStandardStart: () => void;
+  /**
+   * Current board size. Pickers are shown for files (3..8) and ranks (3..8)
+   * independently — devs can build any rectangle for testing.
+   */
+  boardSize: BoardSize;
+  onResizeBoard: (size: BoardSize) => void;
+  /**
+   * Plain-English list of validation violations for the current position
+   * (e.g. "Two white kings", "Pawn on rank 8"). Empty when the position is
+   * valid. Renders below the editor controls.
+   */
+  validationMessages: ReadonlyArray<string>;
 
   // AI
   devAiOn: boolean;
@@ -59,6 +73,9 @@ export function DevPanel({
   onSetSideToMove,
   onClearBoard,
   onStandardStart,
+  boardSize,
+  onResizeBoard,
+  validationMessages,
   devAiOn,
   onToggleDevAi,
   aiSingleMoveDisabled,
@@ -193,6 +210,53 @@ export function DevPanel({
             Black
           </button>
         </div>
+        <div className={styles.row}>
+          <span className={styles.label}>Size</span>
+          <label className={styles.sizeLabel}>
+            files
+            <select
+              className={styles.select}
+              value={boardSize.files}
+              onChange={(e) =>
+                onResizeBoard({ files: Number(e.target.value), ranks: boardSize.ranks })
+              }
+              aria-label="Board files"
+            >
+              {SIZE_OPTIONS.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className={styles.sizeLabel}>
+            ranks
+            <select
+              className={styles.select}
+              value={boardSize.ranks}
+              onChange={(e) =>
+                onResizeBoard({ files: boardSize.files, ranks: Number(e.target.value) })
+              }
+              aria-label="Board ranks"
+            >
+              {SIZE_OPTIONS.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {validationMessages.length > 0 && (
+          <div className={styles.validationBlock} role="status" aria-live="polite">
+            <div className={styles.validationHeading}>Position invalid</div>
+            <ul className={styles.validationList}>
+              {validationMessages.map((m, i) => (
+                <li key={i}>{m}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </Section>
 
       <Section label="AI">

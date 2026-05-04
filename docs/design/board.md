@@ -1,12 +1,12 @@
 # Board
 
-The board is **always a standard 8x8 chess board**. We do not vary geometry, board size, or shape across matches. Variety on the board comes from **overlays** — square effects, zone buffs, and walls — that cards spawn during play.
+The board has a **maximum size of 8x8** but scales across a Standard run: 6x6 in act 1, 6x8 in act 2, 8x8 in act 3. Royal (when re-enabled) stays at 8x8. The dev sandbox supports any size from 3x3 to 8x8. Within a single match the board size is fixed. Variety on the board comes from **overlays** — square effects, zone buffs, and walls — that cards spawn during play.
 
 ## What's deliberately NOT in the design
 
 - ❌ No portals or teleportation.
-- ❌ No board geometry variation (all matches are 8x8).
-- ❌ No pre-placed terrain at match start (the board starts clean).
+- ❌ No board geometry variation **within a match** (size is fixed once the match starts).
+- ❌ No pre-placed terrain at match start (the board starts clean except for boss hazards — see `bosses.md`).
 - ❌ No multi-board, no extra dimensions.
 
 If you find yourself wanting to add any of these, file it as an open question — see `roadmap/open-questions.md`.

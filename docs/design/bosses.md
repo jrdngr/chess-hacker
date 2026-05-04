@@ -69,25 +69,29 @@ A boss's mechanics should:
 - **Not depend on RNG within the match.** Curse-card insertion timing should be deterministic (specific triggers), not "every turn there's a 30% chance" — players should be able to anticipate curses based on the trigger.
 - **Be hand-crafted, not parameterized.** Every boss is its own unique hand-built encounter. We are not building a "boss generator."
 
-## Sketch of the three bosses (illustrative — not committed)
+## The three bosses (Standard mode)
 
-### Boss A — "The Iron Garrison" (Act 1)
+Coordinates are given for the active default mode (Standard). Standard places Boss A on a 6x6 board, Boss B on 6x8, and Boss C on 8x8 — see `progression.md` and the per-match table in `modes.md`. Royal would place all three on 8x8 if/when re-enabled; the original 8x8 sketches for A and B are kept at the bottom of this file as a record.
+
+### Boss A — "The Iron Garrison" (Act 1, match 3, 6x6, K + 4P + 2 minors + 1 R per side)
 
 - **Modifier:** Walls cannot be placed by the player.
-- **Hazards:** Two indestructible wall-pillars on d4 and e5 from match start.
+- **Hazards:** Two indestructible wall-pillars on **c3 and d4** (the central adjacent squares of a 6x6 — same intent as the d4/e5 pillars on 8x8: split the board, force play around the pillars).
 - **Curses:** Whenever the player checks the boss, draws a *Stalwart* curse: "Your next move must be a non-checking move."
 
 Teaches: bosses break your assumptions; play around fixed hazards; sometimes cards are disabled.
 
-### Boss B — "The Gambit" (Act 2)
+Note: with only 8 pieces per side and the two central walls, mate paths get tight. Rebalance check during playtest — if Boss A becomes unwinnable, drop to a single wall pillar (c3 only).
+
+### Boss B — "The Gambit" (Act 2, match 6, 6x8, K + 6P + 4 minors + 2 R per side)
 
 - **Modifier:** Captures grant the *captured* side +1 energy next turn.
-- **Hazards:** Player's back rank has a "tempting" zone-buff square that the boss controls (granting boss +1 energy). Player must contest it.
+- **Hazards:** A boss-controlled zone-buff square at **c1** (the center of the player's back rank on a 6-file board). Granting boss +1 energy. Player must contest it.
 - **Curses:** Every 4 turns, draws a *Greed* curse: "Capture an enemy piece this turn, or lose 1 energy next turn."
 
 Teaches: not all captures are good. Pressure piece economy.
 
-### Boss C — "The Final Mind" (Act 3, finale)
+### Boss C — "The Final Mind" (Act 3, match 9, 8x8, full armies + queen)
 
 - **Modifier:** Promotion is disabled. Player's pawns cannot promote.
 - **Hazards:** A 2x2 "void" in the center (e4, e5, d4, d5) that destroys any piece ending its turn there.
@@ -98,7 +102,11 @@ Teaches: not all captures are good. Pressure piece economy.
 
 Teaches: the finale stresses every system. Decks must be tuned to handle multiple constraints simultaneously.
 
-These sketches are starting points. Real boss design happens during prototype iteration — see `roadmap/milestones.md`.
+These coordinates are starting points. Real boss tuning happens during prototype iteration — see `roadmap/milestones.md`.
+
+### Royal-mode coordinates (post-prototype reference)
+
+Kept for the day Royal is re-enabled with 8x8 bosses. Boss A would use d4/e5 wall-pillars; Boss B would put its zone-buff on the center of the player's 8-file back rank (e.g. d1 or e1). Boss C is unchanged — already at 8x8.
 
 ## Boss rewards
 

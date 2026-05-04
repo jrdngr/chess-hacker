@@ -37,15 +37,19 @@ Terms used across the choss design and technical docs.
 | **Placement**       | Pre-match step where players position pieces. Standard FIDE in Royal; player-chosen in Skirmish. |
 | **Root**            | Status keyword: enemy piece cannot move on its next turn except to capture.             |
 | **Roster**          | Skirmish-only persistent army across the run.                                           |
-| **Royal**           | One of two run modes — both sides start with the standard 16-piece chess army.          |
+| **BoardSize**       | `{ files, ranks }` describing the active board. Standard mode walks 6x6 → 6x8 → 8x8 across the run; the dev sandbox supports any size from 3x3 to 8x8. |
+| **Chess960**        | Randomized starting position (from the official 960). The Standard generator generalizes the rules (bishops on opposite colors, king between rooks) to any board / piece set. |
+| **Royal**           | One of three run modes — both sides start with the standard 16-piece chess army on 8x8. Currently disabled in the menu (post-prototype). |
+| **Standard**        | The default run mode — variable board (6x6 → 8x8) with a fixed, symmetric piece curve from K + 4 pawns up to a full 16-piece army. |
 | **Run**             | A single playthrough — 9 matches across 3 acts. Single elimination.                     |
 | **Sanctuary**       | Square keyword: pieces standing on the square cannot be captured.                       |
 | **Shield**          | Buff keyword: captures targeting the shielded piece are not legal moves.                |
 | **Skip**            | Forfeit a draft for a gold bonus.                                                       |
-| **Skirmish**        | One of two run modes — start with a small army, draft pieces between matches.            |
+| **Skirmish**        | One of three run modes — start with a small army, draft pieces between matches. Currently disabled (M10). |
 | **Soft cap**        | A draft-time limit per piece type that suppresses further offers of that type.          |
 | **Square effect**   | A card-painted effect on a single board square; triggers on enter / start-of-turn / etc. |
-| **Stockfish**       | The open-source chess engine we use for the AI. Loaded as Stockfish.wasm.                |
+| **Stockfish**       | The open-source chess engine used for the 8x8 AI. Loaded as Stockfish.wasm.              |
+| **Toy AI**          | Internal negamax-with-material-eval used in place of Stockfish on non-8x8 boards (Stockfish doesn't support them). Lives in `src/ai/toyAi.ts`. |
 | **Trap**            | Square keyword: triggers a per-card effect (capture/freeze/push) when an enemy enters.   |
 | **Wall**            | A card-painted impassable square. Blocks movement and attack rays.                       |
 | **Zone-control buff** | A passive buff active while you "control" a region of the board.                       |

@@ -1,25 +1,62 @@
 # Modes
 
-The player picks one of two modes at the start of each run — **Royal** or **Skirmish**. The mode is fixed for the entire run.
+There is one active mode in the prototype: **Standard**. Two more — **Royal** and **Skirmish** — are spec'd but disabled in the menu while Standard is the focus. The mode is fixed for an entire run.
 
-A third mode, **Dev**, sits parallel to Royal and Skirmish but is **not a player-facing mode**. It is a developer sandbox for setting up specific positions and exercising card interactions while the official modes are being built; it is selected from the same top-level menu but exposes editor / library / AI controls instead of a run progression. See the "Dev" section at the bottom of this doc for details.
+A fourth mode, **Sandbox** (a.k.a. Dev), sits parallel to the player-facing modes but is **not a player-facing mode**. It is a developer sandbox for setting up specific positions and exercising card interactions; it is selected from the same top-level menu but exposes editor / library / AI controls instead of a run progression. See the "Sandbox" section at the bottom of this doc for details.
 
-## Royal
+## Standard (default)
 
-The classic experience. Both sides start every match with the standard chess army (8 pawns, 2 rooks, 2 knights, 2 bishops, 1 queen, 1 king) on the standard chess starting setup. The player and the AI play vanilla chess except for the cards the player plays.
+The active default mode. Both sides start each match with a small piece set on a small board and grow on a fixed, symmetric curve to a full 16-piece army on 8x8 across the 9-match run. There is no piece drafting in Standard — the curve is deterministic. Starting positions are Chess960-style, generalized to whatever board / piece set the current match uses.
 
-- **Starting position:** standard chess setup, both sides.
+Per-match piece curve:
+
+| Match | Board | Per-side composition | Total | Move target |
+|---|---|---|---|---|
+| 1 | 6x6 | K + 4 pawns | 5 | ~10 |
+| 2 | 6x6 | K + 4 pawns + 1 N + 1 B | 7 | ~12 |
+| 3 (Boss A) | 6x6 | K + 4 pawns + 2 minors + 1 R | 8 | ~15 |
+| 4 | 6x8 | K + 5 pawns + 2 minors + 1 R | 9 | ~18 |
+| 5 | 6x8 | K + 6 pawns + 3 minors + 1 R | 11 | ~22 |
+| 6 (Boss B) | 6x8 | K + 6 pawns + 4 minors + 2 R | 13 | ~28 |
+| 7 | 8x8 | K + 7 pawns + 4 minors + 2 R | 14 | ~35 |
+| 8 | 8x8 | K + 8 pawns + 4 minors + 2 R | 15 | ~42 |
+| 9 (Boss C) | 8x8 | K + 8 pawns + 4 minors + 2 R + 1 Q | 16 | ~50 |
+
+Numbers are tuning knobs (centralized in `src/game/progression/standard.ts`). The aim: an average player should checkmate match 1 in ~10 moves; match 9 should average ~50.
+
+### Generalized Chess960
+
+For each match, the back-rank piece set (everything except pawns) is shuffled onto white's back rank with constraints:
+
+1. If two bishops are present, place them on opposite-color squares.
+2. If two rooks are present, place the king between them.
+3. Place remaining pieces freely in leftover squares.
+4. Mirror white's back rank to black.
+5. Pawns fill rank 1 (white) and rank `ranks - 2` (black).
+
+Castling is **disabled on boards smaller than 8 files** — it's awkward to generalize the king-to-g-file landing rule on a 6-file board, and small-board piece sets rarely have two rooks anyway. See `chess-rules.md`.
+
+- **Starting position:** Chess960-style every match (per the table above).
+- **Roster management:** none. Both armies reset per match per the curve.
+- **Post-match rewards:** card draft + gold (no piece draft).
+- **Shop:** identical to other modes.
+- **Mental model:** "chess + spells, with a steady ramp into a full board."
+
+## Royal (post-prototype, currently disabled)
+
+The classic experience. Both sides start every match with the standard chess army (8 pawns, 2 rooks, 2 knights, 2 bishops, 1 queen, 1 king) on 8x8.
+
+When Royal is re-enabled post-prototype, it will default to **Chess960** starting positions (using the same generalized generator Standard uses, just on the full piece set), with a "standard start" opt-in for players who want vanilla chess openings. Disabled in the menu while Standard is the active default.
+
+- **Starting position (planned):** Chess960 default; standard chess setup as opt-in.
 - **Roster management:** none. The player has no piece roster between matches; both armies always reset to the standard 16 each match.
 - **Post-match rewards:** card draft + gold (no piece draft).
-- **Shop:** identical to Skirmish — single cards, booster packs, artifacts (when offered), reroll, removal.
-- **Placement:** standard chess starting position (not configurable).
-- **Mental model:** "chess + spells".
+- **Shop:** identical to other modes.
+- **Mental model:** "chess + spells, full armies."
 
-Royal is the **easier mode to balance and the simpler onboarding experience.** New players should default to Royal. Royal also produces a more consistent per-match experience because piece composition does not vary.
+## Skirmish (post-prototype, currently disabled)
 
-## Skirmish
-
-The roguelite-army experience. The player starts the run with a tiny army and grows their roster across the 9 matches by drafting pieces between matches.
+The roguelite-army experience. The player starts the run with a tiny army and grows their roster across the 9 matches by drafting pieces between matches. Disabled in the menu while Standard is the active default.
 
 - **Starting roster (run start):** king + 2 pawns + 2 minor pieces (knight or bishop). Exact starter composition is a tuning knob; see `roadmap/open-questions.md`.
 - **Opponent army:** the AI's army scales over the 9 matches. Early matches use a deliberately weakened army; the act-3 boss faces the player at full standard chess force or stronger. Exact scaling curve TBD; see `roadmap/open-questions.md`.
@@ -61,16 +98,18 @@ Royal is for players who want the cleanest "chess + spells" experience. Skirmish
 
 The only differences are roster management and placement.
 
-## Dev (developer-only)
+## Sandbox (developer-only)
 
-Dev is a sandbox parallel to Royal and Skirmish at the menu level. It exists so we can scaffold and exercise card / status / chess interactions without first building the run loop. Dev is **not shipped to players** and has no run progression.
+Sandbox (a.k.a. Dev) is parallel to the player-facing modes at the menu level. It exists so we can scaffold and exercise card / status / chess interactions without first building the run loop. Sandbox is **not shipped to players** and has no run progression.
 
-What dev mode provides:
+What sandbox mode provides:
 
 - **Board editor.** Place / overwrite / erase pieces, toggle side-to-move, clear the board, restore the standard chess starting position. Statuses on a square are dropped when the piece on it is replaced.
+- **Resizable board.** Independent file (3..8) and rank (3..8) pickers — any rectangle from 3x3 to 8x8. Resizing drops pieces that no longer fit on the new board. The toy AI replaces Stockfish whenever the board is not 8x8 (Stockfish is hardcoded to 8x8).
+- **Live position validation.** After every change (piece placed / removed / moved, side-to-move toggle, size change), the editor flags rule violations: extra/missing kings, kings on adjacent squares, pawns on a back rank, the wrong side already in check. Offending pieces tint red, the board shows a red outline, and the panel lists the violations in plain English. Validation **flags but does not block** edits — odd positions are still allowed (a dev might be reproducing a bug).
 - **Free card library.** Every card in the library is playable on demand. Library plays cost no energy and do not enter the spent pile, but their effects (statuses, traps, summons, draws, scry, revive prompts, generators, self-replicators, capture-grants-Soul) resolve through the same `playCard` path as a real play.
-- **Optional AI.** Stockfish on Black is off by default. Toggle it on for an auto-replying opponent, or click "AI: play one move" for a one-shot reply. With the AI off, the human drives both colors.
-- **Energy controls.** "+1 energy" and "Refill (10)" buttons short-circuit the natural ramp.
-- **Action-granular undo / redo.** Every dev action (move, edit, library play, side-to-move toggle, energy bump) pushes a snapshot, so undo rewinds individual actions instead of whole turns.
+- **Optional AI.** AI on Black is off by default in sandbox. Toggle it on for an auto-replying opponent, or click "AI: play one move" for a one-shot reply. With the AI off, the human drives both colors.
+- **Energy controls.** "+1 energy" button short-circuits the natural ramp.
+- **Action-granular undo / redo.** Every action (move, edit, library play, side-to-move toggle, energy bump, resize) pushes a snapshot, so undo rewinds individual actions instead of whole turns.
 
-Cards are still only playable on the player's turn, and the chess engine still enforces standard rules — the editor doesn't validate king-uniqueness or other position legality, and odd positions may produce odd `outcome()` / `inCheck()` results. Acceptable for a dev tool.
+Cards are still only playable on the player's turn, and the chess engine still enforces standard rules. The editor flags invalid positions but does not block them — odd positions may produce odd `outcome()` / `inCheck()` results. Acceptable for a dev tool.

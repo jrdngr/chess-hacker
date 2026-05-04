@@ -2,10 +2,30 @@
 
 The opponent AI has two responsibilities:
 
-1. **Make legal chess moves** — strong tactical play. Handled by **Stockfish.wasm**.
+1. **Make legal chess moves.** On 8x8 boards we use **Stockfish.wasm**. On smaller boards (Standard mode's act 1 / 2 matches) we use a homegrown **toy AI** in `src/ai/toyAi.ts` because Stockfish only supports 8x8.
 2. **Schedule and inject curse cards** (boss matches only). Handled by a small **custom curse-AI layer**.
 
-Stockfish is a black-box chess engine; it doesn't know about our cards, walls, or curses. The curse-AI layer is a deterministic scheduler that fires on triggers from the game state.
+Stockfish and the toy AI are both black-box chess engines; neither knows about our cards, walls, or curses. The curse-AI layer is a deterministic scheduler that fires on triggers from the game state.
+
+## AI selection per match
+
+The Match shell picks an AI based on the engine's board size at construction time:
+
+- **8x8 → Stockfish.** Web Worker, depth-tuned, full strength.
+- **Smaller than 8x8 → toy AI.** Synchronous negamax with material eval, depth 2/3/4 by difficulty. Fast (≤48 squares, shallow search).
+
+The same `aiMinThinkMs` cosmetic delay applies to both so the AI doesn't snap-resolve on small boards.
+
+## Toy AI (non-8x8)
+
+`src/ai/toyAi.ts` exports `pickBestMove(engine, difficulty)`. Implementation:
+
+- Negamax with alpha-beta over `rulesLegalMoves(pos, NO_OVERLAYS)` — the rule layer's wall-aware move set, with the engine's overlay set replaced by the empty default (same simplification we apply to Stockfish on 8x8).
+- Material-only eval: pawn 100 / knight 320 / bishop 330 / rook 500 / queen 900 / king 20000.
+- Depth: easy 2, normal 3, hard 4.
+- No transposition table, no quiescence search, no opening book. The toy AI's job is "playable opponent on small boards"; Standard's tuning targets rely on the piece curve, not on the AI getting smarter.
+
+The Match shell still gates the AI's pick through the wall-aware legal-move set and falls back to the first legal move if the chosen move was masked by an overlay (same as the Stockfish path).
 
 ## Stockfish.wasm
 

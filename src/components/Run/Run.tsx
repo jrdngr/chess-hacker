@@ -18,6 +18,7 @@ import {
   enterShop,
   generateDraftOffer,
   leaveShop,
+  nextMatchSetup,
   pickDraftCard,
   skipDraft,
   totalMatches,
@@ -27,6 +28,7 @@ import {
   generateShop,
 } from "../../game/shop/shop";
 import type {
+  BoardSize,
   Card,
   DraftOffer,
   RunMatchOutcome,
@@ -55,6 +57,13 @@ type PhaseExtras = {
   shop: ShopState | null;
   /** Last-tally interest amount, shown briefly on the next match's banner. */
   lastInterest: number;
+  /**
+   * Per-match setup: starting FEN and board size. Re-derived when the run
+   * enters a "match" phase so Standard's variable board / Chess960 setup
+   * actually lands in <Match>. Royal / mini-run keep this null and let
+   * <Match> default to the standard 8x8 chess opening.
+   */
+  matchSetup: { fen?: string; size: BoardSize } | null;
 };
 
 export function Run({ mode, onExit, rngSeed }: Props) {
@@ -63,6 +72,7 @@ export function Run({ mode, onExit, rngSeed }: Props) {
     draftOffer: null,
     shop: null,
     lastInterest: 0,
+    matchSetup: null,
   });
 
   // Lazy-generate the draft / shop on phase entry. The phase transitions
@@ -87,13 +97,25 @@ export function Run({ mode, onExit, rngSeed }: Props) {
       if (extras.draftOffer !== null || extras.shop !== null) {
         setExtras((e) => ({ ...e, draftOffer: null, shop: null }));
       }
+      // Generate a per-match starting position the first time we land on
+      // this match. Standard mode produces a Chess960-style position sized
+      // for the current match; Royal / mini-run leave fen undefined so
+      // <Match> uses the standard chess opening.
+      if (extras.matchSetup === null) {
+        const { fen, size, next } = nextMatchSetup(run);
+        setRun(next);
+        setExtras((e) => ({ ...e, matchSetup: { fen, size } }));
+      }
     }
-  }, [run, extras.draftOffer, extras.shop]);
+  }, [run, extras.draftOffer, extras.shop, extras.matchSetup]);
 
   // ---- Match phase --------------------------------------------------------
 
   const onMatchEnd = (outcome: RunMatchOutcome) => {
     setRun((r) => applyMatchOutcome(r, outcome));
+    // Drop the per-match setup so the next "match" phase entry generates
+    // a fresh starting position.
+    setExtras((e) => ({ ...e, matchSetup: null }));
   };
 
   // ---- Reward phase -------------------------------------------------------
@@ -163,12 +185,14 @@ export function Run({ mode, onExit, rngSeed }: Props) {
   return (
     <div className={styles.run}>
       {banner}
-      {run.phase === "match" && (
+      {run.phase === "match" && extras.matchSetup && (
         <Match
           // Re-mount each match so the engine + card state both reset cleanly.
           key={`m-${run.matchNumber}`}
           runMode="run"
           initialDeck={run.deck.slice()}
+          initialFen={extras.matchSetup.fen}
+          initialBoardSize={extras.matchSetup.size}
           onMatchEnd={onMatchEnd}
         />
       )}
