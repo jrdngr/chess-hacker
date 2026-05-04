@@ -24,6 +24,17 @@ type Props = {
   /** Drag a palette piece (or "erase") onto the board. */
   onPaletteDragStart: (piece: { type: PieceType; side: Side } | "erase") => void;
   onPaletteDragEnd: () => void;
+  /**
+   * When on, board clicks/drags move existing pieces freely (any side, any
+   * destination — overwrite on collision). Toggle is sticky until clicked off.
+   */
+  editMode: boolean;
+  onToggleEditMode: () => void;
+  /**
+   * Called when a piece dragged from the board is dropped on the Erase
+   * button. Match deletes the piece at the in-flight drag's origin square.
+   */
+  onErasePieceDrop: () => void;
   sideToMove: Side;
   onSetSideToMove: (side: Side) => void;
   onClearBoard: () => void;
@@ -82,6 +93,9 @@ export function DevPanel({
   onPickEditorPiece,
   onPaletteDragStart,
   onPaletteDragEnd,
+  editMode,
+  onToggleEditMode,
+  onErasePieceDrop,
   sideToMove,
   onSetSideToMove,
   onClearBoard,
@@ -185,20 +199,40 @@ export function DevPanel({
             </div>
           ))}
         </div>
-        <button
-          type="button"
-          className={`${styles.eraseButton} ${editorPiece === "erase" ? styles.paletteActive : ""}`}
-          onClick={() => onPickEditorPiece(editorPiece === "erase" ? null : "erase")}
-          draggable
-          onDragStart={(e) => {
-            e.dataTransfer.effectAllowed = "copy";
-            e.dataTransfer.setData("text/plain", "erase");
-            onPaletteDragStart("erase");
-          }}
-          onDragEnd={onPaletteDragEnd}
-        >
-          Erase
-        </button>
+        <div className={styles.row}>
+          <button
+            type="button"
+            className={`${styles.editButton} ${editMode ? styles.paletteActive : ""}`}
+            onClick={onToggleEditMode}
+            aria-pressed={editMode}
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            className={`${styles.eraseButton} ${editorPiece === "erase" ? styles.paletteActive : ""}`}
+            onClick={() => onPickEditorPiece(editorPiece === "erase" ? null : "erase")}
+            draggable
+            onDragStart={(e) => {
+              e.dataTransfer.effectAllowed = "copy";
+              e.dataTransfer.setData("text/plain", "erase");
+              onPaletteDragStart("erase");
+            }}
+            onDragEnd={onPaletteDragEnd}
+            onDragOver={(e) => {
+              // Accept drops of pieces dragged off the board (edit mode) so
+              // the user can delete them by dragging onto Erase.
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              onErasePieceDrop();
+            }}
+          >
+            Erase
+          </button>
+        </div>
         <div className={styles.row}>
           <button type="button" className={styles.smallButton} onClick={onClearBoard}>
             Clear board

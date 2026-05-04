@@ -255,6 +255,19 @@ export function Match({
    */
   const [editorPiece, setEditorPiece] = useState<EditorPiece>(null);
   /**
+   * Sticky edit-mode toggle. When on (and dev panel is active), board
+   * clicks/drags reposition any existing piece — destination is overwritten,
+   * sides are ignored, and dropping on the Erase button deletes the piece.
+   * Stays on across edits until the user clicks the toggle off.
+   */
+  const [editMode, setEditMode] = useState(false);
+  /**
+   * Source square of an in-flight edit-mode drag (a piece dragged off a
+   * board square). Read by the board-drop and erase-button-drop handlers
+   * so they can resolve the drag as a move or a deletion respectively.
+   */
+  const editDragFromRef = useRef<AlgebraicSquare | null>(null);
+  /**
    * In flight while the user is dragging a piece from the editor palette
    * (or "erase") onto the board. Read by the board-drop handler so we can
    * resolve the drop as an edit even if no brush was clicked first.
@@ -958,6 +971,42 @@ export function Match({
   );
 
   /**
+   * Edit-mode reposition: move the piece at `from` to `to`, overwriting any
+   * occupant. Bypasses chess-move legality entirely. Statuses on both squares
+   * are dropped (the piece's identity may have shifted in ways the tracker
+   * can't follow). Pushes an undo snapshot.
+   */
+  const applyEditorMove = useCallback(
+    (from: AlgebraicSquare, to: AlgebraicSquare) => {
+      if (from === to) return;
+      const piece = engine.pieceAt(from);
+      if (!piece) return;
+      engine.removePiece(from);
+      engine.removePiece(to);
+      engine.placePiece(to, piece);
+      let next = clearStatusesOn(cardState, from);
+      next = clearStatusesOn(next, to);
+      setCardState(next);
+      setVersion((v) => v + 1);
+      pushSnapshot(next);
+    },
+    [engine, cardState, pushSnapshot],
+  );
+
+  /**
+   * Resolve a drop on the Erase button while an edit-mode drag is in flight:
+   * delete the piece at the drag's origin square. No-op if no edit drag is
+   * active (e.g. palette-erase released onto its own button).
+   */
+  const eraseDraggedPiece = useCallback(() => {
+    const from = editDragFromRef.current;
+    editDragFromRef.current = null;
+    if (!from) return;
+    applyEditorEdit(from, "erase");
+    setSelected(null);
+  }, [applyEditorEdit]);
+
+  /**
    * Force the side-to-move via `engine.forceTurn`. Does NOT advance the
    * player-turn counter (that's `cardState.turn`, which only `startPlayerTurn`
    * touches). Useful for setting up scenarios where Black moves first.
@@ -1237,6 +1286,24 @@ export function Match({
         return;
       }
 
+      // Edit-mode click flow (sticky toggle): first click selects the piece
+      // on `sq`; second click moves the selection to `sq`, overwriting any
+      // occupant. Clicking the same square again clears the selection.
+      // Bypasses matchOver for the same reason as the brush flow.
+      if (devPanelEnabled && editMode) {
+        if (selected) {
+          if (sq === selected) {
+            setSelected(null);
+            return;
+          }
+          applyEditorMove(selected, sq);
+          setSelected(null);
+          return;
+        }
+        if (engine.pieceAt(sq)) setSelected(sq);
+        return;
+      }
+
       if (matchOver) return;
 
       // Card-targeting takes priority over chess interaction.
@@ -1315,7 +1382,9 @@ export function Match({
       aiThinking,
       devPanelEnabled,
       editorPiece,
+      editMode,
       applyEditorEdit,
+      applyEditorMove,
       targetingIndex,
       targetingCard,
       partialTarget,
@@ -1331,10 +1400,21 @@ export function Match({
 
   const onSquareDragStart = useCallback(
     (sq: AlgebraicSquare) => {
-      if (matchOver || aiThinking || targetingIndex !== null) return;
+      if (aiThinking || targetingIndex !== null) return;
+      // Edit mode: any piece can be picked up regardless of side or turn.
+      // Stash the origin so the drop handler can resolve a reposition (or
+      // a delete, if dropped on the Erase button). Bypasses matchOver so
+      // the user can recover from invalid positions.
+      if (devPanelEnabled && editMode) {
+        if (!engine.pieceAt(sq)) return;
+        editDragFromRef.current = sq;
+        setSelected(sq);
+        return;
+      }
+      if (matchOver) return;
       trySelect(sq);
     },
-    [matchOver, aiThinking, targetingIndex, trySelect],
+    [matchOver, aiThinking, targetingIndex, devPanelEnabled, editMode, engine, trySelect],
   );
 
   const onSquareDrop = useCallback(
@@ -1352,6 +1432,16 @@ export function Match({
         setEditorPiece(null);
         return;
       }
+      // Edit-mode reposition: a piece dragged from another square gets
+      // moved to `sq`, overwriting any occupant. Bypasses matchOver so the
+      // user can edit even from a "checkmate" invalid position.
+      if (devPanelEnabled && editMode && editDragFromRef.current) {
+        const from = editDragFromRef.current;
+        editDragFromRef.current = null;
+        applyEditorMove(from, sq);
+        setSelected(null);
+        return;
+      }
       if (matchOver) return;
       if (targetingIndex !== null) {
         // A targeted card was dragged from the hand onto this square. Reuse
@@ -1365,10 +1455,24 @@ export function Match({
       // Drop on an invalid target leaves the piece where it was; clear selection.
       setSelected(null);
     },
-    [matchOver, aiThinking, targetingIndex, selected, tryPlay, onSquareClick, applyEditorEdit],
+    [
+      matchOver,
+      aiThinking,
+      targetingIndex,
+      selected,
+      tryPlay,
+      onSquareClick,
+      applyEditorEdit,
+      devPanelEnabled,
+      editMode,
+      applyEditorMove,
+    ],
   );
 
   const onDragCancel = useCallback(() => {
+    // Drop-elsewhere safety net for edit-mode drags: clear the origin ref so
+    // a subsequent drop on the Erase button doesn't act on a stale square.
+    editDragFromRef.current = null;
     setSelected(null);
   }, []);
 
@@ -1654,7 +1758,8 @@ export function Match({
           onSquareDrop={onSquareDrop}
           onDragCancel={onDragCancel}
           locked={boardLocked}
-          acceptAnyDrop={paletteDragActive}
+          acceptAnyDrop={paletteDragActive || (devPanelEnabled && editMode)}
+          editMode={devPanelEnabled && editMode}
           invalidSquares={invalidSquares}
           invalidBoard={validation !== null && !validation.ok}
         />
@@ -1695,6 +1800,9 @@ export function Match({
             // it doesn't linger after the drag completes.
             setEditorPiece(null);
           }}
+          editMode={editMode}
+          onToggleEditMode={() => setEditMode((v) => !v)}
+          onErasePieceDrop={eraseDraggedPiece}
           sideToMove={turn}
           onSetSideToMove={setSideToMove}
           onClearBoard={clearBoard}

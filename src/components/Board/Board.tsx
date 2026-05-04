@@ -94,6 +94,12 @@ type Props = {
    */
   acceptAnyDrop?: boolean;
   /**
+   * When true, every piece is draggable regardless of side or whose turn it
+   * is — the sandbox edit-mode toggle uses this to let the user reposition
+   * any piece freely.
+   */
+  editMode?: boolean;
+  /**
    * Squares to render with a red overlay — used by the dev panel to flag
    * pieces contributing to an invalid position (extra kings, pawns on the
    * back rank, the wrong side in check). Validation flags positions but
@@ -135,6 +141,7 @@ export function Board({
   onDragCancel,
   locked,
   acceptAnyDrop = false,
+  editMode = false,
   invalidSquares = EMPTY_SET,
   invalidBoard = false,
 }: Props) {
@@ -239,8 +246,7 @@ export function Board({
                 !targeting &&
                 !locked &&
                 piece !== null &&
-                piece.side === turn &&
-                controllableSides.has(piece.side);
+                (editMode || (piece.side === turn && controllableSides.has(piece.side)));
 
               const cls = [
                 styles.square,

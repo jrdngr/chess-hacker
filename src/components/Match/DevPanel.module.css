@@ -144,6 +144,7 @@
 }
 
 .eraseButton {
+  flex: 1;
   padding: 6px 10px;
   font-size: 12px;
   background: transparent;
@@ -159,6 +160,21 @@
 
 .eraseButton:active {
   cursor: grabbing;
+}
+
+.editButton {
+  flex: 1;
+  padding: 6px 10px;
+  font-size: 12px;
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  color: inherit;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.editButton:hover {
+  border-color: var(--player);
 }
 
 .paletteActive {
