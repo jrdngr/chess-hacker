@@ -199,6 +199,14 @@ export type MatchCardState = {
   hand: Card[];
   drawPile: Card[];
   consumedPile: Card[];
+  /**
+   * Append-only ledger of every card that has ever entered the deck, in the
+   * order it was acquired. Used by the Draw-pile inspector to show the deck
+   * in acquisition order rather than in shuffled draw order. Includes cards
+   * that have since been drawn or played; cross-reference against `drawPile`
+   * to filter to the current contents.
+   */
+  acquisitionLog: Card[];
   energy: number;
   /** 1-indexed player turn count. Bumped by `startPlayerTurn`. */
   turn: number;

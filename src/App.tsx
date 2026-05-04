@@ -1,7 +1,6 @@
 // Top-level shell. Picks a top-level run mode, then hands off to the
-// matching shell. Royal and Skirmish are reserved as future modes; Dev is a
-// development-only sandbox parallel to them. Prototype Match preserves the
-// current vs-AI / Local-PvP playground until Royal and Skirmish ship.
+// matching shell. Royal and Skirmish are reserved as future modes; Sandbox
+// is the development-only playground parallel to them.
 
 import { useState } from "react";
 
@@ -9,22 +8,20 @@ import { Match } from "./components/Match";
 
 import styles from "./App.module.css";
 
-type RunMode = "menu" | "dev" | "prototype";
+type RunMode = "menu" | "sandbox";
 
 type ModeOption = {
-  id: Exclude<RunMode, "menu">;
+  id: Exclude<RunMode, "menu"> | "royal" | "skirmish";
   label: string;
   description: string;
   enabled: boolean;
 };
 
-const MODE_OPTIONS: ReadonlyArray<
-  ModeOption | { id: "royal" | "skirmish"; label: string; description: string; enabled: false }
-> = [
+const MODE_OPTIONS: ReadonlyArray<ModeOption> = [
   {
-    id: "dev",
-    label: "Dev",
-    description: "Sandbox: board editor, free card library, optional AI.",
+    id: "sandbox",
+    label: "Sandbox",
+    description: "Board editor, free card library, optional AI.",
     enabled: true,
   },
   {
@@ -39,12 +36,6 @@ const MODE_OPTIONS: ReadonlyArray<
     description: "Roguelite army-builder + cards. Coming soon.",
     enabled: false,
   },
-  {
-    id: "prototype",
-    label: "Prototype Match",
-    description: "vs-AI / Local-PvP playground (will be retired).",
-    enabled: true,
-  },
 ];
 
 export function App() {
@@ -58,8 +49,7 @@ export function App() {
       </header>
       <main className={styles.main}>
         {runMode === "menu" && <ModeMenu onPick={setRunMode} />}
-        {runMode === "dev" && <Match runMode="dev" onExit={() => setRunMode("menu")} />}
-        {runMode === "prototype" && <Match runMode="prototype" onExit={() => setRunMode("menu")} />}
+        {runMode === "sandbox" && <Match runMode="dev" onExit={() => setRunMode("menu")} />}
       </main>
     </div>
   );
@@ -76,7 +66,7 @@ function ModeMenu({ onPick }: { onPick: (mode: RunMode) => void }) {
             type="button"
             className={styles.menuButton}
             disabled={!opt.enabled}
-            onClick={() => opt.enabled && onPick(opt.id as RunMode)}
+            onClick={() => opt.enabled && opt.id === "sandbox" && onPick("sandbox")}
           >
             <span className={styles.menuButtonLabel}>{opt.label}</span>
             <span className={styles.menuButtonDesc}>{opt.description}</span>

@@ -76,6 +76,7 @@ export function createMatchCardState(
     hand: [],
     drawPile: shuffle(deck, rng),
     consumedPile: [],
+    acquisitionLog: deck.slice(),
     energy: 0,
     turn: 0,
     walls: [],
@@ -795,7 +796,27 @@ export function shuffleIntoDraw(
   const idx = Math.floor(rng() * (state.drawPile.length + 1));
   const drawPile = state.drawPile.slice();
   drawPile.splice(idx, 0, card);
-  return { ...state, drawPile };
+  return { ...state, drawPile, acquisitionLog: [...state.acquisitionLog, card] };
+}
+
+/**
+ * Return the cards still in the draw pile, ordered by acquisition rather
+ * than by upcoming draw order. Used by the Draw-pile inspector. Handles
+ * duplicate references (e.g., a starter deck with three Foresights all
+ * pointing to the same Card object) via a multiset walk.
+ */
+export function drawPileInAcquisitionOrder(state: MatchCardState): Card[] {
+  const remaining = new Map<Card, number>();
+  for (const c of state.drawPile) remaining.set(c, (remaining.get(c) ?? 0) + 1);
+  const out: Card[] = [];
+  for (const c of state.acquisitionLog) {
+    const n = remaining.get(c) ?? 0;
+    if (n > 0) {
+      out.push(c);
+      remaining.set(c, n - 1);
+    }
+  }
+  return out;
 }
 
 /**

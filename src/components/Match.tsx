@@ -24,6 +24,7 @@ import { materialAdvantage } from "./Board/material";
 import { DevPanel, type EditorPiece } from "./Match/DevPanel";
 import { Hand } from "./Hand/Hand";
 import { ReviveModal } from "./Hand/ReviveModal";
+import { PileInspector } from "./Hand/PileInspector";
 import { ScryModal } from "./Hand/ScryModal";
 import {
   ChoseEngine,
@@ -49,6 +50,7 @@ import {
   consumeHaste,
   consumeLightningAction,
   createMatchCardState,
+  drawPileInAcquisitionOrder,
   dropOtherSingleUseEmpowers,
   grantSoulOnCapture,
   hasWallOn,
@@ -234,10 +236,19 @@ export function Match({
   // ---- Dev-mode state ------------------------------------------------------
   /** AI plays Black? Off by default in dev mode; the prototype always plays. */
   const [devAiOn, setDevAiOn] = useState(false);
-  /** Whether editor clicks are currently routed to piece placement. */
-  const [editorActive, setEditorActive] = useState(false);
-  /** Currently-selected editor brush. */
+  /**
+   * Currently-selected editor brush. When non-null in dev mode, board clicks
+   * place / overwrite / erase pieces instead of doing chess moves.
+   */
   const [editorPiece, setEditorPiece] = useState<EditorPiece>(null);
+  /**
+   * In flight while the user is dragging a piece from the editor palette
+   * (or "erase") onto the board. Read by the board-drop handler so we can
+   * resolve the drop as an edit even if no brush was clicked first.
+   */
+  const paletteDragRef = useRef<{ type: PieceType; side: Side } | "erase" | null>(null);
+  /** Mirror of paletteDragRef so the Board re-renders to accept any-drop. */
+  const [paletteDragActive, setPaletteDragActive] = useState(false);
   /**
    * When non-null, a library-card play is in flight: the dev panel injected a
    * card at hand[0], paid no energy, and we're waiting for targeting (or the
@@ -272,6 +283,8 @@ export function Match({
   const [scryPending, setScryPending] = useState<{ cards: Card[] } | null>(null);
   /** When true, Recover is asking the player to pick a card from consumedPile. */
   const [revivePending, setRevivePending] = useState<boolean>(false);
+  /** Which pile inspector is open, if any. */
+  const [pileInspector, setPileInspector] = useState<"draw" | "spent" | null>(null);
   /**
    * Stack of engine + card-state snapshots, one per player turn.
    * `turnSnapshots[turnSnapshots.length - 1]` is the state at the start of
@@ -698,7 +711,7 @@ export function Match({
    * through here.
    */
   const doAiMove = useCallback(
-    async (myGen: number, isCancelled: () => boolean): Promise<void> => {
+    async (myGen: number, isCancelled: () => boolean, minThinkMs?: number): Promise<void> => {
       const ai = aiRef.current;
       if (!ai) return;
       await ai.ready();
@@ -709,12 +722,13 @@ export function Match({
       // UCI `searchmoves`, so it can't pick a move that walks through a
       // wall, moves a frozen piece, captures a shielded piece, etc.
       const candidates = engine.legalMoves().map(legalMoveToUci);
+      const wait = minThinkMs ?? aiMinThinkMs;
       const [uci] = await Promise.all([
         ai.getBestMove({
           depth: depthForDifficulty(difficulty),
           searchMoves: candidates,
         }),
-        new Promise<void>((resolve) => setTimeout(resolve, aiMinThinkMs)),
+        new Promise<void>((resolve) => setTimeout(resolve, wait)),
       ]);
       if (isCancelled() || generationRef.current !== myGen) return;
       if (!uci) return;
@@ -773,7 +787,10 @@ export function Match({
     const myGen = ++generationRef.current;
     setAiThinking(true);
     try {
-      await doAiMove(myGen, () => false);
+      // Manual single-move skips the cosmetic think delay — the player asked
+      // for the move, so don't make them wait. The auto AI loop still uses
+      // aiMinThinkMs so its moves don't snap-resolve.
+      await doAiMove(myGen, () => false, 0);
     } catch (e) {
       setAiError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -1030,20 +1047,18 @@ export function Match({
   // ---- Dev-mode helpers ----------------------------------------------------
 
   /**
-   * Apply an editor click to `sq`: place / overwrite / erase based on the
-   * current `editorPiece` brush. No-op if the brush is unset. Pushes a
-   * snapshot so undo can rewind the edit.
+   * Apply an editor edit to `sq`: place / overwrite / erase based on `brush`.
+   * Pushes a snapshot so undo can rewind the edit.
    */
   const applyEditorEdit = useCallback(
-    (sq: AlgebraicSquare) => {
-      if (editorPiece === null) return;
-      if (editorPiece === "erase") {
+    (sq: AlgebraicSquare, brush: Exclude<EditorPiece, null>) => {
+      if (brush === "erase") {
         engine.removePiece(sq);
       } else {
         // Idempotent overwrite: removePiece is null-safe; placePiece throws on
         // occupied, so we always remove first.
         engine.removePiece(sq);
-        engine.placePiece(sq, { type: editorPiece.type, side: editorPiece.side });
+        engine.placePiece(sq, { type: brush.type, side: brush.side });
       }
       // Any status that was on this square belongs to a piece that's now
       // gone; clear them so the new occupant starts fresh.
@@ -1052,7 +1067,7 @@ export function Match({
       setVersion((v) => v + 1);
       pushSnapshot(next);
     },
-    [editorPiece, engine, cardState, pushSnapshot],
+    [engine, cardState, pushSnapshot],
   );
 
   /**
@@ -1108,8 +1123,9 @@ export function Match({
     setMarionetteMoves([]);
     setScryPending(null);
     setRevivePending(false);
-    setEditorActive(false);
     setEditorPiece(null);
+    paletteDragRef.current = null;
+    setPaletteDragActive(false);
     libraryFreePlayRef.current = null;
     setLibraryFreePlayActive(false);
     setTurnSnapshots([{ engineSnapshot: freshEngine.snapshot(), cardState: fresh }]);
@@ -1126,14 +1142,6 @@ export function Match({
     },
     [pushSnapshot],
   );
-
-  const refillEnergy = useCallback(() => {
-    setCardState((s) => {
-      const next = { ...s, energy: ENERGY_MAX };
-      pushSnapshot(next);
-      return next;
-    });
-  }, [pushSnapshot]);
 
   /**
    * Library card play (dev only). Cards played from the library are free
@@ -1198,16 +1206,55 @@ export function Match({
     [matchOver, aiThinking, turn, cardState, boardContext, rng, applyCardSideEffects, pushSnapshot],
   );
 
+  /**
+   * Library card drag-start: synth at hand[0] and enter targeting mode for
+   * EVERY card kind (including no-target — drop-anywhere mode lets the user
+   * drop on any board square to resolve). The drop on the board funnels into
+   * the same `tryResolveCard` path the click flow uses, which already handles
+   * the library free-play patch via `libraryFreePlayRef`.
+   */
+  const dragStartLibraryCard = useCallback(
+    (card: Card) => {
+      if (matchOver || aiThinking) return;
+      if (turn !== HUMAN_SIDE) return;
+      if (libraryFreePlayRef.current !== null) return;
+      libraryFreePlayRef.current = cardState.energy;
+      setLibraryFreePlayActive(true);
+      const synth: MatchCardState = {
+        ...cardState,
+        hand: [card, ...cardState.hand],
+        energy: Math.max(cardState.energy, card.cost),
+      };
+      setCardState(synth);
+      setSelected(null);
+      setPartialTarget(null);
+      setMarionetteMoves([]);
+      setTargetingIndex(0);
+    },
+    [matchOver, aiThinking, turn, cardState],
+  );
+
+  const dragEndLibraryCard = useCallback(() => {
+    // If the drop landed on a board square, the resolver already cleared
+    // targeting state and popped the synth (libraryFreePlayRef is null).
+    // If the drop missed, back out the synth via cancelTargeting.
+    if (libraryFreePlayRef.current === null) return;
+    cancelTargeting();
+  }, [cancelTargeting]);
+
   // ---- Square click / drag (chess move OR card target) ---------------------
 
   const onSquareClick = useCallback(
     (sq: AlgebraicSquare) => {
       if (matchOver || aiThinking) return;
 
-      // Editor takes priority while active in dev mode — a click places /
-      // overwrites / erases the piece on the square per the current brush.
-      if (runMode === "dev" && editorActive) {
-        applyEditorEdit(sq);
+      // Editor takes priority while a brush is selected in dev mode — a click
+      // places / overwrites / erases the piece on the square per the current
+      // brush. The brush is consumed by the placement: the user clicks the
+      // palette piece again for each new placement.
+      if (runMode === "dev" && editorPiece !== null) {
+        applyEditorEdit(sq, editorPiece);
+        setEditorPiece(null);
         return;
       }
 
@@ -1286,7 +1333,7 @@ export function Match({
       matchOver,
       aiThinking,
       runMode,
-      editorActive,
+      editorPiece,
       applyEditorEdit,
       targetingIndex,
       targetingCard,
@@ -1312,6 +1359,17 @@ export function Match({
   const onSquareDrop = useCallback(
     (sq: AlgebraicSquare) => {
       if (matchOver || aiThinking) return;
+      // Palette drag (sandbox editor): drop applies the brush regardless of
+      // any other in-flight selection. We clear editorPiece here too — the
+      // dragend handler also clears it, but dragend is unreliable across
+      // browsers, so don't depend on it for the visible highlight.
+      if (paletteDragRef.current !== null) {
+        applyEditorEdit(sq, paletteDragRef.current);
+        paletteDragRef.current = null;
+        setPaletteDragActive(false);
+        setEditorPiece(null);
+        return;
+      }
       if (targetingIndex !== null) {
         // A targeted card was dragged from the hand onto this square. Reuse
         // the same resolution path as a click on the square.
@@ -1324,7 +1382,7 @@ export function Match({
       // Drop on an invalid target leaves the piece where it was; clear selection.
       setSelected(null);
     },
-    [matchOver, aiThinking, targetingIndex, selected, tryPlay, onSquareClick],
+    [matchOver, aiThinking, targetingIndex, selected, tryPlay, onSquareClick, applyEditorEdit],
   );
 
   const onDragCancel = useCallback(() => {
@@ -1381,8 +1439,9 @@ export function Match({
     setRevivePending(false);
     setTurnSnapshots([]);
     setRedoStack([]);
-    setEditorActive(false);
     setEditorPiece(null);
+    paletteDragRef.current = null;
+    setPaletteDragActive(false);
     libraryFreePlayRef.current = null;
     setLibraryFreePlayActive(false);
     if (mode === "vs-ai") {
@@ -1408,8 +1467,9 @@ export function Match({
       setTargetingIndex(null);
       setTurnSnapshots([]);
       setRedoStack([]);
-      setEditorActive(false);
       setEditorPiece(null);
+      paletteDragRef.current = null;
+      setPaletteDragActive(false);
       libraryFreePlayRef.current = null;
       setLibraryFreePlayActive(false);
       if (next === "vs-ai") {
@@ -1630,6 +1690,7 @@ export function Match({
           onSquareDrop={onSquareDrop}
           onDragCancel={onDragCancel}
           locked={boardLocked}
+          acceptAnyDrop={paletteDragActive}
         />
         <CapturedPieces
           pieces={captured.byPlayer}
@@ -1646,15 +1707,26 @@ export function Match({
             onCardClick={onCardClick}
             onCardDragStart={onCardDragStart}
             onCardDragEnd={onCardDragEnd}
+            onDrawPileClick={() => setPileInspector("draw")}
+            onSpentPileClick={() => setPileInspector("spent")}
           />
         )}
       </div>
       {runMode === "dev" && (
         <DevPanel
-          editorActive={editorActive}
           editorPiece={editorPiece}
-          onToggleEditor={() => setEditorActive((v) => !v)}
           onPickEditorPiece={setEditorPiece}
+          onPaletteDragStart={(piece) => {
+            paletteDragRef.current = piece;
+            setPaletteDragActive(true);
+          }}
+          onPaletteDragEnd={() => {
+            paletteDragRef.current = null;
+            setPaletteDragActive(false);
+            // Drag is a fresh action — clear any previously-clicked brush so
+            // it doesn't linger after the drag completes.
+            setEditorPiece(null);
+          }}
           sideToMove={turn}
           onSetSideToMove={setSideToMove}
           onClearBoard={clearBoard}
@@ -1665,8 +1737,9 @@ export function Match({
           onTriggerAiSingleMove={triggerAiSingleMove}
           libraryDisabled={turn !== HUMAN_SIDE || aiThinking || matchOver || libraryFreePlayActive}
           onPlayLibraryCard={playLibraryCard}
+          onLibraryCardDragStart={dragStartLibraryCard}
+          onLibraryCardDragEnd={dragEndLibraryCard}
           onBumpEnergy={() => bumpEnergy(1)}
-          onRefillEnergy={refillEnergy}
         />
       )}
       {scryPending && (
@@ -1686,6 +1759,22 @@ export function Match({
             setRevivePending(false);
           }}
           onCancel={() => setRevivePending(false)}
+        />
+      )}
+      {pileInspector === "draw" && (
+        <PileInspector
+          title="Draw pile"
+          hint="Cards still in your deck, listed in the order you acquired them."
+          cards={drawPileInAcquisitionOrder(cardState)}
+          onClose={() => setPileInspector(null)}
+        />
+      )}
+      {pileInspector === "spent" && (
+        <PileInspector
+          title="Spent pile"
+          hint="Cards you've played, in the order they resolved."
+          cards={cardState.consumedPile}
+          onClose={() => setPileInspector(null)}
         />
       )}
     </div>

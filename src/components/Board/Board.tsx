@@ -83,6 +83,12 @@ type Props = {
   onDragCancel: () => void;
   /** Disable interaction (e.g. when the match is over or AI is thinking). */
   locked?: boolean;
+  /**
+   * When true, every square accepts a drop (used for sandbox palette drags
+   * where any square is a valid place/erase target). Bypasses the per-square
+   * legal-target gate in onDragOver.
+   */
+  acceptAnyDrop?: boolean;
 };
 
 const RANKS_TOP_DOWN: RankIndex[] = [7, 6, 5, 4, 3, 2, 1, 0];
@@ -115,6 +121,7 @@ export function Board({
   onSquareDrop,
   onDragCancel,
   locked,
+  acceptAnyDrop = false,
 }: Props) {
   // ChoseEngine mutates internally on move(), so we recompute these every render.
   // Memoizing on `[engine]` would serve stale data because the ref doesn't change.
@@ -280,10 +287,10 @@ export function Board({
                   }}
                   onDragOver={(e) => {
                     // Accept the drop when the square is either a legal chess
-                    // destination (piece drag) or a valid card target (hand
-                    // drag). The drag source is irrelevant — both flows fire
-                    // here, and the dragOver highlight gives feedback.
-                    if (targetMoves.has(sq) || validTargetForCard) {
+                    // destination (piece drag), a valid card target (hand
+                    // drag), or when acceptAnyDrop is set (sandbox palette
+                    // drag — every square is a valid place/erase target).
+                    if (targetMoves.has(sq) || validTargetForCard || acceptAnyDrop) {
                       e.preventDefault();
                       e.dataTransfer.dropEffect = "move";
                     } else if (targeting) {

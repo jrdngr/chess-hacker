@@ -30,6 +30,10 @@ type Props = {
   /** Drag a targeted card from the hand onto a board square to play it. */
   onCardDragStart?: (index: number) => void;
   onCardDragEnd?: () => void;
+  /** Open the draw-pile inspector modal. */
+  onDrawPileClick?: () => void;
+  /** Open the spent-pile inspector modal. */
+  onSpentPileClick?: () => void;
 };
 
 export function Hand({
@@ -42,13 +46,21 @@ export function Hand({
   onCardClick,
   onCardDragStart,
   onCardDragEnd,
+  onDrawPileClick,
+  onSpentPileClick,
 }: Props) {
   return (
     <div className={styles.handArea}>
-      <div className={styles.pile} aria-label="Draw pile">
+      <button
+        type="button"
+        className={styles.pile}
+        aria-label="Draw pile"
+        onClick={onDrawPileClick}
+        disabled={!onDrawPileClick}
+      >
         <span className={styles.pileLabel}>Draw</span>
         <span className={styles.pileCount}>{drawPileCount}</span>
-      </div>
+      </button>
 
       <div className={styles.hand} role="list" aria-label="Hand">
         {hand.length === 0 ? (
@@ -104,10 +116,16 @@ export function Hand({
         )}
       </div>
 
-      <div className={styles.pile} aria-label="Spent pile">
+      <button
+        type="button"
+        className={styles.pile}
+        aria-label="Spent pile"
+        onClick={onSpentPileClick}
+        disabled={!onSpentPileClick}
+      >
         <span className={styles.pileLabel}>Spent</span>
         <span className={styles.pileCount}>{consumedPileCount}</span>
-      </div>
+      </button>
     </div>
   );
 }

@@ -846,18 +846,72 @@ describe("Match — dev mode", () => {
       />,
     );
 
-    // Turn editor on; pick the player rook brush.
-    await user.click(screen.getByRole("button", { name: /editor: off/i }));
+    // Pick the player rook brush — the editor is always active in sandbox.
     await user.click(screen.getByRole("button", { name: /pick player rook/i }));
 
     // e4 is empty in the standard start.
     await user.click(squareCell("e4")!);
     expect(squareCell("e4")?.getAttribute("aria-label")).toBe("e4, player rook");
 
+    // Brush is consumed by the placement: a second click on a different empty
+    // square must NOT place another rook (it just selects normally / no-ops).
+    await user.click(squareCell("d4")!);
+    expect(squareCell("d4")?.getAttribute("aria-label")).toBe("d4");
+
     // Clear board wipes all pieces (including the one we just placed).
     await user.click(screen.getByRole("button", { name: /clear board/i }));
     expect(squareCell("e4")?.getAttribute("aria-label")).toBe("e4");
     expect(squareCell("e1")?.getAttribute("aria-label")).toBe("e1");
+  });
+
+  it("dragging a palette piece places it and clears the brush", async () => {
+    const user = userEvent.setup();
+    const ai = makeFakeAi([]);
+    render(
+      <Match
+        runMode="dev"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialDeck={ALL_FORESIGHT_DECK}
+        rng={makeRng(309)}
+      />,
+    );
+
+    const rookBrush = screen.getByRole("button", { name: /pick player rook/i });
+    const e4 = squareCell("e4")!;
+    const d4 = squareCell("d4")!;
+
+    // Drag the rook brush onto e4.
+    const data: Record<string, string> = {};
+    const types: string[] = [];
+    const dt = {
+      effectAllowed: "all",
+      dropEffect: "move",
+      types,
+      setData(format: string, value: string) {
+        data[format] = value;
+        if (!types.includes(format)) types.push(format);
+      },
+      getData(format: string) {
+        return data[format] ?? "";
+      },
+      clearData() {
+        for (const k of Object.keys(data)) delete data[k];
+        types.length = 0;
+      },
+    } as unknown as DataTransfer;
+
+    fireEvent.dragStart(rookBrush, { dataTransfer: dt });
+    fireEvent.dragOver(e4, { dataTransfer: dt });
+    fireEvent.drop(e4, { dataTransfer: dt });
+    fireEvent.dragEnd(rookBrush, { dataTransfer: dt });
+
+    expect(squareCell("e4")?.getAttribute("aria-label")).toBe("e4, player rook");
+
+    // After the drag, the rook brush should be deselected — clicking another
+    // empty square must NOT place a second piece.
+    await user.click(d4);
+    expect(squareCell("d4")?.getAttribute("aria-label")).toBe("d4");
   });
 
   it("side-to-move toggle flips the engine turn", async () => {
@@ -898,6 +952,9 @@ describe("Match — dev mode", () => {
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("3");
     expect(screen.getByLabelText(/^spent pile/i)).toHaveTextContent("0");
 
+    // Library lives behind a button in sandbox; open the overlay first.
+    await user.click(screen.getByRole("button", { name: /open library/i }));
+
     // Reconnaissance is no-target. Click the library entry (data-card-id is set
     // on the dev panel button to disambiguate from the same card in hand).
     const libraryCard = document.querySelector(
@@ -924,6 +981,9 @@ describe("Match — dev mode", () => {
         initialEnergy={3}
       />,
     );
+
+    // Library lives behind a button in sandbox; open the overlay first.
+    await user.click(screen.getByRole("button", { name: /open library/i }));
 
     const frostbite = document.querySelector(
       'aside button[data-card-id="frostbite"]',
