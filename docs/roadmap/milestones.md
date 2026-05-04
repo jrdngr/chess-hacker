@@ -2,104 +2,68 @@
 
 A rough ordering of work to get from "empty repo" to "playable prototype." Numbers in `[brackets]` are vague effort estimates in *days of focused dev work*, not calendar days.
 
-The milestones are roughly sequential — each builds on the previous — but several can be parallelized once the chess core is in place.
+The milestones are roughly sequential — each builds on the previous — but several can be parallelized.
 
-## M0 — Project bootstrap [0.5d]
+## Status as of 2026-05-03
 
-- `npm create vite@latest` with the React + TypeScript template.
-- Install chess.js, stockfish.wasm, zustand, vitest.
-- Set up ESLint, Prettier, basic CI (lint + test).
-- Create the directory structure described in `technical/architecture.md`.
-- Get a "hello, choss" page rendering.
+The chess core, card system, walls, dev sandbox, and the first half of the square-effect overlays are built. The remaining work is the run loop and everything that hangs off it (shop, artifacts, bosses, full Royal, then Skirmish).
 
-**Done when:** dev server runs, tests pass, lint passes, an empty router-shell renders.
+Already shipped:
 
-## M1 — Chess board UI + chess.js integration [2d]
+- **Chess board + rules.** `src/components/Board/Board.tsx` (click + drag-to-move, hover tooltips). Full chess rules — including checkmate / stalemate / 50-move / threefold — in a custom engine at `src/game/chess/rules.ts`. (chess.js was tried and replaced with our own engine because of wall-aware move generation.)
+- **Stockfish AI.** `src/ai/stockfish.ts`, depth-tuned (`easy=2 / normal=6 / hard=10`). AI moves are validated against our wall-aware legal-move set before being applied.
+- **Cards.** 37 cards in `src/game/cards/data/`. Hand / draw pile / consumed pile / energy state in `src/game/cards/match.ts`. 25 effect kinds spanning tempo, disruption, spatial, movement, summon, swap, sacrifice, revival, and generators. Card UI + targeting via `src/components/Hand` + `src/components/Board`.
+- **Walls.** Wall storage and lifetimes in the engine; ray-blocking in move generation; check evaluation respects walls.
+- **Dev sandbox.** Top-level "Sandbox" mode in `src/App.tsx`; full editor / library / energy controls / undo-redo in `src/components/Match/DevPanel.tsx`. Royal and Skirmish are present as disabled menu items.
+- **Square effects (partial).** Sanctuaries and traps are stored, triggered, and rendered with hover info on the board. Zone-control buffs (auras that grant adjacent-square buffs) are not yet implemented — see M7 below.
+- **Tooltips.** Square / piece tooltips on the board (commit `80d3ee7`).
 
-- Render an 8x8 board with click-to-select-and-move interaction.
-- Render pieces using the geometric glyphs from `theme.md`.
-- Wrap chess.js in a `ChoseEngine` (skeleton — no walls/extensions yet).
-- Player vs player on the same screen (both sides controlled by the human).
-- Detect checkmate / stalemate / draws; show win / draw / loss UI.
+State management note: zustand was planned and skipped — match state currently lives in `Match.tsx` with `useState`. Adopt zustand only if cross-component state grows painful.
 
-**Done when:** two humans can play a complete chess game on the prototype, and standard chess rules are enforced.
+## M0 — Project bootstrap [done]
 
-## M2 — Stockfish AI [1.5d]
+Vite + React + TS scaffold. Stockfish.wasm wired. Vitest + ESLint + Prettier set up. Empty router-shell renders.
 
-- Set up the Stockfish web worker.
-- Implement the depth-tuned wrapper (`ai/stockfish.ts`).
-- Wire human-vs-AI: human plays white (default), AI plays black.
-- Add a difficulty selector that maps to depth.
+## M1 — Chess board UI + engine [done]
 
-**Done when:** human can complete a full chess game vs the AI, AI moves play within ~1 second at depth 6.
+Built without chess.js — see `src/game/chess/rules.ts` and `src/components/Board/Board.tsx`.
 
-## M3 — Card system foundation [3d]
+## M2 — Stockfish AI [done]
 
-- Define the `Card` type and a small starter card pool (5–10 cards).
-- Implement hand / draw pile / discard pile / energy state in the match store.
-- Hand UI: render cards, click to begin play, prompt for targets, resolve effect.
-- Implement the **simplest** card effects first:
-  - Tempo: "+1 energy this turn" (no target).
-  - Tempo: "Draw 2 cards" (no target).
-  - Disruption: "Freeze an enemy piece" (target piece).
-  - Spatial: "Place a wall on a chosen square" (target square).
-- Resolve these effects against the match state.
-- End-of-turn refill; +1 energy gained, banks unspent within the cap.
+`src/ai/stockfish.ts` with depth-tuned wrapper and difficulty selector.
 
-**Done when:** the player can draw a hand, play several cards, see them affect the match (board overlays + freeze status), and end their turn.
+## M3 — Card system foundation [done]
 
-## M4 — Wall integration in chess.js wrapper [1.5d]
+37 cards, hand / draw / consumed piles, energy state, target prompts, and resolution all live. Goes well beyond the original M3 scope (the original list named ~5 starter cards).
 
-- Implement wall storage and the legal-move filter (see `chess-integration.md`).
-- Implement walls-as-friendly-blockers in check evaluation (clone-and-test approach).
-- Wire wall lifetimes (decrement at end-of-turn).
-- Validate Stockfish's chosen move against our `legalMoves()` and re-pick if illegal (MultiPV-and-filter).
+## M4 — Wall integration [done]
 
-**Done when:** a wall placed by the player blocks enemy bishop / rook / queen lines, the AI doesn't try to walk through walls, and walls expire correctly.
+Wall-aware legal moves and check evaluation in `src/game/chess/rules.ts`. Lifetimes decrement on turn start. Stockfish moves are filtered through the wall-aware legal-move set.
 
-## Dev mode — testing sandbox [tooling]
+## Dev mode — testing sandbox [done]
 
-Top-level run mode parallel to Royal / Skirmish (developer-only, not player-facing). Selected from the App's mode menu. Provides:
+Live in `src/components/Match/DevPanel.tsx`. Provides editor, library, energy controls, and action-granular undo / redo. Selected from the App's mode menu alongside the (still-disabled) Royal and Skirmish options.
 
-- Board editor (place / overwrite / erase pieces, toggle side-to-move, clear, standard start).
-- Free card library — every card playable on demand; cost waived; library plays don't enter the spent pile, but effects (statuses, traps, summons, generators, self-replicators, scry / revive prompts, capture-grants-Soul) persist.
-- Optional AI on Black (off by default + "AI: play one move" single-shot button).
-- Energy controls ("+1", "Refill (10)").
-- Action-granular undo / redo (every dev action pushes a snapshot).
+---
 
-**Done when:** an engineer can spin up a custom position via the editor, exercise any library card against it, and undo back to any prior action.
+## M5 — Preliminary Royal: run scaffolding + shop [3d]
 
-## M5 — Match end-to-end + run scaffolding [2d]
+The first player-facing run loop. Three matches, no bosses, no artifacts. Establishes the surfaces (mode-select, post-match reward, shop) that everything later hangs off of. Combines the original M5 + M6.
 
-- Add a top-level run state machine: `mode-select → match → reward → shop → match → ...`.
-- Hard-code a 3-match Royal "mini-run" for testing.
-- Implement post-match reward step: card draft (1 of 3) and gold reward.
-- Implement skip-for-gold.
-- Implement gold tracking on the run.
-
-**Done when:** a player can complete a 3-match scripted Royal run, drafting one card after each match, gold persisting across the run.
-
-## M6 — Shop [2d]
-
-- Implement shop generation: rotating cards + booster packs (artifacts come later if not implemented yet).
+- Top-level run state machine: `mode-select → match → reward → shop → match → ...`.
+- Hard-coded 3-match Royal mini-run for testing.
+- Post-match reward step: card draft (1 of 3) and gold reward.
+- Skip-for-gold.
+- Gold tracking on the run.
+- Shop generation: rotating cards + booster packs (artifacts deferred to M6).
 - Reroll service (scaling per shop).
 - Card removal service (scaling per use).
 - Interest tally.
 - Buying / spending UI.
 
-**Done when:** between matches, the player can spend gold on cards / packs, reroll the shop, remove a card from their deck, earn interest.
+**Done when:** the player can complete a 3-match scripted Royal run from the menu, drafting a card and visiting the shop after each match. Gold persists across the run, interest accrues, reroll and removal both work.
 
-## M7 — Skirmish mode + piece economy [3d]
-
-- Skirmish mode toggle in mode select.
-- Skirmish starting roster (king + 2 pawns + 2 minors).
-- Piece-draft post-match (1 of 3, tiered rarity, soft caps).
-- Placement screen: drag-and-drop pieces onto ranks 1–2 before each match.
-- AI starting army scaling across the run.
-
-**Done when:** a complete Skirmish 3-match mini-run is playable end-to-end, drafting pieces and placing them.
-
-## M8 — Artifacts [2d]
+## M6 — Artifacts [2d]
 
 - Define the `Artifact` type and a small starter artifact pool (~10 artifacts spanning all four effect domains).
 - Artifact slots in the run state (cap 5).
@@ -107,64 +71,74 @@ Top-level run mode parallel to Royal / Skirmish (developer-only, not player-faci
 - Artifact trigger system (hook into card-played, capture, check, turn-start, etc.).
 - Artifact sidebar UI.
 
-**Done when:** artifacts can be acquired, hold their slot, and fire their effects in matches.
+(Boss-reward artifact path is stubbed but unused until M8.)
 
-## M9 — Square effects + zone-control buffs [2d]
+**Done when:** artifacts can be acquired from the shop, hold their slot, displace correctly past the cap, and fire their effects in matches.
 
-- Square-effect storage and trigger evaluation (on-enter / on-end-turn).
-- Zone-buff evaluation at start-of-turn.
-- A handful of cards that use square effects and zone buffs.
-- UI: square auras, zone-buff sidebar text.
+## M7 — Zone-control buffs [0.5d]
 
-**Done when:** at least 2 cards spawn square effects, and at least 2 cards / artifacts grant zone-control buffs that apply correctly.
+Finishes the unfinished tail of the original M9. Sanctuaries and traps already work — this is just the aura system.
 
-## M10 — First boss [3d]
+- Zone-buff storage on squares.
+- Zone-buff evaluation at start-of-turn (and on relevant board changes).
+- Sidebar / square-aura UI text.
+- At least 1 card and 1 artifact that grants a zone-control buff that applies correctly.
 
-- Pick one boss to build first (Boss A — "The Iron Garrison" sketch is a good starter).
-- Implement its match-modifier rule.
-- Implement its fixed board hazards.
-- Implement its curse pool (1–2 curses).
-- Implement the curse-AI scheduler.
-- Boss-reward flow: large gold + artifact pick.
+**Done when:** placing a zone-buff square grants the documented adjacency effect, and the aura renders in the board UI. (Boss B will lean on this in M9.)
+
+## M8 — First boss [3d]
+
+Build one boss end-to-end before generalizing. Pick Boss A — "The Iron Garrison" sketch is a good starter. Validates the modifier+hazard+curse pattern before the other two bosses are built.
+
+- Match-modifier rule.
+- Fixed board hazards.
+- Curse pool (1–2 curses).
+- Curse-AI scheduler (deterministic, trigger-based).
+- Boss-reward flow: large gold + 1-of-3 artifact pick (uses M6).
 - Boss preview at act start.
 
-**Done when:** the act-1 boss is playable, the modifier rule is enforced, hazards are placed, and curses fire on the right triggers.
+**Done when:** the act-1 boss is playable, the modifier rule is enforced, hazards are placed, curses fire on the right triggers, and beating it grants the boss-tier reward.
 
-## M11 — Full 9-match run [2d]
+## M9 — Full Royal run [3d]
 
-- Wire all 3 acts, 9 matches.
-- Implement the other 2 bosses (Boss B and Boss C).
+All 3 acts, 9 matches, all 3 bosses. Royal is shippable when this lands.
+
+- Wire all 3 acts (3 matches each, boss at match 3 / 6 / 9).
+- Implement Boss B and Boss C using the M8 pattern.
 - Run win / loss screens.
-- Save / resume on quit.
+- Save / resume on quit (single in-progress run in localStorage).
 
-**Done when:** a player can complete an entire 9-match run from start to finish (or lose at any point).
+**Done when:** a player can complete (or lose) a full 9-match Royal run from the menu, quit mid-run, and resume from where they left off.
 
-## M12 — Meta-progression scaffolding [2d]
+## M10 — Skirmish [3d]
 
-- Persistent meta state (`choss:meta` in localStorage).
-- Track Ascension record per mode.
-- Implement a small content-unlock system tied to first wins.
-- Mode-select screen shows current Ascension.
-- Implement Ascension 1 (one modifier) end-to-end.
+Most of the run scaffolding (M5 / M6 / M9) is shared with Royal, so Skirmish is mostly piece-economy work on top of the existing shell.
 
-**Done when:** winning a run unlocks Ascension 1, and starting an Ascension 1 run applies the modifier.
+- Skirmish mode toggle in mode select.
+- Skirmish starting roster (king + 2 pawns + 2 minors).
+- Piece-draft post-match (1 of 3, tiered rarity, soft caps).
+- Placement screen: drag-and-drop pieces onto ranks 1–2 before each match.
+- AI starting army scaling across the run.
 
-## M13 — Content expansion + polish [open-ended]
+**Done when:** a complete Skirmish 9-match run is playable end-to-end, drafting pieces and placing them between matches.
 
-- Grow the card pool to ~40–60 cards spanning the archetypes.
+## M11 — Content expansion + polish [open-ended]
+
+- Grow the card pool toward the archetypes' target sizes.
 - Grow the artifact pool to ~30 artifacts.
 - Tune card / artifact / boss balance.
 - Animation pass on card play and piece moves.
 - Sound effects (basic).
+- Card hover descriptions.
 - Fix accumulated paper cuts.
 
 This phase is open-ended and driven by playtest feedback.
 
 ## Parallelization opportunities
 
-- M3 (cards) and M4 (walls) overlap; do walls in parallel with cards once the wrapper exists.
-- M8 (artifacts) and M9 (square effects / zones) are largely independent of each other and can be done in parallel.
-- M10 (first boss) can begin once M9's overlays are stable.
+- M6 (artifacts) and M7 (zone-buffs) are independent and can be done in parallel after M5.
+- Boss B and Boss C inside M9 can be built in parallel by two contributors once M8's pattern is in place.
+- M10 (Skirmish) has no real dependency on M9's bosses — once M5 / M6 ship, an enthusiastic contributor could prototype piece economy in parallel with the boss work, deferring boss-aware AI scaling to the very end.
 
 ## What is explicitly NOT in any milestone
 
@@ -173,3 +147,4 @@ This phase is open-ended and driven by playtest feedback.
 - Tutorial mode (added late if at all; the abstract minimalist UI plus tooltips should suffice).
 - Localization.
 - Custom seeded runs / daily challenges (deferred — see `progression.md` and `open-questions.md`).
+- Meta-progression / Ascension scaffolding. Designed in `docs/design/progression.md` but not milestoned in this revision; re-add when Royal and Skirmish are both shippable.
