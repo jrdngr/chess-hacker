@@ -8,6 +8,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { ArtifactSidebar } from "./ArtifactSidebar";
 import { Match } from "../Match";
 import { Reward } from "./Reward";
 import { Shop } from "./Shop";
@@ -24,6 +25,7 @@ import {
   totalMatches,
 } from "../../game/progression/run";
 import { applyInterest, generateShop } from "../../game/shop/shop";
+import { goldOnMatchStart } from "../../game/artifacts/effects";
 import type {
   BoardSize,
   Card,
@@ -97,10 +99,13 @@ export function Run({ mode, onExit, rngSeed }: Props) {
       // Generate a per-match starting position the first time we land on
       // this match. Standard mode produces a Chess960-style position sized
       // for the current match; Royal / mini-run leave fen undefined so
-      // <Match> uses the standard chess opening.
+      // <Match> uses the standard chess opening. We also tally the
+      // gold-on-match-start artifact effect on this same entry — once per
+      // match, before the player can spend in the shop.
       if (extras.matchSetup === null) {
         const { fen, size, next } = nextMatchSetup(run);
-        setRun(next);
+        const matchStartGold = goldOnMatchStart(next.artifacts);
+        setRun(matchStartGold > 0 ? { ...next, gold: next.gold + matchStartGold } : next);
         setExtras((e) => ({ ...e, matchSetup: { fen, size } }));
       }
     }
@@ -191,12 +196,17 @@ export function Run({ mode, onExit, rngSeed }: Props) {
   return (
     <div className={styles.run}>
       {banner}
+      {run.artifacts.length > 0 && run.phase !== "won" && run.phase !== "lost" && (
+        <ArtifactSidebar artifacts={run.artifacts} />
+      )}
       {run.phase === "match" && extras.matchSetup && (
         <Match
           // Re-mount each match so the engine + card state both reset cleanly.
           key={`m-${run.matchNumber}`}
           runMode="run"
           initialDeck={run.deck.slice()}
+          initialArtifacts={run.artifacts}
+          onSaveArtifacts={(artifacts) => setRun((r) => ({ ...r, artifacts: artifacts.slice() }))}
           initialFen={extras.matchSetup.fen}
           initialBoardSize={extras.matchSetup.size}
           onMatchEnd={onMatchEnd}

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   addPickedPackCard,
   applyInterest,
+  buyArtifactOffer,
   buyCardOffer,
   generateShop,
   interestFor,
@@ -15,9 +16,12 @@ import {
   REROLL_COST_STEP,
   REMOVAL_COST_BASE,
   REMOVAL_COST_STEP,
+  SHOP_ARTIFACTS,
   SHOP_CARDS,
   SHOP_PACKS,
 } from "./shop";
+import { allArtifacts, getArtifactById } from "../artifacts/library";
+import { ARTIFACT_SLOT_CAP } from "../types";
 import { createRun } from "../progression/run";
 import { FROSTBITE } from "../cards/library";
 
@@ -53,13 +57,27 @@ describe("interest", () => {
 });
 
 describe("generateShop", () => {
-  it("produces SHOP_CARDS card offers + SHOP_PACKS pack offers", () => {
+  it("produces SHOP_CARDS card offers + SHOP_PACKS pack offers + SHOP_ARTIFACTS artifact offers", () => {
     const run = createRun({ mode: "royal", rngSeed: 1 });
     const { shop } = generateShop(run);
     const cards = shop.offers.filter((o) => o.kind === "card");
     const packs = shop.offers.filter((o) => o.kind === "booster");
+    const artifacts = shop.offers.filter((o) => o.kind === "artifact");
     expect(cards.length).toBe(SHOP_CARDS);
     expect(packs.length).toBe(SHOP_PACKS);
+    expect(artifacts.length).toBe(SHOP_ARTIFACTS);
+  });
+
+  it("never offers artifacts the player already owns", () => {
+    const owned = getArtifactById("stone-hourglass");
+    const baseRun = createRun({ mode: "royal", rngSeed: 9 });
+    const run = { ...baseRun, artifacts: [owned] };
+    for (let seed = 0; seed < 20; seed++) {
+      const { shop } = generateShop({ ...run, rngSeed: seed });
+      for (const offer of shop.offers) {
+        if (offer.kind === "artifact") expect(offer.artifact.id).not.toBe(owned.id);
+      }
+    }
   });
 
   it("seeds the rerollCost / rerollsUsed at zero", () => {
@@ -153,6 +171,49 @@ describe("removeCard", () => {
     expect(removeCard(gen.next, gen.shop, 0)).toBeNull();
     expect(removeCard({ ...gen.next, gold: 200 }, gen.shop, -1)).toBeNull();
     expect(removeCard({ ...gen.next, gold: 200 }, gen.shop, gen.next.deck.length + 5)).toBeNull();
+  });
+});
+
+describe("buyArtifactOffer", () => {
+  function shopWithArtifact(seed: number, gold: number) {
+    const baseRun = createRun({ mode: "royal", rngSeed: seed });
+    const run = { ...baseRun, gold };
+    const gen = generateShop(run);
+    const idx = gen.shop.offers.findIndex((o) => o.kind === "artifact");
+    return { run: gen.next, shop: gen.shop, idx };
+  }
+
+  it("deducts gold, marks the offer sold, and adds the artifact to the run", () => {
+    const { run, shop, idx } = shopWithArtifact(3, 100);
+    const offer = shop.offers[idx];
+    if (offer.kind !== "artifact") throw new Error("expected artifact offer");
+    const result = buyArtifactOffer(run, shop, idx)!;
+    expect(result.state.gold).toBe(100 - offer.price);
+    expect(result.state.artifacts.map((a) => a.id)).toContain(offer.artifact.id);
+    const updated = result.shop.offers[idx];
+    expect(updated.kind === "artifact" && updated.sold).toBe(true);
+  });
+
+  it("returns null when the player can't afford the artifact", () => {
+    const { run, shop, idx } = shopWithArtifact(1, 0);
+    expect(buyArtifactOffer(run, shop, idx)).toBeNull();
+  });
+
+  it("returns null when the player is at the artifact slot cap", () => {
+    const filler = allArtifacts().slice(0, ARTIFACT_SLOT_CAP);
+    const baseRun = createRun({ mode: "royal", rngSeed: 5 });
+    const run = { ...baseRun, gold: 1000, artifacts: filler };
+    const gen = generateShop(run);
+    const idx = gen.shop.offers.findIndex((o) => o.kind === "artifact");
+    if (idx === -1) return; // pool may be exhausted by the owned set; skip
+    expect(buyArtifactOffer(gen.next, gen.shop, idx)).toBeNull();
+  });
+
+  it("rejects buying a sold artifact offer", () => {
+    const { run, shop, idx } = shopWithArtifact(2, 200);
+    const first = buyArtifactOffer(run, shop, idx)!;
+    const second = buyArtifactOffer(first.state, first.shop, idx);
+    expect(second).toBeNull();
   });
 });
 

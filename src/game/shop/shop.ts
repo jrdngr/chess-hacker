@@ -5,8 +5,10 @@
 
 import { CARD_LIBRARY } from "../cards/library";
 import { type Rng } from "../cards/match";
+import { pickRandomArtifacts } from "../artifacts/library";
 import { consumeRng, pickRandomCards, eligibleCardsByRarity } from "../progression/run";
-import type { BoosterPack, Card, RunState, Shop, ShopOffer } from "../types";
+import { ARTIFACT_SLOT_CAP } from "../types";
+import type { Artifact, BoosterPack, Card, RunState, Shop, ShopOffer } from "../types";
 
 // ---- Tuning knobs (see docs/design/economy.md) -----------------------------
 
@@ -14,6 +16,8 @@ import type { BoosterPack, Card, RunState, Shop, ShopOffer } from "../types";
 export const SHOP_CARDS = 4;
 /** Number of booster packs per shop visit. */
 export const SHOP_PACKS = 2;
+/** Number of artifact offers per shop visit. */
+export const SHOP_ARTIFACTS = 1;
 /** Cards revealed inside a common booster pack — player picks 1. */
 export const PACK_CARD_COUNT = 3;
 
@@ -43,6 +47,12 @@ function priceForPack(rng: Rng): number {
   return 4 + Math.floor(rng() * 4);
 }
 
+/** Artifact price by rarity — artifacts are pricier than single cards. */
+function priceForArtifact(artifact: Artifact, rng: Rng): number {
+  const base = artifact.rarity === "rare" ? 25 : artifact.rarity === "uncommon" ? 18 : 12;
+  return base + Math.floor(rng() * 4);
+}
+
 export function rerollCostFor(rerollsUsed: number): number {
   return REROLL_COST_BASE + REROLL_COST_STEP * rerollsUsed;
 }
@@ -54,12 +64,11 @@ export function removalCostFor(removalsUsed: number): number {
 // ---- Generation ------------------------------------------------------------
 
 /**
- * Build a fresh shop. Pulls from the run's seeded RNG so two playthroughs
- * with the same seed see the same shops. Mutates run state by advancing
- * `rngCursor` (returned alongside the shop).
+ * Build the offer list for a shop visit (or reroll). Artifacts already in
+ * the player's collection are excluded from the artifact pool so the same
+ * rare can't be "offered" repeatedly when they already own it.
  */
-export function generateShop(state: RunState): { shop: Shop; next: RunState } {
-  const { rng, next } = consumeRng(state);
+function buildOffers(state: RunState, rng: Rng): ShopOffer[] {
   const offers: ShopOffer[] = [];
 
   const cards = pickRandomCards(SHOP_CARDS, rng);
@@ -72,9 +81,25 @@ export function generateShop(state: RunState): { shop: Shop; next: RunState } {
     offers.push({ kind: "booster", pack, price: priceForPack(rng) });
   }
 
+  const ownedIds = new Set(state.artifacts.map((a) => a.id));
+  const artifacts = pickRandomArtifacts(SHOP_ARTIFACTS, rng, ownedIds);
+  for (const artifact of artifacts) {
+    offers.push({ kind: "artifact", artifact, price: priceForArtifact(artifact, rng) });
+  }
+
+  return offers;
+}
+
+/**
+ * Build a fresh shop. Pulls from the run's seeded RNG so two playthroughs
+ * with the same seed see the same shops. Mutates run state by advancing
+ * `rngCursor` (returned alongside the shop).
+ */
+export function generateShop(state: RunState): { shop: Shop; next: RunState } {
+  const { rng, next } = consumeRng(state);
   return {
     shop: {
-      offers,
+      offers: buildOffers(state, rng),
       rerollCost: rerollCostFor(0),
       rerollsUsed: 0,
       removalCost: removalCostFor(state.removalsUsed),
@@ -101,21 +126,12 @@ function generateCommonPack(rng: Rng, slot: number): BoosterPack {
 export function rerollShop(state: RunState, shop: Shop): { state: RunState; shop: Shop } | null {
   if (state.gold < shop.rerollCost) return null;
   const { rng, next } = consumeRng(state);
-  const offers: ShopOffer[] = [];
-  const cards = pickRandomCards(SHOP_CARDS, rng);
-  for (const card of cards) {
-    offers.push({ kind: "card", card, price: priceForCard(card, rng) });
-  }
-  for (let i = 0; i < SHOP_PACKS; i++) {
-    const pack = generateCommonPack(rng, i);
-    offers.push({ kind: "booster", pack, price: priceForPack(rng) });
-  }
   const rerollsUsed = shop.rerollsUsed + 1;
   return {
     state: { ...next, gold: next.gold - shop.rerollCost },
     shop: {
       ...shop,
-      offers,
+      offers: buildOffers(state, rng),
       rerollsUsed,
       rerollCost: rerollCostFor(rerollsUsed),
     },
@@ -176,6 +192,39 @@ export function addPickedPackCard(state: RunState, card: Card): RunState {
   // a known card (a Card stored verbatim is fine, but a stale id would not be).
   const known = CARD_LIBRARY[card.id];
   return { ...state, deck: [...state.deck, known ?? card] };
+}
+
+// ---- Artifact buy ----------------------------------------------------------
+
+/**
+ * Buy an artifact offer at `index`. Returns null if the offer is sold, not
+ * an artifact, the player can't afford it, or the player already owns it.
+ *
+ * Slot cap (`ARTIFACT_SLOT_CAP`): if buying would exceed the cap, the call
+ * is also rejected. The displacement-modal flow described in
+ * `docs/design/artifacts.md` is M11 polish — for the prototype the buy
+ * button simply disables once the player is at cap.
+ */
+export function buyArtifactOffer(
+  state: RunState,
+  shop: Shop,
+  index: number,
+): { state: RunState; shop: Shop } | null {
+  const offer = shop.offers[index];
+  if (!offer || offer.kind !== "artifact" || offer.sold) return null;
+  if (state.gold < offer.price) return null;
+  if (state.artifacts.length >= ARTIFACT_SLOT_CAP) return null;
+  if (state.artifacts.some((a) => a.id === offer.artifact.id)) return null;
+  const offers = shop.offers.slice();
+  offers[index] = { ...offer, sold: true };
+  return {
+    state: {
+      ...state,
+      gold: state.gold - offer.price,
+      artifacts: [...state.artifacts, offer.artifact],
+    },
+    shop: { ...shop, offers },
+  };
 }
 
 // ---- Card removal ----------------------------------------------------------

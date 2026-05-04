@@ -4,9 +4,9 @@ A rough ordering of work to get from "empty repo" to "playable prototype." Numbe
 
 The milestones are roughly sequential — each builds on the previous — but several can be parallelized.
 
-## Status as of 2026-05-03
+## Status as of 2026-05-04
 
-The chess core, card system, walls, dev sandbox, the first half of the square-effect overlays, and the M5 run loop (3-match Royal mini-run + shop + reward) are built. The remaining work is artifacts, bosses, zone-control buffs, the full 9-match run, then Skirmish.
+The chess core, card system, walls, dev sandbox, the first half of the square-effect overlays, the M5 run loop (3-match Royal mini-run + shop + reward), and M6 artifacts (pool + shop offers + trigger system + sidebar) are built. The remaining work is bosses, zone-control buffs, the full 9-match run, then Skirmish.
 
 Already shipped:
 
@@ -51,17 +51,32 @@ Live in `src/components/Match/DevPanel.tsx`. Provides editor, library, energy co
 
 Live in `src/components/Run/` + `src/game/progression/run.ts` + `src/game/shop/shop.ts`. Top-level Royal kicks off a 3-match mini-run; reward step offers a 1-of-3 card draft (or skip-for-gold); shop offers rotating cards + booster packs with reroll (per-shop scaling) and card removal (per-run scaling); +1 gold per 5 saved at shop close (capped +5). Boss / artifact pieces are stubbed for the milestones below.
 
-## M6 — Artifacts [2d]
+## M6 — Artifacts [done]
 
-- Define the `Artifact` type and a small starter artifact pool (~10 artifacts spanning all four effect domains).
-- Artifact slots in the run state (cap 5).
-- Shop artifact offers.
-- Artifact trigger system (hook into card-played, capture, check, turn-start, etc.).
-- Artifact sidebar UI.
+Live in `src/game/artifacts/` (library + effect helpers) plus shop/Match/Run wiring.
+
+- `Artifact` type with a discriminated `ArtifactEffect` union spanning the
+  four effect domains: card cost discounts, hand size / starting energy /
+  per-turn energy bonuses, gold-on-match-start, and capture / check
+  triggers (draw, energy).
+- 11 starter artifacts (6 common, 3 uncommon, 2 rare) covering all those
+  domains in `src/game/artifacts/library.ts`.
+- Artifact slots tracked in `RunState.artifacts`, cap 5 (`ARTIFACT_SLOT_CAP`).
+  Buy is rejected at the cap; the displacement-pick modal from the design doc
+  is deferred to polish (M11) since the prototype rarely fills five slots.
+- Shop artifact offers: 1 per visit, weighted by rarity, never re-offered if
+  already owned, priced common 12 / uncommon 18 / rare 25 (+ jitter).
+- Trigger system wired in `Match.tsx`: hand-size / energy bonuses fold into
+  `startPlayerTurn`, cost discounts into `playCard`, capture / check into the
+  player chess-move handler.
+- `ArtifactSidebar` shown in the Run shell during match / reward / shop
+  phases and on the end-of-run summary; rarity-coloured borders, hover
+  description.
 
 (Boss-reward artifact path is stubbed but unused until M8.)
 
-**Done when:** artifacts can be acquired from the shop, hold their slot, displace correctly past the cap, and fire their effects in matches.
+**Done when:** artifacts can be acquired from the shop, hold their slot,
+displace correctly past the cap, and fire their effects in matches. ✅
 
 ## M7 — Zone-control buffs [0.5d]
 

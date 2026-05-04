@@ -8,6 +8,7 @@
 
 import type {
   AlgebraicSquare,
+  Artifact,
   Card,
   CardEffect,
   CardId,
@@ -19,6 +20,12 @@ import type {
   PieceType,
   Side,
 } from "../types";
+import {
+  effectiveCardCost,
+  effectiveEnergyPerTurn,
+  effectiveHandSize,
+  effectiveStartingEnergy,
+} from "../artifacts/effects";
 import { getCardById, getCardsByRarity, getShivPool } from "./library";
 
 /** Per `docs/design/cards.md`. */
@@ -67,10 +74,15 @@ export function shuffle<T>(arr: ReadonlyArray<T>, rng: Rng = Math.random): T[] {
  * Initial match state: deck shuffled into the draw pile, hand empty,
  * energy 0, turn 0. Caller should immediately follow with `startPlayerTurn`
  * to deal the opening hand and set turn = 1, energy = STARTING_ENERGY.
+ *
+ * Artifacts default to none — callers in a real run should pass the run's
+ * artifact list so per-match modifiers (hand size, energy, discounts,
+ * trigger hooks) take effect.
  */
 export function createMatchCardState(
   deck: ReadonlyArray<Card>,
   rng: Rng = Math.random,
+  artifacts: ReadonlyArray<Artifact> = [],
 ): MatchCardState {
   return {
     hand: [],
@@ -90,6 +102,7 @@ export function createMatchCardState(
     empowers: [],
     sanctuaries: [],
     traps: [],
+    artifacts,
   };
 }
 
@@ -116,9 +129,13 @@ export function drawCards(
   return { ...state, hand, drawPile };
 }
 
-/** Draw until the hand is at HAND_SIZE; never trims. */
+/**
+ * Draw until the hand is at the effective hand size (HAND_SIZE plus any
+ * artifact bonuses); never trims an oversized hand.
+ */
 export function refillHand(state: MatchCardState, rng: Rng = Math.random): MatchCardState {
-  const need = HAND_SIZE - state.hand.length;
+  const target = effectiveHandSize(state.artifacts ?? []);
+  const need = target - state.hand.length;
   if (need <= 0) return state;
   return drawCards(state, need, rng);
 }
@@ -136,7 +153,11 @@ export function startPlayerTurn(state: MatchCardState, rng: Rng = Math.random): 
   const turn = state.turn + 1;
   const alive = <T extends { expiresOnTurn: number }>(arr: T[]) =>
     arr.filter((x) => x.expiresOnTurn > turn);
-  const energy = turn === 1 ? STARTING_ENERGY : clampEnergy(state.energy + ENERGY_PER_TURN);
+  const artifacts = state.artifacts ?? [];
+  const energy =
+    turn === 1
+      ? clampEnergy(effectiveStartingEnergy(artifacts))
+      : clampEnergy(state.energy + effectiveEnergyPerTurn(artifacts));
   const next: MatchCardState = {
     ...state,
     turn,
@@ -242,12 +263,13 @@ export function playCard(
 ): PlayCardResult {
   const card = state.hand[cardIndex];
   if (!card) return { ok: false, reason: "no-such-card" };
-  if (state.energy < card.cost) return { ok: false, reason: "not-enough-energy" };
+  const cost = effectiveCardCost(card, state.artifacts ?? []);
+  if (state.energy < cost) return { ok: false, reason: "not-enough-energy" };
 
   const validation = validateTarget(card, target, ctx);
   if (validation) return { ok: false, reason: validation };
 
-  let next: MatchCardState = { ...state, energy: clampEnergy(state.energy - card.cost) };
+  let next: MatchCardState = { ...state, energy: clampEnergy(state.energy - cost) };
   const sideEffects: CardSideEffect[] = [];
 
   const applied = applyEffect(card.effect, next, target, ctx, rng, card);

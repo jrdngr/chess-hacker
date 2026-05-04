@@ -76,6 +76,7 @@ import {
   consumeHaste,
   consumeLightningAction,
   createMatchCardState,
+  drawCards,
   drawPileInAcquisitionOrder,
   dropOtherSingleUseEmpowers,
   grantSoulOnCapture,
@@ -95,6 +96,7 @@ import {
 import { makeStarterDeck } from "../game/cards/library";
 import type {
   AlgebraicSquare,
+  Artifact,
   BoardSize,
   Card,
   MatchCardState,
@@ -103,6 +105,7 @@ import type {
   RunMatchOutcome,
   Side,
 } from "../game/types";
+import { drawOnCapture, drawOnCheck, energyOnCapture } from "../game/artifacts/effects";
 
 import styles from "./Match.module.css";
 
@@ -152,6 +155,18 @@ type Props = {
   aiMinThinkMs?: number;
   /** Inject a deck for tests. */
   initialDeck?: Card[];
+  /**
+   * Artifacts active for this match — defaults to none. The Run shell passes
+   * the run's current artifact list so per-match modifiers (hand size,
+   * energy, cost discounts, capture / check triggers) take effect.
+   */
+  initialArtifacts?: ReadonlyArray<Artifact>;
+  /**
+   * Run mode: bubble dev-edited artifact changes back up to the run shell so
+   * the new artifact list persists across the next match remount. Undefined
+   * in prototype / sandbox where there's no run state to update.
+   */
+  onSaveArtifacts?: (artifacts: ReadonlyArray<Artifact>) => void;
   /** Inject an RNG for tests so card order is deterministic. */
   rng?: Rng;
   /**
@@ -209,6 +224,8 @@ export function Match({
   createAi,
   aiMinThinkMs = DEFAULT_AI_MIN_THINK_MS,
   initialDeck,
+  initialArtifacts,
+  onSaveArtifacts,
   rng,
   initialEnergy,
   initialDevAiOn,
@@ -289,9 +306,17 @@ export function Match({
   // ---- Card-system state (vs-ai only) --------------------------------------
 
   const cardsEnabled = mode === "vs-ai";
+  // Match is re-mounted between matches (Run shell uses `key={match-N}`), so
+  // initializing from the prop is sufficient. The dev artifact editor mutates
+  // this state, and bubbles changes up via `onSaveArtifacts` so the run shell
+  // can persist them across the next remount.
+  const [artifacts, setArtifacts] = useState<ReadonlyArray<Artifact>>(() => initialArtifacts ?? []);
   const [cardState, setCardState] = useState<MatchCardState>(() => {
-    if (!cardsEnabled) return createMatchCardState([], rng);
-    const fresh = startPlayerTurn(createMatchCardState(initialDeck ?? makeStarterDeck(), rng), rng);
+    if (!cardsEnabled) return createMatchCardState([], rng, artifacts);
+    const fresh = startPlayerTurn(
+      createMatchCardState(initialDeck ?? makeStarterDeck(), rng, artifacts),
+      rng,
+    );
     return initialEnergy !== undefined ? { ...fresh, energy: initialEnergy } : fresh;
   });
   /** Hand index waiting for a target click, or null. */
@@ -846,6 +871,25 @@ export function Match({
         next = resolveTrapForMove(engine, next, mover, applied.from, applied.to);
       }
 
+      // Artifact triggers — only fire on player-side moves. Capture / check
+      // grants apply to the active turn so the player can spend the granted
+      // energy or freshly-drawn cards before turn rollover.
+      if (mover?.side === "player") {
+        if (applied.isCapture) {
+          const drawN = drawOnCapture(artifacts);
+          if (drawN > 0) next = drawCards(next, drawN, rng);
+          const energyN = energyOnCapture(artifacts);
+          if (energyN > 0) next = { ...next, energy: clampEnergy(next.energy + energyN) };
+        }
+        // Engine flips turn after `move`, so `inCheck()` now reports whether
+        // the opponent (the new side-to-move) is in check — exactly the
+        // "you put them in check" trigger.
+        if (engine.inCheck()) {
+          const drawC = drawOnCheck(artifacts);
+          if (drawC > 0) next = drawCards(next, drawC, rng);
+        }
+      }
+
       // Haste / Lightning: grant another action by flipping the turn back.
       // Haste: must not be a capture move (rule engine already prevents this).
       // Both: only the FIRST move uses the second-action grant; after that we
@@ -912,6 +956,7 @@ export function Match({
       applyTurnRollover,
       pushSnapshot,
       pushHistory,
+      artifacts,
     ],
   );
 
@@ -1225,7 +1270,10 @@ export function Match({
   const standardStart = useCallback(() => {
     const freshEngine = new ChoseEngine();
     setEngine(freshEngine);
-    const fresh = startPlayerTurn(createMatchCardState(initialDeck ?? makeStarterDeck(), rng), rng);
+    const fresh = startPlayerTurn(
+      createMatchCardState(initialDeck ?? makeStarterDeck(), rng, artifacts),
+      rng,
+    );
     setCardState(fresh);
     setSelected(null);
     setVersion(0);
@@ -1254,7 +1302,7 @@ export function Match({
       cardState: fresh,
       history: initialHistory,
     });
-  }, [initialDeck, rng, undoRedo, mode, replaceHistory]);
+  }, [initialDeck, rng, undoRedo, mode, replaceHistory, artifacts]);
 
   /**
    * Reseed the board to a Chess960-style starting position on the *current*
@@ -1277,7 +1325,10 @@ export function Match({
     generationRef.current++;
     aiRef.current?.stop();
     setEngine(freshEngine);
-    const fresh = startPlayerTurn(createMatchCardState(initialDeck ?? makeStarterDeck(), rng), rng);
+    const fresh = startPlayerTurn(
+      createMatchCardState(initialDeck ?? makeStarterDeck(), rng, artifacts),
+      rng,
+    );
     setCardState(fresh);
     setSelected(null);
     setVersion(0);
@@ -1308,7 +1359,7 @@ export function Match({
       cardState: fresh,
       history: initialHistory,
     });
-  }, [engine, initialDeck, rng, undoRedo, mode, replaceHistory]);
+  }, [engine, initialDeck, rng, undoRedo, mode, replaceHistory, artifacts]);
 
   const bumpEnergy = useCallback(
     (delta: number) => {
@@ -1367,6 +1418,27 @@ export function Match({
       });
     },
     [pushSnapshot],
+  );
+
+  /**
+   * Apply edits from the artifact editor: replace the held artifact list
+   * wholesale. The Match-level state drives capture / check triggers, while
+   * `cardState.artifacts` drives card-cost / hand-size / energy effects, so we
+   * update both. The run shell is notified via `onSaveArtifacts` so changes
+   * persist across the next match remount.
+   */
+  const saveArtifacts = useCallback(
+    (next: Artifact[]) => {
+      const frozen = next.slice();
+      setArtifacts(frozen);
+      setCardState((prev) => {
+        const updated: MatchCardState = { ...prev, artifacts: frozen };
+        pushSnapshot(updated);
+        return updated;
+      });
+      onSaveArtifacts?.(frozen);
+    },
+    [pushSnapshot, onSaveArtifacts],
   );
 
   /**
@@ -1739,12 +1811,15 @@ export function Match({
     setLibraryFreePlayActive(false);
     if (mode === "vs-ai") {
       setCardState(
-        startPlayerTurn(createMatchCardState(initialDeck ?? makeStarterDeck(), rng), rng),
+        startPlayerTurn(
+          createMatchCardState(initialDeck ?? makeStarterDeck(), rng, artifacts),
+          rng,
+        ),
       );
     } else {
-      setCardState(createMatchCardState([], rng));
+      setCardState(createMatchCardState([], rng, artifacts));
     }
-  }, [initialFen, initialBoardSize, initialDeck, mode, rng, undoRedo, replaceHistory]);
+  }, [initialFen, initialBoardSize, initialDeck, mode, rng, undoRedo, replaceHistory, artifacts]);
 
   const onModeChange = useCallback(
     (next: MatchMode) => {
@@ -1767,13 +1842,16 @@ export function Match({
       setLibraryFreePlayActive(false);
       if (next === "vs-ai") {
         setCardState(
-          startPlayerTurn(createMatchCardState(initialDeck ?? makeStarterDeck(), rng), rng),
+          startPlayerTurn(
+            createMatchCardState(initialDeck ?? makeStarterDeck(), rng, artifacts),
+            rng,
+          ),
         );
       } else {
-        setCardState(createMatchCardState([], rng));
+        setCardState(createMatchCardState([], rng, artifacts));
       }
     },
-    [mode, initialFen, initialBoardSize, initialDeck, rng, undoRedo, replaceHistory],
+    [mode, initialFen, initialBoardSize, initialDeck, rng, undoRedo, replaceHistory, artifacts],
   );
 
   /**
@@ -2032,6 +2110,8 @@ export function Match({
           drawPile={cardState.drawPile}
           consumedPile={cardState.consumedPile}
           onSaveDeck={saveDeck}
+          artifacts={artifacts}
+          onSaveArtifacts={saveArtifacts}
           onBumpEnergy={() => bumpEnergy(1)}
           onSkipMatchAndWin={runMode === "run" ? skipMatchAndWin : undefined}
           skipMatchDisabled={matchOver}

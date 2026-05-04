@@ -299,22 +299,39 @@ export type DraftOffer = {
 
 // === Artifacts (M6) ===
 export type ArtifactRarity = "common" | "uncommon" | "rare";
-export type ArtifactTriggerKind =
-  | "card-played"
-  | "capture"
-  | "turn-start"
-  | "turn-end"
-  | "match-start"
-  | "match-won";
+
+/**
+ * Artifact effects — discriminated union covering all four effect domains
+ * documented in `docs/design/artifacts.md`:
+ *
+ *  - card-related: card-cost-discount
+ *  - resource / match-rule: hand-size-bonus, start-energy-bonus,
+ *    energy-per-turn-bonus, gold-on-match-start
+ *  - conditional triggers: draw-on-capture, energy-on-capture, draw-on-check
+ *
+ * Piece-related effects (e.g. "pawns promote at rank 6") need engine plumbing
+ * and land in a follow-up. Single artifact may declare multiple effects.
+ */
+export type ArtifactEffect =
+  | { kind: "hand-size-bonus"; amount: number }
+  | { kind: "start-energy-bonus"; amount: number }
+  | { kind: "energy-per-turn-bonus"; amount: number }
+  | { kind: "card-cost-discount"; archetype?: CardArchetype; amount: number }
+  | { kind: "gold-on-match-start"; amount: number }
+  | { kind: "draw-on-capture"; count: number }
+  | { kind: "energy-on-capture"; amount: number }
+  | { kind: "draw-on-check"; count: number };
+
 export type Artifact = {
   id: string;
   name: string;
   rarity: ArtifactRarity;
   description: string;
-  triggers: ReadonlyArray<ArtifactTriggerKind>;
-  // The effect shape lands in M6 — likely a discriminated union mirroring
-  // CardEffect, but with hooks-style "when this trigger fires, do that".
+  effects: ReadonlyArray<ArtifactEffect>;
 };
+
+/** Cap on artifacts a single run can hold — see docs/design/artifacts.md. */
+export const ARTIFACT_SLOT_CAP = 5;
 
 // === Shop (M5) ===
 export type ShopOfferKind = "card" | "booster" | "artifact";
@@ -417,4 +434,10 @@ export type MatchCardState = {
   sanctuaries: Sanctuary[];
   /** Trap square overlays. */
   traps: Trap[];
+  /**
+   * Artifacts active for this match — copied from the run state at match
+   * start. Immutable across the match. Drives hand size, energy bonuses,
+   * card discounts, and conditional triggers (see game/artifacts/effects.ts).
+   */
+  artifacts: ReadonlyArray<Artifact>;
 };

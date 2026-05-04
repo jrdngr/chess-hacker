@@ -1124,7 +1124,7 @@ describe("Match — dev mode", () => {
     expect(squareCell("e7")?.getAttribute("aria-label")).toBe("e7, opponent pawn");
 
     // Trigger the single-move button.
-    await user.click(screen.getByRole("button", { name: /AI: play one move/i }));
+    await user.click(screen.getByRole("button", { name: /^AI Move$/i }));
 
     await waitFor(() => {
       expect(squareCell("e5")?.getAttribute("aria-label")).toBe("e5, opponent pawn");

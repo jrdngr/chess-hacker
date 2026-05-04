@@ -442,6 +442,10 @@
   border-radius: 4px;
 }
 
+.artifactEntry {
+  grid-template-columns: 1fr auto auto;
+}
+
 .deckEntryRemoved {
   opacity: 0.45;
   text-decoration: line-through;

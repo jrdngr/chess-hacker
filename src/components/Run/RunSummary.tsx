@@ -1,6 +1,7 @@
 // End-of-run screen — shown for both wins and losses. The Run shell routes
 // here on phase = "won" or "lost".
 
+import { ArtifactSidebar } from "./ArtifactSidebar";
 import type { RunState } from "../../game/types";
 import styles from "./Run.module.css";
 
@@ -20,6 +21,7 @@ export function RunSummary({ run, onExit }: Props) {
           : `Lost on match ${run.matchNumber}. Final gold: ${run.gold}.`}
       </p>
       <p className={styles.summaryDetail}>Deck size: {run.deck.length} cards.</p>
+      {run.artifacts.length > 0 && <ArtifactSidebar artifacts={run.artifacts} />}
       <button type="button" className={styles.summaryButton} onClick={onExit}>
         Back to menu
       </button>

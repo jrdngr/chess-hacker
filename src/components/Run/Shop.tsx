@@ -1,6 +1,6 @@
-// Shop UI: rotating offers (cards + booster packs), reroll, card removal.
+// Shop UI: rotating offers (cards + booster packs + artifacts), reroll, card
+// removal.
 //
-// Artifacts are deferred to M6; the offer list will simply include them then.
 // The shop is data-driven from the run's seeded RNG — see game/shop/shop.ts.
 
 import { useState } from "react";
@@ -8,11 +8,13 @@ import { useState } from "react";
 import { CardListModal } from "../Hand/CardListModal";
 import {
   addPickedPackCard,
+  buyArtifactOffer,
   buyCardOffer,
   openBoosterOffer,
   removeCard,
   rerollShop,
 } from "../../game/shop/shop";
+import { ARTIFACT_SLOT_CAP } from "../../game/types";
 import type { BoosterPack, Card, RunState, Shop as ShopState } from "../../game/types";
 
 import styles from "./Shop.module.css";
@@ -36,6 +38,13 @@ export function Shop({ run, shop, onUpdate, onLeave }: Props) {
     const next = buyCardOffer(run, shop, index);
     if (next) onUpdate(next);
   };
+
+  const onBuyArtifact = (index: number) => {
+    const next = buyArtifactOffer(run, shop, index);
+    if (next) onUpdate(next);
+  };
+
+  const atArtifactCap = run.artifacts.length >= ARTIFACT_SLOT_CAP;
 
   const onOpenPack = (index: number) => {
     const next = openBoosterOffer(run, shop, index);
@@ -121,6 +130,30 @@ export function Shop({ run, shop, onUpdate, onLeave }: Props) {
                   {offer.pack.contents.map((c) => c.name).join(", ")}
                 </span>
                 <span className={styles.price}>{offer.sold ? "opened" : `${offer.price}g`}</span>
+              </button>
+            )}
+            {offer.kind === "artifact" && (
+              <button
+                type="button"
+                className={styles.offerCard}
+                onClick={() => onBuyArtifact(i)}
+                disabled={offer.sold || run.gold < offer.price || atArtifactCap}
+                aria-label={
+                  offer.sold
+                    ? `${offer.artifact.name} (sold)`
+                    : atArtifactCap
+                      ? `${offer.artifact.name} — artifact slots full`
+                      : `Buy artifact ${offer.artifact.name} for ${offer.price} gold: ${offer.artifact.description}`
+                }
+                data-artifact-id={offer.artifact.id}
+              >
+                <span className={styles.packBadge}>Artifact</span>
+                <span className={styles.name}>{offer.artifact.name}</span>
+                <span className={styles.archetype}>{offer.artifact.rarity}</span>
+                <span className={styles.description}>{offer.artifact.description}</span>
+                <span className={styles.price}>
+                  {offer.sold ? "sold" : atArtifactCap ? "full" : `${offer.price}g`}
+                </span>
               </button>
             )}
           </li>
