@@ -143,11 +143,6 @@
   height: 100%;
 }
 
-.paletteActive {
-  background: rgba(244, 162, 60, 0.22);
-  border-color: var(--player);
-}
-
 .eraseButton {
   padding: 6px 10px;
   font-size: 12px;
@@ -164,6 +159,11 @@
 
 .eraseButton:active {
   cursor: grabbing;
+}
+
+.paletteActive {
+  background: rgba(244, 162, 60, 0.22);
+  border-color: var(--player);
 }
 
 .checkboxRow {
