@@ -52,3 +52,15 @@ When you start work, **read `docs/README.md` first** — it is the index for eve
 - Stack: TypeScript + React (Vite) + custom chess engine (`src/game/chess/`) + Stockfish.wasm + localStorage. See `docs/technical/stack.md` for rationale.
 - State management: per-match state in `src/components/Match.tsx` (+ sibling hooks under `src/components/Match/`); per-run state in `src/components/Run/Run.tsx`. Both are local `useState`. Zustand is still queued — adopt only when cross-component state grows painful.
 - The game is single-player only; do not add multiplayer scaffolding (`docs/design/overview.md` records this).
+
+## Pre-commit checks
+
+CI (`.github/workflows/ci.yml`) runs on every push and pull request, and **all of these must pass**. After editing code, run them locally before reporting work complete or committing:
+
+1. `npm run format` — auto-formats with Prettier. **Always run this after editing code** so `format:check` passes in CI.
+2. `npm run lint` — ESLint.
+3. `npx tsc --noEmit` — TypeScript type-check.
+4. `npm test` — Vitest suite.
+5. `npm run build` — production build (`tsc -b && vite build`).
+
+If any step fails, fix the underlying issue before committing — do not bypass with `--no-verify` or by skipping checks. Treat a red CI run as a bug to fix, not noise to ignore.
