@@ -160,9 +160,42 @@ type Props = {
    * larger pool so existing scenarios (cost-2+ cards on turn 1) keep working.
    */
   initialEnergy?: number;
+  /**
+   * Override the initial value of `devAiOn`. Defaults to true for `run` mode
+   * (player faces an active AI) and false for `dev` mode (sandbox starts AI
+   * off so the user drives both sides). Tests use this to put dev-mode
+   * matches into the same "AI plays Black" mode that prototype mode used to
+   * provide implicitly.
+   */
+  initialDevAiOn?: boolean;
 };
 
 const DEFAULT_AI_MIN_THINK_MS = 500;
+
+/**
+ * Map a coordinate (file or rank) when the board grows or shrinks. Each +/-1
+ * step adds or removes a single line at the middle index of the *new* size
+ * (`floor(newSize/2)` on grow, `floor(oldSize/2)` on shrink), so back ranks
+ * survive a step intact. Returns `null` if the coordinate falls on a removed
+ * line. Multi-step deltas iterate so the result is consistent with stepping
+ * one at a time through the dev panel.
+ */
+function remapAxis(oldCoord: number, oldSize: number, newSize: number): number | null {
+  let coord = oldCoord;
+  let size = oldSize;
+  while (size < newSize) {
+    const insertIdx = Math.floor((size + 1) / 2);
+    if (coord >= insertIdx) coord += 1;
+    size += 1;
+  }
+  while (size > newSize) {
+    const removeIdx = Math.floor(size / 2);
+    if (coord === removeIdx) return null;
+    if (coord > removeIdx) coord -= 1;
+    size -= 1;
+  }
+  return coord;
+}
 
 const HUMAN_SIDE: Side = "player";
 const AI_SIDE: Side = "opponent";
@@ -180,6 +213,7 @@ export function Match({
   initialDeck,
   rng,
   initialEnergy,
+  initialDevAiOn,
 }: Props = {}) {
   // Dev mode forces the card system on (mode = "vs-ai"); the per-match
   // vs-AI / Local-PvP toggle is hidden in the side panel. The AI itself is
@@ -214,7 +248,7 @@ export function Match({
    * and the player explicitly toggles it off. The prototype ignores this and
    * always plays.
    */
-  const [devAiOn, setDevAiOn] = useState(runMode === "run");
+  const [devAiOn, setDevAiOn] = useState(initialDevAiOn ?? runMode === "run");
   /**
    * Currently-selected editor brush. When non-null in dev mode, board clicks
    * place / overwrite / erase pieces instead of doing chess moves.
@@ -757,12 +791,15 @@ export function Match({
       // Dev panel active + AI off: the human drives Black, so the AI loop
       // never fires and we have to roll over to a fresh player turn here.
       // Otherwise just commit; sandbox additionally pushes an action-granular
-      // snapshot so undo can rewind individual moves.
+      // snapshot so undo can rewind individual half-moves — but skip that push
+      // when the AI is about to respond, so the rollover snapshot lands on
+      // the player's next turn start (one undo == one player turn).
       if (devPanelEnabled && !devAiOn && mover?.side === "opponent" && !consumeAndContinue) {
         applyTurnRollover(next);
       } else {
         setCardState(next);
-        if (runMode === "dev") pushSnapshot(next);
+        const aiAboutToRespond = devAiOn && !consumeAndContinue && engine.turn() === AI_SIDE;
+        if (runMode === "dev" && !aiAboutToRespond) pushSnapshot(next);
       }
       return true;
     },
@@ -853,10 +890,13 @@ export function Match({
       // Card play may have changed the board (capture / move / new piece) —
       // make sure derived rendering re-runs.
       setVersion((v) => v + 1);
-      if (runMode === "dev") pushSnapshot(next);
+      // Sandbox card-play snapshot — but skip when AI is on, since the card is
+      // part of a turn cycle the AI will close out and one undo should rewind
+      // the whole player turn.
+      if (runMode === "dev" && !devAiOn) pushSnapshot(next);
       return true;
     },
-    [cardState, boardContext, rng, applyCardSideEffects, runMode, pushSnapshot],
+    [cardState, boardContext, rng, applyCardSideEffects, runMode, devAiOn, pushSnapshot],
   );
 
   const onCardClick = useCallback(
@@ -955,10 +995,12 @@ export function Match({
 
   /**
    * Resize the dev sandbox board. We rebuild the engine from an empty FEN of
-   * the new size, dropping pieces that no longer fit. Per-piece statuses are
-   * cleared (their pieces may not exist on the new board) but square overlays
-   * (walls, sanctuaries, traps) survive if they're still in-bounds. Validation
-   * re-runs automatically via the version bump.
+   * the new size, shifting pieces so new ranks/files appear (or are removed)
+   * at the center of the board rather than at the edges — that keeps the
+   * back ranks intact through a +/-1 step. Per-piece statuses are cleared
+   * (their pieces may have moved) but square overlays (walls, sanctuaries,
+   * traps) are left untouched. Validation re-runs automatically via the
+   * version bump.
    */
   const resizeBoard = useCallback(
     (size: BoardSize) => {
@@ -966,13 +1008,17 @@ export function Match({
       const emptyRow = String(size.files);
       const board = Array.from({ length: size.ranks }, () => emptyRow).join("/");
       const fresh = new ChoseEngine(`${board} w - - 0 1`, size);
-      // Carry over pieces that still fit on the new board.
+      const oldSize = engine.size();
+      // Carry over pieces, applying the center-anchored shift on each axis.
       for (const { square, piece } of engine.pieces()) {
         const file = square.charCodeAt(0) - 97; // 'a' = 0
         const rank = Number(square.slice(1)) - 1;
-        if (file < size.files && rank < size.ranks) {
-          fresh.placePiece(square, piece);
-        }
+        const newFile = remapAxis(file, oldSize.files, size.files);
+        const newRank = remapAxis(rank, oldSize.ranks, size.ranks);
+        if (newFile === null || newRank === null) continue;
+        const newSquare =
+          `${String.fromCharCode(97 + newFile)}${newRank + 1}` as AlgebraicSquare;
+        fresh.placePiece(newSquare, piece);
       }
       // Preserve side-to-move.
       fresh.forceTurn(engine.turn());
@@ -1023,20 +1069,33 @@ export function Match({
   }, [initialDeck, rng, undoRedo]);
 
   /**
-   * Reseed the board to a Standard-mode starting position: pick one of the
-   * 9 STANDARD_MATCHES configs at random and run its piece set through the
-   * Chess960 generator. Resets the deck/hand/energy like Standard Start does.
+   * Reseed the board to a Chess960-style starting position on the *current*
+   * board size. Picks a Standard-mode piece set that fits within the current
+   * file count and runs it through the 960 generator. Resets the
+   * deck/hand/energy like Standard Start does.
    */
   const randomStart = useCallback(() => {
     const r: Rng = rng ?? Math.random;
-    const cfg = STANDARD_MATCHES[Math.floor(r() * STANDARD_MATCHES.length)];
-    const { fen, size } = generateChess960Position(cfg.pieceSet, cfg.size, r);
+    const currentSize = engine.size();
+    const fitting = STANDARD_MATCHES.filter(
+      (m) => m.pieceSet.backRank.length <= currentSize.files,
+    );
+    const pool = fitting.length > 0 ? fitting : STANDARD_MATCHES;
+    const cfg = pool[Math.floor(r() * pool.length)];
+    const { fen, size } = generateChess960Position(cfg.pieceSet, currentSize, r);
     const freshEngine = new ChoseEngine(fen, size);
+    // Cancel any in-flight AI reply — `randomStart` doubles as the "New game"
+    // action on match-over in sandbox, where the AI loop is idle but the
+    // generation bump is still cheap insurance against a stale callback.
+    generationRef.current++;
+    aiRef.current?.stop();
     setEngine(freshEngine);
     const fresh = startPlayerTurn(createMatchCardState(initialDeck ?? makeStarterDeck(), rng), rng);
     setCardState(fresh);
     setSelected(null);
     setVersion(0);
+    setAiThinking(false);
+    setAiError(null);
     setTargetingIndex(null);
     setPartialTarget(null);
     setMarionetteMoves([]);
@@ -1048,7 +1107,7 @@ export function Match({
     libraryFreePlayRef.current = null;
     setLibraryFreePlayActive(false);
     undoRedo.seed({ engineSnapshot: freshEngine.snapshot(), cardState: fresh });
-  }, [initialDeck, rng, undoRedo]);
+  }, [engine, initialDeck, rng, undoRedo]);
 
   const bumpEnergy = useCallback(
     (delta: number) => {
@@ -1408,11 +1467,11 @@ export function Match({
   /**
    * Undo / redo are unlimited and rewind across the AI's preceding move —
    * a snapshot represents the start of a player turn (or the start of a
-   * dev-mode action). Both flows are gated on aiThinking / matchOver so
-   * the player can't tear down state while a worker reply is in flight.
+   * dev-mode action). Gated on aiThinking only: the player can rewind out
+   * of a checkmate / stalemate to retry the losing line.
    */
-  const canUndo = cardsEnabled && undoRedo.undoDepth >= 2 && !aiThinking && !matchOver;
-  const canRedo = cardsEnabled && undoRedo.redoDepth > 0 && !aiThinking && !matchOver;
+  const canUndo = cardsEnabled && undoRedo.undoDepth >= 2 && !aiThinking;
+  const canRedo = cardsEnabled && undoRedo.redoDepth > 0 && !aiThinking;
 
   const clearTransientUI = useCallback(() => {
     setSelected(null);
@@ -1554,7 +1613,11 @@ export function Match({
             <div className={styles.outcomeHeadline}>{outcomeHeadline(outcome)}</div>
             <div className={styles.outcomeDetail}>{outcomeDetail(outcome)}</div>
             {runMode !== "run" && (
-              <button type="button" onClick={resetGame} className={styles.newGame}>
+              <button
+                type="button"
+                onClick={runMode === "dev" ? randomStart : resetGame}
+                className={styles.newGame}
+              >
                 New game
               </button>
             )}
@@ -1564,16 +1627,6 @@ export function Match({
           <button type="button" onClick={resetGame} className={styles.resetButton}>
             Reset
           </button>
-        )}
-        {cardsEnabled && !matchOver && runMode !== "run" && (
-          <>
-            <button type="button" onClick={undo} disabled={!canUndo} className={styles.resetButton}>
-              Undo turn
-            </button>
-            <button type="button" onClick={redo} disabled={!canRedo} className={styles.resetButton}>
-              Redo turn
-            </button>
-          </>
         )}
       </aside>
 
@@ -1659,6 +1712,10 @@ export function Match({
           onLibraryCardDragStart={dragStartLibraryCard}
           onLibraryCardDragEnd={dragEndLibraryCard}
           onBumpEnergy={() => bumpEnergy(1)}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onUndo={undo}
+          onRedo={redo}
         />
       )}
       {runMode === "run" && !devPanelOpen && (

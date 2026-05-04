@@ -29,8 +29,9 @@ type Props = {
   onClearBoard: () => void;
   onStandardStart: () => void;
   /**
-   * Wipe the board and seed a Chess960 starting position drawn from one of
-   * the Standard-mode match configs (random match number → random layout).
+   * Wipe the board and seed a Chess960 starting position on the *current*
+   * board size, using a Standard-mode piece set that fits within the file
+   * count. Does not change ranks/files.
    */
   onRandomStart: () => void;
   /**
@@ -62,6 +63,12 @@ type Props = {
   // Energy
   onBumpEnergy: () => void;
 
+  // History
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
+
   /** Heading shown at the top of the panel. Defaults to "Sandbox". */
   heading?: string;
   /** When provided, renders a close button in the panel header. */
@@ -92,6 +99,10 @@ export function DevPanel({
   onLibraryCardDragStart,
   onLibraryCardDragEnd,
   onBumpEnergy,
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
   heading = "Sandbox",
   onClose,
 }: Props) {
@@ -272,6 +283,27 @@ export function DevPanel({
         <button type="button" className={styles.smallButton} onClick={() => setShowLibrary(true)}>
           Open library
         </button>
+      </Section>
+
+      <Section label="History">
+        <div className={styles.row}>
+          <button
+            type="button"
+            className={styles.smallButton}
+            onClick={onUndo}
+            disabled={!canUndo}
+          >
+            Undo turn
+          </button>
+          <button
+            type="button"
+            className={styles.smallButton}
+            onClick={onRedo}
+            disabled={!canRedo}
+          >
+            Redo turn
+          </button>
+        </div>
       </Section>
     </aside>
   );

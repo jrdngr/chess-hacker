@@ -110,6 +110,6 @@ What sandbox mode provides:
 - **Free card library.** Every card in the library is playable on demand. Library plays cost no energy and do not enter the spent pile, but their effects (statuses, traps, summons, draws, scry, revive prompts, generators, self-replicators, capture-grants-Soul) resolve through the same `playCard` path as a real play.
 - **Optional AI.** AI on Black is off by default in sandbox. Toggle it on for an auto-replying opponent, or click "AI: play one move" for a one-shot reply. With the AI off, the human drives both colors.
 - **Energy controls.** "+1 energy" button short-circuits the natural ramp.
-- **Action-granular undo / redo.** Every action (move, edit, library play, side-to-move toggle, energy bump, resize) pushes a snapshot, so undo rewinds individual actions instead of whole turns.
+- **Action-granular undo / redo.** Every action (move, edit, library play, side-to-move toggle, energy bump, resize) pushes a snapshot, so undo rewinds individual actions instead of whole turns. Exception: when the AI is on, mid-turn snapshots collapse so one undo rewinds the player's whole previous turn (move + AI reply). Undo / redo also stay enabled after checkmate / stalemate.
 
 Cards are still only playable on the player's turn, and the chess engine still enforces standard rules. The editor flags invalid positions but does not block them — odd positions may produce odd `outcome()` / `inCheck()` results. Acceptable for a dev tool.

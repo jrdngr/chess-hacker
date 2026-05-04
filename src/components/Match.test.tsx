@@ -667,7 +667,8 @@ describe("Match — undo", () => {
     const ai = makeFakeAi(["e7e5"]);
     render(
       <Match
-        initialMode="vs-ai"
+        runMode="dev"
+        initialDevAiOn
         createAi={() => ai}
         aiMinThinkMs={0}
         initialDeck={ALL_FORESIGHT_DECK}
@@ -695,7 +696,7 @@ describe("Match — undo", () => {
     expect(squareCell("e7")?.getAttribute("aria-label")).toBe("e7, opponent pawn");
     expect(squareCell("e5")?.getAttribute("aria-label")).toBe("e5");
     // Back to white's turn.
-    expect(screen.getByText(/^white/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^side to move:/i)).toHaveTextContent(/white/i);
   });
 
   it("undo can rewind multiple turns in a row (no per-turn cap)", async () => {
@@ -703,7 +704,8 @@ describe("Match — undo", () => {
     const ai = makeFakeAi(["e7e5", "d7d5", "g8f6"]);
     render(
       <Match
-        initialMode="vs-ai"
+        runMode="dev"
+        initialDevAiOn
         createAi={() => ai}
         aiMinThinkMs={0}
         initialDeck={ALL_FORESIGHT_DECK}
@@ -748,7 +750,8 @@ describe("Match — undo", () => {
     const ai = makeFakeAi(["e7e5", "c7c5"]);
     render(
       <Match
-        initialMode="vs-ai"
+        runMode="dev"
+        initialDevAiOn
         createAi={() => ai}
         aiMinThinkMs={0}
         initialDeck={ALL_FORESIGHT_DECK}
@@ -793,7 +796,8 @@ describe("Match — undo", () => {
     const ai = makeFakeAi(["e7e5"]);
     render(
       <Match
-        initialMode="vs-ai"
+        runMode="dev"
+        initialDevAiOn
         createAi={() => ai}
         aiMinThinkMs={0}
         initialDeck={ALL_FORESIGHT_DECK}

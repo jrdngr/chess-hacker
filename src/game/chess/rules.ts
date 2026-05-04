@@ -625,7 +625,10 @@ function addPawnMoves(
       } else {
         out.push({ from, to: to1, isCapture: false, isDouble: false, isPromotion: false });
       }
-      if (rank === startRank) {
+      // Double-push is only available on full-height (8-rank) boards. On
+      // smaller boards a single push from rank 1 already crosses half the
+      // board, and skipping en-passant simplifies tactics on tight grids.
+      if (rank === startRank && size.ranks === 8) {
         const fr2 = rank + 2 * dir;
         if (inBounds(size, file, fr2)) {
           const to2 = sqAt(file, fr2);

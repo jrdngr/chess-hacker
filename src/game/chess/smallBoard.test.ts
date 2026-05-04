@@ -30,20 +30,20 @@ describe("engine — 6x6 board", () => {
     expect(advance.every((m) => m.isPromotion)).toBe(true);
   });
 
-  it("pawn double-push works from white's starting rank (rank 1) on 6x6", () => {
+  it("pawn double-push is unavailable on a 6x6 board (only single push from start)", () => {
     const fen = "5k/6/6/6/P5/K5 w - - 0 1";
     const e = new ChoseEngine(fen, { files: 6, ranks: 6 });
     const moves = e.legalMoves("a2");
-    // a2 → a4 should be a legal double push.
-    expect(moves.some((m) => m.to === "a4")).toBe(true);
+    expect(moves.some((m) => m.to === "a3")).toBe(true);
+    expect(moves.some((m) => m.to === "a4")).toBe(false);
   });
 
-  it("pawn double-push works from black's starting rank (rank ranks-2) on 6x6", () => {
-    // Black pawn on a5 (rank index 4 = ranks-2 on 6x6) — black to move.
+  it("pawn double-push is unavailable for black on a 6x6 board", () => {
     const fen = "5k/p5/6/6/6/K5 b - - 0 1";
     const e = new ChoseEngine(fen, { files: 6, ranks: 6 });
     const moves = e.legalMoves("a5");
-    expect(moves.some((m) => m.to === "a3")).toBe(true);
+    expect(moves.some((m) => m.to === "a4")).toBe(true);
+    expect(moves.some((m) => m.to === "a3")).toBe(false);
   });
 
   it("does not generate castling on a 6x6 board even with a rook", () => {
