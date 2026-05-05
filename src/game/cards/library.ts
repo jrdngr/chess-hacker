@@ -27,8 +27,8 @@ import type {
 
 import starterDeckJson from "./decks/starter.json";
 
-const VALID_RARITIES: readonly CardRarity[] = ["common", "uncommon", "rare"];
-const VALID_ARCHETYPES: readonly CardArchetype[] = [
+export const VALID_RARITIES: readonly CardRarity[] = ["common", "uncommon", "rare"];
+export const VALID_ARCHETYPES: readonly CardArchetype[] = [
   "tempo",
   "spatial",
   "movement",
@@ -40,8 +40,8 @@ const VALID_ARCHETYPES: readonly CardArchetype[] = [
   "summon",
   "swap",
 ];
-const VALID_COSTS: readonly CardCost[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-const VALID_TARGET_KINDS = [
+export const VALID_COSTS: readonly CardCost[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+export const VALID_TARGET_KINDS = [
   "none",
   "empty-square",
   "empty-square-own-half",
@@ -54,7 +54,7 @@ const VALID_TARGET_KINDS = [
   "rooted-enemy-and-own-piece",
   "hand-card",
 ] as const;
-const VALID_EFFECT_KINDS = [
+export const VALID_EFFECT_KINDS = [
   "gain-energy",
   "draw",
   "scry",
@@ -86,20 +86,20 @@ const VALID_EFFECT_KINDS = [
   "apply-retain-to-hand-card",
   "compound",
 ] as const;
-const VALID_ZONE_BUFF_PATTERNS = ["square-orthogonal-1", "square-radius-1"] as const;
-const VALID_ZONE_BUFF_EFFECT_KINDS = ["energy-per-turn", "hand-size"] as const;
-const VALID_DESTROY_FILTERS = ["any", "attacked-by-player"] as const;
-const VALID_ADD_CARD_DRAW_SOURCES = ["self", "card-id"] as const;
-const VALID_REVIVE_SELECTIONS = ["random", "choose"] as const;
-const VALID_TRAP_EFFECTS: readonly TrapEffect[] = ["capture", "freeze", "push"];
-const VALID_EMPOWER_PATTERNS: readonly EmpowerPattern[] = [
+export const VALID_ZONE_BUFF_PATTERNS = ["square-orthogonal-1", "square-radius-1"] as const;
+export const VALID_ZONE_BUFF_EFFECT_KINDS = ["energy-per-turn", "hand-size"] as const;
+export const VALID_DESTROY_FILTERS = ["any", "attacked-by-player"] as const;
+export const VALID_ADD_CARD_DRAW_SOURCES = ["self", "card-id"] as const;
+export const VALID_REVIVE_SELECTIONS = ["random", "choose"] as const;
+export const VALID_TRAP_EFFECTS: readonly TrapEffect[] = ["capture", "freeze", "push"];
+export const VALID_EMPOWER_PATTERNS: readonly EmpowerPattern[] = [
   "pawn",
   "knight",
   "bishop",
   "rook",
   "queen",
 ];
-const VALID_PIECE_TYPES: readonly PieceType[] = [
+export const VALID_PIECE_TYPES: readonly PieceType[] = [
   "pawn",
   "knight",
   "bishop",
@@ -741,4 +741,40 @@ const STARTER_DECK: ReadonlyArray<Card> = expandDeck(
 
 export function makeStarterDeck(): Card[] {
   return STARTER_DECK.slice();
+}
+
+// ---- Named decks (Content Designer) ----------------------------------------
+//
+// The Content Designer's Vite middleware writes named decks to
+// `./decks/named/*.json`. The game picks them up via `import.meta.glob`,
+// which Vite re-evaluates on file changes (HMR), so newly authored decks
+// appear in the dev panel without a manual page reload.
+
+const NAMED_DECK_MODULES = import.meta.glob<unknown>("./decks/named/*.json", {
+  eager: true,
+  import: "default",
+});
+
+export type NamedDeck = { name: string; cards: Card[] };
+
+export function getNamedDecks(): NamedDeck[] {
+  const out: NamedDeck[] = [];
+  const paths = Object.keys(NAMED_DECK_MODULES).sort();
+  for (const path of paths) {
+    const raw = NAMED_DECK_MODULES[path];
+    try {
+      const cards = expandDeck(path, raw as DeckJson, CARD_LIBRARY);
+      const name =
+        typeof (raw as DeckJson).name === "string" && ((raw as DeckJson).name as string).length > 0
+          ? ((raw as DeckJson).name as string)
+          : basenameNoExt(path);
+      out.push({ name, cards });
+    } catch (err) {
+      // Don't crash the game on a malformed named deck; surface a console
+      // warning instead. The deck simply won't appear in the dev panel.
+      // eslint-disable-next-line no-console
+      console.warn(`Skipping named deck '${path}': ${err instanceof Error ? err.message : err}`);
+    }
+  }
+  return out;
 }

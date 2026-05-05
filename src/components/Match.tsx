@@ -97,7 +97,7 @@ import {
   type Rng,
 } from "../game/cards/match";
 import { fireCurses, makeSchedulerState, type SchedulerState } from "../game/bosses/scheduler";
-import { getCardById, makeStarterDeck } from "../game/cards/library";
+import { getCardById, getNamedDecks, makeStarterDeck } from "../game/cards/library";
 import type {
   AlgebraicSquare,
   Artifact,
@@ -186,6 +186,12 @@ type Props = {
    * in prototype / sandbox where there's no run state to update.
    */
   onSaveArtifacts?: (artifacts: ReadonlyArray<Artifact>) => void;
+  /**
+   * Run mode: replace the run-level deck wholesale when the dev panel loads
+   * a named deck (authored in the Content Designer). The match's piles are
+   * also rebuilt locally so the change is felt immediately without a remount.
+   */
+  onLoadDeck?: (cards: ReadonlyArray<Card>) => void;
   /** Inject an RNG for tests so card order is deterministic. */
   rng?: Rng;
   /**
@@ -298,6 +304,7 @@ export function Match({
   initialDeck,
   initialArtifacts,
   onSaveArtifacts,
+  onLoadDeck,
   rng,
   initialEnergy,
   initialDevAiOn,
@@ -356,6 +363,10 @@ export function Match({
    * whenever it's visible.
    */
   const devPanelEnabled = runMode === "dev" || (runMode === "run" && devPanelOpen);
+  // Eager-loaded JSON; `useMemo` is just to keep the prop reference stable.
+  // Vite HMR rewrites the import.meta.glob result when files in
+  // `src/game/cards/decks/named/` change, which triggers a re-render.
+  const namedDecks = useMemo(() => getNamedDecks(), []);
   /**
    * AI plays Black? Defaults to on in both sandbox and real runs — the player
    * faces an active AI unless they explicitly toggle it off from the dev
@@ -1823,6 +1834,32 @@ export function Match({
   );
 
   /**
+   * Replace the run's deck (and the current match's piles) wholesale with
+   * a named deck authored in the Content Designer. The hand stays put —
+   * cards already in play remain in play. Discard / consumed are cleared.
+   * The run shell is notified via `onLoadDeck` so the change persists into
+   * the next match's `initialDeck` (mirrors the `onSaveArtifacts` pattern).
+   */
+  const loadDeck = useCallback(
+    (cards: ReadonlyArray<Card>) => {
+      const next = cards.slice();
+      setCardState((prev) => {
+        const updated: MatchCardState = {
+          ...prev,
+          drawPile: next,
+          discardPile: [],
+          consumedPile: [],
+          acquisitionLog: [...prev.acquisitionLog, ...next],
+        };
+        pushSnapshot(updated);
+        return updated;
+      });
+      onLoadDeck?.(next);
+    },
+    [pushSnapshot, onLoadDeck],
+  );
+
+  /**
    * Apply edits from the artifact editor: replace the held artifact list
    * wholesale. The Match-level state drives capture / check triggers, while
    * `cardState.artifacts` drives card-cost / hand-size / energy effects, so we
@@ -2568,6 +2605,8 @@ export function Match({
           discardPile={cardState.discardPile}
           consumedPile={cardState.consumedPile}
           onSaveDeck={saveDeck}
+          namedDecks={namedDecks}
+          onLoadDeck={loadDeck}
           artifacts={artifacts}
           onSaveArtifacts={saveArtifacts}
           onBumpEnergy={() => bumpEnergy(1)}

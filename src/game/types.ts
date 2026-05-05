@@ -409,6 +409,8 @@ export type Artifact = {
   rarity: ArtifactRarity;
   description: string;
   effects: ReadonlyArray<ArtifactEffect>;
+  /** Optional display glyph; falls back to a generic talisman in `artifactEmoji`. */
+  emoji?: string;
 };
 
 /** Cap on artifacts a single run can hold — see docs/design/artifacts.md. */

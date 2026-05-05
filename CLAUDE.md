@@ -28,6 +28,7 @@ When you start work, **read `docs/README.md` first** — it is the index for eve
 | Code architecture / state model                 | `docs/technical/architecture.md`                                  |
 | Chess engine (custom, wall-aware)               | `docs/technical/chess-integration.md`                             |
 | Dev sandbox mode                                | `docs/technical/dev-mode.md`                                      |
+| Content Designer (cards / artifacts / bosses)   | `docs/technical/content-designer.md`                              |
 | AI opponent (Stockfish.wasm + curse-AI layer)   | `docs/technical/ai.md`                                            |
 | Save / load                                     | `docs/technical/persistence.md`                                   |
 | Implementation milestones / what to build next  | `docs/roadmap/milestones.md`                                      |

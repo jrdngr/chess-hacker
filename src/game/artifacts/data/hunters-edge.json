@@ -1,0 +1,8 @@
+{
+  "id": "hunters-edge",
+  "name": "Hunter's Edge",
+  "rarity": "common",
+  "description": "When you capture an enemy piece, gain 1 energy this turn.",
+  "emoji": "🏹",
+  "effects": [{ "kind": "energy-on-capture", "amount": 1 }]
+}

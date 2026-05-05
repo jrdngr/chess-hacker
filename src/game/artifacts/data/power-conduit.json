@@ -1,0 +1,8 @@
+{
+  "id": "power-conduit",
+  "name": "Power Conduit",
+  "rarity": "rare",
+  "description": "All cards cost 1 less (minimum 0).",
+  "emoji": "🔌",
+  "effects": [{ "kind": "card-cost-discount", "amount": 1 }]
+}

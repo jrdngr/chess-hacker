@@ -1,0 +1,8 @@
+{
+  "id": "war-drum",
+  "name": "War Drum",
+  "rarity": "uncommon",
+  "description": "Gain +1 extra energy at the start of every turn.",
+  "emoji": "🥁",
+  "effects": [{ "kind": "energy-per-turn-bonus", "amount": 1 }]
+}

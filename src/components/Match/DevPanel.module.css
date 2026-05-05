@@ -420,6 +420,33 @@
   gap: 4px;
 }
 
+.namedDecks {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.namedDeckRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.namedDeckName {
+  font-weight: 500;
+}
+
+.namedDeckCount {
+  opacity: 0.7;
+  font-size: 11px;
+}
+
 .exportTextarea {
   width: 100%;
   box-sizing: border-box;

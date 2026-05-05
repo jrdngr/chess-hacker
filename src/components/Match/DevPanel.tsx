@@ -92,6 +92,17 @@ type Props = {
     consumedPile: Card[];
     addedCards: Card[];
   }) => void;
+  /**
+   * Named decks authored in the Content Designer and written to
+   * `src/game/cards/decks/named/`. Empty when no such decks exist.
+   */
+  namedDecks: ReadonlyArray<{ name: string; cards: Card[] }>;
+  /**
+   * Load a named deck wholesale: replace the run's deck and the current
+   * match's draw / discard / consumed piles with `cards`. Hand cards stay
+   * put. Match pushes a snapshot for undo.
+   */
+  onLoadDeck: (cards: Card[]) => void;
 
   // Artifacts
   /** Artifacts currently held by the player. */
@@ -162,6 +173,8 @@ export function DevPanel({
   discardPile,
   consumedPile,
   onSaveDeck,
+  namedDecks,
+  onLoadDeck,
   artifacts,
   onSaveArtifacts,
   onBumpEnergy,
@@ -198,6 +211,11 @@ export function DevPanel({
         drawPile={drawPile}
         discardPile={discardPile}
         consumedPile={consumedPile}
+        namedDecks={namedDecks}
+        onLoadDeck={(cards) => {
+          onLoadDeck(cards);
+          setShowDeckEditor(false);
+        }}
         onSave={(next) => {
           onSaveDeck(next);
           setShowDeckEditor(false);
@@ -577,6 +595,8 @@ type DeckEditorProps = {
   drawPile: ReadonlyArray<Card>;
   discardPile: ReadonlyArray<Card>;
   consumedPile: ReadonlyArray<Card>;
+  namedDecks: ReadonlyArray<{ name: string; cards: Card[] }>;
+  onLoadDeck: (cards: Card[]) => void;
   onSave: (next: {
     drawPile: Card[];
     discardPile: Card[];
@@ -590,6 +610,8 @@ function DeckEditorOverlay({
   drawPile,
   discardPile,
   consumedPile,
+  namedDecks,
+  onLoadDeck,
   onSave,
   onClose,
 }: DeckEditorProps) {
@@ -715,6 +737,33 @@ function DeckEditorOverlay({
             rows={3}
             onFocus={(e) => e.currentTarget.select()}
           />
+        </div>
+      )}
+
+      {namedDecks.length > 0 && (
+        <div className={styles.namedDecks}>
+          <div className={styles.libraryGroupHeading}>Named decks (Content Designer)</div>
+          {namedDecks.map((deck) => (
+            <div key={deck.name} className={styles.namedDeckRow}>
+              <span className={styles.namedDeckName}>{deck.name}</span>
+              <span className={styles.namedDeckCount}>{deck.cards.length} cards</span>
+              <button
+                type="button"
+                className={styles.smallButton}
+                onClick={() => {
+                  if (
+                    confirm(
+                      `Replace the current run deck and the match's draw / discard / consumed piles with '${deck.name}' (${deck.cards.length} cards)?`,
+                    )
+                  ) {
+                    onLoadDeck(deck.cards.slice());
+                  }
+                }}
+              >
+                Load
+              </button>
+            </div>
+          ))}
         </div>
       )}
 

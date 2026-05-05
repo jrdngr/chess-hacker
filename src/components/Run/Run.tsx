@@ -423,6 +423,7 @@ export function Run({ mode, onExit, rngSeed }: Props) {
             initialDeck={run.deck.slice()}
             initialArtifacts={run.artifacts}
             onSaveArtifacts={(artifacts) => setRun((r) => ({ ...r, artifacts: artifacts.slice() }))}
+            onLoadDeck={(deck) => setRun((r) => ({ ...r, deck: deck.slice() }))}
             initialFen={extras.matchSetup.fen}
             initialBoardSize={extras.matchSetup.size}
             activeBoss={activeBossFor(run)}
