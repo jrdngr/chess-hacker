@@ -173,13 +173,21 @@ export function previewBossFor(state: RunState): BossDef | null {
  * Apply the outcome of a finished match. Winning advances to the reward
  * phase with gold + a draft offer prepared on the side. Losing transitions
  * to `phase: "lost"` and keeps the run readable for the loss screen.
+ *
+ * Winning the final match short-circuits straight to `won` — there's no
+ * next match to spend on, so the reward + shop steps would be cosmetic.
  */
 export function applyMatchOutcome(state: RunState, outcome: RunMatchOutcome): RunState {
   if (!outcome.won) {
     return { ...state, phase: "lost" };
   }
   const winGold = isBossMatch(state) ? WIN_BONUS_BOSS : WIN_BONUS_NORMAL;
-  return { ...state, gold: state.gold + winGold, phase: "reward" };
+  const isFinalMatch = state.matchNumber >= totalMatches(state);
+  return {
+    ...state,
+    gold: state.gold + winGold,
+    phase: isFinalMatch ? "won" : "reward",
+  };
 }
 
 // ---- Card pools ------------------------------------------------------------

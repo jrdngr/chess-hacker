@@ -140,10 +140,10 @@ describe("phase transitions: reward → shop → next match", () => {
       run = leaveShop(run);
     }
 
-    // Match 3: enterShop short-circuits to "won" because there's no next match.
+    // Match 3 (final): applyMatchOutcome short-circuits to "won" — the
+    // reward / shop steps are skipped because there's no next match to spend
+    // on.
     run = applyMatchOutcome(run, MOCK_OUTCOME_WIN);
-    expect(run.phase).toBe("reward");
-    run = enterShop(pickDraftCard(run, RECONNAISSANCE));
     expect(run.phase).toBe("won");
     expect(run.matchNumber).toBe(3);
   });

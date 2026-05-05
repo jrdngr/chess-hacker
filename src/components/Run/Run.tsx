@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { BossPreview } from "./BossPreview";
 import { Match } from "../Match";
+import { MatchWonPanel } from "./MatchWonPanel";
 import { Reward } from "./Reward";
 import { Shop } from "./Shop";
 import { RunSummary } from "./RunSummary";
@@ -35,6 +36,7 @@ import { applyInterest, generateShop } from "../../game/shop/shop";
 import { artifactEmoji } from "../../game/artifacts/library";
 import { goldOnMatchStart } from "../../game/artifacts/effects";
 import { getCardById } from "../../game/cards/library";
+import type { EngineSnapshot } from "../../game/chess/engine";
 import type {
   Artifact,
   BoardSize,
@@ -43,6 +45,7 @@ import type {
   Card,
   CurseTrigger,
   DraftOffer,
+  MatchCardState,
   RunMatchOutcome,
   RunMode,
   RunState,
@@ -88,6 +91,25 @@ type PhaseExtras = {
    * it). Reset when the run leaves the reward phase.
    */
   bossArtifactGenerated: boolean;
+  /**
+   * Held while the player reviews the just-finished match's final position
+   * after a win. The phase stays at `"match"` so `<Match>` keeps its engine
+   * state mounted; the win panel replaces the side panel and the player
+   * advances to reward via the Continue button (`applyMatchOutcome`).
+   */
+  pendingWin: RunMatchOutcome | null;
+  /**
+   * Full engine + card-system snapshot of the just-finished match's final
+   * state. Captured via `onCaptureFinalSnapshot` so that even after reward /
+   * shop unmount the live `<Match>`, the run-complete screen can re-mount a
+   * faithful display-only board (board, walls, freezes, traps, sanctuaries,
+   * zone buffs, capture trays — everything the live match was rendering).
+   */
+  finalSnapshot: {
+    engineSnapshot: EngineSnapshot;
+    cardState: MatchCardState;
+    size: BoardSize;
+  } | null;
 };
 
 export function Run({ mode, onExit, rngSeed }: Props) {
@@ -99,12 +121,24 @@ export function Run({ mode, onExit, rngSeed }: Props) {
     matchSetup: null,
     bossArtifactOffer: null,
     bossArtifactGenerated: false,
+    pendingWin: null,
+    finalSnapshot: null,
   });
 
   // Lazy-generate the draft / shop on phase entry. The phase transitions
   // happen via setRun(...) and the new state lands here as a fresh `run`;
   // we mirror that into `extras` so the phase UI has its prepared content.
   useEffect(() => {
+    // Drop the previous match's setup once we've left the match — the next
+    // "match" entry will regenerate a fresh starting position. We keep it
+    // alive through "lost"/"won" so Match can stay mounted there.
+    if (
+      (run.phase === "reward" || run.phase === "shop" || run.phase === "boss-preview") &&
+      extras.matchSetup !== null
+    ) {
+      setExtras((e) => ({ ...e, matchSetup: null }));
+      return;
+    }
     if (run.phase === "reward") {
       // Boss artifact offer first — generated once per reward step. The
       // Reward UI shows it before the regular card draft.
@@ -143,7 +177,8 @@ export function Run({ mode, onExit, rngSeed }: Props) {
         extras.draftOffer !== null ||
         extras.shop !== null ||
         extras.bossArtifactGenerated ||
-        extras.bossArtifactOffer !== null
+        extras.bossArtifactOffer !== null ||
+        extras.finalSnapshot !== null
       ) {
         setExtras((e) => ({
           ...e,
@@ -151,6 +186,7 @@ export function Run({ mode, onExit, rngSeed }: Props) {
           shop: null,
           bossArtifactOffer: null,
           bossArtifactGenerated: false,
+          finalSnapshot: null,
         }));
       }
       // Generate a per-match starting position the first time we land on
@@ -173,15 +209,38 @@ export function Run({ mode, onExit, rngSeed }: Props) {
     extras.matchSetup,
     extras.bossArtifactOffer,
     extras.bossArtifactGenerated,
+    extras.finalSnapshot,
   ]);
 
   // ---- Match phase --------------------------------------------------------
 
   const onMatchEnd = (outcome: RunMatchOutcome) => {
+    if (outcome.won) {
+      // Pause on the final position so the player can review the win and
+      // confirm before the reward step takes over the screen. The phase
+      // stays "match" until they hit Continue in the win panel.
+      setExtras((e) => ({ ...e, pendingWin: outcome }));
+      return;
+    }
     setRun((r) => applyMatchOutcome(r, outcome));
-    // Drop the per-match setup so the next "match" phase entry generates
-    // a fresh starting position.
-    setExtras((e) => ({ ...e, matchSetup: null }));
+    // Keep matchSetup populated here so Match stays mounted through "lost" —
+    // the player sees the final board with the run summary alongside. The
+    // setup is cleared when the run advances into reward/shop/boss-preview.
+  };
+
+  const onCaptureFinalSnapshot = (snap: {
+    engineSnapshot: EngineSnapshot;
+    cardState: MatchCardState;
+    size: BoardSize;
+  }) => {
+    setExtras((e) => ({ ...e, finalSnapshot: snap }));
+  };
+
+  const onConfirmWin = () => {
+    if (!extras.pendingWin) return;
+    const outcome = extras.pendingWin;
+    setRun((r) => applyMatchOutcome(r, outcome));
+    setExtras((e) => ({ ...e, pendingWin: null }));
   };
 
   // ---- Reward phase -------------------------------------------------------
@@ -355,20 +414,29 @@ export function Run({ mode, onExit, rngSeed }: Props) {
   return (
     <div className={styles.run}>
       {banner}
-      {run.phase === "match" && extras.matchSetup && (
-        <Match
-          // Re-mount each match so the engine + card state both reset cleanly.
-          key={`m-${run.matchNumber}`}
-          runMode="run"
-          initialDeck={run.deck.slice()}
-          initialArtifacts={run.artifacts}
-          onSaveArtifacts={(artifacts) => setRun((r) => ({ ...r, artifacts: artifacts.slice() }))}
-          initialFen={extras.matchSetup.fen}
-          initialBoardSize={extras.matchSetup.size}
-          activeBoss={activeBossFor(run)}
-          onMatchEnd={onMatchEnd}
-        />
-      )}
+      {(run.phase === "match" || run.phase === "lost" || run.phase === "won") &&
+        extras.matchSetup && (
+          <Match
+            // Re-mount each match so the engine + card state both reset cleanly.
+            key={`m-${run.matchNumber}`}
+            runMode="run"
+            initialDeck={run.deck.slice()}
+            initialArtifacts={run.artifacts}
+            onSaveArtifacts={(artifacts) => setRun((r) => ({ ...r, artifacts: artifacts.slice() }))}
+            initialFen={extras.matchSetup.fen}
+            initialBoardSize={extras.matchSetup.size}
+            activeBoss={activeBossFor(run)}
+            onMatchEnd={onMatchEnd}
+            onCaptureFinalSnapshot={onCaptureFinalSnapshot}
+            endOfRunPanel={
+              run.phase === "won" || run.phase === "lost" ? (
+                <RunSummary run={run} onExit={onExit} />
+              ) : extras.pendingWin ? (
+                <MatchWonPanel run={run} outcome={extras.pendingWin} onContinue={onConfirmWin} />
+              ) : undefined
+            }
+          />
+        )}
       {run.phase === "boss-preview" && previewBossFor(run) && (
         <BossPreview boss={previewBossFor(run)!} onContinue={onDismissBossPreview} />
       )}
@@ -386,7 +454,22 @@ export function Run({ mode, onExit, rngSeed }: Props) {
       {run.phase === "shop" && extras.shop && (
         <Shop run={run} shop={extras.shop} onUpdate={onShopUpdate} onLeave={onLeaveShop} />
       )}
-      {(run.phase === "won" || run.phase === "lost") && <RunSummary run={run} onExit={onExit} />}
+      {run.phase === "won" && !extras.matchSetup && extras.finalSnapshot && (
+        <Match
+          // Distinct key from the live Match so React mounts a fresh instance
+          // for the display-only snapshot.
+          key={`m-${run.matchNumber}-snapshot`}
+          runMode="run"
+          initialBoardSize={extras.finalSnapshot.size}
+          initialEngineSnapshot={extras.finalSnapshot.engineSnapshot}
+          initialCardState={extras.finalSnapshot.cardState}
+          displayOnly
+          endOfRunPanel={<RunSummary run={run} onExit={onExit} />}
+        />
+      )}
+      {(run.phase === "won" || run.phase === "lost") &&
+        !extras.matchSetup &&
+        !(run.phase === "won" && extras.finalSnapshot) && <RunSummary run={run} onExit={onExit} />}
     </div>
   );
 }

@@ -264,8 +264,8 @@
   align-items: center;
   justify-content: center;
   flex: 1;
-  gap: 16px;
-  padding: 32px;
+  gap: 12px;
+  padding: 0;
   text-align: center;
 }
 

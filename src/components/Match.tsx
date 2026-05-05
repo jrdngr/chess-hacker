@@ -24,7 +24,7 @@
 // file — extracting them is the next refactor pass and will likely happen
 // alongside the M5 store migration (see `docs/technical/architecture.md`).
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { Board, type BoardMode } from "./Board/Board";
 import { CapturedPieces } from "./Board/CapturedPieces";
@@ -51,7 +51,7 @@ import {
   resolveTrapForMove,
 } from "./Match/sideEffects";
 import { useUndoRedo } from "./Match/useUndoRedo";
-import { ChoseEngine, type LegalMove } from "../game/chess/engine";
+import { ChoseEngine, type EngineSnapshot, type LegalMove } from "../game/chess/engine";
 import {
   StockfishEngine,
   legalMoveToUci,
@@ -137,6 +137,13 @@ export type MatchMode = "local-pvp" | "vs-ai";
  */
 export type RunMode = "prototype" | "dev" | "run";
 
+/**
+ * localStorage key remembering whether the player has the dev panel open
+ * inside a real run. Persists across matches and runs so toggling once
+ * sticks.
+ */
+const DEV_PANEL_OPEN_KEY = "choss:devPanelOpen";
+
 type Props = {
   /** Top-level run mode. Defaults to "prototype" so existing tests keep working. */
   runMode?: RunMode;
@@ -199,6 +206,41 @@ type Props = {
    * the boss's permanent walls at match start, and runs the curse scheduler.
    */
   activeBoss?: BossDef | null;
+  /**
+   * Run mode: when the run has ended (won/lost), the Run shell passes the
+   * end-of-run summary node here. Match renders it in place of the regular
+   * side panel so the final board position stays visible alongside.
+   */
+  endOfRunPanel?: ReactNode;
+  /**
+   * Display-only mode: render the board frozen at the given starting state
+   * with no Hand / CapturedPieces / dev toggle. Used by the Run shell to
+   * re-mount a snapshot of the final position on the run-complete screen
+   * after reward / shop have unmounted the live Match.
+   */
+  displayOnly?: boolean;
+  /**
+   * Optional engine snapshot to seed the match from — preserves move history
+   * (so capture trays show real captures) and the exact ending position. Used
+   * with `initialCardState` and `displayOnly` for the run-complete view.
+   */
+  initialEngineSnapshot?: EngineSnapshot;
+  /**
+   * Optional full card-system snapshot to seed the match from. Carries walls,
+   * freezes, sanctuaries, traps, zone buffs, hand / piles, energy, etc. so
+   * the snapshot view shows everything the live match was rendering.
+   */
+  initialCardState?: MatchCardState;
+  /**
+   * Run mode: fired once alongside `onMatchEnd` with the engine + card-system
+   * snapshots, so the Run shell can re-mount a faithful display-only board on
+   * the run-complete screen.
+   */
+  onCaptureFinalSnapshot?: (snap: {
+    engineSnapshot: EngineSnapshot;
+    cardState: MatchCardState;
+    size: BoardSize;
+  }) => void;
 };
 
 const DEFAULT_AI_MIN_THINK_MS = 500;
@@ -260,13 +302,22 @@ export function Match({
   initialEnergy,
   initialDevAiOn,
   activeBoss,
+  endOfRunPanel,
+  displayOnly = false,
+  initialEngineSnapshot,
+  initialCardState,
+  onCaptureFinalSnapshot,
 }: Props = {}) {
   // Dev mode forces the card system on (mode = "vs-ai"); the per-match
   // vs-AI / Local-PvP toggle is hidden in the side panel. The AI itself is
   // gated separately by `devAiOn` below.
   const [mode, setMode] = useState<MatchMode>(runMode === "dev" ? "vs-ai" : initialMode);
   const [difficulty, setDifficulty] = useState<Difficulty>(initialDifficulty);
-  const [engine, setEngine] = useState(() => new ChoseEngine(initialFen, initialBoardSize));
+  const [engine, setEngine] = useState(() => {
+    const e = new ChoseEngine(initialFen, initialBoardSize);
+    if (initialEngineSnapshot) e.restore(initialEngineSnapshot);
+    return e;
+  });
   const [selected, setSelected] = useState<AlgebraicSquare | null>(null);
   // Bumped after each move so derived render values recompute.
   const [version, setVersion] = useState(0);
@@ -278,8 +329,27 @@ export function Match({
    * Whether the dev panel is visible. Always shown in sandbox; in real runs
    * it's hidden by default and the player toggles it from the right edge.
    * Prototype mode never exposes the dev panel.
+   *
+   * In a real run the toggle is persisted to localStorage so opening the
+   * dev panel once keeps it open across subsequent matches and runs.
    */
-  const [devPanelOpen, setDevPanelOpen] = useState(runMode === "dev");
+  const [devPanelOpen, setDevPanelOpen] = useState(() => {
+    if (runMode === "dev") return true;
+    if (runMode !== "run") return false;
+    try {
+      return window.localStorage.getItem(DEV_PANEL_OPEN_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    if (runMode !== "run") return;
+    try {
+      window.localStorage.setItem(DEV_PANEL_OPEN_KEY, devPanelOpen ? "true" : "false");
+    } catch {
+      // Ignore — private mode / quota errors shouldn't break gameplay.
+    }
+  }, [runMode, devPanelOpen]);
   /**
    * The dev panel is "active" — i.e. its hooks (editor brush, library
    * free-play, side-to-move toggle) should affect Match interactions —
@@ -341,8 +411,11 @@ export function Match({
   // initializing from the prop is sufficient. The dev artifact editor mutates
   // this state, and bubbles changes up via `onSaveArtifacts` so the run shell
   // can persist them across the next remount.
-  const [artifacts, setArtifacts] = useState<ReadonlyArray<Artifact>>(() => initialArtifacts ?? []);
+  const [artifacts, setArtifacts] = useState<ReadonlyArray<Artifact>>(
+    () => initialCardState?.artifacts ?? initialArtifacts ?? [],
+  );
   const [cardState, setCardState] = useState<MatchCardState>(() => {
+    if (initialCardState) return initialCardState;
     if (!cardsEnabled) return createMatchCardState([], rng, artifacts);
     let base = createMatchCardState(initialDeck ?? makeStarterDeck(), rng, artifacts);
     if (activeBoss && activeBoss.hazardWalls.length > 0) {
@@ -489,6 +562,7 @@ export function Match({
   const variant = variantFor(engine.size());
   useEffect(() => {
     if (mode !== "vs-ai") return;
+    if (displayOnly) return;
     let ai: StockfishEngine | null = null;
     try {
       ai = createAi ? createAi() : new StockfishEngine();
@@ -508,7 +582,7 @@ export function Match({
       ai?.destroy();
       aiRef.current = null;
     };
-  }, [mode, createAi, variant]);
+  }, [mode, createAi, variant, displayOnly]);
 
   // Sync the current overlays to the engine BEFORE any engine method
   // (legalMoves / inCheck / outcome) is called this render. The engine is
@@ -634,7 +708,14 @@ export function Match({
       (outcome.kind === "checkmate" || outcome.kind === "king-captured") &&
       outcome.winner === HUMAN_SIDE;
     onMatchEnd({ won, outcome, turnsPlayed: cardState.turn });
-  }, [runMode, onMatchEnd, matchOver, outcome, cardState.turn]);
+    onCaptureFinalSnapshot?.({
+      engineSnapshot: engine.snapshot(),
+      cardState,
+      size: engine.size(),
+    });
+    // engine is mutable; depend on version so we re-snapshot the latest state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runMode, onMatchEnd, onCaptureFinalSnapshot, matchOver, outcome, cardState, version]);
   // In sandbox + run modes, the AI is gated by `devAiOn` (defaults: off in
   // sandbox, on in run). Prototype always fires. This lets the dev panel
   // disable the AI in a real Royal run for debugging without changing the
@@ -853,11 +934,17 @@ export function Match({
   // so this is a no-op for it; harmless to fire either way.
   useEffect(() => {
     if (firstTurnSchedulerRef.current) return;
+    if (displayOnly) {
+      // Snapshot view — the cardState is already final; running the
+      // scheduler would mutate it past match end and corrupt the display.
+      firstTurnSchedulerRef.current = true;
+      return;
+    }
     if (!activeBoss || activeBoss.curses.length === 0) return;
     if (!cardsEnabled) return;
     firstTurnSchedulerRef.current = true;
     setCardState((s) => applyCurseScheduler(s, { kind: "turn-start", turn: s.turn }));
-  }, [activeBoss, cardsEnabled, applyCurseScheduler]);
+  }, [activeBoss, cardsEnabled, applyCurseScheduler, displayOnly]);
 
   /**
    * Roll over to a fresh player turn: refill hand, +1 energy, decay statuses,
@@ -2180,8 +2267,13 @@ export function Match({
    * dev-mode action). Gated on aiThinking only: the player can rewind out
    * of a checkmate / stalemate to retry the losing line.
    */
-  const canUndo = cardsEnabled && undoRedo.undoDepth >= 2 && !aiThinking;
-  const canRedo = cardsEnabled && undoRedo.redoDepth > 0 && !aiThinking;
+  // Run mode: once the match is over, the Run shell has already recorded the
+  // outcome (loss → "lost" phase, win → pendingWin awaiting reward step), so
+  // letting the player rewind into a different result would desynchronize
+  // the run state. Prototype / dev keep the rewind-out-of-checkmate trick.
+  const undoLockedByRunEnd = runMode === "run" && matchOver;
+  const canUndo = cardsEnabled && undoRedo.undoDepth >= 2 && !aiThinking && !undoLockedByRunEnd;
+  const canRedo = cardsEnabled && undoRedo.redoDepth > 0 && !aiThinking && !undoLockedByRunEnd;
 
   const clearTransientUI = useCallback(() => {
     setSelected(null);
@@ -2228,153 +2320,162 @@ export function Match({
   return (
     <div className={styles.match}>
       <aside className={styles.sidePanel}>
-        {onExit && (
-          <button type="button" onClick={onExit} className={styles.backButton}>
-            ← Back to menu
-          </button>
-        )}
-        {runMode === "prototype" && (
-          <div className={styles.statusBlock}>
-            <div className={styles.label}>Mode</div>
-            <div className={styles.modeRow} role="radiogroup" aria-label="Match mode">
-              <button
-                type="button"
-                role="radio"
-                aria-checked={mode === "vs-ai"}
-                className={`${styles.modeButton} ${mode === "vs-ai" ? styles.modeActive : ""}`}
-                onClick={() => onModeChange("vs-ai")}
-              >
-                vs AI
-              </button>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={mode === "local-pvp"}
-                className={`${styles.modeButton} ${mode === "local-pvp" ? styles.modeActive : ""}`}
-                onClick={() => onModeChange("local-pvp")}
-              >
-                Local PvP
-              </button>
-            </div>
-          </div>
-        )}
-
-        {mode === "vs-ai" && (
-          <div className={styles.statusBlock}>
-            <label className={styles.label} htmlFor="difficulty">
-              Difficulty
-            </label>
-            <select
-              id="difficulty"
-              className={styles.select}
-              value={difficulty}
-              onChange={(e) => setDifficulty(e.target.value as Difficulty)}
-            >
-              <option value="easy">Easy (depth 2)</option>
-              <option value="normal">Normal (depth 6)</option>
-              <option value="hard">Hard (depth 10)</option>
-            </select>
-          </div>
-        )}
-
-        <div className={styles.statusBlock}>
-          <div className={styles.label}>To move</div>
-          <div
-            className={`${styles.value} ${turn === "player" ? styles.player : styles.opponent}`}
-            aria-label={`Side to move: ${turn === "player" ? "White" : "Black"}`}
-          >
-            {turn === "player" ? "White" : "Black"}
-            {inCheck && !matchOver && <span className={styles.check}>· in check</span>}
-            {aiThinking && !matchOver && <span className={styles.thinking}>· thinking…</span>}
-          </div>
-        </div>
-        <div className={styles.statusBlock}>
-          <div className={styles.label}>Move</div>
-          <div className={styles.value}>{Math.floor(version / 2) + 1}</div>
-        </div>
-
-        <div className={styles.statusBlock}>
-          <label className={styles.toggleRow}>
-            <input
-              type="checkbox"
-              checked={chessVision}
-              onChange={(e) => setChessVision(e.target.checked)}
-            />
-            <span>Chess vision</span>
-          </label>
-        </div>
-
-        {cardsEnabled && (
-          <div className={styles.statusBlock}>
-            <div className={styles.label}>Energy</div>
-            <div className={styles.energy} aria-label={`Energy: ${cardState.energy}`}>
-              <span className={styles.energyValue}>{cardState.energy}</span>
-              <span className={styles.energyMax}>/ {ENERGY_MAX}</span>
-            </div>
-          </div>
-        )}
-        {cardsEnabled && (cardState.zoneBuffs?.length ?? 0) > 0 && (
-          <div className={styles.statusBlock}>
-            <div className={styles.label}>Zone buffs</div>
-            <ul className={styles.zoneBuffList} aria-label="Active zone buffs">
-              {cardState.zoneBuffs.map((b, i) => {
-                const active = zoneBuffOverlay.activeBuffs.includes(b);
-                const remaining =
-                  b.expiresOnTurn === undefined
-                    ? null
-                    : Math.max(0, b.expiresOnTurn - cardState.turn);
-                return (
-                  <li
-                    key={`${b.sourceLabel}:${i}`}
-                    className={`${styles.zoneBuffItem} ${active ? styles.zoneBuffActive : styles.zoneBuffInactive}`}
-                  >
-                    <span className={styles.zoneBuffName}>{b.sourceLabel}</span>
-                    <span className={styles.zoneBuffEffect}>
-                      {b.effect.kind === "energy-per-turn"
-                        ? `+${b.effect.amount} energy/turn`
-                        : `+${b.effect.amount} hand size`}
-                      {remaining !== null && ` · ${remaining} turn${remaining === 1 ? "" : "s"}`}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        )}
-
-        {aiError && (
-          <div className={styles.aiError} role="alert">
-            AI error: {aiError}
-          </div>
-        )}
-
-        {matchOver && (
-          <div className={styles.outcome} role="status" aria-live="polite">
-            <div className={styles.outcomeHeadline}>{outcomeHeadline(outcome)}</div>
-            <div className={styles.outcomeDetail}>{outcomeDetail(outcome)}</div>
-            {runMode !== "run" && (
-              <button
-                type="button"
-                onClick={runMode === "dev" ? randomStart : resetGame}
-                className={styles.newGame}
-              >
-                New game
+        {endOfRunPanel ? (
+          endOfRunPanel
+        ) : (
+          <>
+            {onExit && (
+              <button type="button" onClick={onExit} className={styles.backButton}>
+                ← Back to menu
               </button>
             )}
-          </div>
-        )}
-        {!matchOver && runMode !== "run" && (
-          <button type="button" onClick={resetGame} className={styles.resetButton}>
-            Reset
-          </button>
+            {runMode === "prototype" && (
+              <div className={styles.statusBlock}>
+                <div className={styles.label}>Mode</div>
+                <div className={styles.modeRow} role="radiogroup" aria-label="Match mode">
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={mode === "vs-ai"}
+                    className={`${styles.modeButton} ${mode === "vs-ai" ? styles.modeActive : ""}`}
+                    onClick={() => onModeChange("vs-ai")}
+                  >
+                    vs AI
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={mode === "local-pvp"}
+                    className={`${styles.modeButton} ${mode === "local-pvp" ? styles.modeActive : ""}`}
+                    onClick={() => onModeChange("local-pvp")}
+                  >
+                    Local PvP
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {mode === "vs-ai" && (
+              <div className={styles.statusBlock}>
+                <label className={styles.label} htmlFor="difficulty">
+                  Difficulty
+                </label>
+                <select
+                  id="difficulty"
+                  className={styles.select}
+                  value={difficulty}
+                  onChange={(e) => setDifficulty(e.target.value as Difficulty)}
+                >
+                  <option value="easy">Easy (depth 2)</option>
+                  <option value="normal">Normal (depth 6)</option>
+                  <option value="hard">Hard (depth 10)</option>
+                </select>
+              </div>
+            )}
+
+            <div className={styles.statusBlock}>
+              <div className={styles.label}>To move</div>
+              <div
+                className={`${styles.value} ${turn === "player" ? styles.player : styles.opponent}`}
+                aria-label={`Side to move: ${turn === "player" ? "White" : "Black"}`}
+              >
+                {turn === "player" ? "White" : "Black"}
+                {inCheck && !matchOver && <span className={styles.check}>· in check</span>}
+                {aiThinking && !matchOver && <span className={styles.thinking}>· thinking…</span>}
+              </div>
+            </div>
+            <div className={styles.statusBlock}>
+              <div className={styles.label}>Move</div>
+              <div className={styles.value}>{Math.floor(version / 2) + 1}</div>
+            </div>
+
+            <div className={styles.statusBlock}>
+              <label className={styles.toggleRow}>
+                <input
+                  type="checkbox"
+                  checked={chessVision}
+                  onChange={(e) => setChessVision(e.target.checked)}
+                />
+                <span>Chess vision</span>
+              </label>
+            </div>
+
+            {cardsEnabled && (
+              <div className={styles.statusBlock}>
+                <div className={styles.label}>Energy</div>
+                <div className={styles.energy} aria-label={`Energy: ${cardState.energy}`}>
+                  <span className={styles.energyValue}>{cardState.energy}</span>
+                  <span className={styles.energyMax}>/ {ENERGY_MAX}</span>
+                </div>
+              </div>
+            )}
+            {cardsEnabled && (cardState.zoneBuffs?.length ?? 0) > 0 && (
+              <div className={styles.statusBlock}>
+                <div className={styles.label}>Zone buffs</div>
+                <ul className={styles.zoneBuffList} aria-label="Active zone buffs">
+                  {cardState.zoneBuffs.map((b, i) => {
+                    const active = zoneBuffOverlay.activeBuffs.includes(b);
+                    const remaining =
+                      b.expiresOnTurn === undefined
+                        ? null
+                        : Math.max(0, b.expiresOnTurn - cardState.turn);
+                    return (
+                      <li
+                        key={`${b.sourceLabel}:${i}`}
+                        className={`${styles.zoneBuffItem} ${active ? styles.zoneBuffActive : styles.zoneBuffInactive}`}
+                      >
+                        <span className={styles.zoneBuffName}>{b.sourceLabel}</span>
+                        <span className={styles.zoneBuffEffect}>
+                          {b.effect.kind === "energy-per-turn"
+                            ? `+${b.effect.amount} energy/turn`
+                            : `+${b.effect.amount} hand size`}
+                          {remaining !== null &&
+                            ` · ${remaining} turn${remaining === 1 ? "" : "s"}`}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+
+            {aiError && (
+              <div className={styles.aiError} role="alert">
+                AI error: {aiError}
+              </div>
+            )}
+
+            {matchOver && (
+              <div className={styles.outcome} role="status" aria-live="polite">
+                <div className={styles.outcomeHeadline}>{outcomeHeadline(outcome)}</div>
+                <div className={styles.outcomeDetail}>{outcomeDetail(outcome)}</div>
+                {runMode !== "run" && (
+                  <button
+                    type="button"
+                    onClick={runMode === "dev" ? randomStart : resetGame}
+                    className={styles.newGame}
+                  >
+                    New game
+                  </button>
+                )}
+              </div>
+            )}
+            {!matchOver && runMode !== "run" && (
+              <button type="button" onClick={resetGame} className={styles.resetButton}>
+                Reset
+              </button>
+            )}
+          </>
         )}
       </aside>
 
       <div className={styles.boardArea}>
-        <CapturedPieces
-          pieces={captured.byOpponent}
-          advantage={playerLead < 0 ? -playerLead : undefined}
-        />
+        {!displayOnly && (
+          <CapturedPieces
+            pieces={captured.byOpponent}
+            advantage={playerLead < 0 ? -playerLead : undefined}
+          />
+        )}
         <Board
           engine={engine}
           selected={selected}
@@ -2402,11 +2503,13 @@ export function Match({
           invalidSquares={invalidSquares}
           invalidBoard={validation !== null && !validation.ok}
         />
-        <CapturedPieces
-          pieces={captured.byPlayer}
-          advantage={playerLead > 0 ? playerLead : undefined}
-        />
-        {cardsEnabled && (
+        {!displayOnly && (
+          <CapturedPieces
+            pieces={captured.byPlayer}
+            advantage={playerLead > 0 ? playerLead : undefined}
+          />
+        )}
+        {cardsEnabled && !displayOnly && (
           <Hand
             hand={cardState.hand}
             energy={cardState.energy}
@@ -2478,7 +2581,7 @@ export function Match({
           onShowHistory={() => setHistoryOpen(true)}
         />
       )}
-      {runMode === "run" && !devPanelOpen && (
+      {runMode === "run" && !devPanelOpen && !displayOnly && (
         <button
           type="button"
           className={styles.devToggle}
