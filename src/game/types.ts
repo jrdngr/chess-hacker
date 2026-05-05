@@ -152,6 +152,27 @@ export type CardEffect =
    * is `must-not-check`, used by Boss A's Stalwart curse.
    */
   | { kind: "next-move-constraint"; constraint: "must-not-check" }
+  /**
+   * Curse-only (Boss B / Greed): if the player makes no capture this turn,
+   * lose `amount` energy at the start of the next turn. Implemented via the
+   * `pendingEnergyLossOnNoCapture` flag on `MatchCardState`.
+   */
+  | { kind: "pending-energy-loss-on-no-capture"; amount: number }
+  /**
+   * Curse-only (Boss C / Final Resolve): no further 0-cost cards may be
+   * played for the remainder of the current player turn.
+   */
+  | { kind: "forbid-zero-cost-this-turn" }
+  /**
+   * Curse-only (Boss C / Echo): grants the boss `count` extra chess moves
+   * after its next normal move resolves.
+   */
+  | { kind: "boss-extra-move"; count: number }
+  /**
+   * Curse-only (Boss C / Inevitability): immediately destroys one of the
+   * player's minor pieces (knight or bishop), chosen at random.
+   */
+  | { kind: "capture-random-own-minor" }
   | { kind: "compound"; effects: CardEffect[] };
 
 export type Card = {
@@ -397,13 +418,10 @@ export type Shop = {
   removalCost: number;
 };
 
-// === Bosses (M8) ===
+// === Bosses (M8 + M9) ===
 export type BossId = "iron-garrison" | "the-gambit" | "final-mind";
 
-/**
- * Match-modifier identifiers. Only `no-player-walls` is implemented in M8;
- * the other two are placeholders for Boss B (M9) and Boss C (M9).
- */
+/** Match-modifier identifiers — all three are now wired end-to-end. */
 export type BossModifier =
   | { kind: "no-player-walls" }
   | { kind: "captures-grant-captured-energy" }
@@ -443,6 +461,16 @@ export type BossDef = {
   modifierDescription: string;
   /** Permanent walls placed at match start. */
   hazardWalls: AlgebraicSquare[];
+  /**
+   * "Void" squares — any piece ending its turn on one of these is destroyed.
+   * Boss C (The Final Mind) places a 2x2 void on d4/d5/e4/e5.
+   */
+  voidSquares?: AlgebraicSquare[];
+  /**
+   * Pre-placed zone-buffs the boss starts with. Boss B uses a single-square
+   * buff at d1 (player must contest the back-rank center).
+   */
+  zoneBuffs?: ReadonlyArray<{ region: ZoneRegion; buff: ZoneBuffEffect; sourceLabel: string }>;
   /** Curse schedule — fired by the per-match scheduler. */
   curses: ReadonlyArray<CurseScheduleEntry>;
   /** Tag-line shown in the boss preview. */
@@ -466,6 +494,8 @@ export type BossDef = {
 // `startPlayerTurn` and the aura rendered on the board.
 
 export type ZoneRegion =
+  /** Just the anchor square. */
+  | { kind: "square"; anchor: AlgebraicSquare }
   /** The anchor square plus its 4 orthogonal neighbours. */
   | { kind: "square-orthogonal-1"; anchor: AlgebraicSquare }
   /** The anchor square plus its 8 surrounding neighbours (king-radius). */
@@ -559,4 +589,34 @@ export type MatchCardState = {
    * by the next start-of-turn refresh.
    */
   mustNotCheckNextMove?: boolean;
+  /**
+   * Boss-driven (Greed curse, Boss B): when true, if no capture happens
+   * before the start of the next player turn the player loses 1 energy at
+   * that point. Cleared on capture or after the penalty applies.
+   */
+  pendingEnergyLossOnNoCapture?: boolean;
+  /**
+   * Tracks whether the player made a capture during the current player
+   * turn — used by the Greed curse's start-of-turn check. Reset to false
+   * by `startPlayerTurn`.
+   */
+  capturedThisTurn?: boolean;
+  /**
+   * Boss-driven (Final Resolve curse, Boss C): when true, the player may
+   * not play 0-cost cards for the remainder of the current player turn.
+   * Reset by `startPlayerTurn`.
+   */
+  noZeroCostCardsThisTurn?: boolean;
+  /**
+   * Boss-driven (Echo curse, Boss C): grants the boss this many extra
+   * chess moves before turn flips back to the player. The Match shell
+   * decrements the counter after each AI move.
+   */
+  bossExtraMoves?: number;
+  /**
+   * Boss-driven (Boss B modifier): pending energy bonus for the player at
+   * the next start-of-turn. Incremented when a player piece is captured by
+   * the AI. Cleared when applied.
+   */
+  pendingPlayerEnergyOnTurnStart?: number;
 };

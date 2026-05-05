@@ -79,6 +79,10 @@ const VALID_EFFECT_KINDS = [
   "add-card-to-draw",
   "revive",
   "next-move-constraint",
+  "pending-energy-loss-on-no-capture",
+  "forbid-zero-cost-this-turn",
+  "boss-extra-move",
+  "capture-random-own-minor",
   "compound",
 ] as const;
 const VALID_ZONE_BUFF_PATTERNS = ["square-orthogonal-1", "square-radius-1"] as const;
@@ -410,6 +414,26 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
       }
       return { kind: "next-move-constraint", constraint: c };
     }
+    case "pending-energy-loss-on-no-capture": {
+      if (!isPositiveInt(raw.amount)) {
+        errors.push(
+          "'effect.amount' must be a positive integer for kind 'pending-energy-loss-on-no-capture'",
+        );
+        return null;
+      }
+      return { kind: "pending-energy-loss-on-no-capture", amount: raw.amount };
+    }
+    case "forbid-zero-cost-this-turn":
+      return { kind: "forbid-zero-cost-this-turn" };
+    case "boss-extra-move": {
+      if (!isPositiveInt(raw.count)) {
+        errors.push("'effect.count' must be a positive integer for kind 'boss-extra-move'");
+        return null;
+      }
+      return { kind: "boss-extra-move", count: raw.count };
+    }
+    case "capture-random-own-minor":
+      return { kind: "capture-random-own-minor" };
     case "compound": {
       const children = raw.effects;
       if (!Array.isArray(children) || children.length === 0) {
@@ -506,6 +530,11 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
       return null;
     case "next-move-constraint":
       return tk === "none" ? null : "'next-move-constraint' effect requires target.kind 'none'";
+    case "pending-energy-loss-on-no-capture":
+    case "forbid-zero-cost-this-turn":
+    case "boss-extra-move":
+    case "capture-random-own-minor":
+      return tk === "none" ? null : `'${effect.kind}' effect requires target.kind 'none'`;
     case "compound": {
       for (const child of effect.effects) {
         const m = targetMatchesEffect(target, child);

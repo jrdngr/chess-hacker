@@ -106,7 +106,8 @@ type CardSideEffect =
   | { kind: "foreign-move"; from: AlgebraicSquare; to: AlgebraicSquare }
   | { kind: "add-card-to-hand"; card: Card }
   | { kind: "add-card-to-draw"; card: Card }
-  | { kind: "revive-prompt" };
+  | { kind: "revive-prompt" }
+  | { kind: "remove-random-own-minor" };
 
 /**
  * Apply the side effects produced by the card resolver. Mutates the engine
@@ -145,6 +146,23 @@ export function applyCardSideEffects(
       next = shuffleIntoDraw(next, fx.card, rng);
     } else if (fx.kind === "revive-prompt") {
       onRevivePrompt();
+    } else if (fx.kind === "remove-random-own-minor") {
+      // Inevitability (Boss C). Pick uniformly at random from the player's
+      // knights and bishops. No-op if the player has none — the curse still
+      // resolves but does nothing, which matches "destroy a minor piece if
+      // you have one".
+      const minors: AlgebraicSquare[] = [];
+      for (const { square, piece } of engine.pieces()) {
+        if (piece.side !== "player") continue;
+        if (piece.type !== "knight" && piece.type !== "bishop") continue;
+        minors.push(square);
+      }
+      if (minors.length > 0) {
+        const r = rng ?? Math.random;
+        const pick = minors[Math.floor(r() * minors.length)];
+        engine.removePiece(pick);
+        next = clearStatusesOn(next, pick);
+      }
     }
   }
   return next;

@@ -30,10 +30,12 @@ export function BossPreview({ boss, onContinue }: Props) {
           <dd>{boss.modifierDescription}</dd>
         </div>
 
-        {boss.hazardWalls.length > 0 && (
+        {(boss.hazardWalls.length > 0 ||
+          (boss.voidSquares && boss.voidSquares.length > 0) ||
+          (boss.zoneBuffs && boss.zoneBuffs.length > 0)) && (
           <div className={styles.spec}>
             <dt>Hazards</dt>
-            <dd>Indestructible walls on {boss.hazardWalls.join(", ")}.</dd>
+            <dd>{describeHazards(boss)}</dd>
           </div>
         )}
 
@@ -65,6 +67,27 @@ export function BossPreview({ boss, onContinue }: Props) {
       </button>
     </section>
   );
+}
+
+function describeHazards(boss: BossDef): string {
+  const parts: string[] = [];
+  if (boss.hazardWalls.length > 0) {
+    parts.push(`Indestructible walls on ${boss.hazardWalls.join(", ")}.`);
+  }
+  if (boss.voidSquares && boss.voidSquares.length > 0) {
+    parts.push(`Void at ${boss.voidSquares.join(", ")} (any piece ending there is destroyed).`);
+  }
+  if (boss.zoneBuffs && boss.zoneBuffs.length > 0) {
+    for (const b of boss.zoneBuffs) {
+      const where = b.region.kind === "rank" ? `rank ${b.region.rank}` : b.region.anchor;
+      const fx =
+        b.buff.kind === "energy-per-turn"
+          ? `+${b.buff.amount} energy/turn`
+          : `+${b.buff.amount} hand size`;
+      parts.push(`Boss-side zone-buff at ${where}: ${fx} while contested.`);
+    }
+  }
+  return parts.join(" ");
 }
 
 function describeTrigger(t: CurseTrigger): string {

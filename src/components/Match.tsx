@@ -355,6 +355,16 @@ export function Match({
       }));
       base = { ...base, walls };
     }
+    if (activeBoss && activeBoss.zoneBuffs && activeBoss.zoneBuffs.length > 0) {
+      // Boss-placed zone-buffs live for the whole match (no expiry).
+      const buffs = activeBoss.zoneBuffs.map((b) => ({
+        region: b.region,
+        effect: b.buff,
+        side: "player" as Side,
+        sourceLabel: b.sourceLabel,
+      }));
+      base = { ...base, zoneBuffs: [...base.zoneBuffs, ...buffs] };
+    }
     const fresh = startPlayerTurn(base, rng, zoneBoardContextOf(engine));
     return initialEnergy !== undefined ? { ...fresh, energy: initialEnergy } : fresh;
   });
@@ -369,7 +379,10 @@ export function Match({
     if (!activeBoss) return {};
     const forbidden = new Set<CardEffect["kind"]>();
     if (activeBoss.modifier.kind === "no-player-walls") forbidden.add("place-wall");
-    return forbidden.size > 0 ? { forbiddenCardEffectKinds: forbidden } : {};
+    const out: MatchRules = {};
+    if (forbidden.size > 0) out.forbiddenCardEffectKinds = forbidden;
+    if (activeBoss.modifier.kind === "no-promotion") out.noPromotion = true;
+    return out;
   }, [activeBoss]);
 
   // Per-card boss-modifier veto, surfaced to <Hand> so forbidden cards render
@@ -521,7 +534,23 @@ export function Match({
   );
 
   const pieceBadges = useMemo(() => derivePieceBadges(cardState), [cardState]);
-  const squareEffectsMap = useMemo(() => deriveSquareEffects(cardState), [cardState]);
+  const squareEffectsMap = useMemo(() => {
+    const base = deriveSquareEffects(cardState);
+    if (!activeBoss?.voidSquares || activeBoss.voidSquares.length === 0) return base;
+    // Layer in the boss's void squares as a permanent hover-info entry.
+    // The base map is read-only; clone-then-augment.
+    const merged = new Map(base);
+    for (const sq of activeBoss.voidSquares) {
+      const existing = merged.get(sq);
+      const piece = existing?.piece ?? [];
+      const square = existing?.square ?? [];
+      merged.set(sq, {
+        piece,
+        square: [...square, { label: "Void (any piece ending here is destroyed)" }],
+      });
+    }
+    return merged;
+  }, [cardState, activeBoss]);
 
   // Zone-buff aura squares. Active = the controlling side has a piece in the
   // region right now (the buff's effect applies); Inactive = region is not
@@ -618,16 +647,29 @@ export function Match({
   // Legal moves originating from the selected square. Recomputed when the
   // chess position OR the wall/freeze overlays change. Boss curses
   // (`mustNotCheckNextMove` from Stalwart) further filter the set down.
+  // Boss C `no-promotion` strips out the promotion candidates entirely;
+  // pawns reaching the back rank simply have no legal move.
   const legalFromSelected: LegalMove[] = useMemo(() => {
     if (!selected) return [];
-    const moves = engine.legalMoves(selected);
+    let moves = engine.legalMoves(selected);
     if (cardState.mustNotCheckNextMove) {
-      return moves.filter((m) => !engine.wouldDeliverCheck(m));
+      moves = moves.filter((m) => !engine.wouldDeliverCheck(m));
+    }
+    if (matchRules.noPromotion) {
+      moves = moves.filter((m) => !m.isPromotion);
     }
     return moves;
     // version invalidates after a move; walledSet/frozenSet after a card play
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [engine, selected, version, walledSet, frozenSet, cardState.mustNotCheckNextMove]);
+  }, [
+    engine,
+    selected,
+    version,
+    walledSet,
+    frozenSet,
+    cardState.mustNotCheckNextMove,
+    matchRules.noPromotion,
+  ]);
 
   const targetingCard: Card | null =
     targetingIndex !== null ? (cardState.hand[targetingIndex] ?? null) : null;
@@ -904,12 +946,56 @@ export function Match({
         });
       }
       if (applied && cardsEnabled && mover) {
-        const trapped = resolveTrapForMove(engine, cardState, mover, applied.from, applied.to);
+        let trapped = resolveTrapForMove(engine, cardState, mover, applied.from, applied.to);
+        // Boss C void: any piece ending its turn on a void square is
+        // destroyed. The AI just moved there — that's its end-of-turn — so
+        // remove it now. We also clear per-piece statuses on the dead square.
+        if (
+          activeBoss?.voidSquares &&
+          activeBoss.voidSquares.includes(applied.to) &&
+          engine.pieceAt(applied.to)
+        ) {
+          engine.removePiece(applied.to);
+          trapped = clearStatusesOn(trapped, applied.to);
+        }
+        // Boss B modifier: when the AI captures a player piece, queue +1
+        // energy for the player's next turn.
+        if (
+          applied.isCapture &&
+          captured?.side === "player" &&
+          activeBoss?.modifier.kind === "captures-grant-captured-energy"
+        ) {
+          trapped = {
+            ...trapped,
+            pendingPlayerEnergyOnTurnStart: (trapped.pendingPlayerEnergyOnTurnStart ?? 0) + 1,
+          };
+        }
         setVersion((v) => v + 1);
+        // Echo (Boss C): if the boss owes the player one or more extra moves,
+        // decrement the counter and flip the turn back to opponent so the AI
+        // effect fires again. Skip the player-turn rollover until the queue
+        // drains.
+        const extras = trapped.bossExtraMoves ?? 0;
+        if (extras > 0) {
+          const next = { ...trapped, bossExtraMoves: extras - 1 };
+          setCardState(next);
+          engine.forceTurn("opponent");
+          setVersion((v) => v + 1);
+          return;
+        }
         applyTurnRollover(trapped);
       }
     },
-    [engine, difficulty, aiMinThinkMs, cardsEnabled, cardState, applyTurnRollover, pushHistory],
+    [
+      engine,
+      difficulty,
+      aiMinThinkMs,
+      cardsEnabled,
+      cardState,
+      applyTurnRollover,
+      pushHistory,
+      activeBoss,
+    ],
   );
 
   useEffect(() => {
@@ -984,6 +1070,9 @@ export function Match({
       if (cardState.mustNotCheckNextMove) {
         candidates = candidates.filter((m) => !engine.wouldDeliverCheck(m));
       }
+      if (matchRules.noPromotion) {
+        candidates = candidates.filter((m) => !m.isPromotion);
+      }
       if (candidates.length === 0) return false;
       // Promotion: defer the move until the player picks via the modal.
       // Multiple candidates with the same from/to differ only by promotion piece.
@@ -1025,6 +1114,25 @@ export function Match({
       // Resolve any trap triggered by this move (player pieces are not exempt).
       if (mover) {
         next = resolveTrapForMove(engine, next, mover, applied.from, applied.to);
+      }
+
+      // Boss C void: any piece ending its turn on a void square is destroyed.
+      // The player's chess move just landed on `applied.to`, so destroy here.
+      if (
+        activeBoss?.voidSquares &&
+        activeBoss.voidSquares.includes(applied.to) &&
+        engine.pieceAt(applied.to)
+      ) {
+        engine.removePiece(applied.to);
+        next = clearStatusesOn(next, applied.to);
+      }
+
+      // Boss B / Greed: track player captures this turn so the start-of-turn
+      // penalty knows whether to fire. Boss B modifier doesn't grant the
+      // player anything on their own captures (the captured side — opponent —
+      // has no energy), so no queued bonus here.
+      if (mover?.side === "player" && applied.isCapture) {
+        next = { ...next, capturedThisTurn: true };
       }
 
       // Artifact triggers — only fire on player-side moves. Capture / check
@@ -1128,8 +1236,12 @@ export function Match({
       pushHistory,
       artifacts,
       applyCurseScheduler,
+      matchRules.noPromotion,
+      activeBoss,
     ],
   );
+  // ^ activeBoss is in the deps because we read its modifier kind (for
+  // captures-grant-captured-energy) inside the closure further below.
 
   /**
    * Select a square iff it has a piece the human controls right now.

@@ -273,12 +273,12 @@ export function Run({ mode, onExit, rngSeed }: Props) {
                 <span className={styles.bossTooltipHeading}>Modifier</span>
                 <span className={styles.bossTooltipText}>{activeBoss.modifierDescription}</span>
               </span>
-              {activeBoss.hazardWalls.length > 0 && (
+              {(activeBoss.hazardWalls.length > 0 ||
+                (activeBoss.voidSquares && activeBoss.voidSquares.length > 0) ||
+                (activeBoss.zoneBuffs && activeBoss.zoneBuffs.length > 0)) && (
                 <span className={styles.bossTooltipSection}>
                   <span className={styles.bossTooltipHeading}>Hazards</span>
-                  <span className={styles.bossTooltipText}>
-                    Indestructible walls on {activeBoss.hazardWalls.join(", ")}.
-                  </span>
+                  <span className={styles.bossTooltipText}>{describeHazards(activeBoss)}</span>
                 </span>
               )}
               <span className={styles.bossTooltipSection}>
@@ -401,6 +401,27 @@ function rarityClass(rarity: Artifact["rarity"]): string {
   return styles.common;
 }
 
+function describeHazards(boss: BossDef): string {
+  const parts: string[] = [];
+  if (boss.hazardWalls.length > 0) {
+    parts.push(`Indestructible walls on ${boss.hazardWalls.join(", ")}.`);
+  }
+  if (boss.voidSquares && boss.voidSquares.length > 0) {
+    parts.push(`Void at ${boss.voidSquares.join(", ")} (any piece ending there is destroyed).`);
+  }
+  if (boss.zoneBuffs && boss.zoneBuffs.length > 0) {
+    for (const b of boss.zoneBuffs) {
+      const where = b.region.kind === "rank" ? `rank ${b.region.rank}` : b.region.anchor;
+      const fx =
+        b.buff.kind === "energy-per-turn"
+          ? `+${b.buff.amount} energy/turn`
+          : `+${b.buff.amount} hand size`;
+      parts.push(`Boss-side zone-buff at ${where}: ${fx} while contested.`);
+    }
+  }
+  return parts.join(" ");
+}
+
 function describeTrigger(t: CurseTrigger): string {
   switch (t.kind) {
     case "turn":
@@ -425,8 +446,9 @@ function safeLookupCurse(id: string) {
 function bossAriaLabel(boss: BossDef): string {
   const parts: string[] = [`Boss: ${boss.name}`, boss.description];
   parts.push(`Modifier: ${boss.modifierDescription}`);
-  if (boss.hazardWalls.length > 0) {
-    parts.push(`Hazards: indestructible walls on ${boss.hazardWalls.join(", ")}`);
+  const hazards = describeHazards(boss);
+  if (hazards.length > 0) {
+    parts.push(`Hazards: ${hazards}`);
   }
   if (boss.curses.length === 0) {
     parts.push("No curses.");

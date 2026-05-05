@@ -28,9 +28,14 @@ export function regionSquares(region: ZoneRegion, size: BoardSize): Set<Algebrai
     for (let f = 0; f < size.files; f++) out.add("abcdefgh"[f] + region.rank);
     return out;
   }
-  // Both anchored patterns share the same expansion logic, just different
-  // neighbour offsets.
-  const offsets = region.kind === "square-radius-1" ? KING_RADIUS_OFFSETS : ORTHOGONAL_OFFSETS;
+  // Anchor-based patterns share the same expansion logic, just different
+  // neighbour offsets. `square` has no neighbours — just the anchor itself.
+  const offsets =
+    region.kind === "square-radius-1"
+      ? KING_RADIUS_OFFSETS
+      : region.kind === "square-orthogonal-1"
+        ? ORTHOGONAL_OFFSETS
+        : [];
   const fileIdx = "abcdefgh".indexOf(region.anchor[0]);
   const rank = Number(region.anchor.slice(1));
   if (fileIdx < 0 || !Number.isFinite(rank)) return out;

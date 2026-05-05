@@ -4,9 +4,9 @@ A rough ordering of work to get from "empty repo" to "playable prototype." Numbe
 
 The milestones are roughly sequential — each builds on the previous — but several can be parallelized.
 
-## Status as of 2026-05-04
+## Status as of 2026-05-05
 
-The chess core, card system, walls, dev sandbox, the full square-effect overlay set (sanctuaries / traps / zone-control buffs), the M5 run loop (3-match Royal mini-run + shop + reward), M6 artifacts (pool + shop offers + trigger system + sidebar), M7 zone-control buffs, and the M8 first boss (Boss A — "The Iron Garrison") are built. The remaining work is the other two bosses + the full 9-match run (M9), then Skirmish (M10).
+The chess core, card system, walls, dev sandbox, the full square-effect overlay set (sanctuaries / traps / zone-control buffs), the M5 run loop (3-match Royal mini-run + shop + reward), M6 artifacts (pool + shop offers + trigger system + sidebar), M7 zone-control buffs, the M8 first boss (Boss A — "The Iron Garrison"), and M9 (full Standard run with Boss B "The Gambit" and Boss C "The Final Mind" wired end-to-end) are built. The remaining work is Skirmish (M10).
 
 Already shipped:
 
@@ -19,6 +19,7 @@ Already shipped:
 - **Tooltips.** Square / piece tooltips on the board (commit `80d3ee7`).
 - **Run loop + shop (M5).** Top-level Royal mode kicks off a 3-match mini-run in `src/components/Run/`. State machine + reward generation in `src/game/progression/run.ts`; shop / reroll / removal / interest in `src/game/shop/shop.ts`. Post-match draft (1-of-3) with skip-for-gold, then a shop with rotating card / booster offers, reroll service (per-shop scaling), card removal (per-run scaling), and Balatro-style interest tally on shop close.
 - **First boss (M8).** Boss A — "The Iron Garrison" — runs end-to-end in Standard mode. Boss definitions and curse triggers live in `src/game/bosses/`; Match.tsx wires the modifier (no player walls), permanent hazard walls (c3 / c4), and the trigger-based curse scheduler. The Run shell prepends a boss-preview phase at act start and gates a 1-of-3 boss-tier artifact pick onto the post-boss reward step.
+- **Acts 2 + 3 bosses (M9).** Boss B — "The Gambit" (7×7) — modifier `captures-grant-captured-energy` queues +1 energy for the player on the next turn after their pieces are captured; pre-placed `Throne` zone-buff at d1 grants +1 energy/turn while the player holds it; `Greed` curse fires every 4 turns and bills 1 energy on the next turn unless the player captured. Boss C — "The Final Mind" (8×8) — modifier `no-promotion` strips promotion candidates from legal moves; a 2x2 void at d4/d5/e4/e5 destroys any piece ending its turn there; three curses (`Final Resolve` on turn 1, `Echo` on player check, `Inevitability` every 5 turns). Echo grants the boss an extra chess move via the `bossExtraMoves` counter; Inevitability removes a random own minor piece. New `MatchRules.noPromotion` flag and turn-scoped state (`pendingEnergyLossOnNoCapture`, `capturedThisTurn`, `noZeroCostCardsThisTurn`, `bossExtraMoves`, `pendingPlayerEnergyOnTurnStart`) all reset on `startPlayerTurn`.
 
 State management note: zustand was planned and skipped — match state currently lives in `Match.tsx` with `useState`. Adopt zustand only if cross-component state grows painful.
 

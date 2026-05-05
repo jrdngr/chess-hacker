@@ -221,10 +221,25 @@ export function startPlayerTurn(
   // doesn't grant its bonus on its own expiry tick.
   const tickedState: MatchCardState = { ...state, zoneBuffs: liveZoneBuffs };
   const zoneEnergyBonus = zoneBuffsEnergyPerTurnFor(tickedState, ctx);
+  // Boss B / Greed: if the curse left a pending penalty and no capture
+  // happened between then and now, take 1 energy. The flag is cleared
+  // whether or not it triggered.
+  const greedPenalty = state.pendingEnergyLossOnNoCapture && !state.capturedThisTurn ? 1 : 0;
+  // Boss B modifier: queued energy from the captures-grant-captured-energy
+  // rule. Applied (and cleared) at the start of the player's next turn.
+  const queuedCaptureEnergy = state.pendingPlayerEnergyOnTurnStart ?? 0;
   const energy =
     turn === 1
-      ? clampEnergy(effectiveStartingEnergy(artifacts) + zoneEnergyBonus)
-      : clampEnergy(state.energy + effectiveEnergyPerTurn(artifacts) + zoneEnergyBonus);
+      ? clampEnergy(
+          effectiveStartingEnergy(artifacts) + zoneEnergyBonus + queuedCaptureEnergy - greedPenalty,
+        )
+      : clampEnergy(
+          state.energy +
+            effectiveEnergyPerTurn(artifacts) +
+            zoneEnergyBonus +
+            queuedCaptureEnergy -
+            greedPenalty,
+        );
   const next: MatchCardState = {
     ...tickedState,
     turn,
@@ -245,6 +260,11 @@ export function startPlayerTurn(
     // was played late and no move followed), the start of the next turn
     // is the natural place to clear it.
     mustNotCheckNextMove: false,
+    // Reset turn-scoped flags / counters consumed above.
+    pendingEnergyLossOnNoCapture: false,
+    capturedThisTurn: false,
+    noZeroCostCardsThisTurn: false,
+    pendingPlayerEnergyOnTurnStart: 0,
   };
   return refillHand(next, rng, ctx);
 }
@@ -320,7 +340,9 @@ export type CardSideEffect =
   | { kind: "foreign-move"; from: AlgebraicSquare; to: AlgebraicSquare }
   | { kind: "add-card-to-hand"; card: Card }
   | { kind: "add-card-to-draw"; card: Card }
-  | { kind: "revive-prompt" };
+  | { kind: "revive-prompt" }
+  /** Inevitability (Boss C): destroy a random own minor piece. */
+  | { kind: "remove-random-own-minor" };
 
 export type PlayCardResult =
   | { ok: true; state: MatchCardState; sideEffects: CardSideEffect[] }
@@ -353,6 +375,12 @@ export type MatchRules = {
    * `no-player-walls` modifier to block `place-wall` cards.
    */
   forbiddenCardEffectKinds?: ReadonlySet<CardEffect["kind"]>;
+  /**
+   * Boss C (`no-promotion`): when true, the player's pawns cannot promote.
+   * Promotion candidates are filtered from the engine's legal-move set in
+   * Match.tsx, and the AI variant uses the same filter via `searchmoves`.
+   */
+  noPromotion?: boolean;
 };
 
 /**
@@ -374,6 +402,13 @@ export function playCard(
   }
   const cost = effectiveCardCost(card, state.artifacts ?? []);
   if (state.energy < cost) return { ok: false, reason: "not-enough-energy" };
+  // Final Resolve (Boss C): once the curse has resolved this turn, no further
+  // 0-cost cards may be played. Curses themselves are exempt — the player
+  // can't voluntarily discard them, so blocking curse plays would soft-lock
+  // the hand.
+  if (state.noZeroCostCardsThisTurn && cost === 0 && !card.curse) {
+    return { ok: false, reason: "effect-forbidden-by-modifier" };
+  }
 
   const validation = validateTarget(card, target, ctx);
   if (validation) return { ok: false, reason: validation };
@@ -760,6 +795,35 @@ function applyEffect(
       return {
         state: { ...state, mustNotCheckNextMove: true },
         sideEffects: [],
+      };
+    }
+    case "pending-energy-loss-on-no-capture": {
+      // Greed (Boss B). If no capture happens before the next turn starts,
+      // -1 energy at start-of-turn. The amount is folded into the flag's
+      // single-turn lifetime; multiple Greed plays in one turn are no-ops
+      // beyond the first since the flag is binary. Acceptable: Boss B's
+      // schedule (every 4 turns) prevents stacking in practice.
+      return { state: { ...state, pendingEnergyLossOnNoCapture: true }, sideEffects: [] };
+    }
+    case "forbid-zero-cost-this-turn": {
+      return { state: { ...state, noZeroCostCardsThisTurn: true }, sideEffects: [] };
+    }
+    case "boss-extra-move": {
+      const current = state.bossExtraMoves ?? 0;
+      return {
+        state: { ...state, bossExtraMoves: current + effect.count },
+        sideEffects: [],
+      };
+    }
+    case "capture-random-own-minor": {
+      // Inevitability (Boss C). Pick a random own minor piece (knight or
+      // bishop). The actual board removal is wired up by Match.tsx via the
+      // `remove-piece` side effect — playCard is pure and only sees the
+      // BoardContext, so we delegate the random choice through a side effect
+      // that Match resolves with full board access.
+      return {
+        state,
+        sideEffects: [{ kind: "remove-random-own-minor" }],
       };
     }
     case "compound": {
