@@ -61,4 +61,34 @@ describe("artifact-driven match state", () => {
     const result = playCard(st, 0, { kind: "square", square: "e4" }, emptyBoard, rng);
     expect(result.ok).toBe(true);
   });
+
+  it("a zone-buff artifact materialises into MatchCardState.zoneBuffs", () => {
+    const rng = makeRng(1);
+    const banner = getArtifactById("vanguard-banner"); // hand-size +1 on rank 4
+    const st = createMatchCardState(makeStarterDeck(), rng, [banner]);
+    expect(st.zoneBuffs).toHaveLength(1);
+    expect(st.zoneBuffs[0].region).toEqual({ kind: "rank", rank: 4 });
+    expect(st.zoneBuffs[0].effect).toEqual({ kind: "hand-size", amount: 1 });
+    expect(st.zoneBuffs[0].expiresOnTurn).toBeUndefined();
+  });
+
+  it("an active zone-buff hand-size bonus inflates the start-of-turn refill", () => {
+    const rng = makeRng(1);
+    const banner = getArtifactById("vanguard-banner");
+    const ctx = {
+      size: { files: 8, ranks: 8 },
+      pieceSideAt: (sq: string) => (sq === "d4" ? ("player" as const) : null),
+    };
+    const st = startPlayerTurn(createMatchCardState(makeStarterDeck(), rng, [banner]), rng, ctx);
+    expect(st.hand.length).toBe(HAND_SIZE + 1);
+  });
+
+  it("an inactive zone-buff (region uncontrolled) doesn't grant its bonus", () => {
+    const rng = makeRng(1);
+    const banner = getArtifactById("vanguard-banner");
+    // No piece on rank 4 → buff inactive.
+    const ctx = { size: { files: 8, ranks: 8 }, pieceSideAt: () => null };
+    const st = startPlayerTurn(createMatchCardState(makeStarterDeck(), rng, [banner]), rng, ctx);
+    expect(st.hand.length).toBe(HAND_SIZE);
+  });
 });

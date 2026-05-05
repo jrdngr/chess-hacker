@@ -43,3 +43,11 @@ See [`keywords.md`](keywords.md) for keyword definitions and [`docs/design/board
 - **Target:** empty square
 - **Effect:** Place a **Trap** on an empty square. The first enemy piece to enter is **pushed** back 1 square along its movement path. Lasts 3 turns.
 - **Design note:** the displacement trap. Useful for fork-prevention and as a low-cost way to break opposing tempo without removing material. Push direction is opposite the piece's movement vector — a knight pushed back lands on its origin square if it's empty.
+
+## Standing Stone
+
+- **Cost:** 2
+- **Rarity:** Uncommon
+- **Target:** empty square
+- **Effect:** Place a **Standing Stone** on an empty square. While you have a friendly piece on it or any orthogonally adjacent square, gain +1 energy at the start of your turn. Lasts 4 turns.
+- **Design note:** the prototype's first zone-control card. The aura encourages parking a piece near the stone, turning a positional choice into a tempo bonus. The orthogonal-only adjacency keeps it from blanket-buffing a whole castled cluster — you have to hold the line through the stone, not just stand near it.

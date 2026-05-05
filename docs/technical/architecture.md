@@ -2,7 +2,7 @@
 
 This is a prototype web app. The architecture should be **simple, testable, and easy to evolve.** It is *not* designed for multiplayer, real-time scaling, or modding.
 
-> **Document status (2026-05-03):** This describes the *target* architecture across M0–M11. Sections marked **(planned)** are not yet implemented. Today the codebase implements the chess engine, card system, dev sandbox, and the M5 run / shop loop; the artifact / boss / zone-buff / persistence layers ship in M6 onward. See `docs/roadmap/milestones.md` for current status.
+> **Document status (2026-05-04):** This describes the *target* architecture across M0–M11. Sections marked **(planned)** are not yet implemented. Today the codebase implements the chess engine, card system, dev sandbox, the M5 run / shop loop, M6 artifacts, and M7 zone-control buffs; the boss / persistence layers ship in M8 onward. See `docs/roadmap/milestones.md` for current status.
 
 ## Layers (top to bottom)
 
@@ -102,7 +102,7 @@ src/
 │   ├── artifacts/                 (planned, M6)
 │   │   ├── data/                    #   one JSON file per artifact
 │   │   └── library.ts               #   loader + validation, sister to cards/library.ts
-│   ├── overlays/                  (planned, M7)  Zone-control buffs
+│   ├── overlays/                  (M7, live)     Zone-control buffs
 │   ├── bosses/                    (planned, M8)  Boss definitions + curse insertion
 │   ├── pieces/                    (planned, M10) Skirmish drafts, soft caps
 │   └── ascension/                 (planned, post-M11) Difficulty modifier definitions
@@ -174,7 +174,7 @@ type Artifact = { id; name; rarity; description; triggers };                    
 type Shop = { offers: ShopOffer[]; rerollCost; removalCost };                                           // M5
 type BossModifier = { bossId; /* rule shape M8 */ };                                                    // M8
 type CurseSchedule = { curses: Card[] };                                                                // M8
-type ZoneBuff = { square; pattern; effect };                                                            // M7
+type ZoneBuff = { region; effect; side; expiresOnTurn?; sourceLabel };                                  // M7 (live)
 ```
 
 The chess board itself lives in the `ChoseEngine` instance — it is *not* duplicated in `MatchCardState`. The split: **engine** = position + history; **`MatchCardState`** = everything else per-match (cards, energy, overlays).

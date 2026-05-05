@@ -75,6 +75,20 @@ const ARTIFACT_DEFS: ReadonlyArray<Artifact> = [
     description: "When you put the opponent in check, draw 1 card.",
     effects: [{ kind: "draw-on-check", count: 1 }],
   },
+  {
+    id: "vanguard-banner",
+    name: "Vanguard Banner",
+    rarity: "uncommon",
+    description: "Hand size +1 while you have a friendly piece on rank 4.",
+    effects: [
+      {
+        kind: "zone-buff",
+        region: { kind: "rank", rank: 4 },
+        buff: { kind: "hand-size", amount: 1 },
+        sourceLabel: "Vanguard Banner",
+      },
+    ],
+  },
 
   // ---- Rare --------------------------------------------------------------
   {

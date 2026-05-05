@@ -319,6 +319,24 @@ describe("playCard — disruption / spatial", () => {
     play("spring-trap", "g4");
     expect(trapAt(st, "g4")?.effect).toBe("push");
   });
+
+  it("Standing Stone places a zone-buff anchored at the targeted square", () => {
+    const rng = makeRng(41);
+    const stone = getCardById("standing-stone");
+    let st = startPlayerTurn(createMatchCardState([stone], rng), rng);
+    st = { ...st, energy: 10 };
+    const idx = st.hand.findIndex((c) => c.id === "standing-stone");
+    const r = playCard(st, idx, { kind: "square", square: "e4" }, emptyBoard, rng);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    st = r.state;
+    expect(st.zoneBuffs).toHaveLength(1);
+    const buff = st.zoneBuffs[0];
+    expect(buff.region).toEqual({ kind: "square-orthogonal-1", anchor: "e4" });
+    expect(buff.effect).toEqual({ kind: "energy-per-turn", amount: 1 });
+    expect(buff.expiresOnTurn).toBe(st.turn + 4);
+    expect(buff.sourceLabel).toBe("Standing Stone");
+  });
 });
 
 describe("playCard — buffs", () => {

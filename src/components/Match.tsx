@@ -106,6 +106,11 @@ import type {
   Side,
 } from "../game/types";
 import { drawOnCapture, drawOnCheck, energyOnCapture } from "../game/artifacts/effects";
+import {
+  activeZoneBuffs,
+  zoneBuffSquares,
+  type ZoneBoardContext,
+} from "../game/overlays/zoneBuffs";
 
 import styles from "./Match.module.css";
 
@@ -193,6 +198,18 @@ const DEFAULT_AI_MIN_THINK_MS = 500;
  * line. Multi-step deltas iterate so the result is consistent with stepping
  * one at a time through the dev panel.
  */
+/**
+ * Build a `ZoneBoardContext` view of the engine's current position. Used by
+ * `startPlayerTurn` to evaluate which zone-buffs are active (the player must
+ * have a piece in the buff's region for it to grant its bonus).
+ */
+function zoneBoardContextOf(engine: ChoseEngine): ZoneBoardContext {
+  return {
+    size: engine.size(),
+    pieceSideAt: (sq) => engine.pieceAt(sq)?.side ?? null,
+  };
+}
+
 function remapAxis(oldCoord: number, oldSize: number, newSize: number): number | null {
   let coord = oldCoord;
   let size = oldSize;
@@ -316,6 +333,7 @@ export function Match({
     const fresh = startPlayerTurn(
       createMatchCardState(initialDeck ?? makeStarterDeck(), rng, artifacts),
       rng,
+      zoneBoardContextOf(engine),
     );
     return initialEnergy !== undefined ? { ...fresh, energy: initialEnergy } : fresh;
   });
@@ -457,6 +475,42 @@ export function Match({
 
   const pieceBadges = useMemo(() => derivePieceBadges(cardState), [cardState]);
   const squareEffectsMap = useMemo(() => deriveSquareEffects(cardState), [cardState]);
+
+  // Zone-buff aura squares. Active = the controlling side has a piece in the
+  // region right now (the buff's effect applies); Inactive = region is not
+  // controlled (rendered with a paler tint as a hint). Anchors are the
+  // origin squares (only meaningful for card-placed buffs; rank buffs have
+  // no anchor).
+  // engine is mutable; depend on `version` (chess move) and on the buff list.
+  const zoneBuffOverlay = useMemo(
+    () => {
+      const buffs = cardState.zoneBuffs ?? [];
+      if (buffs.length === 0) {
+        return {
+          active: new Set<AlgebraicSquare>(),
+          inactive: new Set<AlgebraicSquare>(),
+          anchors: new Set<AlgebraicSquare>(),
+          activeBuffs: [] as typeof buffs,
+        };
+      }
+      const ctx = zoneBoardContextOf(engine);
+      const activeList = activeZoneBuffs(buffs, ctx);
+      const activeSet = new Set(activeList);
+      const inactive = buffs.filter((b) => !activeSet.has(b));
+      const anchors = new Set<AlgebraicSquare>();
+      for (const b of buffs) {
+        if (b.region.kind !== "rank") anchors.add(b.region.anchor);
+      }
+      return {
+        active: zoneBuffSquares(activeList, engine.size()),
+        inactive: zoneBuffSquares(inactive, engine.size()),
+        anchors,
+        activeBuffs: activeList,
+      };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [cardState.zoneBuffs, version],
+  );
 
   // Position validation — only meaningful when the dev panel is active.
   // We re-derive from the current chess position on every render that bumps
@@ -678,11 +732,11 @@ export function Match({
    */
   const applyTurnRollover = useCallback(
     (state: MatchCardState) => {
-      const turnStarted = startPlayerTurn(state, rng);
+      const turnStarted = startPlayerTurn(state, rng, zoneBoardContextOf(engine));
       setCardState(turnStarted);
       pushSnapshot(turnStarted);
     },
-    [rng, pushSnapshot],
+    [rng, pushSnapshot, engine],
   );
 
   /**
@@ -1273,6 +1327,7 @@ export function Match({
     const fresh = startPlayerTurn(
       createMatchCardState(initialDeck ?? makeStarterDeck(), rng, artifacts),
       rng,
+      zoneBoardContextOf(freshEngine),
     );
     setCardState(fresh);
     setSelected(null);
@@ -1328,6 +1383,7 @@ export function Match({
     const fresh = startPlayerTurn(
       createMatchCardState(initialDeck ?? makeStarterDeck(), rng, artifacts),
       rng,
+      zoneBoardContextOf(freshEngine),
     );
     setCardState(fresh);
     setSelected(null);
@@ -1792,7 +1848,8 @@ export function Match({
   const resetGame = useCallback(() => {
     generationRef.current++;
     aiRef.current?.stop();
-    setEngine(new ChoseEngine(initialFen, initialBoardSize));
+    const freshEngine = new ChoseEngine(initialFen, initialBoardSize);
+    setEngine(freshEngine);
     setSelected(null);
     setVersion(0);
     setAiThinking(false);
@@ -1814,6 +1871,7 @@ export function Match({
         startPlayerTurn(
           createMatchCardState(initialDeck ?? makeStarterDeck(), rng, artifacts),
           rng,
+          zoneBoardContextOf(freshEngine),
         ),
       );
     } else {
@@ -1827,7 +1885,8 @@ export function Match({
       generationRef.current++;
       aiRef.current?.stop();
       setMode(next);
-      setEngine(new ChoseEngine(initialFen, initialBoardSize));
+      const freshEngine = new ChoseEngine(initialFen, initialBoardSize);
+      setEngine(freshEngine);
       setSelected(null);
       setVersion(0);
       setAiThinking(false);
@@ -1845,6 +1904,7 @@ export function Match({
           startPlayerTurn(
             createMatchCardState(initialDeck ?? makeStarterDeck(), rng, artifacts),
             rng,
+            zoneBoardContextOf(freshEngine),
           ),
         );
       } else {
@@ -1993,6 +2053,34 @@ export function Match({
             </div>
           </div>
         )}
+        {cardsEnabled && (cardState.zoneBuffs?.length ?? 0) > 0 && (
+          <div className={styles.statusBlock}>
+            <div className={styles.label}>Zone buffs</div>
+            <ul className={styles.zoneBuffList} aria-label="Active zone buffs">
+              {cardState.zoneBuffs.map((b, i) => {
+                const active = zoneBuffOverlay.activeBuffs.includes(b);
+                const remaining =
+                  b.expiresOnTurn === undefined
+                    ? null
+                    : Math.max(0, b.expiresOnTurn - cardState.turn);
+                return (
+                  <li
+                    key={`${b.sourceLabel}:${i}`}
+                    className={`${styles.zoneBuffItem} ${active ? styles.zoneBuffActive : styles.zoneBuffInactive}`}
+                  >
+                    <span className={styles.zoneBuffName}>{b.sourceLabel}</span>
+                    <span className={styles.zoneBuffEffect}>
+                      {b.effect.kind === "energy-per-turn"
+                        ? `+${b.effect.amount} energy/turn`
+                        : `+${b.effect.amount} hand size`}
+                      {remaining !== null && ` · ${remaining} turn${remaining === 1 ? "" : "s"}`}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
 
         {aiError && (
           <div className={styles.aiError} role="alert">
@@ -2036,6 +2124,9 @@ export function Match({
           frozenSquares={frozenSet}
           sanctuarySquares={sanctuarySet}
           trapSquares={trapSet}
+          zoneBuffActiveSquares={zoneBuffOverlay.active}
+          zoneBuffInactiveSquares={zoneBuffOverlay.inactive}
+          zoneBuffAnchorSquares={zoneBuffOverlay.anchors}
           pieceBadges={pieceBadges}
           squareEffects={squareEffectsMap}
           attackedByPlayer={attackedByPlayer}

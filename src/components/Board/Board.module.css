@@ -191,6 +191,51 @@
   z-index: 1;
 }
 
+/* Zone-buff aura — every square inside an active buff's region gets a soft
+   teal tint. Inactive buffs (uncontrolled) get a paler grey-teal so the
+   player can see where the aura *would* be without thinking it's currently
+   granting its bonus. The anchor square gets an extra ring (zoneAnchorMark
+   below) so the source of the buff is identifiable at a glance. */
+.zoneActive::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at center,
+    rgba(120, 220, 200, 0.32) 0%,
+    rgba(120, 220, 200, 0.08) 65%,
+    rgba(120, 220, 200, 0) 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.zoneInactive::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at center,
+    rgba(160, 170, 175, 0.22) 0%,
+    rgba(160, 170, 175, 0.05) 65%,
+    rgba(160, 170, 175, 0) 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.zoneAnchorMark {
+  position: absolute;
+  inset: 24%;
+  border-radius: 50%;
+  border: 2px solid rgba(120, 220, 200, 0.85);
+  box-shadow:
+    inset 0 0 4px rgba(120, 220, 200, 0.6),
+    0 0 0 1px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  z-index: 1;
+}
+
 .statusBadge {
   position: absolute;
   top: 2px;

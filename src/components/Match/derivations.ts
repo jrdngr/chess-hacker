@@ -159,7 +159,25 @@ export function deriveSquareEffects(
       remaining: remaining(tr.expiresOnTurn),
     });
   }
+  // Zone-buffs: only the anchor square gets a hover description (the radiating
+  // squares are visualised by the aura overlay). Artifact-granted buffs have
+  // no anchor and no expiry, so they're skipped here — they show in the
+  // sidebar instead.
+  for (const b of state.zoneBuffs ?? []) {
+    if (b.region.kind === "rank") continue;
+    const label = `${b.sourceLabel} (${describeZoneBuffEffect(b.effect)})`;
+    if (b.expiresOnTurn === undefined) {
+      pushSquare(b.region.anchor, { label });
+    } else {
+      pushSquare(b.region.anchor, { label, remaining: remaining(b.expiresOnTurn) });
+    }
+  }
   return m;
+}
+
+function describeZoneBuffEffect(fx: MatchCardState["zoneBuffs"][number]["effect"]): string {
+  if (fx.kind === "energy-per-turn") return `+${fx.amount} energy/turn`;
+  return `+${fx.amount} hand size`;
 }
 
 /**

@@ -69,6 +69,12 @@ type Props = {
   sanctuarySquares?: ReadonlySet<AlgebraicSquare>;
   /** Squares with a trap overlay. */
   trapSquares?: ReadonlySet<AlgebraicSquare>;
+  /** Squares covered by a currently-active (controlled) zone-buff aura. */
+  zoneBuffActiveSquares?: ReadonlySet<AlgebraicSquare>;
+  /** Squares covered by a zone-buff whose region is not currently controlled. */
+  zoneBuffInactiveSquares?: ReadonlySet<AlgebraicSquare>;
+  /** Anchor squares of zone-buffs (origin marker). Subset of *Squares above. */
+  zoneBuffAnchorSquares?: ReadonlySet<AlgebraicSquare>;
   /** Player pieces with active status badges (root/disarm/compel/shield/haste/lightning/empower). */
   pieceBadges?: ReadonlyMap<AlgebraicSquare, string>;
   /**
@@ -135,6 +141,9 @@ export function Board({
   frozenSquares = EMPTY_SET,
   sanctuarySquares = EMPTY_SET,
   trapSquares = EMPTY_SET,
+  zoneBuffActiveSquares = EMPTY_SET,
+  zoneBuffInactiveSquares = EMPTY_SET,
+  zoneBuffAnchorSquares = EMPTY_SET,
   pieceBadges = EMPTY_BADGES,
   squareEffects = EMPTY_EFFECTS,
   attackedByPlayer = EMPTY_SET,
@@ -232,6 +241,9 @@ export function Board({
               const isFrozen = frozenSquares.has(sq);
               const isSanctuary = sanctuarySquares.has(sq);
               const isTrap = trapSquares.has(sq);
+              const isZoneActive = zoneBuffActiveSquares.has(sq);
+              const isZoneInactive = !isZoneActive && zoneBuffInactiveSquares.has(sq);
+              const isZoneAnchor = zoneBuffAnchorSquares.has(sq);
               const isInvalid = invalidSquares.has(sq);
               const badge = pieceBadges.get(sq);
 
@@ -263,6 +275,8 @@ export function Board({
                 locked && styles.locked,
                 isWalled && styles.walled,
                 isFrozen && styles.frozen,
+                isZoneActive && styles.zoneActive,
+                isZoneInactive && styles.zoneInactive,
                 isInvalid && styles.invalidPiece,
                 visionClass,
                 targeting &&
@@ -292,6 +306,9 @@ export function Board({
                     isFrozen,
                     isSanctuary,
                     isTrap,
+                    isZoneActive,
+                    isZoneInactive,
+                    isZoneAnchor,
                     badge,
                   })}
                   onClick={() => !locked && onSquareClick(sq)}
@@ -375,6 +392,9 @@ export function Board({
                   {isFrozen && <span className={styles.frostMark} aria-label="frozen" />}
                   {isSanctuary && <span className={styles.sanctuaryMark} aria-label="sanctuary" />}
                   {isTrap && <span className={styles.trapMark} aria-label="trap" />}
+                  {isZoneAnchor && (
+                    <span className={styles.zoneAnchorMark} aria-label="zone-buff" />
+                  )}
                   {badge && (
                     <span className={styles.statusBadge} aria-label={badge}>
                       {badgeGlyph(badge)}
@@ -456,6 +476,9 @@ function describeSquare(
     isFrozen: boolean;
     isSanctuary: boolean;
     isTrap: boolean;
+    isZoneActive: boolean;
+    isZoneInactive: boolean;
+    isZoneAnchor: boolean;
     badge: string | undefined;
   },
 ): string {
@@ -465,6 +488,9 @@ function describeSquare(
   if (flags.isWalled) parts.push("walled");
   if (flags.isSanctuary) parts.push("sanctuary");
   if (flags.isTrap) parts.push("trap");
+  if (flags.isZoneAnchor) parts.push("zone-buff anchor");
+  else if (flags.isZoneActive) parts.push("zone-buff active");
+  else if (flags.isZoneInactive) parts.push("zone-buff inactive");
   if (flags.badge) parts.push(flags.badge);
   if (target) parts.push(target.isCapture ? "capture" : "move");
   return parts.join(", ");

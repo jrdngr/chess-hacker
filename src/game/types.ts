@@ -137,6 +137,16 @@ export type CardEffect =
     }
   | { kind: "add-card-to-draw"; source: "self" | "card-id"; cardId?: CardId }
   | { kind: "revive"; selection: "random" | "choose" }
+  | {
+      kind: "place-zone-buff";
+      /** Anchored region pattern — uses the targeted square as anchor. */
+      pattern: "square-radius-1" | "square-orthogonal-1";
+      /** What the buff grants while the controlling side occupies the region. */
+      buff: ZoneBuffEffect;
+      durationTurns: number;
+      /** Sidebar label shown while the buff is active. */
+      sourceLabel: string;
+    }
   | { kind: "compound"; effects: CardEffect[] };
 
 export type Card = {
@@ -320,7 +330,13 @@ export type ArtifactEffect =
   | { kind: "gold-on-match-start"; amount: number }
   | { kind: "draw-on-capture"; count: number }
   | { kind: "energy-on-capture"; amount: number }
-  | { kind: "draw-on-check"; count: number };
+  | { kind: "draw-on-check"; count: number }
+  /**
+   * Grants a zone-buff at match start. The region is materialised verbatim
+   * into `MatchCardState.zoneBuffs` with no expiry; the buff is active for
+   * the whole match (subject to the usual control check on the chess board).
+   */
+  | { kind: "zone-buff"; region: ZoneRegion; buff: ZoneBuffEffect; sourceLabel: string };
 
 export type Artifact = {
   id: string;
@@ -379,11 +395,45 @@ export type CurseSchedule = {
 };
 
 // === Zone-control buffs (M7) ===
+//
+// A zone-buff is a passive effect that activates while its controlling side
+// has at least one piece on a square in the buff's region. See
+// `docs/design/board.md` ("Zone-control buffs") for the design intent.
+//
+// Sources of zone-buffs in the prototype:
+//   - cards (`place-zone-buff` effect) — anchored to the targeted square,
+//     timed via `expiresOnTurn`.
+//   - artifacts (`zone-buff` effect)   — typically board-relative regions
+//     (e.g. a specific rank), no expiry.
+//
+// Evaluation runs at the start of each player turn against the current chess
+// position; the active set drives both the energy / hand bonuses applied by
+// `startPlayerTurn` and the aura rendered on the board.
+
+export type ZoneRegion =
+  /** The anchor square plus its 4 orthogonal neighbours. */
+  | { kind: "square-orthogonal-1"; anchor: AlgebraicSquare }
+  /** The anchor square plus its 8 surrounding neighbours (king-radius). */
+  | { kind: "square-radius-1"; anchor: AlgebraicSquare }
+  /** Every square on the given rank (1-indexed). */
+  | { kind: "rank"; rank: number };
+
+export type ZoneBuffEffect =
+  | { kind: "energy-per-turn"; amount: number }
+  | { kind: "hand-size"; amount: number };
+
 export type ZoneBuff = {
-  square: AlgebraicSquare;
-  pattern: "adjacent-orthogonal" | "adjacent-diagonal" | "king-radius";
-  /** Tightened in M7 — likely a discriminated union of buff effects. */
-  effect: string;
+  region: ZoneRegion;
+  effect: ZoneBuffEffect;
+  /** Whose pieces "control" the region. The prototype only spawns player buffs. */
+  side: Side;
+  /**
+   * Player-turn number at which the buff is removed (start-of-turn tick).
+   * `undefined` means the buff lasts the entire match — used by artifacts.
+   */
+  expiresOnTurn?: number;
+  /** Display label (e.g. "Standing Stone") used by the aura tooltip / sidebar. */
+  sourceLabel: string;
 };
 
 // === Skirmish piece identity (M10) ===
@@ -434,6 +484,14 @@ export type MatchCardState = {
   sanctuaries: Sanctuary[];
   /** Trap square overlays. */
   traps: Trap[];
+  /**
+   * Active zone-control buffs. Card-placed buffs carry an `expiresOnTurn`
+   * and are ticked at start-of-turn; artifact-granted buffs have no expiry
+   * and persist for the whole match. A buff's effects only apply while the
+   * controlling side has at least one piece on a region square — see
+   * `game/overlays/zoneBuffs.ts` for the evaluator.
+   */
+  zoneBuffs: ZoneBuff[];
   /**
    * Artifacts active for this match — copied from the run state at match
    * start. Immutable across the match. Drives hand size, energy bonuses,

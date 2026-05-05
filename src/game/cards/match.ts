@@ -19,6 +19,7 @@ import type {
   PieceStatus,
   PieceType,
   Side,
+  ZoneBuff,
 } from "../types";
 import {
   effectiveCardCost,
@@ -26,6 +27,12 @@ import {
   effectiveHandSize,
   effectiveStartingEnergy,
 } from "../artifacts/effects";
+import {
+  activeZoneBuffs,
+  zoneBuffEnergyPerTurn,
+  zoneBuffHandSize,
+  type ZoneBoardContext,
+} from "../overlays/zoneBuffs";
 import { getCardById, getCardsByRarity, getShivPool } from "./library";
 
 /** Per `docs/design/cards.md`. */
@@ -102,8 +109,30 @@ export function createMatchCardState(
     empowers: [],
     sanctuaries: [],
     traps: [],
+    zoneBuffs: zoneBuffsFromArtifacts(artifacts),
     artifacts,
   };
+}
+
+/**
+ * Materialise artifact-granted zone-buffs into a starting list. Artifact
+ * buffs have no expiry and stay active for the whole match. Card-placed
+ * buffs are appended later via `applyEffect`.
+ */
+function zoneBuffsFromArtifacts(artifacts: ReadonlyArray<Artifact>): ZoneBuff[] {
+  const out: ZoneBuff[] = [];
+  for (const a of artifacts) {
+    for (const fx of a.effects) {
+      if (fx.kind !== "zone-buff") continue;
+      out.push({
+        region: fx.region,
+        effect: fx.buff,
+        side: "player",
+        sourceLabel: fx.sourceLabel,
+      });
+    }
+  }
+  return out;
 }
 
 /**
@@ -131,13 +160,33 @@ export function drawCards(
 
 /**
  * Draw until the hand is at the effective hand size (HAND_SIZE plus any
- * artifact bonuses); never trims an oversized hand.
+ * artifact bonuses, plus any active zone-buff `hand-size` bonuses); never
+ * trims an oversized hand. `ctx` is optional — without it, zone-buffs are
+ * skipped (e.g., legacy tests that don't model the chess board).
  */
-export function refillHand(state: MatchCardState, rng: Rng = Math.random): MatchCardState {
-  const target = effectiveHandSize(state.artifacts ?? []);
+export function refillHand(
+  state: MatchCardState,
+  rng: Rng = Math.random,
+  ctx?: ZoneBoardContext,
+): MatchCardState {
+  const target = effectiveHandSize(state.artifacts ?? []) + zoneBuffsHandSizeFor(state, ctx);
   const need = target - state.hand.length;
   if (need <= 0) return state;
   return drawCards(state, need, rng);
+}
+
+function zoneBuffsHandSizeFor(state: MatchCardState, ctx?: ZoneBoardContext): number {
+  if (!ctx) return 0;
+  const buffs = state.zoneBuffs ?? [];
+  if (buffs.length === 0) return 0;
+  return zoneBuffHandSize(activeZoneBuffs(buffs, ctx));
+}
+
+function zoneBuffsEnergyPerTurnFor(state: MatchCardState, ctx?: ZoneBoardContext): number {
+  if (!ctx) return 0;
+  const buffs = state.zoneBuffs ?? [];
+  if (buffs.length === 0) return 0;
+  return zoneBuffEnergyPerTurn(activeZoneBuffs(buffs, ctx));
 }
 
 /**
@@ -149,17 +198,30 @@ export function refillHand(state: MatchCardState, rng: Rng = Math.random): Match
  *  - Bank energy: first turn starts at STARTING_ENERGY; subsequent turns
  *    add ENERGY_PER_TURN, capped at ENERGY_MAX. Unspent energy carries.
  */
-export function startPlayerTurn(state: MatchCardState, rng: Rng = Math.random): MatchCardState {
+export function startPlayerTurn(
+  state: MatchCardState,
+  rng: Rng = Math.random,
+  ctx?: ZoneBoardContext,
+): MatchCardState {
   const turn = state.turn + 1;
   const alive = <T extends { expiresOnTurn: number }>(arr: T[]) =>
     arr.filter((x) => x.expiresOnTurn > turn);
+  // Zone-buffs without an `expiresOnTurn` (artifact-granted) live forever; the
+  // rest tick like every other timed overlay.
+  const liveZoneBuffs = (state.zoneBuffs ?? []).filter(
+    (b) => b.expiresOnTurn === undefined || b.expiresOnTurn > turn,
+  );
   const artifacts = state.artifacts ?? [];
+  // Tick happens before evaluation, so a buff that just expired this turn
+  // doesn't grant its bonus on its own expiry tick.
+  const tickedState: MatchCardState = { ...state, zoneBuffs: liveZoneBuffs };
+  const zoneEnergyBonus = zoneBuffsEnergyPerTurnFor(tickedState, ctx);
   const energy =
     turn === 1
-      ? clampEnergy(effectiveStartingEnergy(artifacts))
-      : clampEnergy(state.energy + effectiveEnergyPerTurn(artifacts));
+      ? clampEnergy(effectiveStartingEnergy(artifacts) + zoneEnergyBonus)
+      : clampEnergy(state.energy + effectiveEnergyPerTurn(artifacts) + zoneEnergyBonus);
   const next: MatchCardState = {
-    ...state,
+    ...tickedState,
     turn,
     energy,
     walls: alive(state.walls),
@@ -174,7 +236,7 @@ export function startPlayerTurn(state: MatchCardState, rng: Rng = Math.random): 
     sanctuaries: alive(state.sanctuaries),
     traps: alive(state.traps),
   };
-  return refillHand(next, rng);
+  return refillHand(next, rng, ctx);
 }
 
 // ---- Card play --------------------------------------------------------------
@@ -522,6 +584,30 @@ function applyEffect(
         sideEffects: [],
       };
     }
+    case "place-zone-buff": {
+      const sq = squareTarget(target);
+      const buff: ZoneBuff = {
+        region: { kind: effect.pattern, anchor: sq },
+        effect: effect.buff,
+        side: "player",
+        expiresOnTurn: state.turn + effect.durationTurns,
+        sourceLabel: effect.sourceLabel,
+      };
+      // Only one zone-buff per anchor square — placing on the same square
+      // overwrites the existing buff (mirrors sanctuary/wall stacking).
+      return {
+        state: {
+          ...state,
+          zoneBuffs: [
+            ...(state.zoneBuffs ?? []).filter(
+              (b) => !(b.region.kind === effect.pattern && anchorOf(b) === sq),
+            ),
+            buff,
+          ],
+        },
+        sideEffects: [],
+      };
+    }
     case "swap-own-pieces": {
       if (target.kind !== "two-squares") return { state, sideEffects: [] };
       return {
@@ -657,6 +743,11 @@ function squareTarget(t: PlayTarget): AlgebraicSquare {
   if (t.kind === "square") return t.square;
   if (t.kind === "two-squares") return t.first;
   throw new Error(`expected square target, got ${t.kind}`);
+}
+
+function anchorOf(buff: ZoneBuff): AlgebraicSquare | null {
+  if (buff.region.kind === "rank") return null;
+  return buff.region.anchor;
 }
 
 type StatusKey = "freezes" | "roots" | "disarms" | "compels" | "shields" | "hastes";

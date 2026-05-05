@@ -68,6 +68,7 @@ const VALID_EFFECT_KINDS = [
   "place-wall",
   "place-sanctuary",
   "place-trap",
+  "place-zone-buff",
   "swap-own-pieces",
   "swap-rooted-with-own",
   "summon-piece",
@@ -79,6 +80,8 @@ const VALID_EFFECT_KINDS = [
   "revive",
   "compound",
 ] as const;
+const VALID_ZONE_BUFF_PATTERNS = ["square-orthogonal-1", "square-radius-1"] as const;
+const VALID_ZONE_BUFF_EFFECT_KINDS = ["energy-per-turn", "hand-size"] as const;
 const VALID_DESTROY_FILTERS = ["any", "attacked-by-player"] as const;
 const VALID_ADD_CARD_HAND_SOURCES = ["random-common", "card-id", "shiv-pool"] as const;
 const VALID_ADD_CARD_DRAW_SOURCES = ["self", "card-id"] as const;
@@ -234,6 +237,56 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
         kind: "place-trap",
         trapEffect: fx as TrapEffect,
         durationTurns: raw.durationTurns,
+      };
+    }
+    case "place-zone-buff": {
+      const pattern = raw.pattern;
+      if (
+        typeof pattern !== "string" ||
+        !(VALID_ZONE_BUFF_PATTERNS as readonly string[]).includes(pattern)
+      ) {
+        errors.push(
+          `'effect.pattern' must be one of ${VALID_ZONE_BUFF_PATTERNS.join(", ")} for kind 'place-zone-buff'`,
+        );
+        return null;
+      }
+      if (!isPositiveInt(raw.durationTurns)) {
+        errors.push("'effect.durationTurns' must be a positive integer for kind 'place-zone-buff'");
+        return null;
+      }
+      const buff = raw.buff;
+      if (!isPlainObject(buff)) {
+        errors.push("'effect.buff' must be an object for kind 'place-zone-buff'");
+        return null;
+      }
+      const buffKind = buff.kind;
+      if (
+        typeof buffKind !== "string" ||
+        !(VALID_ZONE_BUFF_EFFECT_KINDS as readonly string[]).includes(buffKind)
+      ) {
+        errors.push(
+          `'effect.buff.kind' must be one of ${VALID_ZONE_BUFF_EFFECT_KINDS.join(", ")} for 'place-zone-buff'`,
+        );
+        return null;
+      }
+      if (typeof buff.amount !== "number" || !Number.isInteger(buff.amount) || buff.amount < 1) {
+        errors.push("'effect.buff.amount' must be a positive integer for kind 'place-zone-buff'");
+        return null;
+      }
+      const sourceLabel = raw.sourceLabel;
+      if (typeof sourceLabel !== "string" || sourceLabel.length === 0) {
+        errors.push("'effect.sourceLabel' must be a non-empty string for kind 'place-zone-buff'");
+        return null;
+      }
+      return {
+        kind: "place-zone-buff",
+        pattern: pattern as "square-orthogonal-1" | "square-radius-1",
+        buff: {
+          kind: buffKind as "energy-per-turn" | "hand-size",
+          amount: buff.amount,
+        },
+        durationTurns: raw.durationTurns,
+        sourceLabel,
       };
     }
     case "swap-own-pieces":
@@ -409,6 +462,7 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
     case "place-wall":
     case "place-sanctuary":
     case "place-trap":
+    case "place-zone-buff":
       return tk === "empty-square"
         ? null
         : `'${effect.kind}' effect requires target.kind 'empty-square'`;

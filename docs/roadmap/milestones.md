@@ -6,7 +6,7 @@ The milestones are roughly sequential — each builds on the previous — but se
 
 ## Status as of 2026-05-04
 
-The chess core, card system, walls, dev sandbox, the first half of the square-effect overlays, the M5 run loop (3-match Royal mini-run + shop + reward), and M6 artifacts (pool + shop offers + trigger system + sidebar) are built. The remaining work is bosses, zone-control buffs, the full 9-match run, then Skirmish.
+The chess core, card system, walls, dev sandbox, the full square-effect overlay set (sanctuaries / traps / zone-control buffs), the M5 run loop (3-match Royal mini-run + shop + reward), M6 artifacts (pool + shop offers + trigger system + sidebar), and M7 zone-control buffs are built. The remaining work is bosses, the full 9-match run, then Skirmish.
 
 Already shipped:
 
@@ -15,7 +15,7 @@ Already shipped:
 - **Cards.** 37 cards in `src/game/cards/data/`. Hand / draw pile / consumed pile / energy state in `src/game/cards/match.ts`. 25 effect kinds spanning tempo, disruption, spatial, movement, summon, swap, sacrifice, revival, and generators. Card UI + targeting via `src/components/Hand` + `src/components/Board`.
 - **Walls.** Wall storage and lifetimes in the engine; ray-blocking in move generation; check evaluation respects walls.
 - **Dev sandbox.** Top-level "Sandbox" mode in `src/App.tsx`; full editor / library / energy controls / undo-redo in `src/components/Match/DevPanel.tsx`.
-- **Square effects (partial).** Sanctuaries and traps are stored, triggered, and rendered with hover info on the board. Zone-control buffs (auras that grant adjacent-square buffs) are not yet implemented — see M7 below.
+- **Square effects.** Sanctuaries, traps, and zone-control buffs are all stored, triggered, and rendered with hover info on the board. Zone-buffs add a teal aura on every square in the buff's region (paler when the region is uncontrolled), an anchor ring on the source square, and a "Zone buffs" sidebar block listing each active buff and its remaining lifetime.
 - **Tooltips.** Square / piece tooltips on the board (commit `80d3ee7`).
 - **Run loop + shop (M5).** Top-level Royal mode kicks off a 3-match mini-run in `src/components/Run/`. State machine + reward generation in `src/game/progression/run.ts`; shop / reroll / removal / interest in `src/game/shop/shop.ts`. Post-match draft (1-of-3) with skip-for-gold, then a shop with rotating card / booster offers, reroll service (per-shop scaling), card removal (per-run scaling), and Balatro-style interest tally on shop close.
 
@@ -78,16 +78,18 @@ Live in `src/game/artifacts/` (library + effect helpers) plus shop/Match/Run wir
 **Done when:** artifacts can be acquired from the shop, hold their slot,
 displace correctly past the cap, and fire their effects in matches. ✅
 
-## M7 — Zone-control buffs [0.5d]
+## M7 — Zone-control buffs [done]
 
-Finishes the unfinished tail of the original M9. Sanctuaries and traps already work — this is just the aura system.
+Live in `src/game/overlays/zoneBuffs.ts` plus card / artifact / Match wiring.
 
-- Zone-buff storage on squares.
-- Zone-buff evaluation at start-of-turn (and on relevant board changes).
-- Sidebar / square-aura UI text.
-- At least 1 card and 1 artifact that grants a zone-control buff that applies correctly.
+- `ZoneBuff` storage on `MatchCardState.zoneBuffs`. Card-placed buffs carry an `expiresOnTurn` and tick at start-of-turn alongside the rest of the timed overlays; artifact-granted buffs have no expiry and ride for the whole match.
+- Region patterns: anchored `square-orthogonal-1` / `square-radius-1` (used by cards) and absolute `rank` (used by artifacts).
+- Buff effects: `energy-per-turn` and `hand-size`. Both fold into `startPlayerTurn` / `refillHand` only when the controlling side has at least one piece on a region square.
+- Aura UI: every region square gets a teal tint when controlled / paler grey when not, plus an anchor ring on the source square. The Match sidebar adds a "Zone buffs" block listing every buff with its source label, effect, active state, and remaining lifetime.
+- New card: `Standing Stone` (cost 2, uncommon, spatial). Places a `square-orthogonal-1` zone-buff that grants +1 energy/turn while you have a friendly piece on the buff square or any orthogonal neighbour. Lasts 4 turns.
+- New artifact: `Vanguard Banner` (uncommon). Grants a permanent rank-4 zone-buff: hand size +1 while you have a friendly piece on rank 4.
 
-**Done when:** placing a zone-buff square grants the documented adjacency effect, and the aura renders in the board UI. (Boss B will lean on this in M9.)
+**Done when:** placing a zone-buff square grants the documented adjacency effect, and the aura renders in the board UI. ✅ (Boss B will lean on this in M9.)
 
 ## M8 — First boss [3d]
 
