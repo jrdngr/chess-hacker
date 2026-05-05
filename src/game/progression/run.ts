@@ -14,8 +14,13 @@ import { CARD_LIBRARY, makeStarterDeck } from "../cards/library";
 import { makeRng, shuffle, type Rng } from "../cards/match";
 import { generateChess960Position } from "../chess/positions";
 import { resolvePieceSet, standardMatchConfig } from "./standard";
+import { bossForMatch } from "../bosses/library";
+import { pickRandomArtifacts } from "../artifacts/library";
 import type {
+  Artifact,
   BoardSize,
+  BossArtifactOffer,
+  BossDef,
   Card,
   CardId,
   CardRarity,
@@ -30,13 +35,17 @@ import type {
 
 /** Per-match gold reward for a normal (non-boss) win. */
 export const WIN_BONUS_NORMAL = 8;
-/** Per-match gold reward for a boss win (placeholder; bosses land in M8). */
+/** Per-match gold reward for a boss win — large bonus per docs/design/bosses.md. */
 export const WIN_BONUS_BOSS = 25;
 
 /** Number of cards offered in a post-match draft. */
 export const DRAFT_CARD_COUNT = 3;
 /** Gold awarded for skipping a card draft (constant across acts in M5). */
 export const SKIP_DRAFT_GOLD = 5;
+/** Number of artifacts offered in a boss-reward pick. */
+export const BOSS_ARTIFACT_COUNT = 3;
+/** Gold awarded for skipping a boss artifact pick. */
+export const SKIP_BOSS_ARTIFACT_GOLD = 10;
 
 /** Mini-run shape for M5 — 1 act × 3 matches, no boss. */
 export const MINI_RUN_CONFIG: RunConfig = { actCount: 1, matchesPerAct: 3 };
@@ -56,6 +65,11 @@ export type CreateRunOptions = {
 
 export function createRun(opts: CreateRunOptions): RunState {
   const config = opts.config ?? (opts.mode === "standard" ? STANDARD_RUN_CONFIG : MINI_RUN_CONFIG);
+  // If act 1 ends in a boss, start the run with the boss preview so the
+  // player can see the act's challenge before the very first match.
+  const initialPhase = bossForActStart(opts.mode === "standard" ? 1 : null)
+    ? "boss-preview"
+    : "match";
   return {
     mode: opts.mode,
     ascension: opts.ascension ?? 0,
@@ -69,7 +83,7 @@ export function createRun(opts: CreateRunOptions): RunState {
     rngSeed: opts.rngSeed ?? Math.floor(Math.random() * 0xffffffff),
     rngCursor: 0,
     removalsUsed: 0,
-    phase: "match",
+    phase: initialPhase,
   };
 }
 
@@ -111,7 +125,7 @@ export function consumeRng(state: RunState, n: number = 1): { rng: Rng; next: Ru
 /**
  * Whether the current match is a boss match. The Standard run uses bosses
  * on matches 3 / 6 / 9 (the per-match config tells us which); the M5
- * mini-run has none, and Royal stays bossless until M8.
+ * mini-run has none.
  */
 export function isBossMatch(state: RunState): boolean {
   if (state.mode === "standard") {
@@ -122,6 +136,35 @@ export function isBossMatch(state: RunState): boolean {
     }
   }
   return false;
+}
+
+/**
+ * The boss for the current match in `state`, or null if it's not a boss
+ * match (or the boss isn't defined yet — only Boss A is implemented in M8).
+ */
+export function activeBossFor(state: RunState): BossDef | null {
+  if (state.mode !== "standard") return null;
+  return bossForMatch(state.matchNumber);
+}
+
+/**
+ * Boss for the act starting at this point in the run. Used by the run
+ * shell to decide whether to insert a `boss-preview` phase. Pass null for
+ * non-Standard modes (no bosses).
+ */
+function bossForActStart(act: 1 | 2 | 3 | null): BossDef | null {
+  if (act === null) return null;
+  return bossForMatch(act * 3);
+}
+
+/**
+ * The boss whose preview should be shown right now (Run shell uses this on
+ * the `boss-preview` phase). Returns the boss for the *current* act's last
+ * match, regardless of which match within the act the player is on.
+ */
+export function previewBossFor(state: RunState): BossDef | null {
+  if (state.mode !== "standard") return null;
+  return bossForActStart(state.act);
 }
 
 // ---- Match → reward transition ---------------------------------------------
@@ -208,6 +251,24 @@ export function generateDraftOffer(state: RunState): { offer: DraftOffer; next: 
   };
 }
 
+/**
+ * Generate the boss-reward artifact offer. Skews rare per docs/design/bosses.md
+ * by drawing from the rare pool first and falling back to the regular weighted
+ * pool to fill out the slate. Already-owned artifacts are excluded.
+ */
+export function generateBossArtifactOffer(state: RunState): {
+  offer: BossArtifactOffer;
+  next: RunState;
+} {
+  const { rng, next } = consumeRng(state);
+  const owned = new Set(state.artifacts.map((a) => a.id));
+  const artifacts: Artifact[] = pickRandomArtifacts(BOSS_ARTIFACT_COUNT, rng, owned);
+  return {
+    offer: { artifacts, skipGold: SKIP_BOSS_ARTIFACT_GOLD },
+    next,
+  };
+}
+
 /** Pick a card from the draft — adds it to the deck. */
 export function pickDraftCard(state: RunState, card: Card): RunState {
   return { ...state, deck: [...state.deck, card] };
@@ -215,6 +276,20 @@ export function pickDraftCard(state: RunState, card: Card): RunState {
 
 /** Skip the draft for gold instead. */
 export function skipDraft(state: RunState, skipGold: number): RunState {
+  return { ...state, gold: state.gold + skipGold };
+}
+
+/**
+ * Pick a boss-reward artifact — appends to the run's artifact list. Does not
+ * enforce the slot cap (M6's modal-pick flow is post-prototype polish — Boss A
+ * arrives long before the player can plausibly fill 5 slots).
+ */
+export function pickBossArtifact(state: RunState, artifact: Artifact): RunState {
+  return { ...state, artifacts: [...state.artifacts, artifact] };
+}
+
+/** Skip the boss artifact pick for gold instead. */
+export function skipBossArtifact(state: RunState, skipGold: number): RunState {
   return { ...state, gold: state.gold + skipGold };
 }
 
@@ -236,6 +311,10 @@ export function enterShop(state: RunState): RunState {
  * Leave the shop and either advance to the next match or end the run as a
  * win if all matches have been played. Caller should apply the interest
  * tally first via `applyInterest`.
+ *
+ * If the next match begins a new act AND that act ends in a defined boss,
+ * we route through `boss-preview` first so the player sees the boss before
+ * their first match of the act.
  */
 export function leaveShop(state: RunState): RunState {
   const total = state.config.actCount * state.config.matchesPerAct;
@@ -248,13 +327,21 @@ export function leaveShop(state: RunState): RunState {
     matchInAct = 1;
     act = (act + 1) as 1 | 2 | 3;
   }
+  const startsNewAct = matchInAct === 1;
+  const showPreview = startsNewAct && state.mode === "standard" && bossForActStart(act) !== null;
   return {
     ...state,
     act,
     matchInAct: matchInAct as 1 | 2 | 3,
     matchNumber: state.matchNumber + 1,
-    phase: "match",
+    phase: showPreview ? "boss-preview" : "match",
   };
+}
+
+/** Dismiss the boss-preview screen and start the next match. */
+export function dismissBossPreview(state: RunState): RunState {
+  if (state.phase !== "boss-preview") return state;
+  return { ...state, phase: "match" };
 }
 
 // ---- Helpers ---------------------------------------------------------------

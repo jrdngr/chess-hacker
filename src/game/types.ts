@@ -147,6 +147,11 @@ export type CardEffect =
       /** Sidebar label shown while the buff is active. */
       sourceLabel: string;
     }
+  /**
+   * Curse-only: constrains the next chess move. Currently the only variant
+   * is `must-not-check`, used by Boss A's Stalwart curse.
+   */
+  | { kind: "next-move-constraint"; constraint: "must-not-check" }
   | { kind: "compound"; effects: CardEffect[] };
 
 export type Card = {
@@ -167,9 +172,11 @@ export type Wall = {
   square: AlgebraicSquare;
   /**
    * Player-turn number at which the wall is removed (at start of that turn).
-   * `placedOnTurn + durationTurns`.
+   * Ignored when `permanent` is true (boss hazards live for the whole match).
    */
   expiresOnTurn: number;
+  /** Boss-hazard walls — never tick down, never removable by cards. */
+  permanent?: boolean;
 };
 
 /**
@@ -307,6 +314,16 @@ export type DraftOffer = {
   skipGold: number;
 };
 
+/**
+ * Boss artifact offer — 1-of-3 from a rare-skewed pool. Shown alongside the
+ * regular card draft on the post-boss reward step.
+ */
+export type BossArtifactOffer = {
+  artifacts: Artifact[];
+  /** Gold awarded if the player skips the artifact pick. */
+  skipGold: number;
+};
+
 // === Artifacts (M6) ===
 export type ArtifactRarity = "common" | "uncommon" | "rare";
 
@@ -381,17 +398,55 @@ export type Shop = {
 };
 
 // === Bosses (M8) ===
-export type BossId = string;
-export type BossModifier = {
-  bossId: BossId;
-  // Modifier-rule shape lands in M8 — examples in docs/design/bosses.md
-  // include "all your pawns are rooted on turn 1", "the boss starts with
-  // an extra rook", etc.
+export type BossId = "iron-garrison" | "the-gambit" | "final-mind";
+
+/**
+ * Match-modifier identifiers. Only `no-player-walls` is implemented in M8;
+ * the other two are placeholders for Boss B (M9) and Boss C (M9).
+ */
+export type BossModifier =
+  | { kind: "no-player-walls" }
+  | { kind: "captures-grant-captured-energy" }
+  | { kind: "no-promotion" };
+
+/**
+ * When the boss inserts a curse into the player's hand. Triggers fire
+ * deterministically; "max one curse per turn" is enforced by the scheduler.
+ */
+export type CurseTrigger =
+  /** Once, at the start of player turn N (1-indexed). */
+  | { kind: "turn"; turn: number }
+  /** Every N player turns, starting at turn `n` (so turns N, 2N, 3N…). */
+  | { kind: "every-n-turns"; n: number }
+  /** Whenever the player puts the boss in check. */
+  | { kind: "on-player-check" }
+  /** Whenever the player captures any boss piece. */
+  | { kind: "on-player-capture" };
+
+export type CurseScheduleEntry = {
+  trigger: CurseTrigger;
+  /** Card id from the curse pool — looked up via `getCardById`. */
+  curseId: CardId;
 };
-export type CurseSchedule = {
-  curses: Card[];
-  // Scheduling shape lands in M8 — likely a list of triggers (turn N, on
-  // capture, on player check) each pointing at a curse to insert.
+
+/**
+ * A boss encounter: name + modifier + hazards + curse schedule. Bosses are
+ * hand-crafted (one per act), not generated. See `docs/design/bosses.md`.
+ */
+export type BossDef = {
+  id: BossId;
+  name: string;
+  /** Which match in the run this boss occupies (3, 6, or 9). */
+  matchNumber: 3 | 6 | 9;
+  modifier: BossModifier;
+  /** Plain-English description of the modifier (shown in preview). */
+  modifierDescription: string;
+  /** Permanent walls placed at match start. */
+  hazardWalls: AlgebraicSquare[];
+  /** Curse schedule — fired by the per-match scheduler. */
+  curses: ReadonlyArray<CurseScheduleEntry>;
+  /** Tag-line shown in the boss preview. */
+  description: string;
 };
 
 // === Zone-control buffs (M7) ===
@@ -498,4 +553,10 @@ export type MatchCardState = {
    * card discounts, and conditional triggers (see game/artifacts/effects.ts).
    */
   artifacts: ReadonlyArray<Artifact>;
+  /**
+   * Boss-driven flag: when true, the player's next chess move must not
+   * deliver check. Set by the Stalwart curse; cleared by the next move or
+   * by the next start-of-turn refresh.
+   */
+  mustNotCheckNextMove?: boolean;
 };

@@ -9,25 +9,35 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { ArtifactSidebar } from "./ArtifactSidebar";
+import { BossPreview } from "./BossPreview";
 import { Match } from "../Match";
 import { Reward } from "./Reward";
 import { Shop } from "./Shop";
 import { RunSummary } from "./RunSummary";
 import {
+  activeBossFor,
   applyMatchOutcome,
   createRun,
+  dismissBossPreview,
   enterShop,
+  generateBossArtifactOffer,
   generateDraftOffer,
+  isBossMatch,
   leaveShop,
   nextMatchSetup,
+  pickBossArtifact,
   pickDraftCard,
+  previewBossFor,
+  skipBossArtifact,
   skipDraft,
   totalMatches,
 } from "../../game/progression/run";
 import { applyInterest, generateShop } from "../../game/shop/shop";
 import { goldOnMatchStart } from "../../game/artifacts/effects";
 import type {
+  Artifact,
   BoardSize,
+  BossArtifactOffer,
   Card,
   DraftOffer,
   RunMatchOutcome,
@@ -63,6 +73,18 @@ type PhaseExtras = {
    * <Match> default to the standard 8x8 chess opening.
    */
   matchSetup: { fen?: string; size: BoardSize } | null;
+  /**
+   * Boss artifact offer for the current reward step. Populated when the
+   * just-finished match was a boss; null after the player picks or skips.
+   * Reward UI shows the artifact picker first, then the regular card draft.
+   */
+  bossArtifactOffer: BossArtifactOffer | null;
+  /**
+   * True once the boss artifact offer has been generated for this reward
+   * step (so the effect doesn't keep regenerating after the player resolves
+   * it). Reset when the run leaves the reward phase.
+   */
+  bossArtifactGenerated: boolean;
 };
 
 export function Run({ mode, onExit, rngSeed }: Props) {
@@ -72,17 +94,38 @@ export function Run({ mode, onExit, rngSeed }: Props) {
     shop: null,
     lastInterest: 0,
     matchSetup: null,
+    bossArtifactOffer: null,
+    bossArtifactGenerated: false,
   });
 
   // Lazy-generate the draft / shop on phase entry. The phase transitions
   // happen via setRun(...) and the new state lands here as a fresh `run`;
   // we mirror that into `extras` so the phase UI has its prepared content.
   useEffect(() => {
-    if (run.phase === "reward" && extras.draftOffer === null) {
-      const { offer, next } = generateDraftOffer(run);
-      setExtras((e) => ({ ...e, draftOffer: offer }));
-      setRun(next);
-      return;
+    if (run.phase === "reward") {
+      // Boss artifact offer first — generated once per reward step. The
+      // Reward UI shows it before the regular card draft.
+      if (!extras.bossArtifactGenerated && isBossMatch(run)) {
+        const { offer, next } = generateBossArtifactOffer(run);
+        setExtras((e) => ({
+          ...e,
+          bossArtifactOffer: offer.artifacts.length > 0 ? offer : null,
+          bossArtifactGenerated: true,
+        }));
+        setRun(next);
+        return;
+      }
+      if (!extras.bossArtifactGenerated) {
+        // Non-boss reward — mark generation done so the regular draft fires.
+        setExtras((e) => ({ ...e, bossArtifactGenerated: true }));
+        return;
+      }
+      if (extras.draftOffer === null) {
+        const { offer, next } = generateDraftOffer(run);
+        setExtras((e) => ({ ...e, draftOffer: offer }));
+        setRun(next);
+        return;
+      }
     }
     if (run.phase === "shop" && extras.shop === null) {
       const { shop, next } = generateShop(run);
@@ -93,8 +136,19 @@ export function Run({ mode, onExit, rngSeed }: Props) {
     if (run.phase === "match") {
       // Stale draft / shop from previous round must not leak into the next
       // entry to that phase — drop them as we leave them behind.
-      if (extras.draftOffer !== null || extras.shop !== null) {
-        setExtras((e) => ({ ...e, draftOffer: null, shop: null }));
+      if (
+        extras.draftOffer !== null ||
+        extras.shop !== null ||
+        extras.bossArtifactGenerated ||
+        extras.bossArtifactOffer !== null
+      ) {
+        setExtras((e) => ({
+          ...e,
+          draftOffer: null,
+          shop: null,
+          bossArtifactOffer: null,
+          bossArtifactGenerated: false,
+        }));
       }
       // Generate a per-match starting position the first time we land on
       // this match. Standard mode produces a Chess960-style position sized
@@ -109,7 +163,14 @@ export function Run({ mode, onExit, rngSeed }: Props) {
         setExtras((e) => ({ ...e, matchSetup: { fen, size } }));
       }
     }
-  }, [run, extras.draftOffer, extras.shop, extras.matchSetup]);
+  }, [
+    run,
+    extras.draftOffer,
+    extras.shop,
+    extras.matchSetup,
+    extras.bossArtifactOffer,
+    extras.bossArtifactGenerated,
+  ]);
 
   // ---- Match phase --------------------------------------------------------
 
@@ -132,6 +193,26 @@ export function Run({ mode, onExit, rngSeed }: Props) {
     const skipGold = extras.draftOffer.skipGold;
     setRun((r) => enterShop(skipDraft(r, skipGold)));
     setExtras((e) => ({ ...e, draftOffer: null }));
+  };
+
+  // ---- Boss reward handlers ----------------------------------------------
+
+  const onPickBossArtifact = (artifact: Artifact) => {
+    setRun((r) => pickBossArtifact(r, artifact));
+    setExtras((e) => ({ ...e, bossArtifactOffer: null }));
+  };
+
+  const onSkipBossArtifact = () => {
+    if (!extras.bossArtifactOffer) return;
+    const skipGold = extras.bossArtifactOffer.skipGold;
+    setRun((r) => skipBossArtifact(r, skipGold));
+    setExtras((e) => ({ ...e, bossArtifactOffer: null }));
+  };
+
+  // ---- Boss preview --------------------------------------------------------
+
+  const onDismissBossPreview = () => {
+    setRun((r) => dismissBossPreview(r));
   };
 
   // ---- Shop phase ---------------------------------------------------------
@@ -209,11 +290,23 @@ export function Run({ mode, onExit, rngSeed }: Props) {
           onSaveArtifacts={(artifacts) => setRun((r) => ({ ...r, artifacts: artifacts.slice() }))}
           initialFen={extras.matchSetup.fen}
           initialBoardSize={extras.matchSetup.size}
+          activeBoss={activeBossFor(run)}
           onMatchEnd={onMatchEnd}
         />
       )}
-      {run.phase === "reward" && extras.draftOffer && (
-        <Reward run={run} offer={extras.draftOffer} onPick={onPickDraftCard} onSkip={onSkipDraft} />
+      {run.phase === "boss-preview" && previewBossFor(run) && (
+        <BossPreview boss={previewBossFor(run)!} onContinue={onDismissBossPreview} />
+      )}
+      {run.phase === "reward" && (
+        <Reward
+          run={run}
+          offer={extras.draftOffer}
+          bossArtifactOffer={extras.bossArtifactOffer}
+          onPick={onPickDraftCard}
+          onSkip={onSkipDraft}
+          onPickBossArtifact={onPickBossArtifact}
+          onSkipBossArtifact={onSkipBossArtifact}
+        />
       )}
       {run.phase === "shop" && extras.shop && (
         <Shop run={run} shop={extras.shop} onUpdate={onShopUpdate} onLeave={onLeaveShop} />

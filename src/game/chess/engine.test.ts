@@ -165,6 +165,25 @@ describe("snapshot / restore", () => {
   });
 });
 
+describe("wouldDeliverCheck", () => {
+  it("flags moves that put the opposing king in check and leaves the engine untouched", () => {
+    // White rook a1, white king e1, lone Black king a8. Ra1-a7 attacks the
+    // king along the file → check. Ra1-b1 is a quiet move.
+    const e = new ChoseEngine("k7/8/8/8/8/8/8/R3K3 w - - 0 1");
+    const moves = e.legalMoves("a1");
+    const checking = moves.find((m) => m.to === "a7");
+    expect(checking).toBeDefined();
+    expect(e.wouldDeliverCheck(checking!)).toBe(true);
+    // Engine state unchanged.
+    expect(e.pieceAt("a1")?.type).toBe("rook");
+    expect(e.turn()).toBe("player");
+
+    const safe = moves.find((m) => m.to === "b1");
+    expect(safe).toBeDefined();
+    expect(e.wouldDeliverCheck(safe!)).toBe(false);
+  });
+});
+
 describe("movePath", () => {
   it("knights jump, so the path is just the destination", () => {
     expect(movePath("knight", "g1", "f3")).toEqual(["f3"]);

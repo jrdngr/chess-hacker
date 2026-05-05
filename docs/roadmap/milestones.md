@@ -6,7 +6,7 @@ The milestones are roughly sequential — each builds on the previous — but se
 
 ## Status as of 2026-05-04
 
-The chess core, card system, walls, dev sandbox, the full square-effect overlay set (sanctuaries / traps / zone-control buffs), the M5 run loop (3-match Royal mini-run + shop + reward), M6 artifacts (pool + shop offers + trigger system + sidebar), and M7 zone-control buffs are built. The remaining work is bosses, the full 9-match run, then Skirmish.
+The chess core, card system, walls, dev sandbox, the full square-effect overlay set (sanctuaries / traps / zone-control buffs), the M5 run loop (3-match Royal mini-run + shop + reward), M6 artifacts (pool + shop offers + trigger system + sidebar), M7 zone-control buffs, and the M8 first boss (Boss A — "The Iron Garrison") are built. The remaining work is the other two bosses + the full 9-match run (M9), then Skirmish (M10).
 
 Already shipped:
 
@@ -18,6 +18,7 @@ Already shipped:
 - **Square effects.** Sanctuaries, traps, and zone-control buffs are all stored, triggered, and rendered with hover info on the board. Zone-buffs add a teal aura on every square in the buff's region (paler when the region is uncontrolled), an anchor ring on the source square, and a "Zone buffs" sidebar block listing each active buff and its remaining lifetime.
 - **Tooltips.** Square / piece tooltips on the board (commit `80d3ee7`).
 - **Run loop + shop (M5).** Top-level Royal mode kicks off a 3-match mini-run in `src/components/Run/`. State machine + reward generation in `src/game/progression/run.ts`; shop / reroll / removal / interest in `src/game/shop/shop.ts`. Post-match draft (1-of-3) with skip-for-gold, then a shop with rotating card / booster offers, reroll service (per-shop scaling), card removal (per-run scaling), and Balatro-style interest tally on shop close.
+- **First boss (M8).** Boss A — "The Iron Garrison" — runs end-to-end in Standard mode. Boss definitions and curse triggers live in `src/game/bosses/`; Match.tsx wires the modifier (no player walls), permanent hazard walls (c3 / c4), and the trigger-based curse scheduler. The Run shell prepends a boss-preview phase at act start and gates a 1-of-3 boss-tier artifact pick onto the post-boss reward step.
 
 State management note: zustand was planned and skipped — match state currently lives in `Match.tsx` with `useState`. Adopt zustand only if cross-component state grows painful.
 
@@ -91,18 +92,38 @@ Live in `src/game/overlays/zoneBuffs.ts` plus card / artifact / Match wiring.
 
 **Done when:** placing a zone-buff square grants the documented adjacency effect, and the aura renders in the board UI. ✅ (Boss B will lean on this in M9.)
 
-## M8 — First boss [3d]
+## M8 — First boss [done]
 
-Build one boss end-to-end before generalizing. Pick Boss A — "The Iron Garrison" sketch is a good starter. Validates the modifier+hazard+curse pattern before the other two bosses are built.
+Boss A — "The Iron Garrison" — is live end-to-end and validates the
+modifier+hazard+curse pattern for Boss B / C in M9.
 
-- Match-modifier rule.
-- Fixed board hazards.
-- Curse pool (1–2 curses).
-- Curse-AI scheduler (deterministic, trigger-based).
-- Boss-reward flow: large gold + 1-of-3 artifact pick (uses M6).
-- Boss preview at act start.
+- `BossDef` shape (modifier kind + permanent hazard walls + curse schedule),
+  Boss-A definition in `src/game/bosses/library.ts`.
+- Trigger-based curse scheduler in `src/game/bosses/scheduler.ts` —
+  deterministic, with a once-per-player-turn cap. Wired into `Match.tsx`
+  on turn-start, on player check, and on player capture.
+- Match modifier rule: `no-player-walls` blocks every `place-wall` card via
+  a new `MatchRules.forbiddenCardEffectKinds` parameter on `playCard`; the
+  hand UI greys out forbidden cards.
+- Indestructible boss-hazard walls: `Wall.permanent` flag bypasses the
+  start-of-turn lifetime tick; Boss A spawns c3 / c4 pillars on its 5×6 board.
+- New curse semantics in `playCard` / `refillHand`: curses cost 0, vanish on
+  play (no consumed-pile entry), and don't count toward the hand-size cap.
+- Stalwart curse: cost-0 `next-move-constraint` effect that sets the new
+  `mustNotCheckNextMove` flag; `engine.wouldDeliverCheck()` filters it out
+  of the player's legal-move set until satisfied.
+- Boss-reward flow: large gold (`WIN_BONUS_BOSS = 25`) + 1-of-3 artifact
+  pick (rare-skewed via `pickRandomArtifacts`, owned-exclusion) + the
+  regular post-match card draft. New `BossArtifactOffer` type and helpers
+  (`generateBossArtifactOffer` / `pickBossArtifact` / `skipBossArtifact`).
+- New `boss-preview` phase: shown at the start of any act whose boss is
+  defined (`createRun` for act 1; `leaveShop` for acts 2 / 3 once those
+  bosses ship). Renders name, modifier, hazard list, and the curse pool with
+  trigger labels.
 
-**Done when:** the act-1 boss is playable, the modifier rule is enforced, hazards are placed, curses fire on the right triggers, and beating it grants the boss-tier reward.
+**Done when:** the act-1 boss is playable, the modifier rule is enforced,
+hazards are placed, curses fire on the right triggers, and beating it grants
+the boss-tier reward. ✅
 
 ## M9 — Full Standard run [done in this PR — variable board + Chess960 + boss rebalance]
 

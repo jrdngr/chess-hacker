@@ -19,6 +19,7 @@ import type {
   PieceStatus,
   PieceType,
   Side,
+  Wall,
   ZoneBuff,
 } from "../types";
 import {
@@ -163,6 +164,9 @@ export function drawCards(
  * artifact bonuses, plus any active zone-buff `hand-size` bonuses); never
  * trims an oversized hand. `ctx` is optional — without it, zone-buffs are
  * skipped (e.g., legacy tests that don't model the chess board).
+ *
+ * Curses (per docs/design/bosses.md) are "bonus" cards beyond the cap, so
+ * they don't count toward the hand count when deciding how many to refill.
  */
 export function refillHand(
   state: MatchCardState,
@@ -170,7 +174,8 @@ export function refillHand(
   ctx?: ZoneBoardContext,
 ): MatchCardState {
   const target = effectiveHandSize(state.artifacts ?? []) + zoneBuffsHandSizeFor(state, ctx);
-  const need = target - state.hand.length;
+  const nonCurseInHand = state.hand.filter((c) => !c.curse).length;
+  const need = target - nonCurseInHand;
   if (need <= 0) return state;
   return drawCards(state, need, rng);
 }
@@ -224,7 +229,7 @@ export function startPlayerTurn(
     ...tickedState,
     turn,
     energy,
-    walls: alive(state.walls),
+    walls: aliveWalls(state.walls, turn),
     freezes: alive(state.freezes),
     roots: alive(state.roots),
     disarms: alive(state.disarms),
@@ -235,8 +240,33 @@ export function startPlayerTurn(
     empowers: alive(state.empowers),
     sanctuaries: alive(state.sanctuaries),
     traps: alive(state.traps),
+    // The Stalwart curse's must-not-check flag is consumed by the chess
+    // move it constrains; if the player skipped the move (e.g. the curse
+    // was played late and no move followed), the start of the next turn
+    // is the natural place to clear it.
+    mustNotCheckNextMove: false,
   };
   return refillHand(next, rng, ctx);
+}
+
+/**
+ * Wall lifetime: permanent (boss-hazard) walls survive every tick;
+ * card-placed walls expire when their `expiresOnTurn` is reached.
+ */
+function aliveWalls(walls: ReadonlyArray<Wall>, turn: number): Wall[] {
+  return walls.filter((w) => w.permanent === true || w.expiresOnTurn > turn);
+}
+
+/**
+ * Insert a curse card into the player's hand. Per docs/design/bosses.md:
+ *  - Curses are bonus, beyond the hand-size cap.
+ *  - They cannot be voluntarily discarded (no UI path; the hand only loses
+ *    cards via play, and curses vanish on play).
+ *
+ * Returns a new state with `card` appended to the hand.
+ */
+export function insertCurseIntoHand(state: MatchCardState, card: Card): MatchCardState {
+  return { ...state, hand: [...state.hand, card] };
 }
 
 // ---- Card play --------------------------------------------------------------
@@ -310,7 +340,20 @@ export type PlayCardFailure =
   | "target-not-distinct"
   | "target-not-in-own-half"
   | "target-not-empty-or-walled"
-  | "target-soul-same-piece-type";
+  | "target-soul-same-piece-type"
+  | "effect-forbidden-by-modifier";
+
+/**
+ * Per-match rules surfaced from boss modifiers (or other future sources).
+ * The card resolver consults these before applying the effect.
+ */
+export type MatchRules = {
+  /**
+   * Effect kinds the player is not allowed to play. Used by Boss A's
+   * `no-player-walls` modifier to block `place-wall` cards.
+   */
+  forbiddenCardEffectKinds?: ReadonlySet<CardEffect["kind"]>;
+};
 
 /**
  * Resolve a card play. Returns the new match state, side effects, or a
@@ -322,9 +365,13 @@ export function playCard(
   target: PlayTarget,
   ctx: BoardContext,
   rng: Rng = Math.random,
+  rules: MatchRules = {},
 ): PlayCardResult {
   const card = state.hand[cardIndex];
   if (!card) return { ok: false, reason: "no-such-card" };
+  if (isCardEffectForbidden(card.effect, rules)) {
+    return { ok: false, reason: "effect-forbidden-by-modifier" };
+  }
   const cost = effectiveCardCost(card, state.artifacts ?? []);
   if (state.energy < cost) return { ok: false, reason: "not-enough-energy" };
 
@@ -338,11 +385,32 @@ export function playCard(
   next = applied.state;
   sideEffects.push(...applied.sideEffects);
 
-  // Universal rule: every played card lands in the consumed pile.
+  // Curse cards vanish on play (per docs/design/bosses.md). Regular cards
+  // land in the consumed pile so they're visible in the spent inspector.
   const hand = next.hand.slice();
   hand.splice(cardIndex, 1);
-  next = { ...next, hand, consumedPile: [...next.consumedPile, card] };
+  if (card.curse) {
+    next = { ...next, hand };
+  } else {
+    next = { ...next, hand, consumedPile: [...next.consumedPile, card] };
+  }
   return { ok: true, state: next, sideEffects };
+}
+
+/**
+ * Whether playing this card would violate a match modifier. Currently only
+ * checks `forbiddenCardEffectKinds` against the top-level effect kind and any
+ * compound child kinds. Used both by the resolver and by the Hand UI to grey
+ * out forbidden cards.
+ */
+export function isCardEffectForbidden(effect: CardEffect, rules: MatchRules): boolean {
+  const set = rules.forbiddenCardEffectKinds;
+  if (!set || set.size === 0) return false;
+  if (set.has(effect.kind)) return true;
+  if (effect.kind === "compound") {
+    for (const child of effect.effects) if (set.has(child.kind)) return true;
+  }
+  return false;
 }
 
 function validateTarget(card: Card, target: PlayTarget, ctx: BoardContext): PlayCardFailure | null {
@@ -685,6 +753,14 @@ function applyEffect(
       // "choose": defer to UI prompt; the UI calls `completeRevive` once the
       // player picks a card from the consumed pile.
       return { state, sideEffects: [{ kind: "revive-prompt" }] };
+    }
+    case "next-move-constraint": {
+      // Currently the only constraint is `must-not-check`; the chess-move
+      // path (Match.tsx) reads this flag and filters legal moves.
+      return {
+        state: { ...state, mustNotCheckNextMove: true },
+        sideEffects: [],
+      };
     }
     case "compound": {
       let next = state;

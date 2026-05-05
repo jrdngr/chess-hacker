@@ -82,6 +82,8 @@ import {
   grantSoulOnCapture,
   hasWallOn,
   hasteAt,
+  insertCurseIntoHand,
+  isCardEffectForbidden,
   isInPlayerHalf,
   isRooted,
   lightningAt,
@@ -90,20 +92,25 @@ import {
   setDeckTop,
   startPlayerTurn,
   type BoardContext,
+  type MatchRules,
   type PlayTarget,
   type Rng,
 } from "../game/cards/match";
-import { makeStarterDeck } from "../game/cards/library";
+import { fireCurses, makeSchedulerState, type SchedulerState } from "../game/bosses/scheduler";
+import { getCardById, makeStarterDeck } from "../game/cards/library";
 import type {
   AlgebraicSquare,
   Artifact,
   BoardSize,
+  BossDef,
   Card,
+  CardEffect,
   MatchCardState,
   MatchOutcome,
   PieceType,
   RunMatchOutcome,
   Side,
+  Wall,
 } from "../game/types";
 import { drawOnCapture, drawOnCheck, energyOnCapture } from "../game/artifacts/effects";
 import {
@@ -186,6 +193,12 @@ type Props = {
    * the AI when they want to drive both sides.
    */
   initialDevAiOn?: boolean;
+  /**
+   * Active boss for this match, if any. The Run shell passes the BossDef when
+   * the current match is a boss; Match enforces the modifier rules, places
+   * the boss's permanent walls at match start, and runs the curse scheduler.
+   */
+  activeBoss?: BossDef | null;
 };
 
 const DEFAULT_AI_MIN_THINK_MS = 500;
@@ -246,6 +259,7 @@ export function Match({
   rng,
   initialEnergy,
   initialDevAiOn,
+  activeBoss,
 }: Props = {}) {
   // Dev mode forces the card system on (mode = "vs-ai"); the per-match
   // vs-AI / Local-PvP toggle is hidden in the side panel. The AI itself is
@@ -330,13 +344,46 @@ export function Match({
   const [artifacts, setArtifacts] = useState<ReadonlyArray<Artifact>>(() => initialArtifacts ?? []);
   const [cardState, setCardState] = useState<MatchCardState>(() => {
     if (!cardsEnabled) return createMatchCardState([], rng, artifacts);
-    const fresh = startPlayerTurn(
-      createMatchCardState(initialDeck ?? makeStarterDeck(), rng, artifacts),
-      rng,
-      zoneBoardContextOf(engine),
-    );
+    let base = createMatchCardState(initialDeck ?? makeStarterDeck(), rng, artifacts);
+    if (activeBoss && activeBoss.hazardWalls.length > 0) {
+      // Boss hazards live for the whole match — `permanent: true` causes the
+      // start-of-turn ticker (and any future card-removal flow) to skip them.
+      const walls: Wall[] = activeBoss.hazardWalls.map((sq) => ({
+        square: sq,
+        expiresOnTurn: Number.POSITIVE_INFINITY,
+        permanent: true,
+      }));
+      base = { ...base, walls };
+    }
+    const fresh = startPlayerTurn(base, rng, zoneBoardContextOf(engine));
     return initialEnergy !== undefined ? { ...fresh, energy: initialEnergy } : fresh;
   });
+  /** Per-match curse-scheduler state. Reset on new game / mode change. */
+  const schedulerStateRef = useRef<SchedulerState>(makeSchedulerState());
+  /** Tracks whether the first-turn scheduler tick has already fired. */
+  const firstTurnSchedulerRef = useRef(false);
+
+  // Boss modifiers materialised into a MatchRules object the playCard helper
+  // and the Hand UI both consume. `no-player-walls` blocks place-wall cards.
+  const matchRules: MatchRules = useMemo(() => {
+    if (!activeBoss) return {};
+    const forbidden = new Set<CardEffect["kind"]>();
+    if (activeBoss.modifier.kind === "no-player-walls") forbidden.add("place-wall");
+    return forbidden.size > 0 ? { forbiddenCardEffectKinds: forbidden } : {};
+  }, [activeBoss]);
+
+  // Per-card boss-modifier veto, surfaced to <Hand> so forbidden cards render
+  // as greyed-out (not just silently rejected on click).
+  const forbiddenHandIndexes = useMemo<ReadonlySet<number>>(() => {
+    if (!matchRules.forbiddenCardEffectKinds || matchRules.forbiddenCardEffectKinds.size === 0) {
+      return new Set();
+    }
+    const out = new Set<number>();
+    cardState.hand.forEach((c, i) => {
+      if (isCardEffectForbidden(c.effect, matchRules)) out.add(i);
+    });
+    return out;
+  }, [cardState.hand, matchRules]);
   /** Hand index waiting for a target click, or null. */
   const [targetingIndex, setTargetingIndex] = useState<number | null>(null);
   /** First square in a two-step targeting flow (Switch Files / Marionette). */
@@ -569,13 +616,18 @@ export function Match({
   const controllableSides = useMemo(() => deriveControllableSides(mode, runMode), [mode, runMode]);
 
   // Legal moves originating from the selected square. Recomputed when the
-  // chess position OR the wall/freeze overlays change.
+  // chess position OR the wall/freeze overlays change. Boss curses
+  // (`mustNotCheckNextMove` from Stalwart) further filter the set down.
   const legalFromSelected: LegalMove[] = useMemo(() => {
     if (!selected) return [];
-    return engine.legalMoves(selected);
+    const moves = engine.legalMoves(selected);
+    if (cardState.mustNotCheckNextMove) {
+      return moves.filter((m) => !engine.wouldDeliverCheck(m));
+    }
+    return moves;
     // version invalidates after a move; walledSet/frozenSet after a card play
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [engine, selected, version, walledSet, frozenSet]);
+  }, [engine, selected, version, walledSet, frozenSet, cardState.mustNotCheckNextMove]);
 
   const targetingCard: Card | null =
     targetingIndex !== null ? (cardState.hand[targetingIndex] ?? null) : null;
@@ -725,18 +777,65 @@ export function Match({
   // ---- AI move loop ---------------------------------------------------------
 
   /**
+   * Run the boss curse scheduler against `event` and append any returned
+   * curses to `state.hand`. Pure on the curse list; mutates the scheduler
+   * ref in place. No-ops if there's no active boss.
+   */
+  const applyCurseScheduler = useCallback(
+    (
+      state: MatchCardState,
+      event: import("../game/bosses/scheduler").SchedulerEvent,
+    ): MatchCardState => {
+      if (!activeBoss || activeBoss.curses.length === 0) return state;
+      const result = fireCurses(activeBoss.curses, schedulerStateRef.current, event);
+      schedulerStateRef.current = result.next;
+      let next = state;
+      for (const id of result.curseIds) {
+        try {
+          next = insertCurseIntoHand(next, getCardById(id));
+        } catch {
+          // Unknown curse id — surface in the console but don't break the match.
+          // (This should be caught by the build-time validator anyway.)
+          // eslint-disable-next-line no-console
+          console.error(`[boss] unknown curse id '${id}'`);
+        }
+      }
+      return next;
+    },
+    [activeBoss],
+  );
+
+  // First-turn boss scheduler tick — fires once on mount so a `turn` trigger
+  // pinned to turn 1 (e.g. Boss C's Final Resolve) lands in the player's hand
+  // before they take any action. Boss A's only trigger is `on-player-check`,
+  // so this is a no-op for it; harmless to fire either way.
+  useEffect(() => {
+    if (firstTurnSchedulerRef.current) return;
+    if (!activeBoss || activeBoss.curses.length === 0) return;
+    if (!cardsEnabled) return;
+    firstTurnSchedulerRef.current = true;
+    setCardState((s) => applyCurseScheduler(s, { kind: "turn-start", turn: s.turn }));
+  }, [activeBoss, cardsEnabled, applyCurseScheduler]);
+
+  /**
    * Roll over to a fresh player turn: refill hand, +1 energy, decay statuses,
-   * commit to React state, push a snapshot for undo. Caller is responsible
-   * for any pre-rollover work (e.g. trap resolution) — `state` is what gets
-   * fed straight into `startPlayerTurn`.
+   * commit to React state, push a snapshot for undo. Also fires the boss
+   * scheduler's `turn-start` event so timed curse triggers fire before the
+   * player sees their hand. Caller is responsible for any pre-rollover work
+   * (e.g. trap resolution) — `state` is what gets fed straight into
+   * `startPlayerTurn`.
    */
   const applyTurnRollover = useCallback(
     (state: MatchCardState) => {
       const turnStarted = startPlayerTurn(state, rng, zoneBoardContextOf(engine));
-      setCardState(turnStarted);
-      pushSnapshot(turnStarted);
+      const withCurses = applyCurseScheduler(turnStarted, {
+        kind: "turn-start",
+        turn: turnStarted.turn,
+      });
+      setCardState(withCurses);
+      pushSnapshot(withCurses);
     },
-    [rng, pushSnapshot, engine],
+    [rng, pushSnapshot, engine, applyCurseScheduler],
   );
 
   /**
@@ -881,7 +980,10 @@ export function Match({
    */
   const tryPlay = useCallback(
     (from: AlgebraicSquare, to: AlgebraicSquare, promotion?: PromotionChoice): boolean => {
-      const candidates = engine.legalMoves(from).filter((m) => m.to === to);
+      let candidates = engine.legalMoves(from).filter((m) => m.to === to);
+      if (cardState.mustNotCheckNextMove) {
+        candidates = candidates.filter((m) => !engine.wouldDeliverCheck(m));
+      }
       if (candidates.length === 0) return false;
       // Promotion: defer the move until the player picks via the modal.
       // Multiple candidates with the same from/to differ only by promotion piece.
@@ -942,6 +1044,20 @@ export function Match({
           const drawC = drawOnCheck(artifacts);
           if (drawC > 0) next = drawCards(next, drawC, rng);
         }
+        // Boss curse triggers — fire AFTER the move resolves so the curse
+        // lands in the player's hand for the next turn (the move that
+        // satisfied the trigger has already been made this turn).
+        if (applied.isCapture) {
+          next = applyCurseScheduler(next, { kind: "player-capture", turn: next.turn });
+        }
+        if (engine.inCheck()) {
+          next = applyCurseScheduler(next, { kind: "player-check", turn: next.turn });
+        }
+      }
+
+      // Stalwart constraint is consumed by the player's chess move.
+      if (mover?.side === "player" && next.mustNotCheckNextMove) {
+        next = { ...next, mustNotCheckNextMove: false };
       }
 
       // Haste / Lightning: grant another action by flipping the turn back.
@@ -1011,6 +1127,7 @@ export function Match({
       pushSnapshot,
       pushHistory,
       artifacts,
+      applyCurseScheduler,
     ],
   );
 
@@ -1067,7 +1184,7 @@ export function Match({
     (index: number, target: PlayTarget): boolean => {
       const card = cardState.hand[index];
       if (!card) return false;
-      const result = playCard(cardState, index, target, boardContext, rng);
+      const result = playCard(cardState, index, target, boardContext, rng, matchRules);
       if (!result.ok) return false;
       let next = applyCardSideEffects(result);
 
@@ -1122,6 +1239,7 @@ export function Match({
       devAiOn,
       pushSnapshot,
       pushHistory,
+      matchRules,
     ],
   );
 
@@ -1144,6 +1262,7 @@ export function Match({
         return;
       }
       if (cardState.energy < card.cost) return;
+      if (isCardEffectForbidden(card.effect, matchRules)) return;
       if (card.target.kind === "none") {
         tryResolveCard(index, { kind: "none" });
         return;
@@ -1154,7 +1273,17 @@ export function Match({
       setMarionetteMoves([]);
       setTargetingIndex(index);
     },
-    [matchOver, aiThinking, mode, turn, cardState, targetingIndex, tryResolveCard, cancelTargeting],
+    [
+      matchOver,
+      aiThinking,
+      mode,
+      turn,
+      cardState,
+      targetingIndex,
+      tryResolveCard,
+      cancelTargeting,
+      matchRules,
+    ],
   );
 
   // ---- Dev-mode helpers ----------------------------------------------------
@@ -1823,6 +1952,7 @@ export function Match({
       const card = cardState.hand[index];
       if (!card) return;
       if (cardState.energy < card.cost) return;
+      if (isCardEffectForbidden(card.effect, matchRules)) return;
       // Enter targeting mode so the board highlights drop targets — this is
       // the same setup as clicking the card. For no-target cards it triggers
       // the "drop anywhere" board overlay; the drop will resolve immediately.
@@ -1831,7 +1961,7 @@ export function Match({
       setMarionetteMoves([]);
       setTargetingIndex(index);
     },
-    [matchOver, aiThinking, mode, turn, cardState],
+    [matchOver, aiThinking, mode, turn, cardState, matchRules],
   );
 
   const onCardDragEnd = useCallback(() => {
@@ -2154,6 +2284,7 @@ export function Match({
             enabled={!aiThinking && !matchOver && turn === HUMAN_SIDE && !libraryFreePlayActive}
             drawPileCount={cardState.drawPile.length}
             consumedPileCount={cardState.consumedPile.length}
+            forbiddenIndexes={forbiddenHandIndexes}
             onCardClick={onCardClick}
             onCardDragStart={onCardDragStart}
             onCardDragEnd={onCardDragEnd}

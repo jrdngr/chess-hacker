@@ -1,17 +1,24 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  activeBossFor,
   applyMatchOutcome,
   consumeRng,
   createRun,
+  dismissBossPreview,
   enterShop,
+  generateBossArtifactOffer,
   generateDraftOffer,
+  isBossMatch,
   leaveShop,
   nextMatchSetup,
+  pickBossArtifact,
   pickDraftCard,
+  skipBossArtifact,
   skipDraft,
   STANDARD_RUN_CONFIG,
   totalMatches,
+  WIN_BONUS_BOSS,
   WIN_BONUS_NORMAL,
 } from "./run";
 import { FORESIGHT, FROSTBITE, RECONNAISSANCE } from "../cards/library";
@@ -209,6 +216,63 @@ describe("nextMatchSetup (Standard mode)", () => {
 
   it("Boss C (match 9) places exactly K + 2N + 2B + 2R + Q on an 8×8 board", () => {
     explicitBackRank(9, ["king", "knight", "knight", "bishop", "bishop", "rook", "rook", "queen"]);
+  });
+});
+
+describe("Standard boss flow (M8)", () => {
+  it("a Standard run starts in `boss-preview` so the player sees Boss A", () => {
+    const run = createRun({ mode: "standard", rngSeed: 1 });
+    expect(run.phase).toBe("boss-preview");
+    expect(activeBossFor({ ...run, matchNumber: 3 })?.id).toBe("iron-garrison");
+    const dismissed = dismissBossPreview(run);
+    expect(dismissed.phase).toBe("match");
+  });
+
+  it("isBossMatch is true on Standard match 3, false elsewhere in act 1", () => {
+    const run = createRun({ mode: "standard", rngSeed: 1 });
+    expect(isBossMatch({ ...run, matchNumber: 1 })).toBe(false);
+    expect(isBossMatch({ ...run, matchNumber: 2 })).toBe(false);
+    expect(isBossMatch({ ...run, matchNumber: 3 })).toBe(true);
+  });
+
+  it("a Standard boss win pays WIN_BONUS_BOSS and routes to reward", () => {
+    const run = createRun({ mode: "standard", rngSeed: 1 });
+    const onBoss: RunState = { ...run, matchNumber: 3, phase: "match" };
+    const after = applyMatchOutcome(onBoss, MOCK_OUTCOME_WIN);
+    expect(after.phase).toBe("reward");
+    expect(after.gold).toBe(WIN_BONUS_BOSS);
+  });
+
+  it("generateBossArtifactOffer offers up to 3 artifacts not already owned", () => {
+    const run = createRun({ mode: "standard", rngSeed: 5 });
+    const { offer } = generateBossArtifactOffer(run);
+    expect(offer.artifacts.length).toBeGreaterThan(0);
+    expect(offer.artifacts.length).toBeLessThanOrEqual(3);
+    const ids = offer.artifacts.map((a) => a.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(offer.skipGold).toBeGreaterThan(0);
+  });
+
+  it("pickBossArtifact appends to the run's artifact list", () => {
+    const run = createRun({ mode: "standard", rngSeed: 5 });
+    const { offer } = generateBossArtifactOffer(run);
+    const next = pickBossArtifact(run, offer.artifacts[0]);
+    expect(next.artifacts.length).toBe(run.artifacts.length + 1);
+    expect(next.artifacts[next.artifacts.length - 1].id).toBe(offer.artifacts[0].id);
+  });
+
+  it("skipBossArtifact pays the skip gold and leaves artifacts untouched", () => {
+    const run = createRun({ mode: "standard", rngSeed: 5 });
+    const next = skipBossArtifact(run, 10);
+    expect(next.gold).toBe(run.gold + 10);
+    expect(next.artifacts.length).toBe(run.artifacts.length);
+  });
+
+  it("activeBossFor returns null on non-boss matches and outside Standard mode", () => {
+    const royal = createRun({ mode: "royal", rngSeed: 1 });
+    expect(activeBossFor({ ...royal, matchNumber: 3 })).toBeNull();
+    const run = createRun({ mode: "standard", rngSeed: 1 });
+    expect(activeBossFor({ ...run, matchNumber: 1 })).toBeNull();
   });
 });
 

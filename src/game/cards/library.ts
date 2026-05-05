@@ -78,6 +78,7 @@ const VALID_EFFECT_KINDS = [
   "add-card-to-hand",
   "add-card-to-draw",
   "revive",
+  "next-move-constraint",
   "compound",
 ] as const;
 const VALID_ZONE_BUFF_PATTERNS = ["square-orthogonal-1", "square-radius-1"] as const;
@@ -401,6 +402,14 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
       }
       return { kind: "revive", selection: sel as "random" | "choose" };
     }
+    case "next-move-constraint": {
+      const c = raw.constraint;
+      if (c !== "must-not-check") {
+        errors.push("'effect.constraint' must be 'must-not-check' for kind 'next-move-constraint'");
+        return null;
+      }
+      return { kind: "next-move-constraint", constraint: c };
+    }
     case "compound": {
       const children = raw.effects;
       if (!Array.isArray(children) || children.length === 0) {
@@ -495,6 +504,8 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
       // can appear on any card, including compound parents whose primary
       // effect drives the target.
       return null;
+    case "next-move-constraint":
+      return tk === "none" ? null : "'next-move-constraint' effect requires target.kind 'none'";
     case "compound": {
       for (const child of effect.effects) {
         const m = targetMatchesEffect(target, child);

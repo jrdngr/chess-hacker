@@ -106,6 +106,15 @@
   transform: translateY(-5px);
 }
 
+.card.curse {
+  border-color: #b04a4a;
+  background: linear-gradient(180deg, rgba(176, 74, 74, 0.18), var(--panel) 60%);
+}
+
+.card.curse .name {
+  color: #d97a7a;
+}
+
 .cost {
   position: absolute;
   top: 4px;

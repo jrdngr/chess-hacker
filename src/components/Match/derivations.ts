@@ -148,7 +148,11 @@ export function deriveSquareEffects(
     });
   }
   for (const w of state.walls) {
-    pushSquare(w.square, { label: "Wall", remaining: remaining(w.expiresOnTurn) });
+    if (w.permanent) {
+      pushSquare(w.square, { label: "Wall (permanent)" });
+    } else {
+      pushSquare(w.square, { label: "Wall", remaining: remaining(w.expiresOnTurn) });
+    }
   }
   for (const s of state.sanctuaries) {
     pushSquare(s.square, { label: "Sanctuary", remaining: remaining(s.expiresOnTurn) });

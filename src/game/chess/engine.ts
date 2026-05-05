@@ -365,6 +365,24 @@ export class ChoseEngine {
     return isInCheck(this.position, this.overlays);
   }
 
+  /**
+   * Whether `m` would put the opposing side in check. Used by the Stalwart
+   * curse to filter the player's legal-move set down to non-checking moves.
+   * Snapshot / apply / inspect / restore — the engine is left untouched.
+   */
+  wouldDeliverCheck(m: EngineMove): boolean {
+    const snap = this.snapshot();
+    try {
+      const applied = this.move(m);
+      if (!applied) return false;
+      // After move(), turn flipped; inCheck() now reports whether the new
+      // side-to-move (the side `m` just hit) is in check.
+      return this.inCheck();
+    } finally {
+      this.restore(snap);
+    }
+  }
+
   outcome(): MatchOutcome {
     // King capture ends the match for whichever side still has a king. This
     // can only arise from card-driven moves (e.g. an empowered piece moving

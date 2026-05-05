@@ -113,3 +113,14 @@
   border-color: var(--player);
   background: rgba(244, 162, 60, 0.08);
 }
+
+/* Boss artifact offers — rarity-coloured borders. */
+.draftCard.common {
+  border-color: rgba(160, 160, 160, 0.6);
+}
+.draftCard.uncommon {
+  border-color: rgba(75, 144, 226, 0.7);
+}
+.draftCard.rare {
+  border-color: rgba(228, 175, 60, 0.85);
+}

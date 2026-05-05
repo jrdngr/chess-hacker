@@ -26,6 +26,12 @@ type Props = {
   enabled: boolean;
   drawPileCount: number;
   consumedPileCount: number;
+  /**
+   * Hand indexes the active boss modifier forbids playing (e.g. Boss A's
+   * "no walls" rule disables every place-wall card). Greys out the card and
+   * blocks click + drag.
+   */
+  forbiddenIndexes?: ReadonlySet<number>;
   onCardClick: (index: number) => void;
   /** Drag a targeted card from the hand onto a board square to play it. */
   onCardDragStart?: (index: number) => void;
@@ -43,6 +49,7 @@ export function Hand({
   enabled,
   drawPileCount,
   consumedPileCount,
+  forbiddenIndexes,
   onCardClick,
   onCardDragStart,
   onCardDragEnd,
@@ -69,12 +76,18 @@ export function Hand({
           hand.map((card, i) => {
             const affordable = energy >= card.cost;
             const isTargeting = targetingIndex === i;
-            const playable = enabled && affordable;
+            const forbidden = forbiddenIndexes?.has(i) ?? false;
+            const playable = enabled && affordable && !forbidden;
             // Two-step cards (Switch Files, Marionette) still resolve via
             // click; everything else can be dragged onto the board. No-target
             // cards drop "anywhere on the board" (the whole board lights up).
             const draggable = playable && !NON_DRAGGABLE_TARGETS.has(card.target.kind);
-            const cls = [styles.card, !playable && styles.disabled, isTargeting && styles.targeting]
+            const cls = [
+              styles.card,
+              !playable && styles.disabled,
+              isTargeting && styles.targeting,
+              card.curse && styles.curse,
+            ]
               .filter(Boolean)
               .join(" ");
             return (
@@ -103,8 +116,9 @@ export function Hand({
                   onCardDragStart(i);
                 }}
                 onDragEnd={() => onCardDragEnd?.()}
-                aria-label={`${card.name}, cost ${card.cost}. ${card.description}`}
+                aria-label={`${card.name}, cost ${card.cost}. ${card.description}${forbidden ? " — forbidden by boss modifier." : ""}`}
                 data-card-id={card.id}
+                title={forbidden ? "Forbidden by the active boss modifier" : undefined}
               >
                 <span className={styles.cost}>{card.cost}</span>
                 <span className={styles.name}>{card.name}</span>
