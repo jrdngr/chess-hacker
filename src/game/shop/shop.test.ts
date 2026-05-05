@@ -200,7 +200,11 @@ describe("buyArtifactOffer", () => {
   });
 
   it("returns null when the player is at the artifact slot cap", () => {
-    const filler = allArtifacts().slice(0, ARTIFACT_SLOT_CAP);
+    // Pad the run's artifacts list to the cap with copies of a known artifact
+    // so the cap check fires regardless of pool size. Real runs never produce
+    // duplicates, but the cap is a length check on `state.artifacts`.
+    const stub = allArtifacts()[0];
+    const filler = Array.from({ length: ARTIFACT_SLOT_CAP }, () => stub);
     const baseRun = createRun({ mode: "royal", rngSeed: 5 });
     const run = { ...baseRun, gold: 1000, artifacts: filler };
     const gen = generateShop(run);

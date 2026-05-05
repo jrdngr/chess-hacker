@@ -110,6 +110,31 @@ const ARTIFACT_DEFS: ReadonlyArray<Artifact> = [
   },
 ];
 
+/**
+ * Display emoji per artifact id. Chosen to evoke each artifact's name or
+ * effect; every artifact has a unique glyph so the badges read at a glance
+ * in the run banner. New artifacts must add an entry here or
+ * `artifactEmoji()` will fall back to the generic talisman.
+ */
+const ARTIFACT_EMOJI: Readonly<Record<string, string>> = {
+  "stone-hourglass": "⏳",
+  "spark-coil": "⚡",
+  "rallying-banner": "🚩",
+  "vampiric-charm": "🧛",
+  "hunters-edge": "🏹",
+  "lucky-coin": "🍀",
+  "cunning-sigil": "🔮",
+  "war-drum": "🥁",
+  "tacticians-eye": "👁",
+  "vanguard-banner": "🎌",
+  "power-conduit": "🔌",
+  "royal-patronage": "👑",
+};
+
+export function artifactEmoji(id: string): string {
+  return ARTIFACT_EMOJI[id] ?? "🗿";
+}
+
 const LIBRARY: Record<string, Artifact> = Object.fromEntries(ARTIFACT_DEFS.map((a) => [a.id, a]));
 
 const DUPLICATE_IDS = ARTIFACT_DEFS.map((a) => a.id).filter((id, i, arr) => arr.indexOf(id) !== i);

@@ -381,11 +381,13 @@
 }
 
 .libraryCardName {
+  grid-column: 2;
   font-size: 12px;
   font-weight: 600;
 }
 
 .libraryCardDesc {
+  grid-column: 2;
   font-size: 11px;
   color: var(--muted);
   line-height: 1.3;

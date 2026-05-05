@@ -13,12 +13,12 @@ Artifacts are **not** part of regular post-match drafts. Drafts give cards (and 
 
 ## Slots and capacity
 
-The player can hold up to **5 artifacts** at any time. When the player would acquire a 6th:
+The player can hold up to **20 artifacts** at any time. When the player would acquire one beyond the cap:
 
-- The acquisition flow asks the player to choose: take the new artifact (and discard one of the existing five), or refuse the new artifact.
+- The acquisition flow asks the player to choose: take the new artifact (and discard one of the existing artifacts), or refuse the new artifact.
 - Discarded artifacts are removed for the rest of the run; they do not return.
 
-The 5-slot cap is a tuning knob. Specific artifacts may raise the cap (rare).
+The slot cap is a tuning knob. Specific artifacts may raise the cap (rare).
 
 ## Rarity tiers
 
@@ -82,11 +82,11 @@ Smaller than a final design, large enough to feel different across runs. Refine 
 
 ## Removing / selling artifacts
 
-There is **no mechanic for selling artifacts** in the prototype. The only way to lose an artifact is to refuse one or to be displaced from the 5-slot cap. (Compare Balatro, which lets you sell jokers — we may add this if it improves the loop.)
+There is **no mechanic for selling artifacts** in the prototype. The only way to lose an artifact is to refuse one or to be displaced from the slot cap. (Compare Balatro, which lets you sell jokers — we may add this if it improves the loop.)
 
 ## UI
 
-Artifacts live in a **persistent sidebar** during matches and in the run-overview screen between matches. Hovering an artifact shows its full description. Active triggers should briefly flash when they fire (the player should always be able to tell *what* triggered).
+Artifacts live as **emoji badges in the top banner** of the run, persistent across match / reward / shop / summary screens. Each artifact has a unique emoji chosen to evoke its name or effect. Hovering a badge shows the artifact's name and full description. Active triggers should briefly flash when they fire (the player should always be able to tell *what* triggered).
 
 ## Artifact balance principles
 

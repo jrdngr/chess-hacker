@@ -97,7 +97,7 @@ What M6+ will add, in roughly milestone order:
 src/
 ├── components/
 │   ├── Placement/                 (planned, M10) Skirmish placement screen
-│   └── ArtifactSidebar/           (planned, M6)
+│   └── Run/                         #   Run shell — artifacts shown as emoji badges in the top banner
 ├── game/
 │   ├── artifacts/                 (planned, M6)
 │   │   ├── data/                    #   one JSON file per artifact

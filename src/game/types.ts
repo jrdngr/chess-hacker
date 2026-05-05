@@ -364,7 +364,7 @@ export type Artifact = {
 };
 
 /** Cap on artifacts a single run can hold — see docs/design/artifacts.md. */
-export const ARTIFACT_SLOT_CAP = 5;
+export const ARTIFACT_SLOT_CAP = 20;
 
 // === Shop (M5) ===
 export type ShopOfferKind = "card" | "booster" | "artifact";

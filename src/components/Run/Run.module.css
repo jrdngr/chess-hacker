@@ -46,6 +46,202 @@
   border-radius: 999px;
 }
 
+.bannerArtifacts {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding-left: 8px;
+  border-left: 1px solid var(--panel-border);
+  min-width: 0;
+}
+
+.artifactBadge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  font-size: 16px;
+  line-height: 1;
+  border-radius: 6px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.04);
+  cursor: help;
+  user-select: none;
+}
+
+.artifactTooltip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  width: max-content;
+  max-width: 240px;
+  padding: 6px 8px;
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--fg);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  z-index: 100;
+  text-align: left;
+}
+
+.artifactBadge:hover .artifactTooltip,
+.artifactBadge:focus-visible .artifactTooltip,
+.artifactBadge:focus .artifactTooltip {
+  display: flex;
+}
+
+.artifactTooltipName {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.artifactTooltipDesc {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.bannerBoss {
+  position: relative;
+  padding: 2px 8px;
+  border: 1px solid var(--square-check, var(--player));
+  border-radius: 6px;
+  background: rgba(220, 80, 80, 0.1);
+  cursor: help;
+}
+
+.bannerBoss .bannerLabel {
+  color: var(--square-check, var(--player));
+}
+
+.bannerBoss:focus-visible {
+  outline: 2px solid var(--player);
+  outline-offset: 2px;
+}
+
+.bossTooltip {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  width: max-content;
+  max-width: 320px;
+  padding: 10px 12px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--fg);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  z-index: 100;
+  text-align: left;
+  white-space: normal;
+}
+
+.bannerBoss:hover .bossTooltip,
+.bannerBoss:focus .bossTooltip,
+.bannerBoss:focus-visible .bossTooltip {
+  display: flex;
+}
+
+.bossTooltipName {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--square-check, var(--player));
+}
+
+.bossTooltipFlavor {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--muted);
+}
+
+.bossTooltipSection {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.bossTooltipHeading {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.bossTooltipText {
+  font-size: 11px;
+  color: var(--fg);
+}
+
+.bossTooltipCurseList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.bossTooltipCurse {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+}
+
+.bossTooltipCurseTrigger {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.bossTooltipCurseName {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.bossTooltipCurseDesc {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.3;
+}
+
+.common {
+  border-color: var(--panel-border);
+}
+
+.uncommon {
+  border-color: rgba(120, 180, 255, 0.55);
+}
+
+.rare {
+  border-color: var(--player);
+}
+
 .quit {
   margin-left: auto;
   padding: 6px 10px;

@@ -62,17 +62,16 @@ Live in `src/game/artifacts/` (library + effect helpers) plus shop/Match/Run wir
   triggers (draw, energy).
 - 11 starter artifacts (6 common, 3 uncommon, 2 rare) covering all those
   domains in `src/game/artifacts/library.ts`.
-- Artifact slots tracked in `RunState.artifacts`, cap 5 (`ARTIFACT_SLOT_CAP`).
+- Artifact slots tracked in `RunState.artifacts`, cap 20 (`ARTIFACT_SLOT_CAP`).
   Buy is rejected at the cap; the displacement-pick modal from the design doc
-  is deferred to polish (M11) since the prototype rarely fills five slots.
+  is deferred to polish (M11) since the prototype rarely fills the slots.
 - Shop artifact offers: 1 per visit, weighted by rarity, never re-offered if
   already owned, priced common 12 / uncommon 18 / rare 25 (+ jitter).
 - Trigger system wired in `Match.tsx`: hand-size / energy bonuses fold into
   `startPlayerTurn`, cost discounts into `playCard`, capture / check into the
   player chess-move handler.
-- `ArtifactSidebar` shown in the Run shell during match / reward / shop
-  phases and on the end-of-run summary; rarity-coloured borders, hover
-  description.
+- Artifacts shown as emoji badges in the run banner across all phases (match
+  / reward / shop / summary); rarity-coloured borders, hover description.
 
 (Boss-reward artifact path is stubbed but unused until M8.)
 

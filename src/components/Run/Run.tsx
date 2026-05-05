@@ -8,7 +8,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { ArtifactSidebar } from "./ArtifactSidebar";
 import { BossPreview } from "./BossPreview";
 import { Match } from "../Match";
 import { Reward } from "./Reward";
@@ -33,12 +32,16 @@ import {
   totalMatches,
 } from "../../game/progression/run";
 import { applyInterest, generateShop } from "../../game/shop/shop";
+import { artifactEmoji } from "../../game/artifacts/library";
 import { goldOnMatchStart } from "../../game/artifacts/effects";
+import { getCardById } from "../../game/cards/library";
 import type {
   Artifact,
   BoardSize,
   BossArtifactOffer,
+  BossDef,
   Card,
+  CurseTrigger,
   DraftOffer,
   RunMatchOutcome,
   RunMode,
@@ -233,6 +236,7 @@ export function Run({ mode, onExit, rngSeed }: Props) {
   // ---- Render -------------------------------------------------------------
 
   const total = totalMatches(run);
+  const activeBoss = run.phase === "match" ? activeBossFor(run) : null;
   const banner = useMemo(
     () => (
       <div className={styles.banner} aria-label="Run progress">
@@ -254,6 +258,78 @@ export function Run({ mode, onExit, rngSeed }: Props) {
           <span className={styles.bannerLabel}>Deck</span>
           <span className={styles.bannerValue}>{run.deck.length}</span>
         </span>
+        {activeBoss && (
+          <span
+            className={`${styles.bannerSegment} ${styles.bannerBoss}`}
+            tabIndex={0}
+            aria-label={bossAriaLabel(activeBoss)}
+          >
+            <span className={styles.bannerLabel}>Boss</span>
+            <span className={styles.bannerValue}>{activeBoss.name}</span>
+            <span className={styles.bossTooltip} role="tooltip">
+              <span className={styles.bossTooltipName}>{activeBoss.name}</span>
+              <span className={styles.bossTooltipFlavor}>{activeBoss.description}</span>
+              <span className={styles.bossTooltipSection}>
+                <span className={styles.bossTooltipHeading}>Modifier</span>
+                <span className={styles.bossTooltipText}>{activeBoss.modifierDescription}</span>
+              </span>
+              {activeBoss.hazardWalls.length > 0 && (
+                <span className={styles.bossTooltipSection}>
+                  <span className={styles.bossTooltipHeading}>Hazards</span>
+                  <span className={styles.bossTooltipText}>
+                    Indestructible walls on {activeBoss.hazardWalls.join(", ")}.
+                  </span>
+                </span>
+              )}
+              <span className={styles.bossTooltipSection}>
+                <span className={styles.bossTooltipHeading}>Curses</span>
+                {activeBoss.curses.length === 0 ? (
+                  <span className={styles.bossTooltipText}>None.</span>
+                ) : (
+                  <ul className={styles.bossTooltipCurseList}>
+                    {activeBoss.curses.map((c, i) => {
+                      const card = safeLookupCurse(c.curseId);
+                      return (
+                        <li key={`${c.curseId}-${i}`} className={styles.bossTooltipCurse}>
+                          <span className={styles.bossTooltipCurseTrigger}>
+                            {describeTrigger(c.trigger)}
+                          </span>
+                          <span className={styles.bossTooltipCurseName}>
+                            {card?.name ?? c.curseId}
+                          </span>
+                          {card && (
+                            <span className={styles.bossTooltipCurseDesc}>{card.description}</span>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </span>
+            </span>
+          </span>
+        )}
+        {run.artifacts.length > 0 && (
+          <span
+            className={styles.bannerArtifacts}
+            aria-label={`Artifacts (${run.artifacts.length})`}
+          >
+            {run.artifacts.map((a, i) => (
+              <span
+                key={`${a.id}-${i}`}
+                className={`${styles.artifactBadge} ${rarityClass(a.rarity)}`}
+                tabIndex={0}
+                aria-label={`${a.name}: ${a.description}`}
+              >
+                <span aria-hidden="true">{artifactEmoji(a.id)}</span>
+                <span className={styles.artifactTooltip} role="tooltip">
+                  <span className={styles.artifactTooltipName}>{a.name}</span>
+                  <span className={styles.artifactTooltipDesc}>{a.description}</span>
+                </span>
+              </span>
+            ))}
+          </span>
+        )}
         {extras.lastInterest > 0 && run.phase === "match" && (
           <span className={styles.bannerInterest}>+{extras.lastInterest} interest</span>
         )}
@@ -267,8 +343,10 @@ export function Run({ mode, onExit, rngSeed }: Props) {
       run.matchNumber,
       run.gold,
       run.deck.length,
+      run.artifacts,
       run.phase,
       total,
+      activeBoss,
       extras.lastInterest,
       onExit,
     ],
@@ -277,9 +355,6 @@ export function Run({ mode, onExit, rngSeed }: Props) {
   return (
     <div className={styles.run}>
       {banner}
-      {run.artifacts.length > 0 && run.phase !== "won" && run.phase !== "lost" && (
-        <ArtifactSidebar artifacts={run.artifacts} />
-      )}
       {run.phase === "match" && extras.matchSetup && (
         <Match
           // Re-mount each match so the engine + card state both reset cleanly.
@@ -318,4 +393,53 @@ export function Run({ mode, onExit, rngSeed }: Props) {
 
 function titleCase(s: string): string {
   return s.length === 0 ? s : s[0].toUpperCase() + s.slice(1);
+}
+
+function rarityClass(rarity: Artifact["rarity"]): string {
+  if (rarity === "rare") return styles.rare;
+  if (rarity === "uncommon") return styles.uncommon;
+  return styles.common;
+}
+
+function describeTrigger(t: CurseTrigger): string {
+  switch (t.kind) {
+    case "turn":
+      return `Turn ${t.turn}`;
+    case "every-n-turns":
+      return `Every ${t.n} turns`;
+    case "on-player-check":
+      return "When you check";
+    case "on-player-capture":
+      return "When you capture";
+  }
+}
+
+function safeLookupCurse(id: string) {
+  try {
+    return getCardById(id);
+  } catch {
+    return null;
+  }
+}
+
+function bossAriaLabel(boss: BossDef): string {
+  const parts: string[] = [`Boss: ${boss.name}`, boss.description];
+  parts.push(`Modifier: ${boss.modifierDescription}`);
+  if (boss.hazardWalls.length > 0) {
+    parts.push(`Hazards: indestructible walls on ${boss.hazardWalls.join(", ")}`);
+  }
+  if (boss.curses.length === 0) {
+    parts.push("No curses.");
+  } else {
+    const curseDescriptions = boss.curses
+      .map((c) => {
+        const card = safeLookupCurse(c.curseId);
+        const name = card?.name ?? c.curseId;
+        const desc = card ? ` — ${card.description}` : "";
+        return `${describeTrigger(c.trigger)}: ${name}${desc}`;
+      })
+      .join("; ");
+    parts.push(`Curses: ${curseDescriptions}`);
+  }
+  return parts.join(". ");
 }
