@@ -13,6 +13,7 @@ import type {
   CardEffect,
   CardId,
   EmpowerStatus,
+  HandCard,
   LightningStatus,
   MatchCardState,
   Piece,
@@ -34,7 +35,7 @@ import {
   zoneBuffHandSize,
   type ZoneBoardContext,
 } from "../overlays/zoneBuffs";
-import { getCardById, getCardsByRarity, getShivPool } from "./library";
+import { getCardById } from "./library";
 
 /** Per `docs/design/cards.md`. */
 export const HAND_SIZE = 5;
@@ -95,6 +96,7 @@ export function createMatchCardState(
   return {
     hand: [],
     drawPile: shuffle(deck, rng),
+    discardPile: [],
     consumedPile: [],
     acquisitionLog: deck.slice(),
     energy: 0,
@@ -137,26 +139,35 @@ function zoneBuffsFromArtifacts(artifacts: ReadonlyArray<Artifact>): ZoneBuff[] 
 }
 
 /**
- * Draw `n` cards from the draw pile. When the draw pile empties, draws
- * fizzle — there is no reshuffle (consume-all rule, see
- * `docs/design/cards.md`). The match continues card-free once the deck
- * runs out.
+ * Draw `n` cards from the draw pile. When the draw pile empties mid-draw,
+ * the discard pile is shuffled to form a new draw pile and drawing continues
+ * (the standard cycling-deck rule, see `docs/cards/keywords.md`). Cards in
+ * the consumed pile never re-enter the cycle. If both piles are empty, the
+ * remaining draws fizzle.
  *
  * Note: cards drawn this way may push the hand above HAND_SIZE — the size
  * cap only applies to the start-of-turn auto-refill (see `refillHand`).
+ *
+ * Drawn cards become hand slots with `retained: false`; Retain is applied
+ * later by Stash (see `applyEffect` for `apply-retain-to-hand-card`).
  */
 export function drawCards(
   state: MatchCardState,
   n: number,
-  _rng: Rng = Math.random,
+  rng: Rng = Math.random,
 ): MatchCardState {
   const hand = state.hand.slice();
-  const drawPile = state.drawPile.slice();
+  let drawPile = state.drawPile.slice();
+  let discardPile = state.discardPile.slice();
   for (let i = 0; i < n; i++) {
-    if (drawPile.length === 0) break;
-    hand.push(drawPile.shift()!);
+    if (drawPile.length === 0) {
+      if (discardPile.length === 0) break;
+      drawPile = shuffle(discardPile, rng);
+      discardPile = [];
+    }
+    hand.push({ card: drawPile.shift()!, retained: false });
   }
-  return { ...state, hand, drawPile };
+  return { ...state, hand, drawPile, discardPile };
 }
 
 /**
@@ -174,10 +185,28 @@ export function refillHand(
   ctx?: ZoneBoardContext,
 ): MatchCardState {
   const target = effectiveHandSize(state.artifacts ?? []) + zoneBuffsHandSizeFor(state, ctx);
-  const nonCurseInHand = state.hand.filter((c) => !c.curse).length;
+  const nonCurseInHand = state.hand.filter((h) => !h.card.curse).length;
   const need = target - nonCurseInHand;
   if (need <= 0) return state;
   return drawCards(state, need, rng);
+}
+
+/**
+ * End-of-turn discard: every non-curse, non-retained hand slot is moved to
+ * the discard pile. Curses must be played to leave hand (see
+ * `docs/design/bosses.md`). Retained cards stay in hand until played.
+ */
+export function discardHandAtTurnEnd(state: MatchCardState): MatchCardState {
+  const keep: HandCard[] = [];
+  const discardPile = state.discardPile.slice();
+  for (const slot of state.hand) {
+    if (slot.card.curse || slot.retained || slot.card.retain) {
+      keep.push(slot);
+    } else {
+      discardPile.push(slot.card);
+    }
+  }
+  return { ...state, hand: keep, discardPile };
 }
 
 function zoneBuffsHandSizeFor(state: MatchCardState, ctx?: ZoneBoardContext): number {
@@ -208,6 +237,10 @@ export function startPlayerTurn(
   rng: Rng = Math.random,
   ctx?: ZoneBoardContext,
 ): MatchCardState {
+  // Turn 1 has no previous turn to clean up; turn 2+ discards last turn's
+  // un-retained, non-curse hand cards into the discard pile before refilling.
+  const cleared = state.turn === 0 ? state : discardHandAtTurnEnd(state);
+  state = cleared;
   const turn = state.turn + 1;
   const alive = <T extends { expiresOnTurn: number }>(arr: T[]) =>
     arr.filter((x) => x.expiresOnTurn > turn);
@@ -286,7 +319,7 @@ function aliveWalls(walls: ReadonlyArray<Wall>, turn: number): Wall[] {
  * Returns a new state with `card` appended to the hand.
  */
 export function insertCurseIntoHand(state: MatchCardState, card: Card): MatchCardState {
-  return { ...state, hand: [...state.hand, card] };
+  return { ...state, hand: [...state.hand, { card, retained: false }] };
 }
 
 // ---- Card play --------------------------------------------------------------
@@ -301,7 +334,8 @@ export function insertCurseIntoHand(state: MatchCardState, card: Card): MatchCar
 export type PlayTarget =
   | { kind: "none" }
   | { kind: "square"; square: AlgebraicSquare }
-  | { kind: "two-squares"; first: AlgebraicSquare; second: AlgebraicSquare };
+  | { kind: "two-squares"; first: AlgebraicSquare; second: AlgebraicSquare }
+  | { kind: "hand-card"; index: number };
 
 /**
  * Per-card half-board limit for empty-square-own-half. Player half is the
@@ -363,6 +397,10 @@ export type PlayCardFailure =
   | "target-not-in-own-half"
   | "target-not-empty-or-walled"
   | "target-soul-same-piece-type"
+  | "target-hand-card-out-of-range"
+  | "target-hand-card-self"
+  | "target-hand-card-curse"
+  | "target-hand-card-already-retained"
   | "effect-forbidden-by-modifier";
 
 /**
@@ -395,8 +433,9 @@ export function playCard(
   rng: Rng = Math.random,
   rules: MatchRules = {},
 ): PlayCardResult {
-  const card = state.hand[cardIndex];
-  if (!card) return { ok: false, reason: "no-such-card" };
+  const slot = state.hand[cardIndex];
+  if (!slot) return { ok: false, reason: "no-such-card" };
+  const card = slot.card;
   if (isCardEffectForbidden(card.effect, rules)) {
     return { ok: false, reason: "effect-forbidden-by-modifier" };
   }
@@ -410,24 +449,30 @@ export function playCard(
     return { ok: false, reason: "effect-forbidden-by-modifier" };
   }
 
-  const validation = validateTarget(card, target, ctx);
+  const validation = validateTarget(card, target, ctx, state, cardIndex);
   if (validation) return { ok: false, reason: validation };
 
   let next: MatchCardState = { ...state, energy: clampEnergy(state.energy - cost) };
   const sideEffects: CardSideEffect[] = [];
 
-  const applied = applyEffect(card.effect, next, target, ctx, rng, card);
+  const applied = applyEffect(card.effect, next, target, ctx, rng, card, cardIndex);
   next = applied.state;
   sideEffects.push(...applied.sideEffects);
 
-  // Curse cards vanish on play (per docs/design/bosses.md). Regular cards
-  // land in the consumed pile so they're visible in the spent inspector.
+  // Splice the played slot out of hand. Then route the played card based on
+  // its disposal mode:
+  //  - Curses vanish (per docs/design/bosses.md).
+  //  - `consume: true` cards land in the consumed pile (gone for the match,
+  //    not eligible for revival).
+  //  - All others land in the discard pile (will cycle back via shuffle).
   const hand = next.hand.slice();
   hand.splice(cardIndex, 1);
   if (card.curse) {
     next = { ...next, hand };
-  } else {
+  } else if (card.consume) {
     next = { ...next, hand, consumedPile: [...next.consumedPile, card] };
+  } else {
+    next = { ...next, hand, discardPile: [...next.discardPile, card] };
   }
   return { ok: true, state: next, sideEffects };
 }
@@ -448,7 +493,13 @@ export function isCardEffectForbidden(effect: CardEffect, rules: MatchRules): bo
   return false;
 }
 
-function validateTarget(card: Card, target: PlayTarget, ctx: BoardContext): PlayCardFailure | null {
+function validateTarget(
+  card: Card,
+  target: PlayTarget,
+  ctx: BoardContext,
+  state: MatchCardState,
+  playingIndex: number,
+): PlayCardFailure | null {
   switch (card.target.kind) {
     case "none":
       return null;
@@ -535,6 +586,17 @@ function validateTarget(card: Card, target: PlayTarget, ctx: BoardContext): Play
       if (!own || own.side !== "player") return "target-not-own-piece";
       return null;
     }
+    case "hand-card": {
+      if (target.kind !== "hand-card") return "missing-target";
+      if (target.index < 0 || target.index >= state.hand.length) {
+        return "target-hand-card-out-of-range";
+      }
+      if (target.index === playingIndex) return "target-hand-card-self";
+      const slot = state.hand[target.index];
+      if (slot.card.curse) return "target-hand-card-curse";
+      if (slot.retained) return "target-hand-card-already-retained";
+      return null;
+    }
   }
 }
 
@@ -547,6 +609,7 @@ function applyEffect(
   ctx: BoardContext,
   rng: Rng,
   source: Card,
+  playingIndex: number,
 ): EffectResult {
   switch (effect.kind) {
     case "gain-energy":
@@ -755,13 +818,6 @@ function applyEffect(
         sideEffects: [{ kind: "remove-piece", square: sq }],
       };
     }
-    case "add-card-to-hand": {
-      const cards = pickCardsForSource(effect.source, effect.cardId, effect.count ?? 1, rng);
-      return {
-        state,
-        sideEffects: cards.map((card) => ({ kind: "add-card-to-hand", card })),
-      };
-    }
     case "add-card-to-draw": {
       const card =
         effect.source === "self"
@@ -773,20 +829,22 @@ function applyEffect(
       return { state, sideEffects: [{ kind: "add-card-to-draw", card }] };
     }
     case "revive": {
+      // Revivers pull from the discard pile only — Consume cards are gone for
+      // the match and cannot be returned.
       if (effect.selection === "random") {
-        if (state.consumedPile.length === 0) return { state, sideEffects: [] };
-        const idx = Math.floor(rng() * state.consumedPile.length);
-        const picked = state.consumedPile[idx];
-        const consumedPile = state.consumedPile
+        if (state.discardPile.length === 0) return { state, sideEffects: [] };
+        const idx = Math.floor(rng() * state.discardPile.length);
+        const picked = state.discardPile[idx];
+        const discardPile = state.discardPile
           .slice(0, idx)
-          .concat(state.consumedPile.slice(idx + 1));
+          .concat(state.discardPile.slice(idx + 1));
         return {
-          state: { ...state, consumedPile },
+          state: { ...state, discardPile },
           sideEffects: [{ kind: "add-card-to-hand", card: picked }],
         };
       }
       // "choose": defer to UI prompt; the UI calls `completeRevive` once the
-      // player picks a card from the consumed pile.
+      // player picks a card from the discard pile.
       return { state, sideEffects: [{ kind: "revive-prompt" }] };
     }
     case "next-move-constraint": {
@@ -826,41 +884,26 @@ function applyEffect(
         sideEffects: [{ kind: "remove-random-own-minor" }],
       };
     }
+    case "apply-retain-to-hand-card": {
+      // Stash. Validation already ensured the index is in range, not the
+      // playing slot, not a curse, and not already retained.
+      if (target.kind !== "hand-card") return { state, sideEffects: [] };
+      const hand = state.hand.map((slot, i) =>
+        i === target.index ? { card: slot.card, retained: true } : slot,
+      );
+      return { state: { ...state, hand }, sideEffects: [] };
+    }
     case "compound": {
       let next = state;
       const sideEffects: CardSideEffect[] = [];
       for (const child of effect.effects) {
-        const r = applyEffect(child, next, target, ctx, rng, source);
+        const r = applyEffect(child, next, target, ctx, rng, source, playingIndex);
         next = r.state;
         sideEffects.push(...r.sideEffects);
       }
       return { state: next, sideEffects };
     }
   }
-}
-
-/**
- * Resolve the "source" of an `add-card-to-hand` effect into concrete `Card`s.
- * Returns up to `count` fresh card-definition copies.
- */
-function pickCardsForSource(
-  src: "random-common" | "card-id" | "shiv-pool",
-  cardId: CardId | undefined,
-  count: number,
-  rng: Rng,
-): Card[] {
-  if (src === "card-id") {
-    if (!cardId) return [];
-    return Array.from({ length: count }, () => cloneCardDef(getCardById(cardId)));
-  }
-  const pool = src === "random-common" ? getCardsByRarity("common") : getShivPool();
-  if (pool.length === 0) return [];
-  const out: Card[] = [];
-  for (let i = 0; i < count; i++) {
-    const idx = Math.floor(rng() * pool.length);
-    out.push(cloneCardDef(pool[idx]));
-  }
-  return out;
 }
 
 /**
@@ -1049,9 +1092,8 @@ export function dropOtherSingleUseEmpowers(
 // ---- Card-economy helpers ---------------------------------------------------
 
 /**
- * Splice `card` into the draw pile at a random index. The played card itself
- * still goes to the consumed pile via `playCard` — this is how
- * self-replicating cards keep a copy in rotation.
+ * Splice `card` into the draw pile at a random index. Used by capture-grants-
+ * Soul (see `grantSoulOnCapture`) and by the `add-card-to-draw` card effect.
  */
 export function shuffleIntoDraw(
   state: MatchCardState,
@@ -1086,24 +1128,25 @@ export function drawPileInAcquisitionOrder(state: MatchCardState): Card[] {
 
 /**
  * Append `card` to the hand. No HAND_SIZE enforcement — the cap is only
- * applied at start-of-turn refill; transient overflow is allowed.
+ * applied at start-of-turn refill; transient overflow is allowed. Added
+ * cards are not retained by default; Stash is the way to grant Retain.
  */
 export function addToHand(state: MatchCardState, card: Card): MatchCardState {
-  return { ...state, hand: [...state.hand, card] };
+  return { ...state, hand: [...state.hand, { card, retained: false }] };
 }
 
 /**
- * Complete a "choose" revive: move the picked card from `consumedPile` to
- * `hand`. Used by the UI after the chooser closes. No-op if the id is no
- * longer in the consumed pile (defensive — UI may have raced).
+ * Complete a "choose" revive: move the picked card from the discard pile to
+ * the hand. Used by the UI after the chooser closes. No-op if the id is no
+ * longer in the discard pile (defensive — UI may have raced).
  */
 export function completeRevive(state: MatchCardState, cardIndex: number): MatchCardState {
-  if (cardIndex < 0 || cardIndex >= state.consumedPile.length) return state;
-  const card = state.consumedPile[cardIndex];
-  const consumedPile = state.consumedPile
+  if (cardIndex < 0 || cardIndex >= state.discardPile.length) return state;
+  const card = state.discardPile[cardIndex];
+  const discardPile = state.discardPile
     .slice(0, cardIndex)
-    .concat(state.consumedPile.slice(cardIndex + 1));
-  return { ...state, consumedPile, hand: [...state.hand, card] };
+    .concat(state.discardPile.slice(cardIndex + 1));
+  return { ...state, discardPile, hand: [...state.hand, { card, retained: false }] };
 }
 
 /**

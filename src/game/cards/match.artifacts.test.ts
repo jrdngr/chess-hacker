@@ -57,7 +57,13 @@ describe("artifact-driven match state", () => {
     // Force-feed Barricade (cost 1, spatial) onto a hand with 0 energy. Without
     // the discount this throws "not-enough-energy"; with it the play succeeds.
     const base = createMatchCardState([BARRICADE], rng, [sigil]);
-    const st = { ...base, hand: [BARRICADE], drawPile: [], energy: 0, turn: 1 };
+    const st = {
+      ...base,
+      hand: [{ card: BARRICADE, retained: false }],
+      drawPile: [],
+      energy: 0,
+      turn: 1,
+    };
     const result = playCard(st, 0, { kind: "square", square: "e4" }, emptyBoard, rng);
     expect(result.ok).toBe(true);
   });

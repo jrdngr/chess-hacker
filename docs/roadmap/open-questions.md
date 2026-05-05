@@ -92,12 +92,12 @@ Loosely grouped by topic.
 
 ## Card-design follow-ups
 
-Deferred from the energy + card-disposal redesign (formerly `TODO.md`). Not blocking, but worth revisiting after some playtest miles.
+Deferred from the cycling + Retain/Consume redesign. Not blocking, but worth revisiting after some playtest miles.
 
-- **Card naming.** 14 card ids are placeholders: `cheap-destroy`, `big-destroy`, `improvise`, `trick-bag`, `mark-target`, `vine-pull`, `recall`, `recover`, `pace`, `hum`, `drift`, `shiv-strike`, `shiv-step`, `shiv-snag`. Pick final names that fit the theme (see `docs/design/theme.md`).
-- **Self-replicator balance.** Pace and Hum at cost 1 may be too dominant — perpetual scry-1 / draw-1. Options: raise the cost, add a fatigue counter (each replication weakens or eventually stops), or cap replications per match.
-- **Drift's effect.** Currently a 1-cost compound that walls a square for 1 turn and shuffles a copy of itself back into the deck. The minor positional utility is a placeholder. Candidates for a swap-in: tag a piece for +1 movement next turn, briefly reveal opponent threats. Pick after seeing how Pace and Hum feel.
-- **Shiv-pool roster.** Three shivs (`shiv-strike`, `shiv-step`, `shiv-snag`) is an arbitrary starting point. Tune the pool size and per-shiv effects in playtest. Goal: each shiv should be useful but unspectacular — the value comes from getting three at once via Trick Bag.
+- **Card naming.** 5 card ids remain placeholders: `cheap-destroy`, `big-destroy`, `vine-pull`, `recall`, `recover`. Pick final names that fit the theme (see `docs/design/theme.md`).
+- **1-cost utility under cycling.** With cycling, 1-cost disruption (Frostbite, Tangled Roots, Fumble, Iron Guard, Barricade) is potentially spammable: the player will see those cards multiple times per match. Watch the first end-to-end playtest for whether the spam is dominating the chess game, and consider bumping a few to cost 2 or sprinkling Consume.
+- **Stash placement and rarity.** Stash is currently Uncommon and lives in the draft/shop pool only. If it turns out the prototype needs more end-of-turn agency from turn one, consider seeding one Stash in the starter deck.
+- **Recover's pile.** Recover currently pulls from the discard pile only. A more ambitious ("dig anything back") version that could pull from the consumed pile would dramatically change Consume's contract; only revisit if Recover feels too weak.
 
 ## Process
 

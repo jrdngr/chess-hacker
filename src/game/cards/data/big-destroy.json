@@ -4,7 +4,8 @@
   "cost": 10,
   "rarity": "rare",
   "archetype": "burst",
-  "description": "Destroy any enemy non-King piece. Save up.",
+  "consume": true,
+  "description": "Destroy any enemy non-King piece. Save up. Consume.",
   "target": { "kind": "enemy-non-king-piece" },
   "effect": { "kind": "destroy-piece", "filter": "any" }
 }

@@ -5,26 +5,30 @@
 // The hand is dumb: it renders the cards passed in and reports clicks back.
 // All state (energy gating, targeting, draw pile) lives in the Match.
 
-import type { Card, CardTarget } from "../../game/types";
+import type { CardTarget, HandCard } from "../../game/types";
 
 import styles from "./Hand.module.css";
 
 // Two-step targeting cards (pick A, then pick B) don't fit a single drag-and-
-// drop gesture; they must be played via click. Everything else — single-square
-// targets and no-target cards — is draggable from the hand.
+// drop gesture; they must be played via click. Hand-card targets (Stash) also
+// click-only — the second click lands on another card in the hand. Everything
+// else — single-square targets and no-target cards — is draggable from the
+// hand.
 const NON_DRAGGABLE_TARGETS: ReadonlySet<CardTarget["kind"]> = new Set([
   "two-own-pieces",
   "marionette",
+  "hand-card",
 ]);
 
 type Props = {
-  hand: ReadonlyArray<Card>;
+  hand: ReadonlyArray<HandCard>;
   energy: number;
   /** Hand index that is currently "in flight" waiting for a target, if any. */
   targetingIndex: number | null;
   /** Whether the player is allowed to interact with their hand right now. */
   enabled: boolean;
   drawPileCount: number;
+  discardPileCount: number;
   consumedPileCount: number;
   /**
    * Hand indexes the active boss modifier forbids playing (e.g. Boss A's
@@ -38,8 +42,10 @@ type Props = {
   onCardDragEnd?: () => void;
   /** Open the draw-pile inspector modal. */
   onDrawPileClick?: () => void;
-  /** Open the spent-pile inspector modal. */
-  onSpentPileClick?: () => void;
+  /** Open the discard-pile inspector modal. */
+  onDiscardPileClick?: () => void;
+  /** Open the consumed-pile inspector modal. */
+  onConsumedPileClick?: () => void;
 };
 
 export function Hand({
@@ -48,14 +54,21 @@ export function Hand({
   targetingIndex,
   enabled,
   drawPileCount,
+  discardPileCount,
   consumedPileCount,
   forbiddenIndexes,
   onCardClick,
   onCardDragStart,
   onCardDragEnd,
   onDrawPileClick,
-  onSpentPileClick,
+  onDiscardPileClick,
+  onConsumedPileClick,
 }: Props) {
+  // When the active targeting card asks for a hand-card target (Stash),
+  // every hand slot except the playing one and curses becomes a click
+  // target. We surface that mode so the slots can be highlighted.
+  const targetingHandCard =
+    targetingIndex !== null && hand[targetingIndex]?.card.target.kind === "hand-card";
   return (
     <div className={styles.handArea}>
       <button
@@ -73,31 +86,44 @@ export function Hand({
         {hand.length === 0 ? (
           <div className={styles.emptyHand}>Hand is empty</div>
         ) : (
-          hand.map((card, i) => {
+          hand.map((slot, i) => {
+            const card = slot.card;
             const affordable = energy >= card.cost;
             const isTargeting = targetingIndex === i;
             const forbidden = forbiddenIndexes?.has(i) ?? false;
             const playable = enabled && affordable && !forbidden;
-            // Two-step cards (Switch Files, Marionette) still resolve via
-            // click; everything else can be dragged onto the board. No-target
-            // cards drop "anywhere on the board" (the whole board lights up).
+            // When Stash is asking for a hand-card target, the slot is
+            // clickable as a target if it isn't the playing slot, isn't a
+            // curse, and isn't already retained.
+            const isStashTarget =
+              targetingHandCard && !isTargeting && !card.curse && !slot.retained;
+            const clickable = playable || isStashTarget;
+            // Two-step cards (Switch Files, Marionette) and hand-card targets
+            // (Stash) still resolve via click; everything else can be dragged
+            // onto the board.
             const draggable = playable && !NON_DRAGGABLE_TARGETS.has(card.target.kind);
+            const retained = slot.retained || card.retain === true;
             const cls = [
               styles.card,
-              !playable && styles.disabled,
+              !clickable && styles.disabled,
               isTargeting && styles.targeting,
+              isStashTarget && styles.stashTarget,
               card.curse && styles.curse,
+              retained && styles.retained,
             ]
               .filter(Boolean)
               .join(" ");
+            const keywords: string[] = [];
+            if (retained) keywords.push("Retain");
+            if (card.consume) keywords.push("Consume");
             return (
               <button
                 key={`${card.id}-${i}`}
                 type="button"
                 role="listitem"
                 className={cls}
-                onClick={() => playable && onCardClick(i)}
-                disabled={!playable}
+                onClick={() => clickable && onCardClick(i)}
+                disabled={!clickable}
                 draggable={draggable}
                 onDragStart={(e) => {
                   if (!draggable || !onCardDragStart) {
@@ -116,13 +142,25 @@ export function Hand({
                   onCardDragStart(i);
                 }}
                 onDragEnd={() => onCardDragEnd?.()}
-                aria-label={`${card.name}, cost ${card.cost}. ${card.description}${forbidden ? " — forbidden by boss modifier." : ""}`}
+                aria-label={`${card.name}, cost ${card.cost}. ${card.description}${forbidden ? " — forbidden by boss modifier." : ""}${retained ? " — retained." : ""}`}
                 data-card-id={card.id}
                 title={forbidden ? "Forbidden by the active boss modifier" : undefined}
               >
                 <span className={styles.cost}>{card.cost}</span>
                 <span className={styles.name}>{card.name}</span>
                 <span className={styles.archetype}>{card.archetype}</span>
+                {keywords.length > 0 && (
+                  <span className={styles.keywords}>
+                    {keywords.map((kw) => (
+                      <span
+                        key={kw}
+                        className={`${styles.keyword} ${styles[`keyword_${kw.toLowerCase()}`] ?? ""}`}
+                      >
+                        {kw}
+                      </span>
+                    ))}
+                  </span>
+                )}
                 <span className={styles.description}>{card.description}</span>
               </button>
             );
@@ -130,16 +168,28 @@ export function Hand({
         )}
       </div>
 
-      <button
-        type="button"
-        className={styles.pile}
-        aria-label="Spent pile"
-        onClick={onSpentPileClick}
-        disabled={!onSpentPileClick}
-      >
-        <span className={styles.pileLabel}>Spent</span>
-        <span className={styles.pileCount}>{consumedPileCount}</span>
-      </button>
+      <div className={styles.pileGroup}>
+        <button
+          type="button"
+          className={styles.pile}
+          aria-label="Discard pile"
+          onClick={onDiscardPileClick}
+          disabled={!onDiscardPileClick}
+        >
+          <span className={styles.pileLabel}>Discard</span>
+          <span className={styles.pileCount}>{discardPileCount}</span>
+        </button>
+        <button
+          type="button"
+          className={styles.pile}
+          aria-label="Consumed pile"
+          onClick={onConsumedPileClick}
+          disabled={!onConsumedPileClick}
+        >
+          <span className={styles.pileLabel}>Consumed</span>
+          <span className={styles.pileCount}>{consumedPileCount}</span>
+        </button>
+      </div>
     </div>
   );
 }

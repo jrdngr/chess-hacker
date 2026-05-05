@@ -77,6 +77,7 @@ export type CardArchetype =
  *  - "two-own-pieces":             two squares each holding a player piece (multi-step).
  *  - "marionette":                 an enemy piece, then one of its legal destinations.
  *  - "rooted-enemy-and-own-piece": a rooted enemy piece, then one of your pieces (multi-step).
+ *  - "hand-card":                  another card currently in your hand (Stash).
  */
 export type CardTarget =
   | { kind: "none" }
@@ -88,7 +89,8 @@ export type CardTarget =
   | { kind: "own-non-king-piece" }
   | { kind: "two-own-pieces" }
   | { kind: "marionette" }
-  | { kind: "rooted-enemy-and-own-piece" };
+  | { kind: "rooted-enemy-and-own-piece" }
+  | { kind: "hand-card" };
 
 /** Trap variant — picked per-card when the trap is placed. */
 export type TrapEffect = "capture" | "freeze" | "push";
@@ -129,12 +131,6 @@ export type CardEffect =
   | { kind: "sacrifice-piece"; drawCount: number; energyGain: number }
   | { kind: "marionette" }
   | { kind: "destroy-piece"; filter: "any" | "attacked-by-player" }
-  | {
-      kind: "add-card-to-hand";
-      source: "random-common" | "card-id" | "shiv-pool";
-      cardId?: CardId;
-      count?: number;
-    }
   | { kind: "add-card-to-draw"; source: "self" | "card-id"; cardId?: CardId }
   | { kind: "revive"; selection: "random" | "choose" }
   | {
@@ -173,6 +169,12 @@ export type CardEffect =
    * player's minor pieces (knight or bishop), chosen at random.
    */
   | { kind: "capture-random-own-minor" }
+  /**
+   * Stash: grant Retain to another card in the player's hand. Resolves against
+   * the targeted hand index; the chosen slot's `retained` flag flips to true
+   * and the card stays in hand at end-of-turn discards until played.
+   */
+  | { kind: "apply-retain-to-hand-card" }
   | { kind: "compound"; effects: CardEffect[] };
 
 export type Card = {
@@ -182,9 +184,34 @@ export type Card = {
   rarity: CardRarity;
   archetype: CardArchetype;
   curse?: boolean;
+  /**
+   * Consume keyword: the card is removed from the match (lands in the
+   * `consumedPile`) when played, instead of cycling through the discard
+   * pile. Used for haymakers, Souls, and other one-shot cards. See
+   * `docs/cards/keywords.md`.
+   */
+  consume?: boolean;
+  /**
+   * Retain keyword (inherent): the card stays in your hand at end-of-turn
+   * discards until played. Currently no card definition uses this; the
+   * Retain mechanic is applied dynamically by Stash via the `HandCard`
+   * wrapper. Reserved for future cards that retain natively.
+   */
+  retain?: boolean;
   description: string;
   target: CardTarget;
   effect: CardEffect;
+};
+
+/**
+ * One slot in the player's hand: a card definition plus the per-instance
+ * retain flag. The flag is set by Stash (or by an inherent `retain` keyword
+ * on the card) and survives end-of-turn discards. It is dropped when the
+ * card leaves hand by being played.
+ */
+export type HandCard = {
+  card: Card;
+  retained: boolean;
 };
 
 // ---- Board overlays (M3 stores; M4 enforces walls in chess engine) ----------
@@ -535,8 +562,18 @@ export type ZoneBuff = {
  * `ChoseEngine`; this struct is the rest of the per-match state.
  */
 export type MatchCardState = {
-  hand: Card[];
+  hand: HandCard[];
   drawPile: Card[];
+  /**
+   * Cards played without the Consume keyword (and end-of-turn discards) land
+   * here. The discard pile is reshuffled into the draw pile when the draw
+   * pile empties — see `docs/cards/keywords.md` for the cycling rule.
+   */
+  discardPile: Card[];
+  /**
+   * Cards played with the Consume keyword land here. They never re-enter
+   * the cycle and are not eligible for revival via Recall / Recover.
+   */
   consumedPile: Card[];
   /**
    * Append-only ledger of every card that has ever entered the deck, in the

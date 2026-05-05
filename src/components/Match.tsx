@@ -392,8 +392,8 @@ export function Match({
       return new Set();
     }
     const out = new Set<number>();
-    cardState.hand.forEach((c, i) => {
-      if (isCardEffectForbidden(c.effect, matchRules)) out.add(i);
+    cardState.hand.forEach((slot, i) => {
+      if (isCardEffectForbidden(slot.card.effect, matchRules)) out.add(i);
     });
     return out;
   }, [cardState.hand, matchRules]);
@@ -405,7 +405,7 @@ export function Match({
   const [marionetteMoves, setMarionetteMoves] = useState<LegalMove[]>([]);
   /** When non-null, Foresight is asking the player to reorder the deck top. */
   const [scryPending, setScryPending] = useState<{ cards: Card[] } | null>(null);
-  /** When true, Recover is asking the player to pick a card from consumedPile. */
+  /** When true, Recover is asking the player to pick a card from the discard pile. */
   const [revivePending, setRevivePending] = useState<boolean>(false);
   /**
    * In flight while the player has clicked a pawn promotion target but hasn't
@@ -418,7 +418,7 @@ export function Match({
     side: Side;
   } | null>(null);
   /** Which pile inspector is open, if any. */
-  const [pileInspector, setPileInspector] = useState<"draw" | "spent" | null>(null);
+  const [pileInspector, setPileInspector] = useState<"draw" | "discard" | "consumed" | null>(null);
 
   // Increments on new game / mode change so stale AI replies are ignored.
   const generationRef = useRef(0);
@@ -672,7 +672,7 @@ export function Match({
   ]);
 
   const targetingCard: Card | null =
-    targetingIndex !== null ? (cardState.hand[targetingIndex] ?? null) : null;
+    targetingIndex !== null ? (cardState.hand[targetingIndex]?.card ?? null) : null;
 
   /** Squares that are valid targets for the current in-flight card. */
   const validTargetSquares = useMemo<ReadonlySet<AlgebraicSquare>>(() => {
@@ -1294,22 +1294,29 @@ export function Match({
 
   const tryResolveCard = useCallback(
     (index: number, target: PlayTarget): boolean => {
-      const card = cardState.hand[index];
-      if (!card) return false;
+      const slot = cardState.hand[index];
+      if (!slot) return false;
+      const card = slot.card;
       const result = playCard(cardState, index, target, boardContext, rng, matchRules);
       if (!result.ok) return false;
       let next = applyCardSideEffects(result);
 
       // Library free-play: undo the energy deduction and pop the synth card
-      // out of consumedPile (it was never in the player's deck). Effect-driven
-      // additions to hand / draw / statuses persist — that's the whole point
-      // of testing those effects via the library.
+      // out of whichever pile it just landed in (consumed or discard) — it
+      // was never in the player's deck. Effect-driven additions to hand /
+      // draw / statuses persist — that's the whole point of testing those
+      // effects via the library.
       const freePlay = libraryFreePlayRef.current;
       if (freePlay !== null) {
         next = { ...next, energy: freePlay };
         const cp = next.consumedPile;
         if (cp.length > 0 && cp[cp.length - 1].id === card.id) {
           next = { ...next, consumedPile: cp.slice(0, -1) };
+        } else {
+          const dp = next.discardPile;
+          if (dp.length > 0 && dp[dp.length - 1].id === card.id) {
+            next = { ...next, discardPile: dp.slice(0, -1) };
+          }
         }
         libraryFreePlayRef.current = null;
         setLibraryFreePlayActive(false);
@@ -1366,8 +1373,18 @@ export function Match({
       // (the synth card sits at hand[0]); ignore hand clicks until it resolves
       // or is cancelled.
       if (libraryFreePlayRef.current !== null) return;
-      const card = cardState.hand[index];
-      if (!card) return;
+      // Stash targeting: when the active card asks for a hand-card target,
+      // the next click on a different hand slot resolves the play.
+      if (targetingIndex !== null && targetingIndex !== index) {
+        const targetingSlot = cardState.hand[targetingIndex];
+        if (targetingSlot && targetingSlot.card.target.kind === "hand-card") {
+          tryResolveCard(targetingIndex, { kind: "hand-card", index });
+          return;
+        }
+      }
+      const slot = cardState.hand[index];
+      if (!slot) return;
+      const card = slot.card;
       // Toggle off if user clicks the same card they were targeting.
       if (targetingIndex === index) {
         cancelTargeting();
@@ -1702,11 +1719,12 @@ export function Match({
    * rewinds the edit in one step.
    */
   const saveDeck = useCallback(
-    (next: { drawPile: Card[]; consumedPile: Card[]; addedCards: Card[] }) => {
+    (next: { drawPile: Card[]; discardPile: Card[]; consumedPile: Card[]; addedCards: Card[] }) => {
       setCardState((prev) => {
         const updated: MatchCardState = {
           ...prev,
           drawPile: next.drawPile,
+          discardPile: next.discardPile,
           consumedPile: next.consumedPile,
           acquisitionLog: [...prev.acquisitionLog, ...next.addedCards],
         };
@@ -1740,16 +1758,10 @@ export function Match({
 
   /**
    * Library card play (dev only). Cards played from the library are free
-   * (no energy charged) and never enter the consumed pile (they were never
-   * in the player's deck). Effect-driven mutations — statuses, traps, cards
-   * added to hand/draw, summons, captures — DO persist; that's the whole
-   * point of testing effects from the library.
-   *
-   * Note: self-replicators (Pace / Hum / Drift) shuffle a copy of themselves
-   * into the draw pile when played. The free-play patch only suppresses the
-   * synth card in `consumedPile` — the replicated copy stays. Generators
-   * (Improvise / Trick Bag / Mark Target) likewise add real cards to hand /
-   * follow-up that persist. Acceptable for a dev tool; the player can undo.
+   * (no energy charged) and never enter the player's piles (the card was
+   * never in the player's deck). Effect-driven mutations — statuses, traps,
+   * cards added to hand/draw, summons, captures — DO persist; that's the
+   * whole point of testing effects from the library.
    */
   const playLibraryCard = useCallback(
     (card: Card) => {
@@ -1762,7 +1774,7 @@ export function Match({
         const restoreEnergy = cardState.energy;
         const synth: MatchCardState = {
           ...cardState,
-          hand: [card, ...cardState.hand],
+          hand: [{ card, retained: false }, ...cardState.hand],
           energy: Math.max(restoreEnergy, card.cost),
         };
         const result = playCard(synth, 0, { kind: "none" }, boardContext, rng);
@@ -1772,6 +1784,11 @@ export function Match({
         const cp = next.consumedPile;
         if (cp.length > 0 && cp[cp.length - 1].id === card.id) {
           next = { ...next, consumedPile: cp.slice(0, -1) };
+        } else {
+          const dp = next.discardPile;
+          if (dp.length > 0 && dp[dp.length - 1].id === card.id) {
+            next = { ...next, discardPile: dp.slice(0, -1) };
+          }
         }
         setCardState(next);
         if (card.effect.kind === "scry") {
@@ -1789,7 +1806,7 @@ export function Match({
       setLibraryFreePlayActive(true);
       const synth: MatchCardState = {
         ...cardState,
-        hand: [card, ...cardState.hand],
+        hand: [{ card, retained: false }, ...cardState.hand],
         energy: Math.max(cardState.energy, card.cost),
       };
       setCardState(synth);
@@ -1817,7 +1834,7 @@ export function Match({
       setLibraryFreePlayActive(true);
       const synth: MatchCardState = {
         ...cardState,
-        hand: [card, ...cardState.hand],
+        hand: [{ card, retained: false }, ...cardState.hand],
         energy: Math.max(cardState.energy, card.cost),
       };
       setCardState(synth);
@@ -2061,8 +2078,9 @@ export function Match({
       // Library free-play in flight: the synth is at hand[0] and indices have
       // shifted; ignore drags on the regular hand until the play resolves.
       if (libraryFreePlayRef.current !== null) return;
-      const card = cardState.hand[index];
-      if (!card) return;
+      const slot = cardState.hand[index];
+      if (!slot) return;
+      const card = slot.card;
       if (cardState.energy < card.cost) return;
       if (isCardEffectForbidden(card.effect, matchRules)) return;
       // Enter targeting mode so the board highlights drop targets — this is
@@ -2395,13 +2413,15 @@ export function Match({
             targetingIndex={targetingIndex}
             enabled={!aiThinking && !matchOver && turn === HUMAN_SIDE && !libraryFreePlayActive}
             drawPileCount={cardState.drawPile.length}
+            discardPileCount={cardState.discardPile.length}
             consumedPileCount={cardState.consumedPile.length}
             forbiddenIndexes={forbiddenHandIndexes}
             onCardClick={onCardClick}
             onCardDragStart={onCardDragStart}
             onCardDragEnd={onCardDragEnd}
             onDrawPileClick={() => setPileInspector("draw")}
-            onSpentPileClick={() => setPileInspector("spent")}
+            onDiscardPileClick={() => setPileInspector("discard")}
+            onConsumedPileClick={() => setPileInspector("consumed")}
           />
         )}
       </div>
@@ -2442,6 +2462,7 @@ export function Match({
           onLibraryCardDragStart={dragStartLibraryCard}
           onLibraryCardDragEnd={dragEndLibraryCard}
           drawPile={cardState.drawPile}
+          discardPile={cardState.discardPile}
           consumedPile={cardState.consumedPile}
           onSaveDeck={saveDeck}
           artifacts={artifacts}
@@ -2479,7 +2500,7 @@ export function Match({
       )}
       {revivePending && (
         <ReviveModal
-          cards={cardState.consumedPile}
+          cards={cardState.discardPile}
           onPick={(idx) => {
             setCardState((prev) => completeRevive(prev, idx));
             setRevivePending(false);
@@ -2509,10 +2530,18 @@ export function Match({
           onClose={() => setPileInspector(null)}
         />
       )}
-      {pileInspector === "spent" && (
+      {pileInspector === "discard" && (
         <PileInspector
-          title="Spent pile"
-          hint="Cards you've played, in the order they resolved."
+          title="Discard pile"
+          hint="Cards waiting to cycle back. They reshuffle into your draw pile when it empties."
+          cards={cardState.discardPile}
+          onClose={() => setPileInspector(null)}
+        />
+      )}
+      {pileInspector === "consumed" && (
+        <PileInspector
+          title="Consumed pile"
+          hint="Cards consumed for the rest of the match. They will not return."
           cards={cardState.consumedPile}
           onClose={() => setPileInspector(null)}
         />

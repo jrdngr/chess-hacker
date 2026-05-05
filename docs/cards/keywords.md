@@ -101,18 +101,28 @@ The Trap dissolves on trigger. It does not affect your own pieces.
 
 ## Card-flow keywords
 
-### Disposal (universal rule, not a keyword)
+The hand discards at end of turn. A new hand of 5 is drawn at the start of every player turn. The discard pile reshuffles into the draw pile when the draw pile is empty mid-draw. Two keywords carve out exceptions to that default.
 
-Every played card is removed for the rest of the match. There is no discard pile, no reshuffle. Multiples in your deck are how you get repeatable effects; running the deck dry leaves you with chess only.
+### Retain
 
-### Self-replicating
+A card with **Retain** stays in your hand at end-of-turn discards. It only leaves your hand when you play it. Retain can be applied two ways:
 
-Some cards (Pace, Hum, Drift) shuffle a fresh copy of themselves into your draw pile when played. The played copy still consumes; the spawned copy is a brand-new card in the draw pile. Net effect: each play "replaces" the card at the cost of one energy and one effect resolution.
+- **Inherent**: the card definition declares `retain: true`. None of the prototype cards have inherent Retain.
+- **Granted**: the **Stash** card applies Retain to a chosen card in your hand for the rest of the match. Stash itself does not have Retain.
 
-### Generator
+Retain cannot be applied to a curse card (Stash filters them out). Retain ends when the card is played.
 
-A card whose effect creates one or more new cards in your hand. The created cards may be a random pool entry (Improvise picks a random common; Trick Bag picks three from the shiv pool) or a specific id (Mark Target adds Vine Pull to your hand).
+### Consume
+
+A card with **Consume** is removed from the match when played — it lands in the consumed pile and never re-enters the cycle. Cards in the consumed pile are not eligible for revival via Recall or Recover.
+
+- Used for haymakers (Big Destroy, Cheap Destroy), Souls (Pawn / Knight / Bishop / Rook / Queen), Marionette, Recover, Martyr's Gift.
+- Without Consume, cards land in the discard pile when played and cycle back into the draw pile when it empties.
+
+### Discard & cycle
+
+Played cards without Consume go to the **discard pile**. End-of-turn dumps every non-curse, non-retained hand card into the discard pile. When the draw pile is empty mid-draw, the discard pile is shuffled to form a new draw pile and drawing continues. Curses vanish on play and are not part of the cycle (see `docs/design/bosses.md`).
 
 ### Revive
 
-A card whose effect returns one card from your spent pile to your hand. Recall picks at random; Recover prompts you to choose. The card you bring back is the same instance that was previously played; revival doesn't generate copies.
+A card whose effect returns one card from your **discard pile** to your hand. Recall picks at random; Recover prompts you to choose. Revivers cannot reach into the consumed pile — Consume cards are gone for the match.

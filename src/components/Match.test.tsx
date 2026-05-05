@@ -12,7 +12,7 @@ import {
   RECONNAISSANCE,
   SPIKE_PIT,
 } from "../game/cards/library";
-import { makeRng } from "../game/cards/match";
+import { ENERGY_MAX, makeRng } from "../game/cards/match";
 
 function squareCell(aria: string): HTMLElement | undefined {
   return screen
@@ -289,7 +289,7 @@ describe("Match (cards — M3)", () => {
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("1");
   });
 
-  it("Foresight is 0-cost and moves to the spent pile", async () => {
+  it("Foresight costs 1 and moves to the discard pile", async () => {
     const user = userEvent.setup();
     const ai = makeFakeAi([]);
     render(
@@ -309,8 +309,9 @@ describe("Match (cards — M3)", () => {
     const confirm = await screen.findByRole("button", { name: /confirm/i });
     await user.click(confirm);
 
-    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("1"); // 0-cost, starting energy 1
-    expect(screen.getByLabelText(/^spent pile/i)).toHaveTextContent("1");
+    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("0"); // cost 1, starting energy 1
+    // Foresight is non-Consume, so it lands in the discard pile.
+    expect(screen.getByLabelText(/^discard pile/i)).toHaveTextContent("1");
     const hand = screen.getByRole("list", { name: /^hand$/i });
     expect(within(hand).getAllByRole("listitem")).toHaveLength(4);
   });
@@ -318,6 +319,10 @@ describe("Match (cards — M3)", () => {
   it("Reconnaissance draws 2 — hand grows past the cap", async () => {
     const user = userEvent.setup();
     const ai = makeFakeAi([]);
+    // Reconnaissance costs 2 and starting energy is 1 → wait one turn so the
+    // ramp covers the cost. The fake AI takes its black move on each request,
+    // so a single chess push closes player turn 1; Reconnaissance is then
+    // playable on turn 2 with 2 energy.
     render(
       <Match
         initialMode="vs-ai"
@@ -325,6 +330,9 @@ describe("Match (cards — M3)", () => {
         aiMinThinkMs={0}
         initialDeck={ALL_RECON_DECK}
         rng={makeRng(3)}
+        // Open the match with the player at full energy so the cost-2 play
+        // resolves on turn 1 — keeps the test focused on the draw effect.
+        initialEnergy={ENERGY_MAX}
       />,
     );
 
@@ -987,7 +995,7 @@ describe("Match — dev mode", () => {
     expect(screen.getByLabelText(/^side to move:/i)).toHaveTextContent(/black/i);
   });
 
-  it("library no-target card plays free — energy unchanged, spent pile unchanged", async () => {
+  it("library no-target card plays free — energy unchanged, discard pile unchanged", async () => {
     const user = userEvent.setup();
     const ai = makeFakeAi([]);
     render(
@@ -1002,7 +1010,7 @@ describe("Match — dev mode", () => {
     );
 
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("3");
-    expect(screen.getByLabelText(/^spent pile/i)).toHaveTextContent("0");
+    expect(screen.getByLabelText(/^discard pile/i)).toHaveTextContent("0");
 
     // Library lives behind a button in sandbox; open the overlay first.
     await user.click(screen.getByRole("button", { name: /^library$/i }));
@@ -1015,9 +1023,9 @@ describe("Match — dev mode", () => {
     expect(libraryCard).toBeTruthy();
     await user.click(libraryCard!);
 
-    // Energy and the spent pile are unchanged after a free library play.
+    // Energy and the discard pile are unchanged after a free library play.
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("3");
-    expect(screen.getByLabelText(/^spent pile/i)).toHaveTextContent("0");
+    expect(screen.getByLabelText(/^discard pile/i)).toHaveTextContent("0");
   });
 
   it("library targeted card freezes a target without charging energy", async () => {
@@ -1148,13 +1156,13 @@ describe("Match — dev mode", () => {
       />,
     );
 
-    // Play Foresight (cost 0) and dismiss the modal so hand size is 4.
+    // Play Foresight (cost 1) and dismiss the modal so hand size is 4.
     await user.click(findCard("Foresight")!);
     await user.click(await screen.findByRole("button", { name: /confirm/i }));
 
     const hand = () => screen.getByRole("list", { name: /^hand$/i });
     expect(within(hand()).getAllByRole("listitem")).toHaveLength(4);
-    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("2");
+    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("1");
 
     // White move ends the player turn.
     await user.click(squareCell("e2")!);
@@ -1165,9 +1173,10 @@ describe("Match — dev mode", () => {
     await user.click(squareCell("e7")!);
     await user.click(squareCell("e5")!);
 
-    // Hand refilled to 5, energy banked to 3 (was 2 + 1 rollover).
+    // Turn 2 begins: previous hand discards, new hand draws to 5, energy
+    // ramps to 1 + 1 = 2.
     expect(within(hand()).getAllByRole("listitem")).toHaveLength(5);
-    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("3");
+    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("2");
   });
 
   it("Soul fix: Black capture in dev does NOT add a Soul card to the draw pile", async () => {

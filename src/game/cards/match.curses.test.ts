@@ -39,21 +39,21 @@ describe("curses", () => {
     st = insertCurseIntoHand(st, stalwart);
     const before = st.consumedPile.length;
 
-    const idx = st.hand.findIndex((c) => c.id === "stalwart");
+    const idx = st.hand.findIndex((s) => s.card.id === "stalwart");
     expect(idx).toBeGreaterThanOrEqual(0);
 
     const res = playCard(st, idx, noTarget(), emptyBoard, rng);
     expect(res.ok).toBe(true);
     if (!res.ok) return;
     expect(res.state.consumedPile.length).toBe(before); // no growth.
-    expect(res.state.hand.find((c) => c.id === "stalwart")).toBeUndefined();
+    expect(res.state.hand.find((s) => s.card.id === "stalwart")).toBeUndefined();
   });
 
   it("Stalwart play sets the must-not-check flag for the next chess move", () => {
     const rng = makeRng(2);
     let st = startPlayerTurn(createMatchCardState([], rng), rng);
     st = insertCurseIntoHand(st, getCardById("stalwart"));
-    const idx = st.hand.findIndex((c) => c.id === "stalwart");
+    const idx = st.hand.findIndex((s) => s.card.id === "stalwart");
     const res = playCard(st, idx, noTarget(), emptyBoard, rng);
     expect(res.ok).toBe(true);
     if (!res.ok) return;
@@ -70,12 +70,12 @@ describe("curses", () => {
     st = insertCurseIntoHand(st, getCardById("stalwart"));
     expect(st.hand.length).toBe(HAND_SIZE + 2);
     // Drop one non-curse card so a follow-up refill has work to do.
-    st = { ...st, hand: st.hand.filter((_, i) => i !== st.hand.findIndex((c) => !c.curse)) };
+    st = { ...st, hand: st.hand.filter((_, i) => i !== st.hand.findIndex((s) => !s.card.curse)) };
     expect(st.hand.length).toBe(HAND_SIZE + 1); // 4 non-curse + 2 curses
     st = refillHand(st, rng);
     // Refill brings non-curse count back up to HAND_SIZE; curses still ride.
-    expect(st.hand.filter((c) => !c.curse).length).toBe(HAND_SIZE);
-    expect(st.hand.filter((c) => c.curse).length).toBe(2);
+    expect(st.hand.filter((s) => !s.card.curse).length).toBe(HAND_SIZE);
+    expect(st.hand.filter((s) => s.card.curse).length).toBe(2);
   });
 });
 
@@ -120,7 +120,7 @@ describe("Boss B — Greed curse", () => {
     const rng = makeRng(11);
     let st = startPlayerTurn(createMatchCardState([], rng), rng);
     st = insertCurseIntoHand(st, getCardById("greed"));
-    const idx = st.hand.findIndex((c) => c.id === "greed");
+    const idx = st.hand.findIndex((s) => s.card.id === "greed");
     const res = playCard(st, idx, noTarget(), emptyBoard, rng);
     expect(res.ok).toBe(true);
     if (!res.ok) return;
@@ -168,7 +168,7 @@ describe("Boss C — Final Resolve curse", () => {
     const rng = makeRng(21);
     let st = startPlayerTurn(createMatchCardState([], rng), rng);
     st = insertCurseIntoHand(st, getCardById("final-resolve"));
-    const idx = st.hand.findIndex((c) => c.id === "final-resolve");
+    const idx = st.hand.findIndex((s) => s.card.id === "final-resolve");
     const res = playCard(st, idx, noTarget(), emptyBoard, rng);
     expect(res.ok).toBe(true);
     if (!res.ok) return;
@@ -177,12 +177,12 @@ describe("Boss C — Final Resolve curse", () => {
 
   it("blocks subsequent 0-cost non-curse plays this turn", () => {
     const rng = makeRng(22);
-    // Foresight (cost 0) — a non-curse 0-cost card to validate the gate.
-    const cheap = getCardById("foresight");
-    expect(cheap.cost).toBe(0);
-    let st = startPlayerTurn(createMatchCardState([cheap], rng), rng);
+    // No card defines cost 0 in the current pool, so synthesize a
+    // 0-cost non-curse card inline to validate the gate.
+    const zeroCost = { ...getCardById("foresight"), cost: 0 as const };
+    let st = startPlayerTurn(createMatchCardState([zeroCost], rng), rng);
     st = { ...st, noZeroCostCardsThisTurn: true };
-    const idx = st.hand.findIndex((c) => c.id === "foresight");
+    const idx = st.hand.findIndex((s) => s.card.id === zeroCost.id);
     const res = playCard(st, idx, noTarget(), emptyBoard, rng);
     expect(res.ok).toBe(false);
     if (res.ok) return;
@@ -194,7 +194,7 @@ describe("Boss C — Final Resolve curse", () => {
     let st = startPlayerTurn(createMatchCardState([], rng), rng);
     st = { ...st, noZeroCostCardsThisTurn: true };
     st = insertCurseIntoHand(st, getCardById("greed"));
-    const idx = st.hand.findIndex((c) => c.id === "greed");
+    const idx = st.hand.findIndex((s) => s.card.id === "greed");
     const res = playCard(st, idx, noTarget(), emptyBoard, rng);
     expect(res.ok).toBe(true);
   });
@@ -212,7 +212,7 @@ describe("Boss C — Echo curse", () => {
     const rng = makeRng(31);
     let st = startPlayerTurn(createMatchCardState([], rng), rng);
     st = insertCurseIntoHand(st, getCardById("echo"));
-    const idx = st.hand.findIndex((c) => c.id === "echo");
+    const idx = st.hand.findIndex((s) => s.card.id === "echo");
     const res = playCard(st, idx, noTarget(), emptyBoard, rng);
     expect(res.ok).toBe(true);
     if (!res.ok) return;
@@ -225,7 +225,7 @@ describe("Boss C — Inevitability curse", () => {
     const rng = makeRng(41);
     let st = startPlayerTurn(createMatchCardState([], rng), rng);
     st = insertCurseIntoHand(st, getCardById("inevitability"));
-    const idx = st.hand.findIndex((c) => c.id === "inevitability");
+    const idx = st.hand.findIndex((s) => s.card.id === "inevitability");
     const res = playCard(st, idx, noTarget(), emptyBoard, rng);
     expect(res.ok).toBe(true);
     if (!res.ok) return;

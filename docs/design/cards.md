@@ -5,8 +5,8 @@ The card system is the central self-expression mechanic. Cards augment chess; th
 ## Hand and deck
 
 - **Hand size:** 5 cards.
-- **Draw timing:** at the **start of each player turn**, draw until your hand is at 5. (A card played during a turn does not get refilled until the next turn unless an effect explicitly says so.)
-- **Run-start deck:** 20 cards — multiples of cheap utilities + four common empty-deck-mitigation cards. See [`../cards/starter-deck.md`](../cards/starter-deck.md) for the composition and rationale.
+- **Draw timing:** at the **start of each player turn**, discard every non-curse, non-retained hand card into the discard pile, then draw until your hand is at 5. (A card played during a turn does not get refilled until the next turn unless an effect explicitly says so.)
+- **Run-start deck:** 20 cards — multiples of cheap utilities. See [`../cards/starter-deck.md`](../cards/starter-deck.md) for the composition and rationale.
 - **Adding to your deck:** post-match draft (pick 1 of 3) and shop purchases. Booster packs may grant 1+ cards. Capturing an enemy piece during a match grants the matching Soul card directly into your draw pile (see "Card economy" below).
 - **Removing from your deck:** shop card-removal service (scaling per use).
 
@@ -43,31 +43,35 @@ A card declares one or more **target slots** when played. Common target types:
 
 A card may have multiple targets in sequence (e.g., choose own piece, then choose destination square). When previewing a card, the UI must indicate exactly which legal targets are valid (see `technical/architecture.md`).
 
-## Disposal: every card consumes
+## Disposal: discard, consume, retain, cycle
 
-**Universal rule:** when a card is played, it is removed for the rest of the match. There is no discard pile. There is no reshuffle. Multiples in the deck are how the player gets repeatable effects.
+The hand is wiped at the end of every player turn and a fresh hand is drawn at the start of the next turn. Two keywords carve out exceptions to this default:
 
-- **No `consume` flag on cards** — it would be redundant. Every card consumes.
-- **No reshuffle.** When the draw pile empties, draws fizzle. The match continues card-free — the player still has chess to play.
-- **Pile UI labels:** "Spent: N" replaces "Discard: N". The deck count is also visible so the player can see how much card supply remains.
+- **Consume** — a played card is removed from the match (lands in the *consumed pile*). It is not eligible for revival.
+- **Retain** — a card stays in your hand at end-of-turn discards until played. The **Stash** card grants Retain to a chosen card in hand. No card has inherent Retain in the prototype.
 
-The thematic reading: the spells run out, you finish with steel. Combined with banking energy, every play is a deliberate, finite use of two scarce resources (energy budget + card supply). A 20-card deck means roughly 20 plays over a match, so each play matters.
+Cycle rules:
 
-Empty-deck mitigation (the "Card economy" section below) softens the cliff: generators create cards, revivers pull cards back from the spent pile, self-replicators keep a copy of themselves rotating, and capture-grants-Soul lets every captured enemy piece feed your deck.
+1. Played cards without Consume go to the **discard pile**.
+2. End-of-turn discards every non-curse, non-retained hand card into the discard pile.
+3. When the draw pile is empty mid-draw, the discard pile is shuffled to form a new draw pile and drawing continues. The consumed pile never re-enters the cycle.
+4. Curses vanish on play (per `bosses.md`); Retain cannot be applied to a curse.
+
+UI piles: **Draw: N | Discard: N | Consumed: N**. The discard pile is the active rotation; the consumed pile is the graveyard.
+
+A 20-card deck cycles through itself multiple times in a typical match, so the binding resource is energy, not card supply. Banking energy for haymakers is still the central tempo lever, and Consume cards remain finite per match — capture-grants-Soul keeps the deck fresh on the way.
 
 ## Card economy
 
-Card-supply tools so a careful player can extend the match's card phase well past 20 plays:
+A few cards exist explicitly to manage the cycle:
 
-- **Generators** (Improvise, Trick Bag, Mark Target) create new cards in your hand: a random common, three "shiv" tokens, or a specific synergy follow-up.
-- **Revivers** (Recall, Recover) pull a card from your spent pile back to your hand — random or chosen.
-- **Self-replicators** (Pace, Hum, Drift) shuffle a copy of themselves into your draw pile when played, so each one stays in rotation.
-- **Capture-grants-Soul.** Capturing an enemy non-King piece during a chess move grants the matching Soul card (Pawn → Pawn Soul, Knight → Knight Soul, etc.) into your draw pile. King is never captured (game ends); all other enemy types map.
+- **Stash** (1 cost) — apply Retain to a card in your hand so it survives end-of-turn until you play it. The standard way to bank a haymaker across turns.
+- **Revivers** (Recall, Recover) — pull a card from your discard pile back to your hand (random or chosen). Recover has Consume; Recall does not. Neither can reach into the consumed pile.
+- **Capture-grants-Soul** — capturing an enemy non-King piece during a chess move grants the matching Soul card (Pawn → Pawn Soul, Knight → Knight Soul, etc.) into your draw pile. Souls have Consume, so each capture grants exactly one empower trigger.
 
 See the per-archetype docs in `../cards/`:
-- [`generators.md`](../cards/generators.md) — Improvise, Trick Bag, Mark Target, Vine Pull, the Shiv pool.
+- [`resource.md`](../cards/resource.md) — draw, scry, Stash.
 - [`revival.md`](../cards/revival.md) — Recall, Recover.
-- [`self-replicators.md`](../cards/self-replicators.md) — Pace, Hum, Drift.
 
 ## Card archetypes (the design space)
 
@@ -129,13 +133,13 @@ and `effect.kind` values for the prototype.
 | Knob                         | Value                                                |
 |------------------------------|------------------------------------------------------|
 | Hand size                    | 5                                                    |
-| Draw timing                  | Refill to 5 at start of player turn                  |
+| Draw timing                  | Discard hand at end of turn; redraw to 5 at start of next turn |
 | Starting energy (turn 1)     | 1                                                    |
 | Energy gain per turn         | +1 (banks unspent)                                   |
 | Energy cap                   | 10                                                   |
 | Card cost range              | 0 – 10                                               |
 | Cards-per-turn cap           | None beyond energy/hand                              |
-| Disposal                     | Every card consumes; no reshuffle                    |
+| Disposal                     | Discard pile cycles into draw on empty; Consume removes for the match; Retain skips end-of-turn discard |
 | Reactions on opponent turn   | None (may revisit)                                   |
 | Card upgrades                | Not in prototype                                     |
-| Capture-grants-Soul          | Player captures of non-King enemies grant matching Soul |
+| Capture-grants-Soul          | Player captures of non-King enemies grant matching Soul (Souls have Consume) |

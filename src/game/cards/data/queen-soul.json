@@ -4,7 +4,8 @@
   "cost": 5,
   "rarity": "rare",
   "archetype": "movement",
-  "description": "Infuse one of your pieces with a queen's soul this turn: it gains both straight and diagonal sliding. Lost if you move a different piece first.",
+  "consume": true,
+  "description": "Infuse one of your pieces with a queen's soul this turn: it gains both straight and diagonal sliding. Lost if you move a different piece first. Consume.",
   "target": { "kind": "own-piece" },
   "effect": { "kind": "empower-piece", "pattern": "queen", "singleUse": true }
 }

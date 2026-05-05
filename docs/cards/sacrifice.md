@@ -8,6 +8,7 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 
 - **Cost:** 1
 - **Rarity:** Uncommon
+- **Keywords:** **Consume**
 - **Target:** own non-King piece
 - **Effect:** Destroy one of your own non-King pieces; draw 2 cards and gain 1 energy this turn.
-- **Design note:** the introductory Sacrifice card. Net effect for 1 energy: lose a piece, draw 2, gain 1 energy — so the *real* cost is the piece, and the energy is back in the budget. Designed to give players a clean release valve when they have a stranded pawn or an over-traded knight; turns dead material into action. The King exclusion is non-negotiable: sacrificing your King would be a loss-by-resign equivalent.
+- **Design note:** the introductory Sacrifice card. Net effect for 1 energy: lose a piece, draw 2, gain 1 energy — so the *real* cost is the piece, and the energy is back in the budget. Consume keeps it from looping into a deck-thinning engine; the King exclusion is non-negotiable.

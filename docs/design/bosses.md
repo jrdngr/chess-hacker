@@ -46,7 +46,8 @@ Curse-card properties:
 - Have detrimental effects on the player.
 - Must be played to be removed from hand (the player cannot voluntarily discard them outside of a card that explicitly discards).
 - They do **not** count against the hand-size cap of 5 (a curse is "bonus" beyond the cap, so a player who already has 5 cards may end up with 6 in hand).
-- Once played, curses **vanish** — they do not enter the player's deck and do not return next match.
+- They are **immune to end-of-turn discard**: a curse stays in your hand across turn rollovers until you play it. (Effectively the same lifecycle as a Retain card, but separate — the **Retain** keyword cannot be applied to a curse.)
+- Once played, curses **vanish** — they do not enter the player's discard, consumed pile, or deck, and do not return next match.
 
 Example curse cards:
 
@@ -55,7 +56,7 @@ Example curse cards:
 - *Shaky Resolve* (0): "Discard a card at random. Cycle this card."
 - *Treacherous Move* (0): "Your next chess move must be made by your queen, if legal. Otherwise, you may make any move. Cycle this card."
 
-(*"Cycle this card"* in the curse context means it leaves the hand on play and does not return to hand or deck — equivalent to consume but used to differentiate from positive-consume cards.)
+(*"Cycle this card"* in the curse context means it leaves the hand on play and does not return to hand or deck — equivalent to Consume but used in curse text to keep the player-facing language away from the Consume keyword on regular cards.)
 
 The boss may insert curses **at most once per turn** to prevent unfair pile-ons. Different bosses have different curse-injection triggers and pools.
 

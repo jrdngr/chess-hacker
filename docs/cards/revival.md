@@ -1,6 +1,6 @@
 # Revival
 
-Cards that return one of your **spent** cards (already played, sitting in the spent pile) back to your hand. Under consume-all every played card otherwise stays gone for the rest of the match — revival is the only way to replay a previously-used card.
+Cards that return one of your **discarded** cards (already played, sitting in the discard pile) back to your hand. Cards in the **consumed pile** (those that had the Consume keyword when played) are not eligible — once consumed, they are gone for the match.
 
 ## Recall
 
@@ -8,22 +8,23 @@ Cards that return one of your **spent** cards (already played, sitting in the sp
 - **Rarity:** Common
 - **Type:** Resource
 - **Target:** None
-- **Effect:** Return a **random** card from your spent pile to your hand. No-op if the spent pile is empty.
+- **Effect:** Return a **random** card from your discard pile to your hand. No-op if the discard pile is empty.
 
-The cheap, blind revive. Best after a long sequence of plays — the more you've spent, the richer the pool to draw from.
+The cheap, blind revive. Useful when the discard pile is rich; less useful right after a reshuffle empties it.
 
 ## Recover
 
 - **Cost:** 4 energy
 - **Rarity:** Uncommon
 - **Type:** Resource
+- **Keywords:** **Consume**
 - **Target:** None (UI prompt for choice)
-- **Effect:** A modal opens showing every card in your spent pile; pick one to return to your hand.
+- **Effect:** A modal opens showing every card in your discard pile; pick one to return to your hand. Recover itself is consumed for the match.
 
-Targeted revival. The energy cost reflects the precision: you're effectively *re-buying* a card you've already paid for once.
+Targeted revival. The energy cost reflects the precision: you're effectively *re-buying* a card you've already paid for once. Recover has Consume, so you can't loop it indefinitely — at most one targeted rescue per match per copy in the deck.
 
 ## Why they exist
 
-Revival keeps the highest-leverage plays from being one-shots. If your deck has a Big Destroy (cost 10) and you've already cashed it, Recover at cost 4 plus another 10 banking turns can bring it back for a second swing — a 14-energy total but with an entire match between the two casts. Random revival via Recall is cheaper but riskier; chosen revival via Recover is the deliberate counterpunch.
+Revival lets the player skip the wait for the discard pile to cycle back. With reshuffling, every discarded card eventually returns to draw, but you don't get to pick when. Recall and Recover are the "I want this card *now*" tools — Recall in the cheap, random form; Recover in the expensive, chosen, one-shot form.
 
-Mechanically, the spent card moves from `consumedPile` back to `hand`. It's the same card instance — no copies are generated.
+Cards with Consume (Big Destroy, Souls, Marionette, Martyr's Gift, Recover itself) are *not* in the discard pile after they've been played; they're in the consumed pile and unreachable by revival. Consume is the contract for "this card is finite per match."

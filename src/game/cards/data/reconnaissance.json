@@ -1,7 +1,7 @@
 {
   "id": "reconnaissance",
   "name": "Reconnaissance",
-  "cost": 1,
+  "cost": 2,
   "rarity": "common",
   "archetype": "resource",
   "description": "Draw 2 cards.",

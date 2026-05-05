@@ -9,7 +9,7 @@ Terms used across the choss design and technical docs.
 | **Ascension**       | Difficulty level above 0; each level adds a fixed stacking modifier. Per-mode track.    |
 | **Booster pack**    | Shop item: open and pick 1+ cards from its randomized contents. Balatro-style.          |
 | **Boss**            | A hand-crafted match at the end of each act. 3 bosses per run (one per act).            |
-| **Card**            | A consumable effect played from hand. Costs energy. Every played card lands in the spent pile for the rest of the match. |
+| **Card**            | An effect played from hand. Costs energy. By default a played card lands in the discard pile and cycles back into the draw pile when it empties; the Consume keyword removes it from the match instead. |
 | **choss**           | Chess + Roguelite. Working name of the project.                                         |
 | **Compel**          | Status keyword: enemy piece is forced to move on its next turn (must capture if able).  |
 | **Curse card**      | A 0-cost detrimental card injected into the player's hand by a boss. Vanishes when played. |
@@ -18,12 +18,14 @@ Terms used across the choss design and technical docs.
 | **Draft**           | A 1-of-3 choice (cards or, in Skirmish, pieces) shown after each match.                 |
 | **Empower**         | Buff keyword: own piece gains an additional movement pattern this turn.                 |
 | **Energy**          | Resource for playing cards. +1 each turn (1 on turn 1), banks unspent up to 10.         |
-| **Generator**       | A card whose effect creates one or more cards in your hand (e.g., Improvise, Trick Bag, Mark Target). |
-| **Revive**          | A card effect that returns a card from the spent pile to your hand (Recall, Recover).   |
+| **Consume**         | Card-flow keyword: a played card with Consume is removed from the match (lands in the consumed pile) and is not eligible for revival. |
+| **Discard pile**    | Where played cards without Consume land at the moment they're played, plus the end-of-turn hand wipe. Reshuffles into the draw pile when it empties mid-draw. |
+| **Consumed pile**   | Where Consume-keyworded cards land when played. Cards here never re-enter the cycle. |
+| **Retain**          | Card-flow keyword: a card with Retain stays in your hand at end-of-turn discards until played. Granted dynamically by Stash; no card has inherent Retain in the prototype. |
+| **Revive**          | A card effect that returns a card from the discard pile to your hand (Recall, Recover). Cannot reach into the consumed pile. |
 | **Rooted**          | Status keyword: enemy piece cannot move on its next turn except to capture (alias for Root). Also used by Vine Pull as a target filter. |
-| **Self-replicating** | A card that, when played, shuffles a fresh copy of itself into your draw pile (Pace, Hum, Drift). |
-| **Soul card**       | One of five (Pawn / Knight / Bishop / Rook / Queen) Empower cards granted to your draw pile when you capture the matching enemy piece. |
-| **Spent pile**      | Where played cards land for the rest of the match. Replaces the older "discard pile". No reshuffle. |
+| **Soul card**       | One of five (Pawn / Knight / Bishop / Rook / Queen) Empower cards granted to your draw pile when you capture the matching enemy piece. All Souls have Consume. |
+| **Stash**           | Resource card: applies Retain to a chosen card in hand for the rest of the match. |
 | **FIDE**            | The international chess federation; "FIDE rules" = the standard chess rules baseline.   |
 | **Freeze**          | Status keyword: enemy piece cannot move or capture on its next turn.                    |
 | **Haste**           | Buff keyword: own piece may move a second time this turn but may not capture.           |

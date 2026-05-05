@@ -6,6 +6,8 @@ See [`keywords.md`](keywords.md) for keyword definitions, especially **Empower**
 
 ## Capture-grants-Soul
 
+All Souls have the **Consume** keyword: each play removes the Soul for the rest of the match. Combined with capture-grants-Soul, this means each capture grants exactly one empower trigger of the matching pattern.
+
 When you capture an enemy non-King piece during a chess move, the matching Soul card is shuffled into your draw pile:
 
 - pawn → Pawn Soul

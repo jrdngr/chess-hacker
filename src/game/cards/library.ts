@@ -52,6 +52,7 @@ const VALID_TARGET_KINDS = [
   "two-own-pieces",
   "marionette",
   "rooted-enemy-and-own-piece",
+  "hand-card",
 ] as const;
 const VALID_EFFECT_KINDS = [
   "gain-energy",
@@ -75,7 +76,6 @@ const VALID_EFFECT_KINDS = [
   "sacrifice-piece",
   "marionette",
   "destroy-piece",
-  "add-card-to-hand",
   "add-card-to-draw",
   "revive",
   "next-move-constraint",
@@ -83,12 +83,12 @@ const VALID_EFFECT_KINDS = [
   "forbid-zero-cost-this-turn",
   "boss-extra-move",
   "capture-random-own-minor",
+  "apply-retain-to-hand-card",
   "compound",
 ] as const;
 const VALID_ZONE_BUFF_PATTERNS = ["square-orthogonal-1", "square-radius-1"] as const;
 const VALID_ZONE_BUFF_EFFECT_KINDS = ["energy-per-turn", "hand-size"] as const;
 const VALID_DESTROY_FILTERS = ["any", "attacked-by-player"] as const;
-const VALID_ADD_CARD_HAND_SOURCES = ["random-common", "card-id", "shiv-pool"] as const;
 const VALID_ADD_CARD_DRAW_SOURCES = ["self", "card-id"] as const;
 const VALID_REVIVE_SELECTIONS = ["random", "choose"] as const;
 const VALID_TRAP_EFFECTS: readonly TrapEffect[] = ["capture", "freeze", "push"];
@@ -338,38 +338,6 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
       }
       return { kind: "destroy-piece", filter: filter as "any" | "attacked-by-player" };
     }
-    case "add-card-to-hand": {
-      const source = raw.source;
-      if (
-        typeof source !== "string" ||
-        !(VALID_ADD_CARD_HAND_SOURCES as readonly string[]).includes(source)
-      ) {
-        errors.push(
-          `'effect.source' must be one of ${VALID_ADD_CARD_HAND_SOURCES.join(", ")} for 'add-card-to-hand'`,
-        );
-        return null;
-      }
-      const cardId = raw.cardId;
-      if (source === "card-id" && (typeof cardId !== "string" || cardId.length === 0)) {
-        errors.push("'effect.cardId' must be a non-empty string when source is 'card-id'");
-        return null;
-      }
-      const count = raw.count;
-      if (
-        count !== undefined &&
-        (typeof count !== "number" || !Number.isInteger(count) || count < 1)
-      ) {
-        errors.push("'effect.count' must be a positive integer if present for 'add-card-to-hand'");
-        return null;
-      }
-      const out: CardEffect & { kind: "add-card-to-hand" } = {
-        kind: "add-card-to-hand",
-        source: source as "random-common" | "card-id" | "shiv-pool",
-      };
-      if (typeof cardId === "string" && cardId.length > 0) out.cardId = cardId;
-      if (typeof count === "number") out.count = count;
-      return out;
-    }
     case "add-card-to-draw": {
       const source = raw.source;
       if (
@@ -434,6 +402,8 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
     }
     case "capture-random-own-minor":
       return { kind: "capture-random-own-minor" };
+    case "apply-retain-to-hand-card":
+      return { kind: "apply-retain-to-hand-card" };
     case "compound": {
       const children = raw.effects;
       if (!Array.isArray(children) || children.length === 0) {
@@ -521,7 +491,6 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
       return tk === "enemy-non-king-piece"
         ? null
         : "'destroy-piece' effect requires target.kind 'enemy-non-king-piece'";
-    case "add-card-to-hand":
     case "add-card-to-draw":
     case "revive":
       // These effects don't read the target — they're target-agnostic. They
@@ -535,6 +504,10 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
     case "boss-extra-move":
     case "capture-random-own-minor":
       return tk === "none" ? null : `'${effect.kind}' effect requires target.kind 'none'`;
+    case "apply-retain-to-hand-card":
+      return tk === "hand-card"
+        ? null
+        : "'apply-retain-to-hand-card' effect requires target.kind 'hand-card'";
     case "compound": {
       for (const child of effect.effects) {
         const m = targetMatchesEffect(target, child);
@@ -573,10 +546,11 @@ function validateCard(raw: unknown): { card: Card | null; errors: string[] } {
   ) {
     errors.push(`'archetype' must be one of ${VALID_ARCHETYPES.join(", ")}`);
   }
-  if (raw.consume !== undefined) {
-    errors.push(
-      "'consume' is no longer a valid field — every played card consumes (see docs/design/cards.md). Remove it.",
-    );
+  if (raw.consume !== undefined && typeof raw.consume !== "boolean") {
+    errors.push("'consume' must be a boolean if present");
+  }
+  if (raw.retain !== undefined && typeof raw.retain !== "boolean") {
+    errors.push("'retain' must be a boolean if present");
   }
   if (raw.curse !== undefined && typeof raw.curse !== "boolean") {
     errors.push("'curse' must be a boolean if present");
@@ -609,6 +583,8 @@ function validateCard(raw: unknown): { card: Card | null; errors: string[] } {
     effect,
   };
   if (typeof raw.curse === "boolean") card.curse = raw.curse;
+  if (typeof raw.consume === "boolean") card.consume = raw.consume;
+  if (typeof raw.retain === "boolean") card.retain = raw.retain;
 
   return { card, errors: [] };
 }
@@ -689,17 +665,9 @@ export function getCardById(id: CardId): Card {
   return card;
 }
 
-/** All cards in the library matching `rarity`. Used for `random-common`. */
+/** All cards in the library matching `rarity`. */
 export function getCardsByRarity(rarity: CardRarity): Card[] {
   return Object.values(CARD_LIBRARY).filter((c) => c.rarity === rarity);
-}
-
-/**
- * The "shiv pool" — small filler cards that enter play only via Trick Bag.
- * Filtered by id-prefix `shiv-` so the pool stays data-driven.
- */
-export function getShivPool(): Card[] {
-  return Object.values(CARD_LIBRARY).filter((c) => c.id.startsWith("shiv-"));
 }
 
 export const RECONNAISSANCE: Card = pick("reconnaissance");

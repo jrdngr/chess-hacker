@@ -475,7 +475,12 @@
   border-color: rgba(111, 207, 151, 0.5);
 }
 
-.deckEntryTag_spent {
+.deckEntryTag_discard {
+  color: #d2c98a;
+  border-color: rgba(210, 201, 138, 0.5);
+}
+
+.deckEntryTag_consumed {
   color: #f3a3ad;
   border-color: rgba(243, 163, 173, 0.5);
 }

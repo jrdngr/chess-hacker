@@ -4,7 +4,8 @@
   "cost": 5,
   "rarity": "rare",
   "archetype": "swap",
-  "description": "Move an enemy piece using one of its legal moves (no self-captures).",
+  "consume": true,
+  "description": "Move an enemy piece using one of its legal moves (no self-captures). Consume.",
   "target": { "kind": "marionette" },
   "effect": { "kind": "marionette" }
 }

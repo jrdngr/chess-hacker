@@ -1,7 +1,7 @@
 {
   "id": "foresight",
   "name": "Foresight",
-  "cost": 0,
+  "cost": 1,
   "rarity": "common",
   "archetype": "resource",
   "description": "Look at the top 3 cards of your deck; put them back in any order.",

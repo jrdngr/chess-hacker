@@ -76,15 +76,22 @@ type Props = {
   // Deck
   /** Cards still in the player's draw pile. */
   drawPile: ReadonlyArray<Card>;
-  /** Cards already played this match. */
+  /** Cards in the player's discard pile (cycle back when draw empties). */
+  discardPile: ReadonlyArray<Card>;
+  /** Cards consumed for the match (Consume keyword; will not return). */
   consumedPile: ReadonlyArray<Card>;
   /**
-   * Commit the deck-editor changes: replace draw / spent piles wholesale.
-   * `addedCards` is the subset of `drawPile` that wasn't in the deck before
-   * (so Match can append it to acquisitionLog). Match is responsible for any
-   * rng-y reshuffle.
+   * Commit the deck-editor changes: replace draw / discard / consumed piles
+   * wholesale. `addedCards` is the subset of `drawPile` that wasn't in the
+   * deck before (so Match can append it to acquisitionLog). Match is
+   * responsible for any rng-y reshuffle.
    */
-  onSaveDeck: (next: { drawPile: Card[]; consumedPile: Card[]; addedCards: Card[] }) => void;
+  onSaveDeck: (next: {
+    drawPile: Card[];
+    discardPile: Card[];
+    consumedPile: Card[];
+    addedCards: Card[];
+  }) => void;
 
   // Artifacts
   /** Artifacts currently held by the player. */
@@ -152,6 +159,7 @@ export function DevPanel({
   onLibraryCardDragStart,
   onLibraryCardDragEnd,
   drawPile,
+  discardPile,
   consumedPile,
   onSaveDeck,
   artifacts,
@@ -188,6 +196,7 @@ export function DevPanel({
     return (
       <DeckEditorOverlay
         drawPile={drawPile}
+        discardPile={discardPile}
         consumedPile={consumedPile}
         onSave={(next) => {
           onSaveDeck(next);
@@ -553,30 +562,47 @@ function LibraryOverlay({
 
 /**
  * Deck-editor entry: a single row in the editor, tagged with where it came
- * from so saving can rebuild the draw / spent piles correctly. `kind: "new"`
- * rows came from the library and append to the draw pile on save; existing
- * rows preserve their position in their original pile if not removed.
+ * from so saving can rebuild the draw / discard / consumed piles correctly.
+ * `kind: "new"` rows came from the library and append to the draw pile on
+ * save; existing rows preserve their position in their original pile if
+ * not removed.
  */
 type DeckEntry =
   | { kind: "draw"; card: Card; key: string; removed: boolean }
-  | { kind: "spent"; card: Card; key: string; removed: boolean }
+  | { kind: "discard"; card: Card; key: string; removed: boolean }
+  | { kind: "consumed"; card: Card; key: string; removed: boolean }
   | { kind: "new"; card: Card; key: string };
 
 type DeckEditorProps = {
   drawPile: ReadonlyArray<Card>;
+  discardPile: ReadonlyArray<Card>;
   consumedPile: ReadonlyArray<Card>;
-  onSave: (next: { drawPile: Card[]; consumedPile: Card[]; addedCards: Card[] }) => void;
+  onSave: (next: {
+    drawPile: Card[];
+    discardPile: Card[];
+    consumedPile: Card[];
+    addedCards: Card[];
+  }) => void;
   onClose: () => void;
 };
 
-function DeckEditorOverlay({ drawPile, consumedPile, onSave, onClose }: DeckEditorProps) {
+function DeckEditorOverlay({
+  drawPile,
+  discardPile,
+  consumedPile,
+  onSave,
+  onClose,
+}: DeckEditorProps) {
   const [entries, setEntries] = useState<DeckEntry[]>(() => {
     const out: DeckEntry[] = [];
     drawPile.forEach((card, i) => {
       out.push({ kind: "draw", card, key: `draw-${i}`, removed: false });
     });
+    discardPile.forEach((card, i) => {
+      out.push({ kind: "discard", card, key: `discard-${i}`, removed: false });
+    });
     consumedPile.forEach((card, i) => {
-      out.push({ kind: "spent", card, key: `spent-${i}`, removed: false });
+      out.push({ kind: "consumed", card, key: `consumed-${i}`, removed: false });
     });
     return out;
   });
@@ -619,17 +645,24 @@ function DeckEditorOverlay({ drawPile, consumedPile, onSave, onClose }: DeckEdit
 
   const handleSave = () => {
     const newDraw: Card[] = [];
-    const newSpent: Card[] = [];
+    const newDiscard: Card[] = [];
+    const newConsumed: Card[] = [];
     const added: Card[] = [];
     for (const entry of entries) {
       if (entry.kind === "draw" && !entry.removed) newDraw.push(entry.card);
-      else if (entry.kind === "spent" && !entry.removed) newSpent.push(entry.card);
+      else if (entry.kind === "discard" && !entry.removed) newDiscard.push(entry.card);
+      else if (entry.kind === "consumed" && !entry.removed) newConsumed.push(entry.card);
       else if (entry.kind === "new") {
         newDraw.push(entry.card);
         added.push(entry.card);
       }
     }
-    onSave({ drawPile: newDraw, consumedPile: newSpent, addedCards: added });
+    onSave({
+      drawPile: newDraw,
+      discardPile: newDiscard,
+      consumedPile: newConsumed,
+      addedCards: added,
+    });
   };
 
   const handleExport = () => {
@@ -691,7 +724,7 @@ function DeckEditorOverlay({ drawPile, consumedPile, onSave, onClose }: DeckEdit
           {entries.length === 0 && <div className={styles.note}>Deck is empty.</div>}
           {entries.map((entry) => {
             const removed = entry.kind !== "new" && entry.removed;
-            const tag = entry.kind === "new" ? "new" : entry.kind === "spent" ? "spent" : "draw";
+            const tag = entry.kind;
             return (
               <div
                 key={entry.key}

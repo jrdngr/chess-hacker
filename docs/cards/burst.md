@@ -8,17 +8,19 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 
 - **Cost:** 4
 - **Rarity:** Rare
+- **Keywords:** **Consume**
 - **Target:** enemy non-King piece your forces are attacking
 - **Effect:** Remove the targeted enemy piece from the board.
-- **Design note:** A conditional removal. Cheap Destroy requires positional setup — at least one of your pieces must already be threatening the target square. The setup is the work; the card is the cash-out. This makes Cheap Destroy a "convert positional pressure into material" tool rather than a generic removal.
+- **Design note:** A conditional removal. Cheap Destroy requires positional setup — at least one of your pieces must already be threatening the target square. The setup is the work; the card is the cash-out. Consume keeps the card finite per match: each copy in the deck is one piece-removal, not a recurring threat.
 
 ## Big Destroy
 
 - **Cost:** 10
 - **Rarity:** Rare
+- **Keywords:** **Consume**
 - **Target:** any enemy non-King piece
 - **Effect:** Remove the targeted enemy piece from the board.
-- **Design note:** Unconditional removal at the maximum energy cost in the prototype (10 = the cap on banked energy). This is a full-bank single-shot — usually played once per match, often the deciding move. Currently draft-pool only, not in the starter.
+- **Design note:** Unconditional removal at the maximum energy cost in the prototype (10 = the cap on banked energy). Full-bank single-shot, often the deciding move. Consume guarantees the haymaker stays a single moment per copy.
 
 ## Why they're expensive
 
