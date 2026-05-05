@@ -77,7 +77,7 @@ export type CardArchetype =
  *  - "two-own-pieces":             two squares each holding a player piece (multi-step).
  *  - "marionette":                 an enemy piece, then one of its legal destinations.
  *  - "rooted-enemy-and-own-piece": a rooted enemy piece, then one of your pieces (multi-step).
- *  - "hand-card":                  another card currently in your hand (Stash).
+ *  - "hand-card":                  another card currently in your hand (Bookmark).
  */
 export type CardTarget =
   | { kind: "none" }
@@ -116,7 +116,7 @@ export type CardEffect =
       kind: "empower-piece";
       pattern: EmpowerPattern;
       /**
-       * "Use it or lose it" empower (e.g. Soul cards). Lasts the current turn,
+       * "Use it or lose it" empower (e.g. Patch cards). Lasts the current turn,
        * but is dropped immediately if the player moves any other piece first.
        */
       singleUse?: boolean;
@@ -145,17 +145,17 @@ export type CardEffect =
     }
   /**
    * Curse-only: constrains the next chess move. Currently the only variant
-   * is `must-not-check`, used by Boss A's Stalwart curse.
+   * is `must-not-check`, used by Boss A's Throttled curse.
    */
   | { kind: "next-move-constraint"; constraint: "must-not-check" }
   /**
-   * Curse-only (Boss B / Greed): if the player makes no capture this turn,
+   * Curse-only (Boss B / Memory Leak): if the player makes no capture this turn,
    * lose `amount` energy at the start of the next turn. Implemented via the
    * `pendingEnergyLossOnNoCapture` flag on `MatchCardState`.
    */
   | { kind: "pending-energy-loss-on-no-capture"; amount: number }
   /**
-   * Curse-only (Boss C / Final Resolve): no further 0-cost cards may be
+   * Curse-only (Boss C / Hardened): no further 0-cost cards may be
    * played for the remainder of the current player turn.
    */
   | { kind: "forbid-zero-cost-this-turn" }
@@ -165,12 +165,12 @@ export type CardEffect =
    */
   | { kind: "boss-extra-move"; count: number }
   /**
-   * Curse-only (Boss C / Inevitability): immediately destroys one of the
+   * Curse-only (Boss C / Bit Rot): immediately destroys one of the
    * player's minor pieces (knight or bishop), chosen at random.
    */
   | { kind: "capture-random-own-minor" }
   /**
-   * Stash: grant Retain to another card in the player's hand. Resolves against
+   * Bookmark: grant Retain to another card in the player's hand. Resolves against
    * the targeted hand index; the chosen slot's `retained` flag flips to true
    * and the card stays in hand at end-of-turn discards until played.
    */
@@ -187,14 +187,14 @@ export type Card = {
   /**
    * Consume keyword: the card is removed from the match (lands in the
    * `consumedPile`) when played, instead of cycling through the discard
-   * pile. Used for haymakers, Souls, and other one-shot cards. See
+   * pile. Used for haymakers, Patches, and other one-shot cards. See
    * `docs/cards/keywords.md`.
    */
   consume?: boolean;
   /**
    * Retain keyword (inherent): the card stays in your hand at end-of-turn
    * discards until played. Currently no card definition uses this; the
-   * Retain mechanic is applied dynamically by Stash via the `HandCard`
+   * Retain mechanic is applied dynamically by Bookmark via the `HandCard`
    * wrapper. Reserved for future cards that retain natively.
    */
   retain?: boolean;
@@ -205,7 +205,7 @@ export type Card = {
 
 /**
  * One slot in the player's hand: a card definition plus the per-instance
- * retain flag. The flag is set by Stash (or by an inherent `retain` keyword
+ * retain flag. The flag is set by Bookmark (or by an inherent `retain` keyword
  * on the card) and survives end-of-turn discards. It is dropped when the
  * card leaves hand by being played.
  */
@@ -248,7 +248,7 @@ export type FrozenPiece = PieceStatus;
 /** An empower status — like PieceStatus, plus the granted movement pattern. */
 export type EmpowerStatus = PieceStatus & {
   pattern: EmpowerPattern;
-  /** Drops as soon as the player moves a different piece (Soul cards). */
+  /** Drops as soon as the player moves a different piece (Patch cards). */
   singleUse?: boolean;
 };
 
@@ -448,7 +448,7 @@ export type Shop = {
 };
 
 // === Bosses (M8 + M9) ===
-export type BossId = "iron-garrison" | "the-gambit" | "final-mind";
+export type BossId = "the-firewall" | "the-whale" | "the-singularity";
 
 /** Match-modifier identifiers — all three are now wired end-to-end. */
 export type BossModifier =
@@ -492,7 +492,7 @@ export type BossDef = {
   hazardWalls: AlgebraicSquare[];
   /**
    * "Void" squares — any piece ending its turn on one of these is destroyed.
-   * Boss C (The Final Mind) places a 2x2 void on d4/d5/e4/e5.
+   * Boss C (The Singularity) places a 2x2 void on d4/d5/e4/e5.
    */
   voidSquares?: AlgebraicSquare[];
   /**
@@ -546,7 +546,7 @@ export type ZoneBuff = {
    * `undefined` means the buff lasts the entire match — used by artifacts.
    */
   expiresOnTurn?: number;
-  /** Display label (e.g. "Standing Stone") used by the aura tooltip / sidebar. */
+  /** Display label (e.g. "Power Node") used by the aura tooltip / sidebar. */
   sourceLabel: string;
 };
 
@@ -574,7 +574,7 @@ export type MatchCardState = {
   discardPile: Card[];
   /**
    * Cards played with the Consume keyword land here. They never re-enter
-   * the cycle and are not eligible for revival via Recall / Recover.
+   * the cycle and are not eligible for revival via Restore Point / Restore from Backup.
    */
   consumedPile: Card[];
   /**
@@ -624,24 +624,24 @@ export type MatchCardState = {
   artifacts: ReadonlyArray<Artifact>;
   /**
    * Boss-driven flag: when true, the player's next chess move must not
-   * deliver check. Set by the Stalwart curse; cleared by the next move or
+   * deliver check. Set by the Throttled curse; cleared by the next move or
    * by the next start-of-turn refresh.
    */
   mustNotCheckNextMove?: boolean;
   /**
-   * Boss-driven (Greed curse, Boss B): when true, if no capture happens
+   * Boss-driven (Memory Leak curse, Boss B): when true, if no capture happens
    * before the start of the next player turn the player loses 1 energy at
    * that point. Cleared on capture or after the penalty applies.
    */
   pendingEnergyLossOnNoCapture?: boolean;
   /**
    * Tracks whether the player made a capture during the current player
-   * turn — used by the Greed curse's start-of-turn check. Reset to false
+   * turn — used by the Memory Leak curse's start-of-turn check. Reset to false
    * by `startPlayerTurn`.
    */
   capturedThisTurn?: boolean;
   /**
-   * Boss-driven (Final Resolve curse, Boss C): when true, the player may
+   * Boss-driven (Hardened curse, Boss C): when true, the player may
    * not play 0-cost cards for the remainder of the current player turn.
    * Reset by `startPlayerTurn`.
    */

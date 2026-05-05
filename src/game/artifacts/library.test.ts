@@ -67,10 +67,10 @@ describe("pickRandomArtifacts", () => {
 
   it("never returns artifacts in excludeIds", () => {
     const rng = makeRng(11);
-    const exclude = new Set(["stone-hourglass"]);
+    const exclude = new Set(["extra-ram"]);
     for (let seed = 0; seed < 20; seed++) {
       const picks = pickRandomArtifacts(allArtifacts().length, makeRng(seed), exclude);
-      for (const p of picks) expect(p.id).not.toBe("stone-hourglass");
+      for (const p of picks) expect(p.id).not.toBe("extra-ram");
     }
     void rng;
   });

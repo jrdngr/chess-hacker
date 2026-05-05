@@ -1,0 +1,11 @@
+{
+  "id": "restore-from-backup",
+  "name": "Restore from Backup",
+  "cost": 4,
+  "rarity": "uncommon",
+  "archetype": "resource",
+  "consume": true,
+  "description": "Choose a card from your discard pile to return to your hand. Consume.",
+  "target": { "kind": "none" },
+  "effect": { "kind": "revive", "selection": "choose" }
+}

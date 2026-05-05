@@ -17,7 +17,7 @@ import {
   type MatchRules,
   type PlayTarget,
 } from "./match";
-import { BARRICADE, getCardById, makeStarterDeck } from "./library";
+import { FIREWALL, getCardById, makeStarterDeck } from "./library";
 
 const emptyBoard: BoardContext = {
   pieceAt: () => null,
@@ -34,26 +34,26 @@ describe("curses", () => {
   it("vanish on play — do not enter the consumed pile", () => {
     const rng = makeRng(1);
     let st = startPlayerTurn(createMatchCardState([], rng), rng);
-    const stalwart = getCardById("stalwart");
-    expect(stalwart.curse).toBe(true);
-    st = insertCurseIntoHand(st, stalwart);
+    const throttled = getCardById("throttled");
+    expect(throttled.curse).toBe(true);
+    st = insertCurseIntoHand(st, throttled);
     const before = st.consumedPile.length;
 
-    const idx = st.hand.findIndex((s) => s.card.id === "stalwart");
+    const idx = st.hand.findIndex((s) => s.card.id === "throttled");
     expect(idx).toBeGreaterThanOrEqual(0);
 
     const res = playCard(st, idx, noTarget(), emptyBoard, rng);
     expect(res.ok).toBe(true);
     if (!res.ok) return;
     expect(res.state.consumedPile.length).toBe(before); // no growth.
-    expect(res.state.hand.find((s) => s.card.id === "stalwart")).toBeUndefined();
+    expect(res.state.hand.find((s) => s.card.id === "throttled")).toBeUndefined();
   });
 
-  it("Stalwart play sets the must-not-check flag for the next chess move", () => {
+  it("Throttled play sets the must-not-check flag for the next chess move", () => {
     const rng = makeRng(2);
     let st = startPlayerTurn(createMatchCardState([], rng), rng);
-    st = insertCurseIntoHand(st, getCardById("stalwart"));
-    const idx = st.hand.findIndex((s) => s.card.id === "stalwart");
+    st = insertCurseIntoHand(st, getCardById("throttled"));
+    const idx = st.hand.findIndex((s) => s.card.id === "throttled");
     const res = playCard(st, idx, noTarget(), emptyBoard, rng);
     expect(res.ok).toBe(true);
     if (!res.ok) return;
@@ -66,8 +66,8 @@ describe("curses", () => {
     let st = startPlayerTurn(createMatchCardState(makeStarterDeck(), rng), rng);
     expect(st.hand.length).toBe(HAND_SIZE);
     // Insert two curses — hand goes from 5 to 7 (curses are bonus).
-    st = insertCurseIntoHand(st, getCardById("stalwart"));
-    st = insertCurseIntoHand(st, getCardById("stalwart"));
+    st = insertCurseIntoHand(st, getCardById("throttled"));
+    st = insertCurseIntoHand(st, getCardById("throttled"));
     expect(st.hand.length).toBe(HAND_SIZE + 2);
     // Drop one non-curse card so a follow-up refill has work to do.
     st = { ...st, hand: st.hand.filter((_, i) => i !== st.hand.findIndex((s) => !s.card.curse)) };
@@ -86,7 +86,7 @@ describe("match modifier — forbiddenCardEffectKinds", () => {
 
   it("rejects play of a forbidden card", () => {
     const rng = makeRng(4);
-    const st = startPlayerTurn(createMatchCardState([BARRICADE], rng), rng);
+    const st = startPlayerTurn(createMatchCardState([FIREWALL], rng), rng);
     // Cost 1; energy starts at 1. Spendable.
     const res = playCard(st, 0, { kind: "square", square: "d4" }, emptyBoard, rng, rules);
     expect(res.ok).toBe(false);
@@ -115,28 +115,28 @@ describe("match modifier — forbiddenCardEffectKinds", () => {
   });
 });
 
-describe("Boss B — Greed curse", () => {
-  it("playing Greed sets pendingEnergyLossOnNoCapture", () => {
+describe("Boss B — Memory Leak curse", () => {
+  it("playing Memory Leak sets pendingEnergyLossOnNoCapture", () => {
     const rng = makeRng(11);
     let st = startPlayerTurn(createMatchCardState([], rng), rng);
-    st = insertCurseIntoHand(st, getCardById("greed"));
-    const idx = st.hand.findIndex((s) => s.card.id === "greed");
+    st = insertCurseIntoHand(st, getCardById("memory-leak"));
+    const idx = st.hand.findIndex((s) => s.card.id === "memory-leak");
     const res = playCard(st, idx, noTarget(), emptyBoard, rng);
     expect(res.ok).toBe(true);
     if (!res.ok) return;
     expect(res.state.pendingEnergyLossOnNoCapture).toBe(true);
   });
 
-  it("Greed penalty fires at next start-of-turn if no capture happened", () => {
+  it("Memory Leak penalty fires at next start-of-turn if no capture happened", () => {
     const rng = makeRng(12);
     const init = startPlayerTurn(createMatchCardState([], rng), rng);
     const flagged = { ...init, pendingEnergyLossOnNoCapture: true, energy: 5 };
     const next = startPlayerTurn(flagged, rng);
-    expect(next.energy).toBe(5 + 1 - 1); // +1 per-turn ramp − 1 Greed penalty
+    expect(next.energy).toBe(5 + 1 - 1); // +1 per-turn ramp − 1 Memory Leak penalty
     expect(next.pendingEnergyLossOnNoCapture).toBe(false);
   });
 
-  it("Greed penalty is suppressed when capturedThisTurn is true", () => {
+  it("Memory Leak penalty is suppressed when capturedThisTurn is true", () => {
     const rng = makeRng(13);
     const init = startPlayerTurn(createMatchCardState([], rng), rng);
     const flagged = {
@@ -163,12 +163,12 @@ describe("Boss B — captures-grant-captured-energy modifier", () => {
   });
 });
 
-describe("Boss C — Final Resolve curse", () => {
-  it("playing Final Resolve sets noZeroCostCardsThisTurn", () => {
+describe("Boss C — Hardened curse", () => {
+  it("playing Hardened sets noZeroCostCardsThisTurn", () => {
     const rng = makeRng(21);
     let st = startPlayerTurn(createMatchCardState([], rng), rng);
-    st = insertCurseIntoHand(st, getCardById("final-resolve"));
-    const idx = st.hand.findIndex((s) => s.card.id === "final-resolve");
+    st = insertCurseIntoHand(st, getCardById("hardened"));
+    const idx = st.hand.findIndex((s) => s.card.id === "hardened");
     const res = playCard(st, idx, noTarget(), emptyBoard, rng);
     expect(res.ok).toBe(true);
     if (!res.ok) return;
@@ -179,7 +179,7 @@ describe("Boss C — Final Resolve curse", () => {
     const rng = makeRng(22);
     // No card defines cost 0 in the current pool, so synthesize a
     // 0-cost non-curse card inline to validate the gate.
-    const zeroCost = { ...getCardById("foresight"), cost: 0 as const };
+    const zeroCost = { ...getCardById("stack-trace"), cost: 0 as const };
     let st = startPlayerTurn(createMatchCardState([zeroCost], rng), rng);
     st = { ...st, noZeroCostCardsThisTurn: true };
     const idx = st.hand.findIndex((s) => s.card.id === zeroCost.id);
@@ -193,8 +193,8 @@ describe("Boss C — Final Resolve curse", () => {
     const rng = makeRng(23);
     let st = startPlayerTurn(createMatchCardState([], rng), rng);
     st = { ...st, noZeroCostCardsThisTurn: true };
-    st = insertCurseIntoHand(st, getCardById("greed"));
-    const idx = st.hand.findIndex((s) => s.card.id === "greed");
+    st = insertCurseIntoHand(st, getCardById("memory-leak"));
+    const idx = st.hand.findIndex((s) => s.card.id === "memory-leak");
     const res = playCard(st, idx, noTarget(), emptyBoard, rng);
     expect(res.ok).toBe(true);
   });
@@ -220,12 +220,12 @@ describe("Boss C — Echo curse", () => {
   });
 });
 
-describe("Boss C — Inevitability curse", () => {
-  it("playing Inevitability emits a remove-random-own-minor side effect", () => {
+describe("Boss C — Bit Rot curse", () => {
+  it("playing Bit Rot emits a remove-random-own-minor side effect", () => {
     const rng = makeRng(41);
     let st = startPlayerTurn(createMatchCardState([], rng), rng);
-    st = insertCurseIntoHand(st, getCardById("inevitability"));
-    const idx = st.hand.findIndex((s) => s.card.id === "inevitability");
+    st = insertCurseIntoHand(st, getCardById("bit-rot"));
+    const idx = st.hand.findIndex((s) => s.card.id === "bit-rot");
     const res = playCard(st, idx, noTarget(), emptyBoard, rng);
     expect(res.ok).toBe(true);
     if (!res.ok) return;

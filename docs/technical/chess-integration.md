@@ -51,8 +51,8 @@ class ChoseEngine {
   forceTurn(side): void;                                          // Haste / Lightning second action
 
   // Foreign moves — apply a move as if it were the *other* side's turn.
-  foreignLegalMoves(from): LegalMove[];                           // Marionette enumeration
-  applyForeignMove(m): LegalMove | null;                          // Marionette resolution
+  foreignLegalMoves(from): LegalMove[];                           // Remote Access enumeration
+  applyForeignMove(m): LegalMove | null;                          // Remote Access resolution
 
   // Outcome detection.
   inCheck(): boolean;
@@ -94,7 +94,7 @@ Public functions:
 | Overlay | Effect |
 |---|---|
 | **walls** | Sliding pieces (B/R/Q): block the ray at the wall (treated as a friendly blocker). Knights: cannot land on a walled square but can hop over. Pawns: cannot push or capture into one. King castling: cannot transit through a walled square. En-passant target: cannot land on a walled square. **Attack rays for check evaluation also stop at walls.** |
-| **freezes** | A frozen piece generates no moves and is not counted as an attacker by `isSquareAttacked`. (Used for trap-freeze, Frostbite, etc.) |
+| **freezes** | A frozen piece generates no moves and is not counted as an attacker by `isSquareAttacked`. (Used for trap-freeze, Freeze Process, etc.) |
 | **roots** | An enemy rooted piece may move but **cannot capture** next turn. (Filter applied to its move generation.) |
 | **disarms** | An enemy disarmed piece may move but **cannot capture** (similar to root, narrower duration / stacking). |
 | **compels** | An enemy compelled piece **must move** — and the AI prefers a capture if one is available. (Affects move ordering, not legality, but combined with the curse-AI scheduler.) |
@@ -128,7 +128,7 @@ Two things this implies:
 
 ## Move extensions (cards changing piece behavior)
 
-Card-driven extra movement patterns (e.g., "your queen has knight moves this turn") are modeled as the **empowers** overlay — a per-square set of `EmpowerPattern` values. Move generation in `rules.ts` enumerates the native pattern *and* every empower pattern present on the from-square, then deduplicates. Empower entries are time-bounded (`expiresOnTurn`); single-use empowers (Soul cards) drop as soon as the player moves a different piece.
+Card-driven extra movement patterns (e.g., "your queen has knight moves this turn") are modeled as the **empowers** overlay — a per-square set of `EmpowerPattern` values. Move generation in `rules.ts` enumerates the native pattern *and* every empower pattern present on the from-square, then deduplicates. Empower entries are time-bounded (`expiresOnTurn`); single-use empowers (Patch cards) drop as soon as the player moves a different piece.
 
 ## Square effects
 

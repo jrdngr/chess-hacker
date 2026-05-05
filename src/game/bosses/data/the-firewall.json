@@ -1,0 +1,10 @@
+{
+  "id": "the-firewall",
+  "name": "The Firewall",
+  "matchNumber": 3,
+  "modifier": { "kind": "no-player-walls" },
+  "modifierDescription": "You cannot place walls.",
+  "hazardWalls": ["c3", "c4"],
+  "curses": [{ "trigger": { "kind": "on-player-check" }, "curseId": "throttled" }],
+  "description": "A hardened bastion guards the central files. Your firewalls won't compile here — find another way through."
+}

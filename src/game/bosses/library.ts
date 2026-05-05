@@ -6,15 +6,15 @@
 //
 // All three bosses are wired end-to-end through Match.tsx:
 //   Boss A (5×6) — modifier: no-player-walls; hazards: c3/c4 walls;
-//                  curse: Stalwart on player check.
+//                  curse: Throttled on player check.
 //   Boss B (7×7) — modifier: captures grant the captured side +1 energy;
 //                  hazards: pre-placed +1 energy/turn buff anchored at d1;
-//                  curse: Greed every 4 turns.
+//                  curse: Memory Leak every 4 turns.
 //   Boss C (8×8) — modifier: pawn promotion disabled;
 //                  hazards: 2x2 void at d4/d5/e4/e5 (any piece ending on
 //                  one of these squares is destroyed);
-//                  curses: Final Resolve (turn 1), Echo (on player check),
-//                  Inevitability (every 5 turns).
+//                  curses: Hardened (turn 1), Echo (on player check),
+//                  Bit Rot (every 5 turns).
 //
 // `curseId` references are validated lazily (at first lookup, via
 // `getCardById`) to avoid module-init ordering between card and boss
@@ -31,7 +31,7 @@ import type {
   ZoneRegion,
 } from "../types";
 
-export const VALID_BOSS_IDS: readonly BossId[] = ["iron-garrison", "the-gambit", "final-mind"];
+export const VALID_BOSS_IDS: readonly BossId[] = ["the-firewall", "the-whale", "the-singularity"];
 export const VALID_MATCH_NUMBERS = [3, 6, 9] as const;
 export const VALID_BOSS_MODIFIER_KINDS = [
   "no-player-walls",

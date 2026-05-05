@@ -1,0 +1,10 @@
+{
+  "id": "honeypot",
+  "name": "Honeypot",
+  "cost": 1,
+  "rarity": "common",
+  "archetype": "spatial",
+  "description": "Place a Trap. The first enemy piece to enter is frozen for 1 turn. Lasts 3 turns.",
+  "target": { "kind": "empty-square" },
+  "effect": { "kind": "place-trap", "trapEffect": "freeze", "durationTurns": 3 }
+}

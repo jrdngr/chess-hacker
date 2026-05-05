@@ -1,0 +1,11 @@
+{
+  "id": "pawn-patch",
+  "name": "Pawn Patch",
+  "cost": 1,
+  "rarity": "common",
+  "archetype": "movement",
+  "consume": true,
+  "description": "Patch one of your pieces with pawn behavior this turn: it gains pawn movement (forward step + diagonal-forward capture). Lost if you move a different piece first. Consume.",
+  "target": { "kind": "own-piece" },
+  "effect": { "kind": "empower-piece", "pattern": "pawn", "singleUse": true }
+}

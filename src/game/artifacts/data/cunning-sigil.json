@@ -1,8 +1,0 @@
-{
-  "id": "cunning-sigil",
-  "name": "Cunning Sigil",
-  "rarity": "uncommon",
-  "description": "Spatial cards cost 1 less (minimum 0).",
-  "emoji": "🔮",
-  "effects": [{ "kind": "card-cost-discount", "archetype": "spatial", "amount": 1 }]
-}

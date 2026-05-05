@@ -1,8 +1,0 @@
-{
-  "id": "spark-coil",
-  "name": "Spark Coil",
-  "rarity": "common",
-  "description": "Start each match with +1 energy on turn 1.",
-  "emoji": "⚡",
-  "effects": [{ "kind": "start-energy-bonus", "amount": 1 }]
-}

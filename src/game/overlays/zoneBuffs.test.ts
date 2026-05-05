@@ -61,7 +61,7 @@ describe("isZoneBuffActive", () => {
     region: { kind: "square-orthogonal-1", anchor: "e4" },
     effect: { kind: "energy-per-turn", amount: 1 },
     side: "player",
-    sourceLabel: "Standing Stone",
+    sourceLabel: "Power Node",
   };
 
   it("is active when the controlling side has a piece on a region square", () => {
@@ -86,7 +86,7 @@ describe("isZoneBuffActive", () => {
       region: { kind: "rank", rank: 4 },
       effect: { kind: "hand-size", amount: 1 },
       side: "player",
-      sourceLabel: "Vanguard Banner",
+      sourceLabel: "Foothold",
     };
     expect(isZoneBuffActive(rankBuff, ctxWithPieces({ c4: "player" }))).toBe(true);
     expect(isZoneBuffActive(rankBuff, ctxWithPieces({ c5: "player" }))).toBe(false);
@@ -98,19 +98,19 @@ describe("zoneBuff sums + activeZoneBuffs", () => {
     region: { kind: "square-orthogonal-1", anchor: "e4" },
     effect: { kind: "energy-per-turn", amount: 1 },
     side: "player",
-    sourceLabel: "Standing Stone",
+    sourceLabel: "Power Node",
   };
   const banner: ZoneBuff = {
     region: { kind: "rank", rank: 4 },
     effect: { kind: "hand-size", amount: 1 },
     side: "player",
-    sourceLabel: "Vanguard Banner",
+    sourceLabel: "Foothold",
   };
 
   it("activeZoneBuffs filters by control", () => {
     // d4 sits in both regions: orthogonal-of-e4 AND rank 4 → both active.
     const active = activeZoneBuffs([stone, banner], ctxWithPieces({ d4: "player" }));
-    expect(active.map((b) => b.sourceLabel).sort()).toEqual(["Standing Stone", "Vanguard Banner"]);
+    expect(active.map((b) => b.sourceLabel).sort()).toEqual(["Foothold", "Power Node"]);
   });
 
   it("activeZoneBuffs returns only the controlled subset", () => {

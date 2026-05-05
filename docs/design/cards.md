@@ -7,7 +7,7 @@ The card system is the central self-expression mechanic. Cards augment chess; th
 - **Hand size:** 5 cards.
 - **Draw timing:** at the **start of each player turn**, discard every non-curse, non-retained hand card into the discard pile, then draw until your hand is at 5. (A card played during a turn does not get refilled until the next turn unless an effect explicitly says so.)
 - **Run-start deck:** 20 cards — multiples of cheap utilities. See [`../cards/starter-deck.md`](../cards/starter-deck.md) for the composition and rationale.
-- **Adding to your deck:** post-match draft (pick 1 of 3) and shop purchases. Booster packs may grant 1+ cards. Capturing an enemy piece during a match grants the matching Soul card directly into your draw pile (see "Card economy" below).
+- **Adding to your deck:** post-match draft (pick 1 of 3) and shop purchases. Booster packs may grant 1+ cards. Capturing an enemy piece during a match grants the matching Patch card directly into your draw pile (see "Card economy" below).
 - **Removing from your deck:** shop card-removal service (scaling per use).
 
 ## Energy
@@ -18,7 +18,7 @@ The card system is the central self-expression mechanic. Cards augment chess; th
 - **No per-turn cap on cards played** other than the energy budget and hand contents.
 - Artifacts and rare cards may grant temporary or permanent extra energy; gains still respect the cap of 10.
 
-Banking is the central tempo mechanic. A typical line is one cheap card per turn, with mid cards every 2–3 turns and a haymaker (e.g. Big Destroy) every 7–10 turns. Saving means *not playing right now* so a future turn can land a single dominant effect.
+Banking is the central tempo mechanic. A typical line is one cheap card per turn, with mid cards every 2–3 turns and a haymaker (e.g. Format C:) every 7–10 turns. Saving means *not playing right now* so a future turn can land a single dominant effect.
 
 ## When can cards be played?
 
@@ -48,7 +48,7 @@ A card may have multiple targets in sequence (e.g., choose own piece, then choos
 The hand is wiped at the end of every player turn and a fresh hand is drawn at the start of the next turn. Two keywords carve out exceptions to this default:
 
 - **Consume** — a played card is removed from the match (lands in the *consumed pile*). It is not eligible for revival.
-- **Retain** — a card stays in your hand at end-of-turn discards until played. The **Stash** card grants Retain to a chosen card in hand. No card has inherent Retain in the prototype.
+- **Retain** — a card stays in your hand at end-of-turn discards until played. The **Bookmark** card grants Retain to a chosen card in hand. No card has inherent Retain in the prototype.
 
 Cycle rules:
 
@@ -59,19 +59,19 @@ Cycle rules:
 
 UI piles: **Draw: N | Discard: N | Consumed: N**. The discard pile is the active rotation; the consumed pile is the graveyard.
 
-A 20-card deck cycles through itself multiple times in a typical match, so the binding resource is energy, not card supply. Banking energy for haymakers is still the central tempo lever, and Consume cards remain finite per match — capture-grants-Soul keeps the deck fresh on the way.
+A 20-card deck cycles through itself multiple times in a typical match, so the binding resource is energy, not card supply. Banking energy for haymakers is still the central tempo lever, and Consume cards remain finite per match — capture-grants-Patch keeps the deck fresh on the way.
 
 ## Card economy
 
 A few cards exist explicitly to manage the cycle:
 
-- **Stash** (1 cost) — apply Retain to a card in your hand so it survives end-of-turn until you play it. The standard way to bank a haymaker across turns.
-- **Revivers** (Recall, Recover) — pull a card from your discard pile back to your hand (random or chosen). Recover has Consume; Recall does not. Neither can reach into the consumed pile.
-- **Capture-grants-Soul** — capturing an enemy non-King piece during a chess move grants the matching Soul card (Pawn → Pawn Soul, Knight → Knight Soul, etc.) into your draw pile. Souls have Consume, so each capture grants exactly one empower trigger.
+- **Bookmark** (1 cost) — apply Retain to a card in your hand so it survives end-of-turn until you play it. The standard way to bank a haymaker across turns.
+- **Revivers** (Restore Point, Restore from Backup) — pull a card from your discard pile back to your hand (random or chosen). Restore from Backup has Consume; Restore Point does not. Neither can reach into the consumed pile.
+- **Capture-grants-Patch** — capturing an enemy non-King piece during a chess move grants the matching Patch card (Pawn → Pawn Patch, Knight → Knight Patch, etc.) into your draw pile. Patches have Consume, so each capture grants exactly one empower trigger.
 
 See the per-archetype docs in `../cards/`:
-- [`resource.md`](../cards/resource.md) — draw, scry, Stash.
-- [`revival.md`](../cards/revival.md) — Recall, Recover.
+- [`resource.md`](../cards/resource.md) — draw, scry, Bookmark.
+- [`revival.md`](../cards/revival.md) — Restore Point, Restore from Backup.
 
 ## Card archetypes (the design space)
 
@@ -113,12 +113,12 @@ A card JSON has the shape:
 
 ```json
 {
-  "id": "frostbite",
-  "name": "Frostbite",
+  "id": "freeze-process",
+  "name": "Freeze Process",
   "cost": 2,
   "rarity": "common",
   "archetype": "disruption",
-  "description": "Freeze an enemy piece. It can't be moved on the opponent's next turn.",
+  "description": "Halt an enemy process. It can't be moved on the opponent's next turn.",
   "target": { "kind": "enemy-piece" },
   "effect": { "kind": "freeze-piece" }
 }
@@ -142,4 +142,4 @@ and `effect.kind` values for the prototype.
 | Disposal                     | Discard pile cycles into draw on empty; Consume removes for the match; Retain skips end-of-turn discard |
 | Reactions on opponent turn   | None (may revisit)                                   |
 | Card upgrades                | Not in prototype                                     |
-| Capture-grants-Soul          | Player captures of non-King enemies grant matching Soul (Souls have Consume) |
+| Capture-grants-Patch          | Player captures of non-King enemies grant matching Patch (Patches have Consume) |

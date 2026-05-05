@@ -82,7 +82,7 @@ export function serializeHistory(events: ReadonlyArray<HistoryEvent>): string {
 
 /**
  * Plain-English one-liner for an event. Used by the History modal so each
- * row reads as a sentence ("Turn 4 · You played Iron Guard on e4").
+ * row reads as a sentence ("Turn 4 · You played Encrypted on e4").
  */
 export function describeEvent(ev: HistoryEvent): string {
   switch (ev.kind) {

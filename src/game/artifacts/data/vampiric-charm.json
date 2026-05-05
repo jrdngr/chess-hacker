@@ -1,8 +1,0 @@
-{
-  "id": "vampiric-charm",
-  "name": "Vampiric Charm",
-  "rarity": "common",
-  "description": "When you capture an enemy piece, draw 1 card.",
-  "emoji": "🧛",
-  "effects": [{ "kind": "draw-on-capture", "count": 1 }]
-}

@@ -1,4 +1,4 @@
-// Foresight scry modal. Shows the top N cards of the draw pile and lets the
+// Stack Trace scry modal. Shows the top N cards of the draw pile and lets the
 // player reorder them. On confirm, calls `onConfirm(newOrder)` with the cards
 // in the order they should be placed back on top of the deck (top-of-deck is
 // index 0).
@@ -26,7 +26,7 @@ export function ScryModal({ cards, onConfirm }: Props) {
 
   return (
     <CardListModal
-      title="Foresight"
+      title="Stack Trace"
       hint="Top of your deck. Reorder them; the first card here will be the next one drawn."
       cards={order}
       renderControls={(card, i) => (

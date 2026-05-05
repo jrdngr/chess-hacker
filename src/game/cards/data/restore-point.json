@@ -1,0 +1,10 @@
+{
+  "id": "restore-point",
+  "name": "Restore Point",
+  "cost": 1,
+  "rarity": "common",
+  "archetype": "resource",
+  "description": "Return a random card from your discard pile to your hand.",
+  "target": { "kind": "none" },
+  "effect": { "kind": "revive", "selection": "random" }
+}

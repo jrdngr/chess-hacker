@@ -95,9 +95,9 @@ Loosely grouped by topic.
 Deferred from the cycling + Retain/Consume redesign. Not blocking, but worth revisiting after some playtest miles.
 
 - **Card naming.** 5 card ids remain placeholders: `cheap-destroy`, `big-destroy`, `vine-pull`, `recall`, `recover`. Pick final names that fit the theme (see `docs/design/theme.md`).
-- **1-cost utility under cycling.** With cycling, 1-cost disruption (Frostbite, Tangled Roots, Fumble, Iron Guard, Barricade) is potentially spammable: the player will see those cards multiple times per match. Watch the first end-to-end playtest for whether the spam is dominating the chess game, and consider bumping a few to cost 2 or sprinkling Consume.
-- **Stash placement and rarity.** Stash is currently Uncommon and lives in the draft/shop pool only. If it turns out the prototype needs more end-of-turn agency from turn one, consider seeding one Stash in the starter deck.
-- **Recover's pile.** Recover currently pulls from the discard pile only. A more ambitious ("dig anything back") version that could pull from the consumed pile would dramatically change Consume's contract; only revisit if Recover feels too weak.
+- **1-cost utility under cycling.** With cycling, 1-cost disruption (Freeze Process, chroot, Read-Only, Encrypted, Firewall) is potentially spammable: the player will see those cards multiple times per match. Watch the first end-to-end playtest for whether the spam is dominating the chess game, and consider bumping a few to cost 2 or sprinkling Consume.
+- **Bookmark placement and rarity.** Bookmark is currently Uncommon and lives in the draft/shop pool only. If it turns out the prototype needs more end-of-turn agency from turn one, consider seeding one Bookmark in the starter deck.
+- **Restore from Backup's pile.** Restore from Backup currently pulls from the discard pile only. A more ambitious ("dig anything back") version that could pull from the consumed pile would dramatically change Consume's contract; only revisit if Restore from Backup feels too weak.
 
 ## Process
 

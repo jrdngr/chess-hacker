@@ -1,0 +1,10 @@
+{
+  "id": "read-only",
+  "name": "Read-Only",
+  "cost": 1,
+  "rarity": "common",
+  "archetype": "disruption",
+  "description": "Set an enemy piece to read-only: next turn it may move but may not capture.",
+  "target": { "kind": "enemy-piece" },
+  "effect": { "kind": "disarm-piece" }
+}

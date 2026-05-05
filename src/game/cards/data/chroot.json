@@ -1,0 +1,10 @@
+{
+  "id": "chroot",
+  "name": "chroot",
+  "cost": 1,
+  "rarity": "common",
+  "archetype": "disruption",
+  "description": "Sandbox an enemy piece: next turn it can only capture an adjacent piece.",
+  "target": { "kind": "enemy-piece" },
+  "effect": { "kind": "root-piece" }
+}

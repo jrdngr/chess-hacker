@@ -59,14 +59,14 @@ A hasted piece **may move a second time on the same turn, but may not capture** 
 
 An empowered piece **gains an additional movement pattern**, defined per card (e.g., "knight L-shape", "diagonal slide", "pawn forward step + diagonal capture"). The piece keeps its normal moveset *and* the granted pattern; it picks one to use. Patterns stack — multiple Empower effects on the same piece coexist.
 
-- **Duration:** card-specified. The **Soul** family (Pawn / Knight / Bishop / Rook / Queen Soul) is **single-use this turn**: the status lasts the current turn AND drops immediately if the player moves a different piece first. Either way, the status drops if the empowered piece is captured or sacrificed.
+- **Duration:** card-specified. The **Patch** family (Pawn / Knight / Bishop / Rook / Queen Patch) is **single-use this turn**: the status lasts the current turn AND drops immediately if the player moves a different piece first. Either way, the status drops if the empowered piece is captured or sacrificed.
 - **Patterns currently in the prototype:**
   - **knight** — knight L-shape (ignores blockers).
   - **bishop** — diagonal slide (blocked normally).
   - **rook** — straight slide along files and ranks (blocked normally).
   - **queen** — both straight and diagonal slides (= bishop + rook).
   - **pawn** — one square forward in your direction, plus diagonal-forward captures. No double-push, no en passant, no promotion — those are intrinsic to actual pawns.
-- **Edge cases:** the granted pattern follows the same blocking rules as a real piece of that move-type. Granting a pattern the piece already covers is a no-op (e.g. Bishop Soul on a queen).
+- **Edge cases:** the granted pattern follows the same blocking rules as a real piece of that move-type. Granting a pattern the piece already covers is a no-op (e.g. Bishop Patch on a queen).
 
 ## Square / board effects
 
@@ -97,7 +97,7 @@ A square that **triggers an effect when an enemy piece enters or passes through 
 The Trap dissolves on trigger. It does not affect your own pieces.
 
 - **Duration:** card-specified (timed in turns); also dissolves on trigger.
-- **Edge cases:** a sliding piece passing *through* a Trap square (not stopping on it) still triggers it — the trigger fires on first entry. A Trap on a square that the player intends to move into via Marionette still fires (the targeted enemy piece is the one moving).
+- **Edge cases:** a sliding piece passing *through* a Trap square (not stopping on it) still triggers it — the trigger fires on first entry. A Trap on a square that the player intends to move into via Remote Access still fires (the targeted enemy piece is the one moving).
 
 ## Card-flow keywords
 
@@ -108,15 +108,15 @@ The hand discards at end of turn. A new hand of 5 is drawn at the start of every
 A card with **Retain** stays in your hand at end-of-turn discards. It only leaves your hand when you play it. Retain can be applied two ways:
 
 - **Inherent**: the card definition declares `retain: true`. None of the prototype cards have inherent Retain.
-- **Granted**: the **Stash** card applies Retain to a chosen card in your hand for the rest of the match. Stash itself does not have Retain.
+- **Granted**: the **Bookmark** card applies Retain to a chosen card in your hand for the rest of the match. Bookmark itself does not have Retain.
 
-Retain cannot be applied to a curse card (Stash filters them out). Retain ends when the card is played.
+Retain cannot be applied to a curse card (Bookmark filters them out). Retain ends when the card is played.
 
 ### Consume
 
-A card with **Consume** is removed from the match when played — it lands in the consumed pile and never re-enters the cycle. Cards in the consumed pile are not eligible for revival via Recall or Recover.
+A card with **Consume** is removed from the match when played — it lands in the consumed pile and never re-enters the cycle. Cards in the consumed pile are not eligible for revival via Restore Point or Restore from Backup.
 
-- Used for haymakers (Big Destroy, Cheap Destroy), Souls (Pawn / Knight / Bishop / Rook / Queen), Marionette, Recover, Martyr's Gift.
+- Used for haymakers (Format C:, Exploit), Patches (Pawn / Knight / Bishop / Rook / Queen), Remote Access, Restore from Backup, kill -9.
 - Without Consume, cards land in the discard pile when played and cycle back into the draw pile when it empties.
 
 ### Discard & cycle
@@ -125,4 +125,4 @@ Played cards without Consume go to the **discard pile**. End-of-turn dumps every
 
 ### Revive
 
-A card whose effect returns one card from your **discard pile** to your hand. Recall picks at random; Recover prompts you to choose. Revivers cannot reach into the consumed pile — Consume cards are gone for the match.
+A card whose effect returns one card from your **discard pile** to your hand. Restore Point picks at random; Restore from Backup prompts you to choose. Revivers cannot reach into the consumed pile — Consume cards are gone for the match.

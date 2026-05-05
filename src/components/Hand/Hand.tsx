@@ -10,7 +10,7 @@ import type { CardTarget, HandCard } from "../../game/types";
 import styles from "./Hand.module.css";
 
 // Two-step targeting cards (pick A, then pick B) don't fit a single drag-and-
-// drop gesture; they must be played via click. Hand-card targets (Stash) also
+// drop gesture; they must be played via click. Hand-card targets (Bookmark) also
 // click-only — the second click lands on another card in the hand. Everything
 // else — single-square targets and no-target cards — is draggable from the
 // hand.
@@ -64,7 +64,7 @@ export function Hand({
   onDiscardPileClick,
   onConsumedPileClick,
 }: Props) {
-  // When the active targeting card asks for a hand-card target (Stash),
+  // When the active targeting card asks for a hand-card target (Bookmark),
   // every hand slot except the playing one and curses becomes a click
   // target. We surface that mode so the slots can be highlighted.
   const targetingHandCard =
@@ -92,14 +92,14 @@ export function Hand({
             const isTargeting = targetingIndex === i;
             const forbidden = forbiddenIndexes?.has(i) ?? false;
             const playable = enabled && affordable && !forbidden;
-            // When Stash is asking for a hand-card target, the slot is
+            // When Bookmark is asking for a hand-card target, the slot is
             // clickable as a target if it isn't the playing slot, isn't a
             // curse, and isn't already retained.
-            const isStashTarget =
+            const isBookmarkTarget =
               targetingHandCard && !isTargeting && !card.curse && !slot.retained;
-            const clickable = playable || isStashTarget;
-            // Two-step cards (Switch Files, Marionette) and hand-card targets
-            // (Stash) still resolve via click; everything else can be dragged
+            const clickable = playable || isBookmarkTarget;
+            // Two-step cards (Switch Files, Remote Access) and hand-card targets
+            // (Bookmark) still resolve via click; everything else can be dragged
             // onto the board.
             const draggable = playable && !NON_DRAGGABLE_TARGETS.has(card.target.kind);
             const retained = slot.retained || card.retain === true;
@@ -107,7 +107,7 @@ export function Hand({
               styles.card,
               !clickable && styles.disabled,
               isTargeting && styles.targeting,
-              isStashTarget && styles.stashTarget,
+              isBookmarkTarget && styles.stashTarget,
               card.curse && styles.curse,
               retained && styles.retained,
             ]

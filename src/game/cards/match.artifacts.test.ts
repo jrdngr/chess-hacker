@@ -15,7 +15,7 @@ import {
   startPlayerTurn,
   type BoardContext,
 } from "./match";
-import { BARRICADE, makeStarterDeck } from "./library";
+import { FIREWALL, makeStarterDeck } from "./library";
 import { getArtifactById } from "../artifacts/library";
 
 const emptyBoard: BoardContext = {
@@ -28,14 +28,14 @@ const emptyBoard: BoardContext = {
 describe("artifact-driven match state", () => {
   it("hand-size-bonus increases the start-of-turn refill target", () => {
     const rng = makeRng(1);
-    const hourglass = getArtifactById("stone-hourglass"); // +1
+    const hourglass = getArtifactById("extra-ram"); // +1
     const st = startPlayerTurn(createMatchCardState(makeStarterDeck(), rng, [hourglass]), rng);
     expect(st.hand.length).toBe(HAND_SIZE + 1);
   });
 
   it("start-energy-bonus stacks with STARTING_ENERGY on turn 1", () => {
     const rng = makeRng(1);
-    const spark = getArtifactById("spark-coil"); // +1 turn 1
+    const spark = getArtifactById("cold-boot"); // +1 turn 1
     const st = startPlayerTurn(createMatchCardState(makeStarterDeck(), rng, [spark]), rng);
     expect(st.turn).toBe(1);
     expect(st.energy).toBe(STARTING_ENERGY + 1);
@@ -43,7 +43,7 @@ describe("artifact-driven match state", () => {
 
   it("energy-per-turn-bonus adds to the turn-rollover energy gain", () => {
     const rng = makeRng(1);
-    const drum = getArtifactById("war-drum"); // +1/turn
+    const drum = getArtifactById("crypto-miner"); // +1/turn
     let st = startPlayerTurn(createMatchCardState(makeStarterDeck(), rng, [drum]), rng);
     const t1Energy = st.energy;
     st = startPlayerTurn(st, rng);
@@ -53,13 +53,13 @@ describe("artifact-driven match state", () => {
 
   it("card-cost-discount lets the player play cards they couldn't otherwise afford", () => {
     const rng = makeRng(1);
-    const sigil = getArtifactById("cunning-sigil"); // -1 spatial
-    // Force-feed Barricade (cost 1, spatial) onto a hand with 0 energy. Without
+    const sigil = getArtifactById("map-editor"); // -1 spatial
+    // Force-feed Firewall (cost 1, spatial) onto a hand with 0 energy. Without
     // the discount this throws "not-enough-energy"; with it the play succeeds.
-    const base = createMatchCardState([BARRICADE], rng, [sigil]);
+    const base = createMatchCardState([FIREWALL], rng, [sigil]);
     const st = {
       ...base,
-      hand: [{ card: BARRICADE, retained: false }],
+      hand: [{ card: FIREWALL, retained: false }],
       drawPile: [],
       energy: 0,
       turn: 1,
@@ -70,7 +70,7 @@ describe("artifact-driven match state", () => {
 
   it("a zone-buff artifact materialises into MatchCardState.zoneBuffs", () => {
     const rng = makeRng(1);
-    const banner = getArtifactById("vanguard-banner"); // hand-size +1 on rank 4
+    const banner = getArtifactById("foothold"); // hand-size +1 on rank 4
     const st = createMatchCardState(makeStarterDeck(), rng, [banner]);
     expect(st.zoneBuffs).toHaveLength(1);
     expect(st.zoneBuffs[0].region).toEqual({ kind: "rank", rank: 4 });
@@ -80,7 +80,7 @@ describe("artifact-driven match state", () => {
 
   it("an active zone-buff hand-size bonus inflates the start-of-turn refill", () => {
     const rng = makeRng(1);
-    const banner = getArtifactById("vanguard-banner");
+    const banner = getArtifactById("foothold");
     const ctx = {
       size: { files: 8, ranks: 8 },
       pieceSideAt: (sq: string) => (sq === "d4" ? ("player" as const) : null),
@@ -91,7 +91,7 @@ describe("artifact-driven match state", () => {
 
   it("an inactive zone-buff (region uncontrolled) doesn't grant its bonus", () => {
     const rng = makeRng(1);
-    const banner = getArtifactById("vanguard-banner");
+    const banner = getArtifactById("foothold");
     // No piece on rank 4 → buff inactive.
     const ctx = { size: { files: 8, ranks: 8 }, pieceSideAt: () => null };
     const st = startPlayerTurn(createMatchCardState(makeStarterDeck(), rng, [banner]), rng, ctx);

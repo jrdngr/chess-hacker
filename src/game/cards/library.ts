@@ -670,23 +670,23 @@ export function getCardsByRarity(rarity: CardRarity): Card[] {
   return Object.values(CARD_LIBRARY).filter((c) => c.rarity === rarity);
 }
 
-export const RECONNAISSANCE: Card = pick("reconnaissance");
-export const FORESIGHT: Card = pick("foresight");
-export const FROSTBITE: Card = pick("frostbite");
-export const TANGLED_ROOTS: Card = pick("tangled-roots");
-export const FUMBLE: Card = pick("fumble");
-export const PROVOKE: Card = pick("provoke");
-export const BARRICADE: Card = pick("barricade");
-export const HALLOWED_GROUND: Card = pick("hallowed-ground");
-export const SPIKE_PIT: Card = pick("spike-pit");
-export const SNARE: Card = pick("snare");
-export const SPRING_TRAP: Card = pick("spring-trap");
-export const QUICKSTEP: Card = pick("quickstep");
-export const IRON_GUARD: Card = pick("iron-guard");
-export const MARTYRS_GIFT: Card = pick("martyrs-gift");
-export const KNIGHT_SOUL: Card = pick("knight-soul");
+export const PORT_SCAN: Card = pick("port-scan");
+export const STACK_TRACE: Card = pick("stack-trace");
+export const FREEZE_PROCESS: Card = pick("freeze-process");
+export const CHROOT: Card = pick("chroot");
+export const READ_ONLY: Card = pick("read-only");
+export const PHISHING: Card = pick("phishing");
+export const FIREWALL: Card = pick("firewall");
+export const TRUSTED_ZONE: Card = pick("trusted-zone");
+export const LOGIC_BOMB: Card = pick("logic-bomb");
+export const HONEYPOT: Card = pick("honeypot");
+export const CONNECTION_RESET: Card = pick("connection-reset");
+export const OVERCLOCK: Card = pick("overclock");
+export const ENCRYPTED: Card = pick("encrypted");
+export const KILL_9: Card = pick("kill-9");
+export const KNIGHT_PATCH: Card = pick("knight-patch");
 export const SWITCH_FILES: Card = pick("switch-files");
-export const MARIONETTE: Card = pick("marionette");
+export const REMOTE_ACCESS: Card = pick("remote-access");
 
 // ---- Decks ------------------------------------------------------------------
 

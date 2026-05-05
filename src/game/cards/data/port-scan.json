@@ -1,0 +1,10 @@
+{
+  "id": "port-scan",
+  "name": "Port Scan",
+  "cost": 2,
+  "rarity": "common",
+  "archetype": "resource",
+  "description": "Draw 2 cards.",
+  "target": { "kind": "none" },
+  "effect": { "kind": "draw", "count": 2 }
+}

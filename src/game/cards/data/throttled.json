@@ -1,0 +1,11 @@
+{
+  "id": "throttled",
+  "name": "Throttled",
+  "cost": 0,
+  "rarity": "common",
+  "archetype": "disruption",
+  "curse": true,
+  "description": "Curse — your next chess move must not deliver check. Cycle this card.",
+  "target": { "kind": "none" },
+  "effect": { "kind": "next-move-constraint", "constraint": "must-not-check" }
+}

@@ -5,12 +5,12 @@ import userEvent from "@testing-library/user-event";
 import { Match } from "./Match";
 import { StockfishEngine } from "../ai/stockfish";
 import {
-  BARRICADE,
-  FORESIGHT,
-  FROSTBITE,
-  IRON_GUARD,
-  RECONNAISSANCE,
-  SPIKE_PIT,
+  FIREWALL,
+  STACK_TRACE,
+  FREEZE_PROCESS,
+  ENCRYPTED,
+  PORT_SCAN,
+  LOGIC_BOMB,
 } from "../game/cards/library";
 import { ENERGY_MAX, makeRng } from "../game/cards/match";
 
@@ -259,11 +259,11 @@ describe("Match (vs AI)", () => {
 
 // ---- M3 card system --------------------------------------------------------
 
-const ALL_FORESIGHT_DECK = Array.from({ length: 8 }, () => FORESIGHT);
-const ALL_BARRICADE_DECK = Array.from({ length: 8 }, () => BARRICADE);
-const ALL_FROSTBITE_DECK = Array.from({ length: 8 }, () => FROSTBITE);
-const ALL_RECON_DECK = Array.from({ length: 8 }, () => RECONNAISSANCE);
-const ALL_SPIKE_PIT_DECK = Array.from({ length: 8 }, () => SPIKE_PIT);
+const ALL_STACK_TRACE_DECK = Array.from({ length: 8 }, () => STACK_TRACE);
+const ALL_FIREWALL_DECK = Array.from({ length: 8 }, () => FIREWALL);
+const ALL_FREEZE_PROCESS_DECK = Array.from({ length: 8 }, () => FREEZE_PROCESS);
+const ALL_RECON_DECK = Array.from({ length: 8 }, () => PORT_SCAN);
+const ALL_LOGIC_BOMB_DECK = Array.from({ length: 8 }, () => LOGIC_BOMB);
 
 function findCard(name: string): HTMLElement | undefined {
   return screen
@@ -279,7 +279,7 @@ describe("Match (cards — M3)", () => {
         initialMode="vs-ai"
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_FORESIGHT_DECK}
+        initialDeck={ALL_STACK_TRACE_DECK}
         rng={makeRng(1)}
       />,
     );
@@ -289,7 +289,7 @@ describe("Match (cards — M3)", () => {
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("1");
   });
 
-  it("Foresight costs 1 and moves to the discard pile", async () => {
+  it("Stack Trace costs 1 and moves to the discard pile", async () => {
     const user = userEvent.setup();
     const ai = makeFakeAi([]);
     render(
@@ -297,31 +297,31 @@ describe("Match (cards — M3)", () => {
         initialMode="vs-ai"
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_FORESIGHT_DECK}
+        initialDeck={ALL_STACK_TRACE_DECK}
         rng={makeRng(2)}
       />,
     );
 
-    const foresight = findCard("Foresight");
+    const foresight = findCard("Stack Trace");
     expect(foresight).toBeDefined();
     await user.click(foresight!);
-    // Foresight opens the scry modal — confirm to dismiss.
+    // Stack Trace opens the scry modal — confirm to dismiss.
     const confirm = await screen.findByRole("button", { name: /confirm/i });
     await user.click(confirm);
 
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("0"); // cost 1, starting energy 1
-    // Foresight is non-Consume, so it lands in the discard pile.
+    // Stack Trace is non-Consume, so it lands in the discard pile.
     expect(screen.getByLabelText(/^discard pile/i)).toHaveTextContent("1");
     const hand = screen.getByRole("list", { name: /^hand$/i });
     expect(within(hand).getAllByRole("listitem")).toHaveLength(4);
   });
 
-  it("Reconnaissance draws 2 — hand grows past the cap", async () => {
+  it("Port Scan draws 2 — hand grows past the cap", async () => {
     const user = userEvent.setup();
     const ai = makeFakeAi([]);
-    // Reconnaissance costs 2 and starting energy is 1 → wait one turn so the
+    // Port Scan costs 2 and starting energy is 1 → wait one turn so the
     // ramp covers the cost. The fake AI takes its black move on each request,
-    // so a single chess push closes player turn 1; Reconnaissance is then
+    // so a single chess push closes player turn 1; Port Scan is then
     // playable on turn 2 with 2 energy.
     render(
       <Match
@@ -336,7 +336,7 @@ describe("Match (cards — M3)", () => {
       />,
     );
 
-    const recon = findCard("Reconnaissance");
+    const recon = findCard("Port Scan");
     await user.click(recon!);
 
     const hand = screen.getByRole("list", { name: /^hand$/i });
@@ -344,7 +344,7 @@ describe("Match (cards — M3)", () => {
     expect(within(hand).getAllByRole("listitem")).toHaveLength(6);
   });
 
-  it("Barricade enters targeting mode; clicking an empty square places a wall", async () => {
+  it("Firewall enters targeting mode; clicking an empty square places a wall", async () => {
     const user = userEvent.setup();
     const ai = makeFakeAi([]);
     render(
@@ -352,13 +352,13 @@ describe("Match (cards — M3)", () => {
         initialMode="vs-ai"
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_BARRICADE_DECK}
+        initialDeck={ALL_FIREWALL_DECK}
         rng={makeRng(4)}
       />,
     );
 
-    await user.click(findCard("Barricade")!);
-    expect(screen.getByText(/Pick an empty square for Barricade/i)).toBeInTheDocument();
+    await user.click(findCard("Firewall")!);
+    expect(screen.getByText(/Pick an empty square for Firewall/i)).toBeInTheDocument();
 
     // Click a known-empty square.
     await user.click(squareCell("e4")!);
@@ -367,7 +367,7 @@ describe("Match (cards — M3)", () => {
     expect(squareCell("e4")?.getAttribute("aria-label")).toMatch(/walled/);
   });
 
-  it("Barricade rejects an occupied square and cancels targeting", async () => {
+  it("Firewall rejects an occupied square and cancels targeting", async () => {
     const user = userEvent.setup();
     const ai = makeFakeAi([]);
     render(
@@ -375,13 +375,13 @@ describe("Match (cards — M3)", () => {
         initialMode="vs-ai"
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_BARRICADE_DECK}
+        initialDeck={ALL_FIREWALL_DECK}
         rng={makeRng(5)}
       />,
     );
 
-    await user.click(findCard("Barricade")!);
-    // e2 is the player's pawn — invalid for Barricade.
+    await user.click(findCard("Firewall")!);
+    // e2 is the player's pawn — invalid for Firewall.
     await user.click(squareCell("e2")!);
 
     // No wall placed; targeting cancelled.
@@ -389,7 +389,7 @@ describe("Match (cards — M3)", () => {
     expect(squareCell("e2")?.getAttribute("aria-label")).not.toMatch(/walled/);
   });
 
-  it("Frostbite freezes an opponent piece on click", async () => {
+  it("Freeze Process freezes an opponent piece on click", async () => {
     const user = userEvent.setup();
     const ai = makeFakeAi([]);
     render(
@@ -397,14 +397,14 @@ describe("Match (cards — M3)", () => {
         initialMode="vs-ai"
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_FROSTBITE_DECK}
+        initialDeck={ALL_FREEZE_PROCESS_DECK}
         rng={makeRng(6)}
         initialEnergy={3}
       />,
     );
 
-    await user.click(findCard("Frostbite")!);
-    expect(screen.getByText(/Pick an enemy piece for Frostbite/i)).toBeInTheDocument();
+    await user.click(findCard("Freeze Process")!);
+    expect(screen.getByText(/Pick an enemy piece for Freeze Process/i)).toBeInTheDocument();
 
     await user.click(squareCell("e7")!);
 
@@ -421,14 +421,14 @@ describe("Match (cards — M3)", () => {
         initialMode="vs-ai"
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_BARRICADE_DECK}
+        initialDeck={ALL_FIREWALL_DECK}
         rng={makeRng(7)}
         initialEnergy={3}
       />,
     );
 
-    // Play Barricade on a3 — costs 1 energy, leaves us at 2.
-    await user.click(findCard("Barricade")!);
+    // Play Firewall on a3 — costs 1 energy, leaves us at 2.
+    await user.click(findCard("Firewall")!);
     await user.click(squareCell("a3")!);
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("2");
 
@@ -454,13 +454,13 @@ describe("Match (cards — M3)", () => {
         initialMode="vs-ai"
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_FROSTBITE_DECK}
+        initialDeck={ALL_FREEZE_PROCESS_DECK}
         rng={makeRng(8)}
         initialEnergy={3}
       />,
     );
 
-    await user.click(findCard("Frostbite")!);
+    await user.click(findCard("Freeze Process")!);
     await user.click(squareCell("e7")!);
     expect(squareCell("e7")?.getAttribute("aria-label")).toMatch(/frozen/);
 
@@ -484,7 +484,7 @@ describe("Match (cards — M3)", () => {
         initialMode="vs-ai"
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_BARRICADE_DECK}
+        initialDeck={ALL_FIREWALL_DECK}
         rng={makeRng(10)}
         initialEnergy={3}
       />,
@@ -495,7 +495,7 @@ describe("Match (cards — M3)", () => {
     await user.click(squareCell("e4")!);
 
     // Now try to play a card — should be disabled.
-    const card = findCard("Barricade")!;
+    const card = findCard("Firewall")!;
     expect(card).toBeDisabled();
 
     // Energy is unchanged.
@@ -510,12 +510,12 @@ describe("Match (cards — M3)", () => {
         initialMode="vs-ai"
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_BARRICADE_DECK}
+        initialDeck={ALL_FIREWALL_DECK}
         rng={makeRng(9)}
       />,
     );
 
-    const card = findCard("Barricade")!;
+    const card = findCard("Firewall")!;
     await user.click(card);
     expect(screen.getByText(/Pick an empty square/i)).toBeInTheDocument();
 
@@ -541,14 +541,14 @@ describe("Match (cards — M3)", () => {
         initialMode="vs-ai"
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_BARRICADE_DECK}
+        initialDeck={ALL_FIREWALL_DECK}
         rng={makeRng(20)}
       />,
     );
 
     // Drop a wall on e3 — this would cut off any black move that tries to slide
     // through e3 (none exist immediately, but the wall is on the board).
-    await user.click(findCard("Barricade")!);
+    await user.click(findCard("Firewall")!);
     await user.click(squareCell("e3")!);
 
     // Make a move so the AI gets a turn.
@@ -578,14 +578,14 @@ describe("Match (cards — M3)", () => {
         initialMode="vs-ai"
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_FROSTBITE_DECK}
+        initialDeck={ALL_FREEZE_PROCESS_DECK}
         rng={makeRng(21)}
         initialEnergy={3}
       />,
     );
 
     // Freeze the black knight on g8.
-    await user.click(findCard("Frostbite")!);
+    await user.click(findCard("Freeze Process")!);
     await user.click(squareCell("g8")!);
 
     // Make a move to give the AI its turn.
@@ -604,10 +604,10 @@ describe("Match (cards — M3)", () => {
     expect(offered.length).toBeGreaterThan(10);
   });
 
-  // Regression: Iron Guard cast on a piece that then captures must follow the
+  // Regression: Encrypted cast on a piece that then captures must follow the
   // piece to its destination square. Bug was that we were clearing the captured
   // piece's statuses AFTER relocating, which wiped the freshly-relocated shield.
-  it("Iron Guard on a piece that then captures still shields it after the capture", async () => {
+  it("Encrypted on a piece that then captures still shields it after the capture", async () => {
     const user = userEvent.setup();
     const calls: ReadonlyArray<string>[] = [];
     // Knight c3 about to capture rook on d5; black knight on e7 could recapture.
@@ -618,15 +618,15 @@ describe("Match (cards — M3)", () => {
         initialMode="vs-ai"
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={Array.from({ length: 8 }, () => IRON_GUARD)}
+        initialDeck={Array.from({ length: 8 }, () => ENCRYPTED)}
         rng={makeRng(99)}
         initialFen="7k/4n3/8/3r4/8/2N5/8/7K w - - 0 1"
         initialEnergy={3}
       />,
     );
 
-    // Cast Iron Guard on the c3 knight.
-    await user.click(findCard("Iron Guard")!);
+    // Cast Encrypted on the c3 knight.
+    await user.click(findCard("Encrypted")!);
     await user.click(squareCell("c3")!);
 
     // Knight captures rook on d5.
@@ -646,12 +646,12 @@ describe("Match (cards — M3)", () => {
 });
 
 describe("Match — trap mechanics", () => {
-  it("a Spike Pit captures an enemy sliding piece passing THROUGH the trap square", async () => {
+  it("a Logic Bomb captures an enemy sliding piece passing THROUGH the trap square", async () => {
     const user = userEvent.setup();
     // FEN: black queen on h7, otherwise sparse so the queen has a long ray.
     // Player king on h1, white pawn on a2 to give white a non-relevant move.
     // Black to move scenario after white plays its turn — we'll script the AI
-    // to slide the queen across an armed Spike Pit on c3.
+    // to slide the queen across an armed Logic Bomb on c3.
     // Actually: after white's e2-e4, black plays Qa7-a3 sliding through... no,
     // simpler: opponent rook on h8 sliding down the h-file, trap on h4.
     const ai = makeFakeAi(["h8h4"]);
@@ -660,15 +660,15 @@ describe("Match — trap mechanics", () => {
         initialMode="vs-ai"
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_SPIKE_PIT_DECK}
+        initialDeck={ALL_LOGIC_BOMB_DECK}
         rng={makeRng(100)}
         initialFen="r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1"
         initialEnergy={3}
       />,
     );
 
-    // Place a Spike Pit on h4 so the rook would slide through it on its way down.
-    await user.click(findCard("Spike Pit")!);
+    // Place a Logic Bomb on h4 so the rook would slide through it on its way down.
+    await user.click(findCard("Logic Bomb")!);
     await user.click(squareCell("h4")!);
     expect(squareCell("h4")?.getAttribute("aria-label")).toMatch(/trap/);
 
@@ -689,7 +689,7 @@ describe("Match — trap mechanics", () => {
     }
   });
 
-  it("a Spike Pit also captures one of the player's own pieces", async () => {
+  it("a Logic Bomb also captures one of the player's own pieces", async () => {
     const user = userEvent.setup();
     const ai = makeFakeAi([]);
     render(
@@ -697,14 +697,14 @@ describe("Match — trap mechanics", () => {
         initialMode="vs-ai"
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_SPIKE_PIT_DECK}
+        initialDeck={ALL_LOGIC_BOMB_DECK}
         rng={makeRng(101)}
         initialEnergy={3}
       />,
     );
 
-    // Place a Spike Pit on e4.
-    await user.click(findCard("Spike Pit")!);
+    // Place a Logic Bomb on e4.
+    await user.click(findCard("Logic Bomb")!);
     await user.click(squareCell("e4")!);
 
     // Now move the white pawn e2 -> e4 — pawn lands on the trap and is captured.
@@ -727,7 +727,7 @@ describe("Match — undo", () => {
         initialDevAiOn
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_FORESIGHT_DECK}
+        initialDeck={ALL_STACK_TRACE_DECK}
         rng={makeRng(200)}
       />,
     );
@@ -764,7 +764,7 @@ describe("Match — undo", () => {
         initialDevAiOn
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_FORESIGHT_DECK}
+        initialDeck={ALL_STACK_TRACE_DECK}
         rng={makeRng(201)}
       />,
     );
@@ -810,7 +810,7 @@ describe("Match — undo", () => {
         initialDevAiOn
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_FORESIGHT_DECK}
+        initialDeck={ALL_STACK_TRACE_DECK}
         rng={makeRng(202)}
       />,
     );
@@ -856,7 +856,7 @@ describe("Match — undo", () => {
         initialDevAiOn
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_FORESIGHT_DECK}
+        initialDeck={ALL_STACK_TRACE_DECK}
         rng={makeRng(203)}
         initialEnergy={3}
       />,
@@ -866,9 +866,9 @@ describe("Match — undo", () => {
     const handSizeBefore = within(hand()).getAllByRole("listitem").length;
     expect(handSizeBefore).toBe(5);
 
-    // Play a Foresight and dismiss the modal — that moves a card from hand
+    // Play a Stack Trace and dismiss the modal — that moves a card from hand
     // to discard, taking the hand size to 4.
-    await user.click(findCard("Foresight")!);
+    await user.click(findCard("Stack Trace")!);
     const confirm = await screen.findByRole("button", { name: /confirm/i });
     await user.click(confirm);
     expect(within(hand()).getAllByRole("listitem")).toHaveLength(4);
@@ -882,7 +882,7 @@ describe("Match — undo", () => {
     // Next turn refilled the hand back to 5.
     expect(within(hand()).getAllByRole("listitem")).toHaveLength(5);
 
-    // Undo: hand goes back to 5 (start of turn 1, before the Foresight play).
+    // Undo: hand goes back to 5 (start of turn 1, before the Stack Trace play).
     await user.click(screen.getByRole("button", { name: /undo turn/i }));
     expect(within(hand()).getAllByRole("listitem")).toHaveLength(5);
     // And energy is the start-of-turn value (full).
@@ -901,7 +901,7 @@ describe("Match — dev mode", () => {
         runMode="dev"
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_FORESIGHT_DECK}
+        initialDeck={ALL_STACK_TRACE_DECK}
         rng={makeRng(300)}
       />,
     );
@@ -932,7 +932,7 @@ describe("Match — dev mode", () => {
         runMode="dev"
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_FORESIGHT_DECK}
+        initialDeck={ALL_STACK_TRACE_DECK}
         rng={makeRng(309)}
       />,
     );
@@ -982,7 +982,7 @@ describe("Match — dev mode", () => {
         runMode="dev"
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_FORESIGHT_DECK}
+        initialDeck={ALL_STACK_TRACE_DECK}
         rng={makeRng(301)}
       />,
     );
@@ -1003,7 +1003,7 @@ describe("Match — dev mode", () => {
         runMode="dev"
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_FORESIGHT_DECK}
+        initialDeck={ALL_STACK_TRACE_DECK}
         rng={makeRng(302)}
         initialEnergy={3}
       />,
@@ -1015,10 +1015,10 @@ describe("Match — dev mode", () => {
     // Library lives behind a button in sandbox; open the overlay first.
     await user.click(screen.getByRole("button", { name: /^library$/i }));
 
-    // Reconnaissance is no-target. Click the library entry (data-card-id is set
+    // Port Scan is no-target. Click the library entry (data-card-id is set
     // on the dev panel button to disambiguate from the same card in hand).
     const libraryCard = document.querySelector(
-      'aside button[data-card-id="reconnaissance"]',
+      'aside button[data-card-id="port-scan"]',
     ) as HTMLElement | null;
     expect(libraryCard).toBeTruthy();
     await user.click(libraryCard!);
@@ -1036,7 +1036,7 @@ describe("Match — dev mode", () => {
         runMode="dev"
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_FORESIGHT_DECK}
+        initialDeck={ALL_STACK_TRACE_DECK}
         rng={makeRng(303)}
         initialEnergy={3}
       />,
@@ -1046,13 +1046,13 @@ describe("Match — dev mode", () => {
     await user.click(screen.getByRole("button", { name: /^library$/i }));
 
     const frostbite = document.querySelector(
-      'aside button[data-card-id="frostbite"]',
+      'aside button[data-card-id="freeze-process"]',
     ) as HTMLElement | null;
     expect(frostbite).toBeTruthy();
     await user.click(frostbite!);
 
-    // Targeting prompt is now showing for Frostbite.
-    expect(screen.getByText(/Pick an enemy piece for Frostbite/i)).toBeInTheDocument();
+    // Targeting prompt is now showing for Freeze Process.
+    expect(screen.getByText(/Pick an enemy piece for Freeze Process/i)).toBeInTheDocument();
 
     // Pick e7 — a Black pawn.
     await user.click(squareCell("e7")!);
@@ -1070,14 +1070,14 @@ describe("Match — dev mode", () => {
         runMode="dev"
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_FROSTBITE_DECK}
+        initialDeck={ALL_FREEZE_PROCESS_DECK}
         rng={makeRng(304)}
         initialEnergy={3}
       />,
     );
 
-    // Playing Frostbite from the hand: cost 2 → energy goes from 3 to 1.
-    await user.click(findCard("Frostbite")!);
+    // Playing Freeze Process from the hand: cost 2 → energy goes from 3 to 1.
+    await user.click(findCard("Freeze Process")!);
     await user.click(squareCell("e7")!);
 
     expect(squareCell("e7")?.getAttribute("aria-label")).toMatch(/frozen/);
@@ -1092,7 +1092,7 @@ describe("Match — dev mode", () => {
         runMode="dev"
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_FORESIGHT_DECK}
+        initialDeck={ALL_STACK_TRACE_DECK}
         rng={makeRng(305)}
         initialEnergy={3}
       />,
@@ -1119,7 +1119,7 @@ describe("Match — dev mode", () => {
         initialDevAiOn={false}
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_FORESIGHT_DECK}
+        initialDeck={ALL_STACK_TRACE_DECK}
         rng={makeRng(306)}
       />,
     );
@@ -1150,14 +1150,14 @@ describe("Match — dev mode", () => {
         initialDevAiOn={false}
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_FORESIGHT_DECK}
+        initialDeck={ALL_STACK_TRACE_DECK}
         rng={makeRng(307)}
         initialEnergy={2}
       />,
     );
 
-    // Play Foresight (cost 1) and dismiss the modal so hand size is 4.
-    await user.click(findCard("Foresight")!);
+    // Play Stack Trace (cost 1) and dismiss the modal so hand size is 4.
+    await user.click(findCard("Stack Trace")!);
     await user.click(await screen.findByRole("button", { name: /confirm/i }));
 
     const hand = () => screen.getByRole("list", { name: /^hand$/i });
@@ -1179,7 +1179,7 @@ describe("Match — dev mode", () => {
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("2");
   });
 
-  it("Soul fix: Black capture in dev does NOT add a Soul card to the draw pile", async () => {
+  it("Patch fix: Black capture in dev does NOT add a Patch card to the draw pile", async () => {
     const user = userEvent.setup();
     const ai = makeFakeAi([]);
     // Position: White pawn on e4, Black pawn on d5 — Black can capture by exd4.
@@ -1188,13 +1188,13 @@ describe("Match — dev mode", () => {
         runMode="dev"
         createAi={() => ai}
         aiMinThinkMs={0}
-        initialDeck={ALL_FORESIGHT_DECK}
+        initialDeck={ALL_STACK_TRACE_DECK}
         rng={makeRng(308)}
         initialFen="4k3/8/8/3p4/4P3/8/8/4K3 b - - 0 1"
       />,
     );
 
-    // Initial deck has 8 Foresights → drawPile starts at 3 (5 dealt to hand).
+    // Initial deck has 8 Stack Traces → drawPile starts at 3 (5 dealt to hand).
     const drawPileText = () => screen.getByLabelText(/^draw pile/i).textContent ?? "";
     expect(drawPileText()).toContain("3");
 
@@ -1205,9 +1205,9 @@ describe("Match — dev mode", () => {
     // Verify capture happened.
     expect(squareCell("e4")?.getAttribute("aria-label")).toBe("e4, opponent pawn");
 
-    // Draw pile size is unchanged — no Soul granted (it's the player's enemy
+    // Draw pile size is unchanged — no Patch granted (it's the player's enemy
     // capturing). If we had passed the wrong side, the helper would have
-    // shuffled a Pawn Soul into the draw pile, bumping the count.
+    // shuffled a Pawn Patch into the draw pile, bumping the count.
     expect(drawPileText()).toContain("3");
   });
 });

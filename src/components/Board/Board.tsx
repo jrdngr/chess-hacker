@@ -45,7 +45,7 @@ export type SquareEffects = {
  * - `play`: normal chess move flow.
  * - `target`: a card is in flight; the user must click one of `validTargets`.
  *   The `hint` is shown above the board (e.g., "Pick an empty square for
- *   Barricade"). `valid` decides which squares are highlighted as legal
+ *   Firewall"). `valid` decides which squares are highlighted as legal
  *   targets and which are dimmed.
  * - `drop-anywhere`: a no-target card is in flight; the entire board is a
  *   valid drop. The board paints itself green and any drop resolves the card.

@@ -21,7 +21,7 @@ import {
   WIN_BONUS_BOSS,
   WIN_BONUS_NORMAL,
 } from "./run";
-import { FORESIGHT, FROSTBITE, RECONNAISSANCE } from "../cards/library";
+import { STACK_TRACE, FREEZE_PROCESS, PORT_SCAN } from "../cards/library";
 import { parseFen } from "../chess/rules";
 import { standardMatchConfig } from "./standard";
 import type { PieceType, RunMatchOutcome, RunState } from "../types";
@@ -92,14 +92,14 @@ describe("draft", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("never offers Soul or Shiv cards or curse cards", () => {
+  it("never offers Patch or Shiv cards or curse cards", () => {
     // Sweep many seeds — none should ever surface the excluded ids.
     for (let seed = 1; seed < 50; seed++) {
       const run = createRun({ mode: "royal", rngSeed: seed });
       const { offer } = generateDraftOffer(run);
       for (const c of offer.cards) {
         expect(c.curse).toBeFalsy();
-        expect(c.id.endsWith("-soul")).toBe(false);
+        expect(c.id.endsWith("-patch")).toBe(false);
         expect(c.id.startsWith("shiv-")).toBe(false);
       }
     }
@@ -108,9 +108,9 @@ describe("draft", () => {
   it("picking a draft card adds it to the deck", () => {
     const run = createRun({ mode: "royal", rngSeed: 1 });
     const startingSize = run.deck.length;
-    const next = pickDraftCard(run, FROSTBITE);
+    const next = pickDraftCard(run, FREEZE_PROCESS);
     expect(next.deck.length).toBe(startingSize + 1);
-    expect(next.deck[next.deck.length - 1].id).toBe(FROSTBITE.id);
+    expect(next.deck[next.deck.length - 1].id).toBe(FREEZE_PROCESS.id);
   });
 
   it("skipping a draft pays the offered skip gold", () => {
@@ -135,7 +135,7 @@ describe("phase transitions: reward → shop → next match", () => {
     for (let i = 0; i < 2; i++) {
       run = applyMatchOutcome(run, MOCK_OUTCOME_WIN);
       expect(run.phase).toBe("reward");
-      run = enterShop(pickDraftCard(run, RECONNAISSANCE));
+      run = enterShop(pickDraftCard(run, PORT_SCAN));
       expect(run.phase).toBe("shop");
       run = leaveShop(run);
     }
@@ -151,7 +151,7 @@ describe("phase transitions: reward → shop → next match", () => {
   it("a loss anywhere ends the run", () => {
     let run = createRun({ mode: "royal", rngSeed: 1 });
     run = applyMatchOutcome(run, MOCK_OUTCOME_WIN);
-    run = enterShop(pickDraftCard(run, FORESIGHT));
+    run = enterShop(pickDraftCard(run, STACK_TRACE));
     run = leaveShop(run);
     expect(run.phase).toBe("match");
     expect(run.matchNumber).toBe(2);
@@ -223,7 +223,7 @@ describe("Standard boss flow (M8)", () => {
   it("a Standard run starts in `boss-preview` so the player sees Boss A", () => {
     const run = createRun({ mode: "standard", rngSeed: 1 });
     expect(run.phase).toBe("boss-preview");
-    expect(activeBossFor({ ...run, matchNumber: 3 })?.id).toBe("iron-garrison");
+    expect(activeBossFor({ ...run, matchNumber: 3 })?.id).toBe("the-firewall");
     const dismissed = dismissBossPreview(run);
     expect(dismissed.phase).toBe("match");
   });

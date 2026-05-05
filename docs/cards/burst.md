@@ -4,16 +4,16 @@ Burst cards radically change the board: extra actions, board-wide effects, or ga
 
 See [`keywords.md`](keywords.md) for keyword definitions.
 
-## Cheap Destroy
+## Exploit
 
 - **Cost:** 4
 - **Rarity:** Rare
 - **Keywords:** **Consume**
 - **Target:** enemy non-King piece your forces are attacking
 - **Effect:** Remove the targeted enemy piece from the board.
-- **Design note:** A conditional removal. Cheap Destroy requires positional setup — at least one of your pieces must already be threatening the target square. The setup is the work; the card is the cash-out. Consume keeps the card finite per match: each copy in the deck is one piece-removal, not a recurring threat.
+- **Design note:** A conditional removal. Exploit requires positional setup — at least one of your pieces must already be threatening the target square. The setup is the work; the card is the cash-out. Consume keeps the card finite per match: each copy in the deck is one piece-removal, not a recurring threat.
 
-## Big Destroy
+## Format C:
 
 - **Cost:** 10
 - **Rarity:** Rare
@@ -24,4 +24,4 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 
 ## Why they're expensive
 
-Under banking energy (+1/turn, cap 10) the player gets a haymaker tier of play around turn 7+, with Big Destroy at the absolute earliest at turn 10. Burst cards are not for tempo; they are for *finishing*.
+Under banking energy (+1/turn, cap 10) the player gets a haymaker tier of play around turn 7+, with Format C: at the absolute earliest at turn 10. Burst cards are not for tempo; they are for *finishing*.

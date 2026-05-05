@@ -138,7 +138,7 @@ export function deriveSquareEffects(
     });
   }
   for (const e of state.empowers) {
-    // Soul-card empowers are "use it or lose it" — they last the current
+    // Patch-card empowers are "use it or lose it" — they last the current
     // turn only (and drop early if the player moves any other piece).
     // Showing "1 turn" is accurate enough; the early-drop nuance lives in
     // the card text.

@@ -1,0 +1,10 @@
+{
+  "id": "trusted-zone",
+  "name": "Trusted Zone",
+  "cost": 2,
+  "rarity": "uncommon",
+  "archetype": "spatial",
+  "description": "Establish a Trusted Zone on an empty square for 3 turns. Pieces on it can't be captured.",
+  "target": { "kind": "empty-square" },
+  "effect": { "kind": "place-sanctuary", "durationTurns": 3 }
+}

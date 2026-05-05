@@ -1,0 +1,10 @@
+{
+  "id": "logic-bomb",
+  "name": "Logic Bomb",
+  "cost": 2,
+  "rarity": "uncommon",
+  "archetype": "spatial",
+  "description": "Place a Trap. The first enemy piece to enter is captured. Lasts 4 turns.",
+  "target": { "kind": "empty-square" },
+  "effect": { "kind": "place-trap", "trapEffect": "capture", "durationTurns": 4 }
+}

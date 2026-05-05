@@ -1,0 +1,10 @@
+{
+  "id": "firewall",
+  "name": "Firewall",
+  "cost": 1,
+  "rarity": "common",
+  "archetype": "spatial",
+  "description": "Place a wall on an empty square. Lasts 3 turns.",
+  "target": { "kind": "empty-square" },
+  "effect": { "kind": "place-wall", "durationTurns": 3 }
+}

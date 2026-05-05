@@ -1,6 +1,6 @@
 # Theme & Visual Direction
 
-The prototype uses an **abstract minimalist** aesthetic. No representational art, no fantasy or sci-fi setting, no narrative lore. Just shapes, colors, and motion in service of clarity.
+The prototype uses an **abstract minimalist** aesthetic with a light **hacker-intrusion** flavor on names and descriptions. No representational art, no narrative lore. Just shapes, colors, and motion in service of clarity — with cards skinned as exploits (Firewall, Honeypot, Port Scan, Format C:) and pieces framed as processes the player is patching, freezing, or pwning.
 
 ## Why abstract minimalist
 
@@ -75,7 +75,7 @@ Out of scope for the prototype. Add basic sound effects (click, place, capture, 
 - ❌ No painted / illustrated artwork on pieces or cards (classical chess silhouettes are flat-color SVG, not rendered art).
 - ❌ No fantasy creatures, no character portraits.
 - ❌ No flavor text on cards (in the prototype).
-- ❌ No story / lore. Boss names are descriptive ("The Iron Garrison") not narrative.
+- ❌ No story / lore. The hacker skin is cosmetic — names and flavor only. Boss names are descriptive ("The Firewall", "The Whale", "The Singularity") not narrative.
 - ❌ No voice-acting, no cutscenes.
 - ❌ No animated character portraits.
 

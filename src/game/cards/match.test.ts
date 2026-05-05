@@ -10,7 +10,7 @@ import {
   createMatchCardState,
   drawCards,
   dropOtherSingleUseEmpowers,
-  grantSoulOnCapture,
+  grantPatchOnCapture,
   hasWallOn,
   insertCurseIntoHand,
   isCompelled,
@@ -36,22 +36,22 @@ import {
   startPlayerTurn,
 } from "./match";
 import {
-  BARRICADE,
-  KNIGHT_SOUL,
-  FORESIGHT,
-  FROSTBITE,
-  TANGLED_ROOTS,
-  FUMBLE,
-  HALLOWED_GROUND,
-  IRON_GUARD,
-  MARIONETTE,
-  MARTYRS_GIFT,
-  PROVOKE,
-  QUICKSTEP,
-  RECONNAISSANCE,
-  SNARE,
-  SPIKE_PIT,
-  SPRING_TRAP,
+  FIREWALL,
+  KNIGHT_PATCH,
+  STACK_TRACE,
+  FREEZE_PROCESS,
+  CHROOT,
+  READ_ONLY,
+  TRUSTED_ZONE,
+  ENCRYPTED,
+  REMOTE_ACCESS,
+  KILL_9,
+  PHISHING,
+  OVERCLOCK,
+  PORT_SCAN,
+  HONEYPOT,
+  LOGIC_BOMB,
+  CONNECTION_RESET,
   SWITCH_FILES,
   getCardById,
   makeStarterDeck,
@@ -100,7 +100,7 @@ describe("shuffle / drawCards", () => {
     st = {
       ...st,
       drawPile: [],
-      discardPile: [BARRICADE, RECONNAISSANCE],
+      discardPile: [FIREWALL, PORT_SCAN],
     };
     const drawn = drawCards(st, 2, rng);
     expect(drawn.hand).toHaveLength(2);
@@ -115,7 +115,7 @@ describe("shuffle / drawCards", () => {
       ...st,
       drawPile: [],
       discardPile: [],
-      consumedPile: [BARRICADE, RECONNAISSANCE],
+      consumedPile: [FIREWALL, PORT_SCAN],
     };
     const drawn = drawCards(st, 2, rng);
     expect(drawn.hand).toHaveLength(0);
@@ -184,7 +184,7 @@ describe("startPlayerTurn", () => {
 describe("playCard — resource", () => {
   it("rejects a card the player can't afford", () => {
     const rng = makeRng(7);
-    let st = startPlayerTurn(createMatchCardState([FROSTBITE], rng), rng);
+    let st = startPlayerTurn(createMatchCardState([FREEZE_PROCESS], rng), rng);
     st = { ...st, energy: 1 };
     const res = playCard(
       st,
@@ -197,23 +197,14 @@ describe("playCard — resource", () => {
     if (!res.ok) expect(res.reason).toBe("not-enough-energy");
   });
 
-  it("Reconnaissance: draws 2 cards (hand can exceed HAND_SIZE)", () => {
+  it("Port Scan: draws 2 cards (hand can exceed HAND_SIZE)", () => {
     const rng = makeRng(9);
-    const deck = [
-      RECONNAISSANCE,
-      BARRICADE,
-      BARRICADE,
-      BARRICADE,
-      BARRICADE,
-      BARRICADE,
-      BARRICADE,
-      BARRICADE,
-    ];
+    const deck = [PORT_SCAN, FIREWALL, FIREWALL, FIREWALL, FIREWALL, FIREWALL, FIREWALL, FIREWALL];
     let st = startPlayerTurn(createMatchCardState(deck, rng), rng);
     st = { ...st, energy: ENERGY_MAX };
-    const reconIdx = st.hand.findIndex((s) => s.card.id === "reconnaissance");
+    const reconIdx = st.hand.findIndex((s) => s.card.id === "port-scan");
     if (reconIdx === -1) {
-      expect(st.drawPile.some((c) => c.id === "reconnaissance")).toBe(true);
+      expect(st.drawPile.some((c) => c.id === "port-scan")).toBe(true);
       return;
     }
     const res = playCard(st, reconIdx, noTarget(), emptyBoard, rng);
@@ -223,12 +214,12 @@ describe("playCard — resource", () => {
     expect(st.hand).toHaveLength(6);
   });
 
-  it("Foresight: pays 1 energy and discards (UI does the reorder via setDeckTop)", () => {
+  it("Stack Trace: pays 1 energy and discards (UI does the reorder via setDeckTop)", () => {
     const rng = makeRng(20);
-    const deck = [FORESIGHT, BARRICADE, BARRICADE, BARRICADE, BARRICADE, BARRICADE];
+    const deck = [STACK_TRACE, FIREWALL, FIREWALL, FIREWALL, FIREWALL, FIREWALL];
     let st = startPlayerTurn(createMatchCardState(deck, rng), rng);
     st = { ...st, energy: ENERGY_MAX };
-    const idx = st.hand.findIndex((s) => s.card.id === "foresight");
+    const idx = st.hand.findIndex((s) => s.card.id === "stack-trace");
     if (idx === -1) return;
     const energyBefore = st.energy;
     const res = playCard(st, idx, noTarget(), emptyBoard, rng);
@@ -236,16 +227,19 @@ describe("playCard — resource", () => {
     if (!res.ok) return;
     st = res.state;
     expect(st.energy).toBe(energyBefore - 1);
-    // Foresight is non-Consume, so it lands in the discard pile.
-    expect(st.discardPile.some((c: Card) => c.id === "foresight")).toBe(true);
+    // Stack Trace is non-Consume, so it lands in the discard pile.
+    expect(st.discardPile.some((c: Card) => c.id === "stack-trace")).toBe(true);
   });
 });
 
 describe("playCard — disruption / spatial", () => {
-  it("Frostbite: requires an enemy piece target and adds a freeze", () => {
+  it("Freeze Process: requires an enemy piece target and adds a freeze", () => {
     const rng = makeRng(10);
     let st = startPlayerTurn(
-      createMatchCardState([FROSTBITE, FROSTBITE, FROSTBITE, FROSTBITE, FROSTBITE], rng),
+      createMatchCardState(
+        [FREEZE_PROCESS, FREEZE_PROCESS, FREEZE_PROCESS, FREEZE_PROCESS, FREEZE_PROCESS],
+        rng,
+      ),
       rng,
     );
     st = { ...st, energy: ENERGY_MAX };
@@ -265,39 +259,39 @@ describe("playCard — disruption / spatial", () => {
     expect(st.freezes[0].expiresOnTurn).toBe(2);
   });
 
-  it("Tangled Roots / Fumble / Provoke add the right status", () => {
+  it("chroot / Read-Only / Phishing add the right status", () => {
     const rng = makeRng(30);
-    const deck = [TANGLED_ROOTS, FUMBLE, PROVOKE];
+    const deck = [CHROOT, READ_ONLY, PHISHING];
     let st = startPlayerTurn(createMatchCardState(deck, rng), rng);
     st = { ...st, energy: 10 };
     const ctx = withPieces({ e7: { type: "pawn", side: "opponent" } });
 
-    const idxRoots = st.hand.findIndex((s) => s.card.id === "tangled-roots");
+    const idxRoots = st.hand.findIndex((s) => s.card.id === "chroot");
     const r1 = playCard(st, idxRoots, { kind: "square", square: "e7" }, ctx, rng);
     expect(r1.ok).toBe(true);
     if (!r1.ok) return;
     st = r1.state;
     expect(isRooted(st, "e7")).toBe(true);
 
-    const idxFumble = st.hand.findIndex((s) => s.card.id === "fumble");
-    const r2 = playCard(st, idxFumble, { kind: "square", square: "e7" }, ctx, rng);
+    const idxReadOnly = st.hand.findIndex((s) => s.card.id === "read-only");
+    const r2 = playCard(st, idxReadOnly, { kind: "square", square: "e7" }, ctx, rng);
     expect(r2.ok).toBe(true);
     if (!r2.ok) return;
     st = r2.state;
     expect(isDisarmed(st, "e7")).toBe(true);
 
-    const idxProvoke = st.hand.findIndex((s) => s.card.id === "provoke");
-    const r3 = playCard(st, idxProvoke, { kind: "square", square: "e7" }, ctx, rng);
+    const idxPhishing = st.hand.findIndex((s) => s.card.id === "phishing");
+    const r3 = playCard(st, idxPhishing, { kind: "square", square: "e7" }, ctx, rng);
     expect(r3.ok).toBe(true);
     if (!r3.ok) return;
     st = r3.state;
     expect(isCompelled(st, "e7")).toBe(true);
   });
 
-  it("Barricade: places a wall on an empty unwalled square for 3 turns", () => {
+  it("Firewall: places a wall on an empty unwalled square for 3 turns", () => {
     const rng = makeRng(11);
     let st = startPlayerTurn(
-      createMatchCardState([BARRICADE, BARRICADE, BARRICADE, BARRICADE, BARRICADE], rng),
+      createMatchCardState([FIREWALL, FIREWALL, FIREWALL, FIREWALL, FIREWALL], rng),
       rng,
     );
     const ctx: BoardContext = {
@@ -316,13 +310,13 @@ describe("playCard — disruption / spatial", () => {
     st = r2.state;
     expect(hasWallOn(st, "e4")).toBe(true);
     expect(st.walls[0].expiresOnTurn).toBe(4);
-    // STARTING_ENERGY is 1, Barricade costs 1 → 0 energy after play.
+    // STARTING_ENERGY is 1, Firewall costs 1 → 0 energy after play.
     expect(st.energy).toBe(0);
   });
 
-  it("Hallowed Ground places a Sanctuary; Spike Pit / Snare / Spring Trap place Traps", () => {
+  it("Trusted Zone places a Sanctuary; Logic Bomb / Honeypot / Connection Reset place Traps", () => {
     const rng = makeRng(40);
-    const deck = [HALLOWED_GROUND, SPIKE_PIT, SNARE, SPRING_TRAP];
+    const deck = [TRUSTED_ZONE, LOGIC_BOMB, HONEYPOT, CONNECTION_RESET];
     let st = startPlayerTurn(createMatchCardState(deck, rng), rng);
     st = { ...st, energy: 10 };
 
@@ -333,22 +327,22 @@ describe("playCard — disruption / spatial", () => {
       if (r.ok) st = r.state;
     };
 
-    play("hallowed-ground", "d4");
+    play("trusted-zone", "d4");
     expect(hasSanctuary(st, "d4")).toBe(true);
-    play("spike-pit", "e4");
+    play("logic-bomb", "e4");
     expect(trapAt(st, "e4")?.effect).toBe("capture");
-    play("snare", "f4");
+    play("honeypot", "f4");
     expect(trapAt(st, "f4")?.effect).toBe("freeze");
-    play("spring-trap", "g4");
+    play("connection-reset", "g4");
     expect(trapAt(st, "g4")?.effect).toBe("push");
   });
 
-  it("Standing Stone places a zone-buff anchored at the targeted square", () => {
+  it("Power Node places a zone-buff anchored at the targeted square", () => {
     const rng = makeRng(41);
-    const stone = getCardById("standing-stone");
+    const stone = getCardById("power-node");
     let st = startPlayerTurn(createMatchCardState([stone], rng), rng);
     st = { ...st, energy: 10 };
-    const idx = st.hand.findIndex((s) => s.card.id === "standing-stone");
+    const idx = st.hand.findIndex((s) => s.card.id === "power-node");
     const r = playCard(st, idx, { kind: "square", square: "e4" }, emptyBoard, rng);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
@@ -358,17 +352,17 @@ describe("playCard — disruption / spatial", () => {
     expect(buff.region).toEqual({ kind: "square-orthogonal-1", anchor: "e4" });
     expect(buff.effect).toEqual({ kind: "energy-per-turn", amount: 1 });
     expect(buff.expiresOnTurn).toBe(st.turn + 4);
-    expect(buff.sourceLabel).toBe("Standing Stone");
+    expect(buff.sourceLabel).toBe("Power Node");
   });
 });
 
 describe("playCard — buffs", () => {
-  it("Iron Guard: targets own piece and shields it", () => {
+  it("Encrypted: targets own piece and shields it", () => {
     const rng = makeRng(50);
-    let st = startPlayerTurn(createMatchCardState([IRON_GUARD], rng), rng);
+    let st = startPlayerTurn(createMatchCardState([ENCRYPTED], rng), rng);
     const ctx = withPieces({ e2: { type: "pawn", side: "player" } });
 
-    const idx = st.hand.findIndex((s) => s.card.id === "iron-guard");
+    const idx = st.hand.findIndex((s) => s.card.id === "encrypted");
     const r = playCard(st, idx, { kind: "square", square: "e2" }, ctx, rng);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
@@ -376,47 +370,38 @@ describe("playCard — buffs", () => {
     expect(isShielded(st, "e2")).toBe(true);
   });
 
-  it("Iron Guard rejects an enemy piece target", () => {
+  it("Encrypted rejects an enemy piece target", () => {
     const rng = makeRng(51);
-    const st = startPlayerTurn(createMatchCardState([IRON_GUARD], rng), rng);
+    const st = startPlayerTurn(createMatchCardState([ENCRYPTED], rng), rng);
     const ctx = withPieces({ e7: { type: "pawn", side: "opponent" } });
-    const idx = st.hand.findIndex((s) => s.card.id === "iron-guard");
+    const idx = st.hand.findIndex((s) => s.card.id === "encrypted");
     const r = playCard(st, idx, { kind: "square", square: "e7" }, ctx, rng);
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.reason).toBe("target-not-own-piece");
   });
 
-  it("Quickstep grants 2 actions and discards the card", () => {
+  it("Overclock grants 2 actions and discards the card", () => {
     const rng = makeRng(52);
-    let st = startPlayerTurn(createMatchCardState([QUICKSTEP], rng), rng);
+    let st = startPlayerTurn(createMatchCardState([OVERCLOCK], rng), rng);
     st = { ...st, energy: ENERGY_MAX };
     const ctx = withPieces({ d2: { type: "knight", side: "player" } });
-    const idx = st.hand.findIndex((s) => s.card.id === "quickstep");
+    const idx = st.hand.findIndex((s) => s.card.id === "overclock");
     const r = playCard(st, idx, { kind: "square", square: "d2" }, ctx, rng);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     st = r.state;
     expect(lightningAt(st, "d2")?.remaining).toBe(2);
     // Non-Consume card → discard pile.
-    expect(st.discardPile.some((c) => c.id === "quickstep")).toBe(true);
+    expect(st.discardPile.some((c) => c.id === "overclock")).toBe(true);
   });
 });
 
 describe("playCard — sacrifice / summon / swap / marionette", () => {
-  it("Martyr's Gift: rejects king target, accepts non-king, draws + gains energy", () => {
+  it("kill -9: rejects king target, accepts non-king, draws + gains energy", () => {
     const rng = makeRng(60);
-    const deck = [
-      MARTYRS_GIFT,
-      BARRICADE,
-      BARRICADE,
-      BARRICADE,
-      BARRICADE,
-      BARRICADE,
-      BARRICADE,
-      BARRICADE,
-    ];
+    const deck = [KILL_9, FIREWALL, FIREWALL, FIREWALL, FIREWALL, FIREWALL, FIREWALL, FIREWALL];
     let st = startPlayerTurn(createMatchCardState(deck, rng), rng);
-    const idx = st.hand.findIndex((s) => s.card.id === "martyrs-gift");
+    const idx = st.hand.findIndex((s) => s.card.id === "kill-9");
     if (idx === -1) return;
     const ctx = withPieces({
       e1: { type: "king", side: "player" },
@@ -439,11 +424,11 @@ describe("playCard — sacrifice / summon / swap / marionette", () => {
     expect(r.sideEffects).toEqual([{ kind: "remove-piece", square: "a2" }]);
   });
 
-  it("Knight Soul: empowers an own piece with the knight pattern (single-use, this turn) and consumes", () => {
+  it("Knight Patch: empowers an own piece with the knight pattern (single-use, this turn) and consumes", () => {
     const rng = makeRng(70);
-    let st = startPlayerTurn(createMatchCardState([KNIGHT_SOUL], rng), rng);
+    let st = startPlayerTurn(createMatchCardState([KNIGHT_PATCH], rng), rng);
     st = { ...st, energy: 10 };
-    const idx = st.hand.findIndex((s) => s.card.id === "knight-soul");
+    const idx = st.hand.findIndex((s) => s.card.id === "knight-patch");
     const ctx = withPieces({
       e2: { type: "pawn", side: "player" },
       e7: { type: "pawn", side: "opponent" },
@@ -461,14 +446,14 @@ describe("playCard — sacrifice / summon / swap / marionette", () => {
     expect(status?.pattern).toBe("knight");
     expect(status?.singleUse).toBe(true);
     expect(status?.expiresOnTurn).toBe(r.state.turn + 1);
-    expect(r.state.consumedPile.some((c) => c.id === "knight-soul")).toBe(true);
+    expect(r.state.consumedPile.some((c) => c.id === "knight-patch")).toBe(true);
   });
 
-  it("Soul empowers expire at the start of the next player turn", () => {
+  it("Patch empowers expire at the start of the next player turn", () => {
     const rng = makeRng(71);
-    let st = startPlayerTurn(createMatchCardState([KNIGHT_SOUL], rng), rng);
+    let st = startPlayerTurn(createMatchCardState([KNIGHT_PATCH], rng), rng);
     st = { ...st, energy: 10 };
-    const idx = st.hand.findIndex((s) => s.card.id === "knight-soul");
+    const idx = st.hand.findIndex((s) => s.card.id === "knight-patch");
     const ctx = withPieces({ e2: { type: "pawn", side: "player" } });
     const r = playCard(st, idx, { kind: "square", square: "e2" }, ctx, rng);
     expect(r.ok).toBe(true);
@@ -497,11 +482,11 @@ describe("playCard — sacrifice / summon / swap / marionette", () => {
     expect(r.sideEffects).toEqual([{ kind: "swap-pieces", a: "a1", b: "h1" }]);
   });
 
-  it("Marionette: requires enemy first-square; emits foreign-move", () => {
+  it("Remote Access: requires enemy first-square; emits foreign-move", () => {
     const rng = makeRng(90);
-    let st = startPlayerTurn(createMatchCardState([MARIONETTE], rng), rng);
+    let st = startPlayerTurn(createMatchCardState([REMOTE_ACCESS], rng), rng);
     st = { ...st, energy: 10 };
-    const idx = st.hand.findIndex((s) => s.card.id === "marionette");
+    const idx = st.hand.findIndex((s) => s.card.id === "remote-access");
     const ctx = withPieces({ e7: { type: "pawn", side: "opponent" } });
 
     const rOwn = playCard(st, idx, { kind: "two-squares", first: "e2", second: "e3" }, ctx, rng);
@@ -512,7 +497,7 @@ describe("playCard — sacrifice / summon / swap / marionette", () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.sideEffects).toEqual([{ kind: "foreign-move", from: "e7", to: "e6" }]);
-    expect(r.state.consumedPile.some((c) => c.id === "marionette")).toBe(true);
+    expect(r.state.consumedPile.some((c) => c.id === "remote-access")).toBe(true);
   });
 });
 
@@ -641,11 +626,11 @@ describe("energy economy", () => {
     expect(clampEnergy(11)).toBe(ENERGY_MAX);
   });
 
-  it("Martyr's Gift respects the energy cap", () => {
+  it("kill -9 respects the energy cap", () => {
     const rng = makeRng(204);
-    let st = startPlayerTurn(createMatchCardState([MARTYRS_GIFT], rng), rng);
+    let st = startPlayerTurn(createMatchCardState([KILL_9], rng), rng);
     st = { ...st, energy: ENERGY_MAX };
-    const idx = st.hand.findIndex((s) => s.card.id === "martyrs-gift");
+    const idx = st.hand.findIndex((s) => s.card.id === "kill-9");
     const ctx = withPieces({ a2: { type: "pawn", side: "player" } });
     const r = playCard(st, idx, { kind: "square", square: "a2" }, ctx, rng);
     expect(r.ok).toBe(true);
@@ -658,20 +643,20 @@ describe("energy economy", () => {
 describe("disposal: discard, consume, retain, cycle", () => {
   it("non-Consume cards land in discard; Consume cards land in consumed", () => {
     const rng = makeRng(210);
-    const cheap = getCardById("cheap-destroy");
-    let st = startPlayerTurn(createMatchCardState([BARRICADE, cheap], rng), rng);
+    const cheap = getCardById("exploit");
+    let st = startPlayerTurn(createMatchCardState([FIREWALL, cheap], rng), rng);
     st = { ...st, energy: ENERGY_MAX };
-    // Play Barricade (non-Consume) → discard pile.
-    const barricadeIdx = st.hand.findIndex((s) => s.card.id === "barricade");
+    // Play Firewall (non-Consume) → discard pile.
+    const barricadeIdx = st.hand.findIndex((s) => s.card.id === "firewall");
     const r1 = playCard(st, barricadeIdx, { kind: "square", square: "e4" }, emptyBoard, rng);
     expect(r1.ok).toBe(true);
     if (!r1.ok) return;
     st = r1.state;
-    expect(st.discardPile.some((c) => c.id === "barricade")).toBe(true);
-    expect(st.consumedPile.some((c) => c.id === "barricade")).toBe(false);
+    expect(st.discardPile.some((c) => c.id === "firewall")).toBe(true);
+    expect(st.consumedPile.some((c) => c.id === "firewall")).toBe(false);
 
-    // Play Cheap Destroy (Consume) → consumed pile.
-    const cheapIdx = st.hand.findIndex((s) => s.card.id === "cheap-destroy");
+    // Play Exploit (Consume) → consumed pile.
+    const cheapIdx = st.hand.findIndex((s) => s.card.id === "exploit");
     const ctx = withPieces(
       { e7: { type: "pawn", side: "opponent" } },
       { attackedByPlayer: new Set(["e7"]) },
@@ -680,15 +665,15 @@ describe("disposal: discard, consume, retain, cycle", () => {
     expect(r2.ok).toBe(true);
     if (!r2.ok) return;
     st = r2.state;
-    expect(st.consumedPile.some((c) => c.id === "cheap-destroy")).toBe(true);
-    expect(st.discardPile.some((c) => c.id === "cheap-destroy")).toBe(false);
+    expect(st.consumedPile.some((c) => c.id === "exploit")).toBe(true);
+    expect(st.discardPile.some((c) => c.id === "exploit")).toBe(false);
   });
 
   it("end-of-turn discards every non-curse, non-retained hand card", () => {
     const rng = makeRng(211);
     // 12-card deck so the second start-of-turn refill still finds enough in
     // the draw pile and doesn't need to reshuffle the freshly-discarded hand.
-    const deck = Array.from({ length: 12 }, () => BARRICADE);
+    const deck = Array.from({ length: 12 }, () => FIREWALL);
     let st = startPlayerTurn(createMatchCardState(deck, rng), rng);
     expect(st.hand.length).toBe(5);
     // Advance to next turn — every card in hand should move to the discard
@@ -701,30 +686,30 @@ describe("disposal: discard, consume, retain, cycle", () => {
 
   it("retained hand cards survive end-of-turn", () => {
     const rng = makeRng(216);
-    const stash = getCardById("stash");
+    const stash = getCardById("bookmark");
     let st = startPlayerTurn(createMatchCardState([], rng), rng);
-    st = addToHand(st, BARRICADE);
+    st = addToHand(st, FIREWALL);
     st = addToHand(st, stash);
     st = { ...st, energy: ENERGY_MAX };
-    const stashIdx = st.hand.findIndex((s) => s.card.id === "stash");
-    const targetIdx = st.hand.findIndex((s) => s.card.id === "barricade");
+    const stashIdx = st.hand.findIndex((s) => s.card.id === "bookmark");
+    const targetIdx = st.hand.findIndex((s) => s.card.id === "firewall");
     const r = playCard(st, stashIdx, { kind: "hand-card", index: targetIdx }, emptyBoard, rng);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     st = r.state;
-    // Stash itself was discarded; Barricade is retained.
-    expect(st.discardPile.some((c) => c.id === "stash")).toBe(true);
-    expect(st.hand.find((s) => s.card.id === "barricade")?.retained).toBe(true);
-    // Roll the turn — Barricade stays.
+    // Bookmark itself was discarded; Firewall is retained.
+    expect(st.discardPile.some((c) => c.id === "bookmark")).toBe(true);
+    expect(st.hand.find((s) => s.card.id === "firewall")?.retained).toBe(true);
+    // Roll the turn — Firewall stays.
     st = startPlayerTurn(st, rng);
-    expect(st.hand.some((s) => s.card.id === "barricade")).toBe(true);
+    expect(st.hand.some((s) => s.card.id === "firewall")).toBe(true);
   });
 
   it("draw pile reshuffles from the discard pile when it empties mid-draw", () => {
     const rng = makeRng(212);
     // Empty draw, three cards in discard. Draw 3.
     let st = createMatchCardState([], rng);
-    st = { ...st, discardPile: [BARRICADE, FROSTBITE, IRON_GUARD] };
+    st = { ...st, discardPile: [FIREWALL, FREEZE_PROCESS, ENCRYPTED] };
     const drawn = drawCards(st, 3, rng);
     expect(drawn.hand).toHaveLength(3);
     expect(drawn.drawPile).toHaveLength(0);
@@ -733,71 +718,71 @@ describe("disposal: discard, consume, retain, cycle", () => {
     expect(drawn.hand.every((s) => s.retained === false)).toBe(true);
   });
 
-  it("Stash applies Retain to a chosen hand card; the card survives end-of-turn", () => {
+  it("Bookmark applies Retain to a chosen hand card; the card survives end-of-turn", () => {
     const rng = makeRng(213);
-    const stash = getCardById("stash");
-    // Hand: stash + big-destroy. Stash applies Retain to big-destroy.
+    const stash = getCardById("bookmark");
+    // Hand: stash + big-destroy. Bookmark applies Retain to big-destroy.
     let st = startPlayerTurn(createMatchCardState([], rng), rng);
-    const big = getCardById("big-destroy");
+    const big = getCardById("format-c");
     st = addToHand(st, big);
     st = addToHand(st, stash);
     st = { ...st, energy: ENERGY_MAX };
-    const stashIdx = st.hand.findIndex((s) => s.card.id === "stash");
-    const targetIdx = st.hand.findIndex((s) => s.card.id === "big-destroy");
+    const stashIdx = st.hand.findIndex((s) => s.card.id === "bookmark");
+    const targetIdx = st.hand.findIndex((s) => s.card.id === "format-c");
     const r = playCard(st, stashIdx, { kind: "hand-card", index: targetIdx }, emptyBoard, rng);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     st = r.state;
-    // After playing Stash, the targeted slot now has retained=true and Stash
-    // has left hand. Index of Big Destroy may have shifted; find by id.
-    const stillThere = st.hand.find((s) => s.card.id === "big-destroy");
+    // After playing Bookmark, the targeted slot now has retained=true and Bookmark
+    // has left hand. Index of Format C: may have shifted; find by id.
+    const stillThere = st.hand.find((s) => s.card.id === "format-c");
     expect(stillThere?.retained).toBe(true);
 
-    // Roll the turn — retained Big Destroy stays.
+    // Roll the turn — retained Format C: stays.
     st = startPlayerTurn(st, rng);
-    expect(st.hand.some((s) => s.card.id === "big-destroy")).toBe(true);
-    expect(st.hand.find((s) => s.card.id === "big-destroy")?.retained).toBe(true);
+    expect(st.hand.some((s) => s.card.id === "format-c")).toBe(true);
+    expect(st.hand.find((s) => s.card.id === "format-c")?.retained).toBe(true);
   });
 
-  it("Stash rejects targeting itself, an already-retained slot, or a curse", () => {
+  it("Bookmark rejects targeting itself, an already-retained slot, or a curse", () => {
     const rng = makeRng(214);
-    const stash = getCardById("stash");
+    const stash = getCardById("bookmark");
     let st = startPlayerTurn(createMatchCardState([], rng), rng);
     st = addToHand(st, stash);
-    st = addToHand(st, BARRICADE);
-    st = insertCurseIntoHand(st, getCardById("stalwart"));
+    st = addToHand(st, FIREWALL);
+    st = insertCurseIntoHand(st, getCardById("throttled"));
     st = { ...st, energy: ENERGY_MAX };
-    const stashIdx = st.hand.findIndex((s) => s.card.id === "stash");
+    const stashIdx = st.hand.findIndex((s) => s.card.id === "bookmark");
     // Self-target → rejected.
     const rSelf = playCard(st, stashIdx, { kind: "hand-card", index: stashIdx }, emptyBoard, rng);
     expect(rSelf.ok).toBe(false);
     if (!rSelf.ok) expect(rSelf.reason).toBe("target-hand-card-self");
     // Curse target → rejected.
-    const curseIdx = st.hand.findIndex((s) => s.card.id === "stalwart");
+    const curseIdx = st.hand.findIndex((s) => s.card.id === "throttled");
     const rCurse = playCard(st, stashIdx, { kind: "hand-card", index: curseIdx }, emptyBoard, rng);
     expect(rCurse.ok).toBe(false);
     if (!rCurse.ok) expect(rCurse.reason).toBe("target-hand-card-curse");
   });
 
-  it("Recall pulls from the discard pile only — never from the consumed pile", () => {
+  it("Restore Point pulls from the discard pile only — never from the consumed pile", () => {
     const rng = makeRng(215);
-    const recall = getCardById("recall");
+    const recall = getCardById("restore-point");
     let st = startPlayerTurn(createMatchCardState([recall], rng), rng);
     st = {
       ...st,
       energy: ENERGY_MAX,
-      discardPile: [BARRICADE, FROSTBITE],
-      // Big Destroy in consumed must NOT be revivable.
-      consumedPile: [getCardById("big-destroy")],
+      discardPile: [FIREWALL, FREEZE_PROCESS],
+      // Format C: in consumed must NOT be revivable.
+      consumedPile: [getCardById("format-c")],
     };
-    const idx = st.hand.findIndex((s) => s.card.id === "recall");
+    const idx = st.hand.findIndex((s) => s.card.id === "restore-point");
     const r = playCard(st, idx, noTarget(), emptyBoard, rng);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    // The consumed pile is unchanged: Big Destroy stays gone.
-    expect(r.state.consumedPile.some((c) => c.id === "big-destroy")).toBe(true);
+    // The consumed pile is unchanged: Format C: stays gone.
+    expect(r.state.consumedPile.some((c) => c.id === "format-c")).toBe(true);
     // The resolver removed one card from the discard pile (emitted as an
-    // add-card-to-hand side effect) and Recall itself was discarded after
+    // add-card-to-hand side effect) and Restore Point itself was discarded after
     // play. Net discard pile length: 2 - 1 + 1 = 2.
     expect(r.state.discardPile.length).toBe(2);
     const fx = r.sideEffects.find((f) => f.kind === "add-card-to-hand");
@@ -806,36 +791,36 @@ describe("disposal: discard, consume, retain, cycle", () => {
 });
 
 describe("playCard — destroy", () => {
-  it("Cheap Destroy rejects an enemy King with target-not-enemy-non-king-piece", () => {
+  it("Exploit rejects an enemy King with target-not-enemy-non-king-piece", () => {
     const rng = makeRng(220);
-    const cheap = getCardById("cheap-destroy");
+    const cheap = getCardById("exploit");
     let st = startPlayerTurn(createMatchCardState([cheap], rng), rng);
     st = { ...st, energy: ENERGY_MAX };
-    const idx = st.hand.findIndex((s) => s.card.id === "cheap-destroy");
+    const idx = st.hand.findIndex((s) => s.card.id === "exploit");
     const ctx = withPieces({ e8: { type: "king", side: "opponent" } });
     const r = playCard(st, idx, { kind: "square", square: "e8" }, ctx, rng);
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.reason).toBe("target-not-enemy-non-king-piece");
   });
 
-  it("Cheap Destroy rejects an unattacked enemy with target-not-attacked-by-player", () => {
+  it("Exploit rejects an unattacked enemy with target-not-attacked-by-player", () => {
     const rng = makeRng(221);
-    const cheap = getCardById("cheap-destroy");
+    const cheap = getCardById("exploit");
     let st = startPlayerTurn(createMatchCardState([cheap], rng), rng);
     st = { ...st, energy: ENERGY_MAX };
-    const idx = st.hand.findIndex((s) => s.card.id === "cheap-destroy");
+    const idx = st.hand.findIndex((s) => s.card.id === "exploit");
     const ctx = withPieces({ e7: { type: "pawn", side: "opponent" } });
     const r = playCard(st, idx, { kind: "square", square: "e7" }, ctx, rng);
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.reason).toBe("target-not-attacked-by-player");
   });
 
-  it("Cheap Destroy on an attacked enemy emits remove-piece and consumes", () => {
+  it("Exploit on an attacked enemy emits remove-piece and consumes", () => {
     const rng = makeRng(222);
-    const cheap = getCardById("cheap-destroy");
+    const cheap = getCardById("exploit");
     let st = startPlayerTurn(createMatchCardState([cheap], rng), rng);
     st = { ...st, energy: ENERGY_MAX };
-    const idx = st.hand.findIndex((s) => s.card.id === "cheap-destroy");
+    const idx = st.hand.findIndex((s) => s.card.id === "exploit");
     const ctx = withPieces(
       { e7: { type: "pawn", side: "opponent" } },
       { attackedByPlayer: new Set(["e7"]) },
@@ -844,15 +829,15 @@ describe("playCard — destroy", () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.sideEffects).toEqual([{ kind: "remove-piece", square: "e7" }]);
-    expect(r.state.consumedPile.some((c) => c.id === "cheap-destroy")).toBe(true);
+    expect(r.state.consumedPile.some((c) => c.id === "exploit")).toBe(true);
   });
 
-  it("Big Destroy rejects king but works on any other enemy", () => {
+  it("Format C: rejects king but works on any other enemy", () => {
     const rng = makeRng(223);
-    const big = getCardById("big-destroy");
+    const big = getCardById("format-c");
     let st = startPlayerTurn(createMatchCardState([big], rng), rng);
     st = { ...st, energy: ENERGY_MAX };
-    const idx = st.hand.findIndex((s) => s.card.id === "big-destroy");
+    const idx = st.hand.findIndex((s) => s.card.id === "format-c");
     const ctx = withPieces({
       e7: { type: "queen", side: "opponent" },
       e8: { type: "king", side: "opponent" },
@@ -868,12 +853,12 @@ describe("playCard — destroy", () => {
 });
 
 describe("card-economy effects", () => {
-  it("Vine Pull rejects a non-rooted enemy with target-not-rooted", () => {
+  it("Extract rejects a non-rooted enemy with target-not-rooted", () => {
     const rng = makeRng(233);
-    const vine = getCardById("vine-pull");
+    const vine = getCardById("extract");
     let st = startPlayerTurn(createMatchCardState([vine], rng), rng);
     st = { ...st, energy: ENERGY_MAX };
-    const idx = st.hand.findIndex((s) => s.card.id === "vine-pull");
+    const idx = st.hand.findIndex((s) => s.card.id === "extract");
     const ctx = withPieces({
       e7: { type: "pawn", side: "opponent" },
       e2: { type: "pawn", side: "player" },
@@ -883,12 +868,12 @@ describe("card-economy effects", () => {
     if (!r.ok) expect(r.reason).toBe("target-not-rooted");
   });
 
-  it("Vine Pull on a rooted enemy + own piece emits swap-pieces", () => {
+  it("Extract on a rooted enemy + own piece emits swap-pieces", () => {
     const rng = makeRng(234);
-    const vine = getCardById("vine-pull");
+    const vine = getCardById("extract");
     let st = startPlayerTurn(createMatchCardState([vine], rng), rng);
     st = { ...st, energy: ENERGY_MAX };
-    const idx = st.hand.findIndex((s) => s.card.id === "vine-pull");
+    const idx = st.hand.findIndex((s) => s.card.id === "extract");
     const ctx = withPieces(
       {
         e7: { type: "pawn", side: "opponent" },
@@ -902,16 +887,16 @@ describe("card-economy effects", () => {
     expect(r.sideEffects).toEqual([{ kind: "swap-pieces", a: "e7", b: "e2" }]);
   });
 
-  it("Recall (random revive) returns one discarded card to hand", () => {
+  it("Restore Point (random revive) returns one discarded card to hand", () => {
     const rng = makeRng(235);
-    const recall = getCardById("recall");
+    const recall = getCardById("restore-point");
     let st = startPlayerTurn(createMatchCardState([recall], rng), rng);
-    st = { ...st, energy: ENERGY_MAX, discardPile: [BARRICADE, FROSTBITE, IRON_GUARD] };
-    const idx = st.hand.findIndex((s) => s.card.id === "recall");
+    st = { ...st, energy: ENERGY_MAX, discardPile: [FIREWALL, FREEZE_PROCESS, ENCRYPTED] };
+    const idx = st.hand.findIndex((s) => s.card.id === "restore-point");
     const r = playCard(st, idx, noTarget(), emptyBoard, rng);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    // Resolver removed one from discard and emitted add-card-to-hand. Recall
+    // Resolver removed one from discard and emitted add-card-to-hand. Restore Point
     // itself is non-Consume, so it lands in discard after play. Net discard:
     // 3 - 1 + 1 = 3.
     expect(r.state.discardPile).toHaveLength(3);
@@ -919,85 +904,85 @@ describe("card-economy effects", () => {
     expect(fx).toBeDefined();
   });
 
-  it("Recall on an empty discard pile is a no-op (apart from cycling itself)", () => {
+  it("Restore Point on an empty discard pile is a no-op (apart from cycling itself)", () => {
     const rng = makeRng(236);
-    const recall = getCardById("recall");
+    const recall = getCardById("restore-point");
     let st = startPlayerTurn(createMatchCardState([recall], rng), rng);
     st = { ...st, energy: ENERGY_MAX, discardPile: [] };
-    const idx = st.hand.findIndex((s) => s.card.id === "recall");
+    const idx = st.hand.findIndex((s) => s.card.id === "restore-point");
     const r = playCard(st, idx, noTarget(), emptyBoard, rng);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.sideEffects.filter((f) => f.kind === "add-card-to-hand")).toHaveLength(0);
-    // Recall itself cycles into the discard pile.
+    // Restore Point itself cycles into the discard pile.
     expect(r.state.discardPile).toHaveLength(1);
   });
 
-  it("Recover (choose revive) emits a revive-prompt; completeRevive moves the picked card", () => {
+  it("Restore from Backup (choose revive) emits a revive-prompt; completeRevive moves the picked card", () => {
     const rng = makeRng(237);
-    const recover = getCardById("recover");
+    const recover = getCardById("restore-from-backup");
     let st = startPlayerTurn(createMatchCardState([recover], rng), rng);
-    st = { ...st, energy: ENERGY_MAX, discardPile: [BARRICADE, FROSTBITE] };
-    const idx = st.hand.findIndex((s) => s.card.id === "recover");
+    st = { ...st, energy: ENERGY_MAX, discardPile: [FIREWALL, FREEZE_PROCESS] };
+    const idx = st.hand.findIndex((s) => s.card.id === "restore-from-backup");
     const r = playCard(st, idx, noTarget(), emptyBoard, rng);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    // Recover has Consume → goes to consumedPile. discardPile is unchanged
+    // Restore from Backup has Consume → goes to consumedPile. discardPile is unchanged
     // (the UI completes the revive by picking a card from it).
-    expect(r.state.consumedPile.some((c) => c.id === "recover")).toBe(true);
+    expect(r.state.consumedPile.some((c) => c.id === "restore-from-backup")).toBe(true);
     expect(r.state.discardPile).toHaveLength(2);
     expect(r.sideEffects.some((f) => f.kind === "revive-prompt")).toBe(true);
-    // Now finish the revive by picking index 0 (Barricade was first).
+    // Now finish the revive by picking index 0 (Firewall was first).
     const after = completeRevive(r.state, 0);
     expect(after.discardPile).toHaveLength(1);
-    expect(after.hand[after.hand.length - 1].card.id).toBe("barricade");
+    expect(after.hand[after.hand.length - 1].card.id).toBe("firewall");
   });
 
   it("shuffleIntoDraw splices a card into a random slot of the draw pile", () => {
     const rng = makeRng(240);
-    const initialDeck = [BARRICADE, FROSTBITE, RECONNAISSANCE];
+    const initialDeck = [FIREWALL, FREEZE_PROCESS, PORT_SCAN];
     let st = createMatchCardState(initialDeck, rng);
     const beforeLen = st.drawPile.length;
-    st = shuffleIntoDraw(st, IRON_GUARD, () => 0.5);
+    st = shuffleIntoDraw(st, ENCRYPTED, () => 0.5);
     expect(st.drawPile.length).toBe(beforeLen + 1);
-    expect(st.drawPile.some((c) => c.id === "iron-guard")).toBe(true);
+    expect(st.drawPile.some((c) => c.id === "encrypted")).toBe(true);
   });
 
   it("addToHand appends without enforcing HAND_SIZE", () => {
     const rng = makeRng(241);
     let st = startPlayerTurn(createMatchCardState(makeStarterDeck(), rng), rng);
     const before = st.hand.length;
-    st = addToHand(st, BARRICADE);
-    st = addToHand(st, BARRICADE);
+    st = addToHand(st, FIREWALL);
+    st = addToHand(st, FIREWALL);
     expect(st.hand.length).toBe(before + 2);
   });
 });
 
-describe("capture-grants-soul", () => {
+describe("capture-grants-patch", () => {
   const seedRng: () => number = () => 0;
 
-  it("granting a Knight Soul on knight capture: drawPile +1 with knight-soul", () => {
+  it("granting a Knight Patch on knight capture: drawPile +1 with knight-patch", () => {
     const rng = makeRng(250);
     const st = createMatchCardState(makeStarterDeck(), rng);
     const before = st.drawPile.length;
-    const next = grantSoulOnCapture(st, { type: "knight", side: "opponent" }, "player", seedRng);
+    const next = grantPatchOnCapture(st, { type: "knight", side: "opponent" }, "player", seedRng);
     expect(next.drawPile.length).toBe(before + 1);
-    expect(next.drawPile.some((c) => c.id === "knight-soul")).toBe(true);
+    expect(next.drawPile.some((c) => c.id === "knight-patch")).toBe(true);
   });
 
-  it("each non-king enemy piece type maps to its matching soul", () => {
+  it("each non-king enemy piece type maps to its matching patch", () => {
     const rng = makeRng(251);
     const st = createMatchCardState(makeStarterDeck(), rng);
     const cases: Array<[Piece["type"], string]> = [
-      ["pawn", "pawn-soul"],
-      ["knight", "knight-soul"],
-      ["bishop", "bishop-soul"],
-      ["rook", "rook-soul"],
-      ["queen", "queen-soul"],
+      ["pawn", "pawn-patch"],
+      ["knight", "knight-patch"],
+      ["bishop", "bishop-patch"],
+      ["rook", "rook-patch"],
+      ["queen", "queen-patch"],
     ];
-    for (const [type, soulId] of cases) {
-      const next = grantSoulOnCapture(st, { type, side: "opponent" }, "player", seedRng);
-      expect(next.drawPile.some((c) => c.id === soulId)).toBe(true);
+    for (const [type, patchId] of cases) {
+      const next = grantPatchOnCapture(st, { type, side: "opponent" }, "player", seedRng);
+      expect(next.drawPile.some((c) => c.id === patchId)).toBe(true);
     }
   });
 
@@ -1005,7 +990,7 @@ describe("capture-grants-soul", () => {
     const rng = makeRng(252);
     const st = createMatchCardState(makeStarterDeck(), rng);
     const before = st.drawPile.length;
-    const next = grantSoulOnCapture(st, { type: "pawn", side: "player" }, "opponent", seedRng);
+    const next = grantPatchOnCapture(st, { type: "pawn", side: "player" }, "opponent", seedRng);
     expect(next.drawPile.length).toBe(before);
   });
 
@@ -1013,7 +998,7 @@ describe("capture-grants-soul", () => {
     const rng = makeRng(253);
     const st = createMatchCardState(makeStarterDeck(), rng);
     const before = st.drawPile.length;
-    const next = grantSoulOnCapture(st, { type: "king", side: "opponent" }, "player", seedRng);
+    const next = grantPatchOnCapture(st, { type: "king", side: "opponent" }, "player", seedRng);
     expect(next.drawPile.length).toBe(before);
   });
 
@@ -1021,7 +1006,7 @@ describe("capture-grants-soul", () => {
     const rng = makeRng(254);
     const st = createMatchCardState(makeStarterDeck(), rng);
     const before = st.drawPile.length;
-    const next = grantSoulOnCapture(st, null, "player", seedRng);
+    const next = grantPatchOnCapture(st, null, "player", seedRng);
     expect(next.drawPile.length).toBe(before);
   });
 });

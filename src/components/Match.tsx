@@ -79,7 +79,7 @@ import {
   drawCards,
   drawPileInAcquisitionOrder,
   dropOtherSingleUseEmpowers,
-  grantSoulOnCapture,
+  grantPatchOnCapture,
   hasWallOn,
   hasteAt,
   insertCurseIntoHand,
@@ -483,13 +483,13 @@ export function Match({
   }, [cardState.hand, matchRules]);
   /** Hand index waiting for a target click, or null. */
   const [targetingIndex, setTargetingIndex] = useState<number | null>(null);
-  /** First square in a two-step targeting flow (Switch Files / Marionette). */
+  /** First square in a two-step targeting flow (Switch Files / Remote Access). */
   const [partialTarget, setPartialTarget] = useState<AlgebraicSquare | null>(null);
-  /** Pre-computed legal moves of the puppet piece while Marionette is in flight. */
+  /** Pre-computed legal moves of the puppet piece while Remote Access is in flight. */
   const [marionetteMoves, setMarionetteMoves] = useState<LegalMove[]>([]);
-  /** When non-null, Foresight is asking the player to reorder the deck top. */
+  /** When non-null, Stack Trace is asking the player to reorder the deck top. */
   const [scryPending, setScryPending] = useState<{ cards: Card[] } | null>(null);
-  /** When true, Recover is asking the player to pick a card from the discard pile. */
+  /** When true, Restore from Backup is asking the player to pick a card from the discard pile. */
   const [revivePending, setRevivePending] = useState<boolean>(false);
   /**
    * In flight while the player has clicked a pawn promotion target but hasn't
@@ -738,7 +738,7 @@ export function Match({
 
   // Legal moves originating from the selected square. Recomputed when the
   // chess position OR the wall/freeze overlays change. Boss curses
-  // (`mustNotCheckNextMove` from Stalwart) further filter the set down.
+  // (`mustNotCheckNextMove` from Throttled) further filter the set down.
   // Boss C `no-promotion` strips out the promotion candidates entirely;
   // pawns reaching the back rank simply have no legal move.
   const legalFromSelected: LegalMove[] = useMemo(() => {
@@ -849,14 +849,14 @@ export function Match({
     }
     if (targetKind === "own-piece" || targetKind === "own-non-king-piece") {
       const excludeKing = targetKind === "own-non-king-piece";
-      const soulPattern =
+      const patchPattern =
         targetingCard.effect.kind === "empower-piece" && targetingCard.effect.singleUse === true
           ? targetingCard.effect.pattern
           : null;
       for (const { square, piece } of allPieces) {
         if (piece.side !== "player") continue;
         if (excludeKing && piece.type === "king") continue;
-        if (soulPattern !== null && piece.type === soulPattern) continue;
+        if (patchPattern !== null && piece.type === patchPattern) continue;
         out.add(square);
       }
       return out;
@@ -940,7 +940,7 @@ export function Match({
   );
 
   // First-turn boss scheduler tick — fires once on mount so a `turn` trigger
-  // pinned to turn 1 (e.g. Boss C's Final Resolve) lands in the player's hand
+  // pinned to turn 1 (e.g. Boss C's Hardened) lands in the player's hand
   // before they take any action. Boss A's only trigger is `on-player-check`,
   // so this is a no-op for it; harmless to fire either way.
   useEffect(() => {
@@ -1189,7 +1189,7 @@ export function Match({
       const applied = engine.move({ from, to, promotion: legal.promotion });
       if (!applied) return false;
 
-      // Single-use empowers (Soul cards) on any *other* piece die the moment
+      // Single-use empowers (Patch cards) on any *other* piece die the moment
       // the player commits a chess move with someone else.
       let next = dropOtherSingleUseEmpowers(cardState, from);
       // On a capture, drop the captured piece's per-square statuses BEFORE
@@ -1202,11 +1202,11 @@ export function Match({
       // Statuses follow the piece.
       next = relocateStatuses(next, from, to);
       if (applied.isCapture) {
-        // Capture-grants-Soul: feed the matching Soul card into the draw
+        // Capture-grants-Patch: feed the matching Patch card into the draw
         // pile. The helper filters by side itself (only player captures grant
-        // souls). In dev mode the human can drive Black, so we pass the
+        // patches). In dev mode the human can drive Black, so we pass the
         // actual mover side rather than hardcoding "player".
-        next = grantSoulOnCapture(next, captured, mover?.side ?? "player", rng);
+        next = grantPatchOnCapture(next, captured, mover?.side ?? "player", rng);
       }
 
       // Resolve any trap triggered by this move (player pieces are not exempt).
@@ -1225,7 +1225,7 @@ export function Match({
         next = clearStatusesOn(next, applied.to);
       }
 
-      // Boss B / Greed: track player captures this turn so the start-of-turn
+      // Boss B / Memory Leak: track player captures this turn so the start-of-turn
       // penalty knows whether to fire. Boss B modifier doesn't grant the
       // player anything on their own captures (the captured side — opponent —
       // has no energy), so no queued bonus here.
@@ -1261,7 +1261,7 @@ export function Match({
         }
       }
 
-      // Stalwart constraint is consumed by the player's chess move.
+      // Throttled constraint is consumed by the player's chess move.
       if (mover?.side === "player" && next.mustNotCheckNextMove) {
         next = { ...next, mustNotCheckNextMove: false };
       }
@@ -1433,7 +1433,7 @@ export function Match({
         energyAfter: next.energy,
         target,
       });
-      // Foresight: open scry modal showing the new top of deck.
+      // Stack Trace: open scry modal showing the new top of deck.
       if (card.effect.kind === "scry") {
         const top = next.drawPile.slice(0, card.effect.count);
         if (top.length > 0) setScryPending({ cards: top });
@@ -1471,7 +1471,7 @@ export function Match({
       // (the synth card sits at hand[0]); ignore hand clicks until it resolves
       // or is cancelled.
       if (libraryFreePlayRef.current !== null) return;
-      // Stash targeting: when the active card asks for a hand-card target,
+      // Bookmark targeting: when the active card asks for a hand-card target,
       // the next click on a different hand slot resolves the play.
       if (targetingIndex !== null && targetingIndex !== index) {
         const targetingSlot = cardState.hand[targetingIndex];

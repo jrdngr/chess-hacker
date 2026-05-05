@@ -60,7 +60,7 @@ docs/
 - **Modes:** **Standard** (default — variable board 4×6 → 8×8 over seven distinct sizes, with a points-budget piece curve and Chess960 starts). Royal and Skirmish are spec'd but disabled while Standard is the focus.
 - **Run shape:** 3 acts × 3 matches = 9 matches; each act ends in a hand-crafted boss (act 3 boss = finale). Linear path; no branching map.
 - **No HP system:** lose a match, lose the run.
-- **Cards:** hand of 5, draw to refill, energy +1/turn (banks unspent up to 10), costs 0–10. Every played card is consumed for the rest of the match; multiples in the deck enable repeats. Capturing an enemy piece grants the matching Soul card into your draw pile.
+- **Cards:** hand of 5, draw to refill, energy +1/turn (banks unspent up to 10), costs 0–10. Every played card is consumed for the rest of the match; multiples in the deck enable repeats. Capturing an enemy piece grants the matching Patch card into your draw pile.
 - **Pieces (Skirmish):** 1-of-3 draft after each match; tiered by piece value; soft caps per piece type; player-placed before each match.
 - **Shop:** Balatro-style after every match. Buys: single cards + booster packs + artifacts. Services: reroll (scaling per shop), card removal (scaling per use). Currency: gold only. Skip rewards for gold. Balatro-style interest.
 - **Artifacts:** sources = shop + boss rewards. 3 rarity tiers (C/U/R). Cap of 5 slots. Effects span cards, pieces, resources, conditional triggers.

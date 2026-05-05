@@ -1,0 +1,11 @@
+{
+  "id": "memory-leak",
+  "name": "Memory Leak",
+  "cost": 0,
+  "rarity": "common",
+  "archetype": "disruption",
+  "curse": true,
+  "description": "Curse — capture an enemy piece this turn, or lose 1 energy next turn. Cycle this card.",
+  "target": { "kind": "none" },
+  "effect": { "kind": "pending-energy-loss-on-no-capture", "amount": 1 }
+}

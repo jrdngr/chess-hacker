@@ -1,0 +1,8 @@
+{
+  "id": "threat-detector",
+  "name": "Threat Detector",
+  "rarity": "uncommon",
+  "description": "When you put the opponent in check, draw 1 card.",
+  "emoji": "👁",
+  "effects": [{ "kind": "draw-on-check", "count": 1 }]
+}

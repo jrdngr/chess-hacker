@@ -74,32 +74,32 @@ A boss's mechanics should:
 
 Coordinates are given for the active default mode (Standard). Standard places Boss A on a 5×6 board, Boss B on 7×7, and Boss C on 8×8 — see `progression.md` and the per-match table in `modes.md`. Royal would place all three on 8×8 if/when re-enabled; the original 8×8 sketches for A and B are kept at the bottom of this file as a record.
 
-### Boss A — "The Iron Garrison" (Act 1, match 3, 5×6, K + 5P + N + B + R per side)
+### Boss A — "The Firewall" (Act 1, match 3, 5×6, K + 5P + N + B + R per side)
 
 - **Modifier:** Walls cannot be placed by the player.
 - **Hazards:** Two indestructible wall-pillars on **c3 and c4** (a vertical center-file pillar that splits the 5-file board down the middle — same intent as the d4/e5 pillars on 8×8: split the board, force play around the pillars).
-- **Curses:** Whenever the player checks the boss, draws a *Stalwart* curse: "Your next move must be a non-checking move."
+- **Curses:** Whenever the player checks the boss, draws a *Throttled* curse: "Your next move must be a non-checking move."
 
 Teaches: bosses break your assumptions; play around fixed hazards; sometimes cards are disabled.
 
 Note: with only 9 pieces per side and the two central walls, mate paths get tight. Rebalance check during playtest — if Boss A becomes unwinnable, drop to a single wall pillar (c3 only).
 
-### Boss B — "The Gambit" (Act 2, match 6, 7×7, K + 7P + 2 N + 2 B + 2 R per side)
+### Boss B — "The Whale" (Act 2, match 6, 7×7, K + 7P + 2 N + 2 B + 2 R per side)
 
 - **Modifier:** Captures grant the *captured* side +1 energy next turn.
 - **Hazards:** A boss-controlled zone-buff square at **d1** (the center of the player's back rank on a 7-file board). Granting boss +1 energy. Player must contest it.
-- **Curses:** Every 4 turns, draws a *Greed* curse: "Capture an enemy piece this turn, or lose 1 energy next turn."
+- **Curses:** Every 4 turns, draws a *Memory Leak* curse: "Capture an enemy piece this turn, or lose 1 energy next turn."
 
 Teaches: not all captures are good. Pressure piece economy.
 
-### Boss C — "The Final Mind" (Act 3, match 9, 8x8, full armies + queen)
+### Boss C — "The Singularity" (Act 3, match 9, 8x8, full armies + queen)
 
 - **Modifier:** Promotion is disabled. Player's pawns cannot promote.
 - **Hazards:** A 2x2 "void" in the center (e4, e5, d4, d5) that destroys any piece ending its turn there.
 - **Curses:** Multiple triggers:
-   - Turn 1: *Final Resolve* — "You may not play any 0-cost cards this turn."
+   - Turn 1: *Hardened* — "You may not play any 0-cost cards this turn."
    - On player check: *Echo* — "The boss makes an extra move this turn."
-   - Every 5 turns: *Inevitability* — "Choose one of your minor pieces; it is captured."
+   - Every 5 turns: *Bit Rot* — "Choose one of your minor pieces; it is captured."
 
 Teaches: the finale stresses every system. Decks must be tuned to handle multiple constraints simultaneously.
 

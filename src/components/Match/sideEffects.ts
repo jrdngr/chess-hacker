@@ -147,7 +147,7 @@ export function applyCardSideEffects(
     } else if (fx.kind === "revive-prompt") {
       onRevivePrompt();
     } else if (fx.kind === "remove-random-own-minor") {
-      // Inevitability (Boss C). Pick uniformly at random from the player's
+      // Bit Rot (Boss C). Pick uniformly at random from the player's
       // knights and bishops. No-op if the player has none — the curse still
       // resolves but does nothing, which matches "destroy a minor piece if
       // you have one".

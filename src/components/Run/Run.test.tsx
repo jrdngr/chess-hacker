@@ -14,11 +14,11 @@ describe("Run — Standard boss preview", () => {
 
     // The preview panel announces itself with its `aria-label`.
     expect(screen.getByLabelText(/boss preview/i)).toBeInTheDocument();
-    expect(screen.getByText(/the iron garrison/i)).toBeInTheDocument();
+    expect(screen.getByText(/the firewall/i)).toBeInTheDocument();
     expect(screen.getByText(/cannot place walls/i)).toBeInTheDocument();
-    // Hazard squares + Stalwart curse description appear in the spec list.
+    // Hazard squares + Throttled curse description appear in the spec list.
     expect(screen.getByText(/c3, c4/)).toBeInTheDocument();
-    expect(screen.getByText(/Stalwart/)).toBeInTheDocument();
+    expect(screen.getByText(/Throttled/)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /continue/i }));
     // Match phase rendered the dev-toggle (run-mode side button).

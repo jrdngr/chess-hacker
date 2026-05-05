@@ -1,6 +1,6 @@
 // Reusable card-list dialog primitive.
 //
-// All three of the existing modals (Foresight scry, Recover revive, draw /
+// All three of the existing modals (Stack Trace scry, Restore from Backup revive, draw /
 // spent inspector) share the same shape: a backdrop, a titled card-list, and
 // an action footer. M5 (reward + shop), M8 (boss preview), and any future
 // pile-style picker can ride on this same primitive.

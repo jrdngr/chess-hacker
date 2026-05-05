@@ -6,7 +6,7 @@ The milestones are roughly sequential — each builds on the previous — but se
 
 ## Status as of 2026-05-05
 
-The chess core, card system, walls, dev sandbox, the full square-effect overlay set (sanctuaries / traps / zone-control buffs), the M5 run loop (3-match Royal mini-run + shop + reward), M6 artifacts (pool + shop offers + trigger system + sidebar), M7 zone-control buffs, the M8 first boss (Boss A — "The Iron Garrison"), and M9 (full Standard run with Boss B "The Gambit" and Boss C "The Final Mind" wired end-to-end) are built. The remaining work is Skirmish (M10).
+The chess core, card system, walls, dev sandbox, the full square-effect overlay set (sanctuaries / traps / zone-control buffs), the M5 run loop (3-match Royal mini-run + shop + reward), M6 artifacts (pool + shop offers + trigger system + sidebar), M7 zone-control buffs, the M8 first boss (Boss A — "The Firewall"), and M9 (full Standard run with Boss B "The Whale" and Boss C "The Singularity" wired end-to-end) are built. The remaining work is Skirmish (M10).
 
 Already shipped:
 
@@ -18,8 +18,8 @@ Already shipped:
 - **Square effects.** Sanctuaries, traps, and zone-control buffs are all stored, triggered, and rendered with hover info on the board. Zone-buffs add a teal aura on every square in the buff's region (paler when the region is uncontrolled), an anchor ring on the source square, and a "Zone buffs" sidebar block listing each active buff and its remaining lifetime.
 - **Tooltips.** Square / piece tooltips on the board (commit `80d3ee7`).
 - **Run loop + shop (M5).** Top-level Royal mode kicks off a 3-match mini-run in `src/components/Run/`. State machine + reward generation in `src/game/progression/run.ts`; shop / reroll / removal / interest in `src/game/shop/shop.ts`. Post-match draft (1-of-3) with skip-for-gold, then a shop with rotating card / booster offers, reroll service (per-shop scaling), card removal (per-run scaling), and Balatro-style interest tally on shop close.
-- **First boss (M8).** Boss A — "The Iron Garrison" — runs end-to-end in Standard mode. Boss definitions and curse triggers live in `src/game/bosses/`; Match.tsx wires the modifier (no player walls), permanent hazard walls (c3 / c4), and the trigger-based curse scheduler. The Run shell prepends a boss-preview phase at act start and gates a 1-of-3 boss-tier artifact pick onto the post-boss reward step.
-- **Acts 2 + 3 bosses (M9).** Boss B — "The Gambit" (7×7) — modifier `captures-grant-captured-energy` queues +1 energy for the player on the next turn after their pieces are captured; pre-placed `Throne` zone-buff at d1 grants +1 energy/turn while the player holds it; `Greed` curse fires every 4 turns and bills 1 energy on the next turn unless the player captured. Boss C — "The Final Mind" (8×8) — modifier `no-promotion` strips promotion candidates from legal moves; a 2x2 void at d4/d5/e4/e5 destroys any piece ending its turn there; three curses (`Final Resolve` on turn 1, `Echo` on player check, `Inevitability` every 5 turns). Echo grants the boss an extra chess move via the `bossExtraMoves` counter; Inevitability removes a random own minor piece. New `MatchRules.noPromotion` flag and turn-scoped state (`pendingEnergyLossOnNoCapture`, `capturedThisTurn`, `noZeroCostCardsThisTurn`, `bossExtraMoves`, `pendingPlayerEnergyOnTurnStart`) all reset on `startPlayerTurn`.
+- **First boss (M8).** Boss A — "The Firewall" — runs end-to-end in Standard mode. Boss definitions and curse triggers live in `src/game/bosses/`; Match.tsx wires the modifier (no player walls), permanent hazard walls (c3 / c4), and the trigger-based curse scheduler. The Run shell prepends a boss-preview phase at act start and gates a 1-of-3 boss-tier artifact pick onto the post-boss reward step.
+- **Acts 2 + 3 bosses (M9).** Boss B — "The Whale" (7×7) — modifier `captures-grant-captured-energy` queues +1 energy for the player on the next turn after their pieces are captured; pre-placed `Server Farm` zone-buff at d1 grants +1 energy/turn while the player holds it; `Memory Leak` curse fires every 4 turns and bills 1 energy on the next turn unless the player captured. Boss C — "The Singularity" (8×8) — modifier `no-promotion` strips promotion candidates from legal moves; a 2x2 void at d4/d5/e4/e5 destroys any piece ending its turn there; three curses (`Hardened` on turn 1, `Echo` on player check, `Bit Rot` every 5 turns). Echo grants the boss an extra chess move via the `bossExtraMoves` counter; Bit Rot removes a random own minor piece. New `MatchRules.noPromotion` flag and turn-scoped state (`pendingEnergyLossOnNoCapture`, `capturedThisTurn`, `noZeroCostCardsThisTurn`, `bossExtraMoves`, `pendingPlayerEnergyOnTurnStart`) all reset on `startPlayerTurn`.
 
 State management note: zustand was planned and skipped — match state currently lives in `Match.tsx` with `useState`. Adopt zustand only if cross-component state grows painful.
 
@@ -87,14 +87,14 @@ Live in `src/game/overlays/zoneBuffs.ts` plus card / artifact / Match wiring.
 - Region patterns: anchored `square-orthogonal-1` / `square-radius-1` (used by cards) and absolute `rank` (used by artifacts).
 - Buff effects: `energy-per-turn` and `hand-size`. Both fold into `startPlayerTurn` / `refillHand` only when the controlling side has at least one piece on a region square.
 - Aura UI: every region square gets a teal tint when controlled / paler grey when not, plus an anchor ring on the source square. The Match sidebar adds a "Zone buffs" block listing every buff with its source label, effect, active state, and remaining lifetime.
-- New card: `Standing Stone` (cost 2, uncommon, spatial). Places a `square-orthogonal-1` zone-buff that grants +1 energy/turn while you have a friendly piece on the buff square or any orthogonal neighbour. Lasts 4 turns.
-- New artifact: `Vanguard Banner` (uncommon). Grants a permanent rank-4 zone-buff: hand size +1 while you have a friendly piece on rank 4.
+- New card: `Power Node` (cost 2, uncommon, spatial). Places a `square-orthogonal-1` zone-buff that grants +1 energy/turn while you have a friendly piece on the buff square or any orthogonal neighbour. Lasts 4 turns.
+- New artifact: `Foothold` (uncommon). Grants a permanent rank-4 zone-buff: hand size +1 while you have a friendly piece on rank 4.
 
 **Done when:** placing a zone-buff square grants the documented adjacency effect, and the aura renders in the board UI. ✅ (Boss B will lean on this in M9.)
 
 ## M8 — First boss [done]
 
-Boss A — "The Iron Garrison" — is live end-to-end and validates the
+Boss A — "The Firewall" — is live end-to-end and validates the
 modifier+hazard+curse pattern for Boss B / C in M9.
 
 - `BossDef` shape (modifier kind + permanent hazard walls + curse schedule),
@@ -109,7 +109,7 @@ modifier+hazard+curse pattern for Boss B / C in M9.
   start-of-turn lifetime tick; Boss A spawns c3 / c4 pillars on its 5×6 board.
 - New curse semantics in `playCard` / `refillHand`: curses cost 0, vanish on
   play (no consumed-pile entry), and don't count toward the hand-size cap.
-- Stalwart curse: cost-0 `next-move-constraint` effect that sets the new
+- Throttled curse: cost-0 `next-move-constraint` effect that sets the new
   `mustNotCheckNextMove` flag; `engine.wouldDeliverCheck()` filters it out
   of the player's legal-move set until satisfied.
 - Boss-reward flow: large gold (`WIN_BONUS_BOSS = 25`) + 1-of-3 artifact

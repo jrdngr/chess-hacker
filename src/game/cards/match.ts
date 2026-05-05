@@ -149,7 +149,7 @@ function zoneBuffsFromArtifacts(artifacts: ReadonlyArray<Artifact>): ZoneBuff[] 
  * cap only applies to the start-of-turn auto-refill (see `refillHand`).
  *
  * Drawn cards become hand slots with `retained: false`; Retain is applied
- * later by Stash (see `applyEffect` for `apply-retain-to-hand-card`).
+ * later by Bookmark (see `applyEffect` for `apply-retain-to-hand-card`).
  */
 export function drawCards(
   state: MatchCardState,
@@ -254,7 +254,7 @@ export function startPlayerTurn(
   // doesn't grant its bonus on its own expiry tick.
   const tickedState: MatchCardState = { ...state, zoneBuffs: liveZoneBuffs };
   const zoneEnergyBonus = zoneBuffsEnergyPerTurnFor(tickedState, ctx);
-  // Boss B / Greed: if the curse left a pending penalty and no capture
+  // Boss B / Memory Leak: if the curse left a pending penalty and no capture
   // happened between then and now, take 1 energy. The flag is cleared
   // whether or not it triggered.
   const greedPenalty = state.pendingEnergyLossOnNoCapture && !state.capturedThisTurn ? 1 : 0;
@@ -288,7 +288,7 @@ export function startPlayerTurn(
     empowers: alive(state.empowers),
     sanctuaries: alive(state.sanctuaries),
     traps: alive(state.traps),
-    // The Stalwart curse's must-not-check flag is consumed by the chess
+    // The Throttled curse's must-not-check flag is consumed by the chess
     // move it constrains; if the player skipped the move (e.g. the curse
     // was played late and no move followed), the start of the next turn
     // is the natural place to clear it.
@@ -328,7 +328,7 @@ export function insertCurseIntoHand(state: MatchCardState, card: Card): MatchCar
  * Where the player has aimed the card. The kind matches what the card asked
  * for (see `Card.target`); the resolver double-checks against the board.
  *
- * `two-squares` covers both Switch Files (two own pieces) and Marionette
+ * `two-squares` covers both Switch Files (two own pieces) and Remote Access
  * (enemy piece + destination); the card's target.kind disambiguates.
  */
 export type PlayTarget =
@@ -375,7 +375,7 @@ export type CardSideEffect =
   | { kind: "add-card-to-hand"; card: Card }
   | { kind: "add-card-to-draw"; card: Card }
   | { kind: "revive-prompt" }
-  /** Inevitability (Boss C): destroy a random own minor piece. */
+  /** Bit Rot (Boss C): destroy a random own minor piece. */
   | { kind: "remove-random-own-minor" };
 
 export type PlayCardResult =
@@ -396,7 +396,7 @@ export type PlayCardFailure =
   | "target-not-distinct"
   | "target-not-in-own-half"
   | "target-not-empty-or-walled"
-  | "target-soul-same-piece-type"
+  | "target-patch-same-piece-type"
   | "target-hand-card-out-of-range"
   | "target-hand-card-self"
   | "target-hand-card-curse"
@@ -441,7 +441,7 @@ export function playCard(
   }
   const cost = effectiveCardCost(card, state.artifacts ?? []);
   if (state.energy < cost) return { ok: false, reason: "not-enough-energy" };
-  // Final Resolve (Boss C): once the curse has resolved this turn, no further
+  // Hardened (Boss C): once the curse has resolved this turn, no further
   // 0-cost cards may be played. Curses themselves are exempt — the player
   // can't voluntarily discard them, so blocking curse plays would soft-lock
   // the hand.
@@ -545,7 +545,7 @@ function validateTarget(
         card.effect.singleUse === true &&
         card.effect.pattern === p.type
       ) {
-        return "target-soul-same-piece-type";
+        return "target-patch-same-piece-type";
       }
       return null;
     }
@@ -856,9 +856,9 @@ function applyEffect(
       };
     }
     case "pending-energy-loss-on-no-capture": {
-      // Greed (Boss B). If no capture happens before the next turn starts,
+      // Memory Leak (Boss B). If no capture happens before the next turn starts,
       // -1 energy at start-of-turn. The amount is folded into the flag's
-      // single-turn lifetime; multiple Greed plays in one turn are no-ops
+      // single-turn lifetime; multiple Memory Leak plays in one turn are no-ops
       // beyond the first since the flag is binary. Acceptable: Boss B's
       // schedule (every 4 turns) prevents stacking in practice.
       return { state: { ...state, pendingEnergyLossOnNoCapture: true }, sideEffects: [] };
@@ -874,7 +874,7 @@ function applyEffect(
       };
     }
     case "capture-random-own-minor": {
-      // Inevitability (Boss C). Pick a random own minor piece (knight or
+      // Bit Rot (Boss C). Pick a random own minor piece (knight or
       // bishop). The actual board removal is wired up by Match.tsx via the
       // `remove-piece` side effect — playCard is pure and only sees the
       // BoardContext, so we delegate the random choice through a side effect
@@ -885,7 +885,7 @@ function applyEffect(
       };
     }
     case "apply-retain-to-hand-card": {
-      // Stash. Validation already ensured the index is in range, not the
+      // Bookmark. Validation already ensured the index is in range, not the
       // playing slot, not a curse, and not already retained.
       if (target.kind !== "hand-card") return { state, sideEffects: [] };
       const hand = state.hand.map((slot, i) =>
@@ -1042,7 +1042,7 @@ export function clearStatusesOn(state: MatchCardState, square: AlgebraicSquare):
 
 /**
  * Replace the top N of the draw pile with a custom-ordered subset.
- * Used by the Foresight (scry) UI when the player commits a new order.
+ * Used by the Stack Trace (scry) UI when the player commits a new order.
  */
 export function setDeckTop(state: MatchCardState, top: Card[]): MatchCardState {
   // The caller supplies exactly the same set of cards that were on top.
@@ -1093,7 +1093,7 @@ export function dropOtherSingleUseEmpowers(
 
 /**
  * Splice `card` into the draw pile at a random index. Used by capture-grants-
- * Soul (see `grantSoulOnCapture`) and by the `add-card-to-draw` card effect.
+ * Patch (see `grantPatchOnCapture`) and by the `add-card-to-draw` card effect.
  */
 export function shuffleIntoDraw(
   state: MatchCardState,
@@ -1109,7 +1109,7 @@ export function shuffleIntoDraw(
 /**
  * Return the cards still in the draw pile, ordered by acquisition rather
  * than by upcoming draw order. Used by the Draw-pile inspector. Handles
- * duplicate references (e.g., a starter deck with three Foresights all
+ * duplicate references (e.g., a starter deck with three Stack Traces all
  * pointing to the same Card object) via a multiset walk.
  */
 export function drawPileInAcquisitionOrder(state: MatchCardState): Card[] {
@@ -1129,7 +1129,7 @@ export function drawPileInAcquisitionOrder(state: MatchCardState): Card[] {
 /**
  * Append `card` to the hand. No HAND_SIZE enforcement — the cap is only
  * applied at start-of-turn refill; transient overflow is allowed. Added
- * cards are not retained by default; Stash is the way to grant Retain.
+ * cards are not retained by default; Bookmark is the way to grant Retain.
  */
 export function addToHand(state: MatchCardState, card: Card): MatchCardState {
   return { ...state, hand: [...state.hand, { card, retained: false }] };
@@ -1150,14 +1150,14 @@ export function completeRevive(state: MatchCardState, cardIndex: number): MatchC
 }
 
 /**
- * Capture-grants-Soul: when the player captures an enemy non-king piece,
- * splice the matching Soul card into the player's draw pile. No-op for
+ * Capture-grants-Patch: when the player captures an enemy non-king piece,
+ * splice the matching Patch card into the player's draw pile. No-op for
  * opponent captures, missing pieces, or kings (which can't be captured).
  *
- * The mapping (pawn/knight/bishop/rook/queen → corresponding Soul) is
- * fixed; missing soul cards in the library no-op safely.
+ * The mapping (pawn/knight/bishop/rook/queen → corresponding Patch) is
+ * fixed; missing patch cards in the library no-op safely.
  */
-export function grantSoulOnCapture(
+export function grantPatchOnCapture(
   state: MatchCardState,
   captured: Piece | null,
   by: Side,
@@ -1165,21 +1165,21 @@ export function grantSoulOnCapture(
 ): MatchCardState {
   if (by !== "player") return state;
   if (!captured || captured.side !== "opponent") return state;
-  const soulId = SOUL_BY_PIECE_TYPE[captured.type];
-  if (!soulId) return state;
-  let soul: Card;
+  const patchId = PATCH_BY_PIECE_TYPE[captured.type];
+  if (!patchId) return state;
+  let patch: Card;
   try {
-    soul = cloneCardDef(getCardById(soulId));
+    patch = cloneCardDef(getCardById(patchId));
   } catch {
     return state;
   }
-  return shuffleIntoDraw(state, soul, rng);
+  return shuffleIntoDraw(state, patch, rng);
 }
 
-const SOUL_BY_PIECE_TYPE: Partial<Record<PieceType, CardId>> = {
-  pawn: "pawn-soul",
-  knight: "knight-soul",
-  bishop: "bishop-soul",
-  rook: "rook-soul",
-  queen: "queen-soul",
+const PATCH_BY_PIECE_TYPE: Partial<Record<PieceType, CardId>> = {
+  pawn: "pawn-patch",
+  knight: "knight-patch",
+  bishop: "bishop-patch",
+  rook: "rook-patch",
+  queen: "queen-patch",
 };

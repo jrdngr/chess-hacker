@@ -1,4 +1,4 @@
-// Recover modal — pick a card from the consumed pile to return to hand.
+// Restore from Backup modal — pick a card from the consumed pile to return to hand.
 
 import type { Card } from "../../game/types";
 import { CardListModal } from "./CardListModal";

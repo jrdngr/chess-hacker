@@ -1,0 +1,11 @@
+{
+  "id": "knight-patch",
+  "name": "Knight Patch",
+  "cost": 3,
+  "rarity": "rare",
+  "archetype": "movement",
+  "consume": true,
+  "description": "Patch one of your pieces with knight behavior this turn: it gains the knight L-shape as an additional movement pattern. Lost if you move a different piece first. Consume.",
+  "target": { "kind": "own-piece" },
+  "effect": { "kind": "empower-piece", "pattern": "knight", "singleUse": true }
+}

@@ -1,0 +1,8 @@
+{
+  "id": "bug-bounty",
+  "name": "Bug Bounty",
+  "rarity": "common",
+  "description": "When you capture an enemy piece, gain 1 energy this turn.",
+  "emoji": "🐛",
+  "effects": [{ "kind": "energy-on-capture", "amount": 1 }]
+}

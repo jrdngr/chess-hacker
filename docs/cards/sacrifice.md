@@ -4,7 +4,7 @@ Sacrifice cards destroy one of your own pieces in exchange for a strong effect. 
 
 See [`keywords.md`](keywords.md) for keyword definitions.
 
-## Martyr's Gift
+## kill -9
 
 - **Cost:** 1
 - **Rarity:** Uncommon

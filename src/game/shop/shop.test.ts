@@ -23,7 +23,7 @@ import {
 import { allArtifacts, getArtifactById } from "../artifacts/library";
 import { ARTIFACT_SLOT_CAP } from "../types";
 import { createRun } from "../progression/run";
-import { FROSTBITE } from "../cards/library";
+import { FREEZE_PROCESS } from "../cards/library";
 
 describe("pricing helpers", () => {
   it("rerollCostFor scales linearly per shop visit", () => {
@@ -69,7 +69,7 @@ describe("generateShop", () => {
   });
 
   it("never offers artifacts the player already owns", () => {
-    const owned = getArtifactById("stone-hourglass");
+    const owned = getArtifactById("extra-ram");
     const baseRun = createRun({ mode: "royal", rngSeed: 9 });
     const run = { ...baseRun, artifacts: [owned] };
     for (let seed = 0; seed < 20; seed++) {
@@ -237,8 +237,8 @@ describe("booster packs", () => {
 
   it("addPickedPackCard appends the chosen card to the run deck", () => {
     const run = createRun({ mode: "royal", rngSeed: 1 });
-    const next = addPickedPackCard(run, FROSTBITE);
+    const next = addPickedPackCard(run, FREEZE_PROCESS);
     expect(next.deck.length).toBe(run.deck.length + 1);
-    expect(next.deck[next.deck.length - 1].id).toBe(FROSTBITE.id);
+    expect(next.deck[next.deck.length - 1].id).toBe(FREEZE_PROCESS.id);
   });
 });

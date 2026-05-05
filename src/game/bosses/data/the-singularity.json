@@ -1,0 +1,15 @@
+{
+  "id": "the-singularity",
+  "name": "The Singularity",
+  "matchNumber": 9,
+  "modifier": { "kind": "no-promotion" },
+  "modifierDescription": "Your pawns cannot promote.",
+  "hazardWalls": [],
+  "voidSquares": ["d4", "d5", "e4", "e5"],
+  "curses": [
+    { "trigger": { "kind": "turn", "turn": 1 }, "curseId": "hardened" },
+    { "trigger": { "kind": "on-player-check" }, "curseId": "echo" },
+    { "trigger": { "kind": "every-n-turns", "n": 5 }, "curseId": "bit-rot" }
+  ],
+  "description": "Memory falls away at the center. Your pawns won't promote — find your move now, or lose it to the void."
+}

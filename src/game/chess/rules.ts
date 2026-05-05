@@ -115,8 +115,8 @@ export type Overlays = {
   sanctuaries?: ReadonlySet<AlgebraicSquare>;
   /**
    * Pieces with one or more additional movement patterns.
-   * Multiple Soul cards can stack on the same piece (e.g. Knight Soul +
-   * Bishop Soul); the value is the set of granted patterns.
+   * Multiple Patch cards can stack on the same piece (e.g. Knight Patch +
+   * Bishop Patch); the value is the set of granted patterns.
    */
   empowers?: ReadonlyMap<AlgebraicSquare, ReadonlySet<EmpowerPattern>>;
 };
@@ -459,7 +459,7 @@ export function pseudoLegalMoves(
     addPieceMoves(moves, sq, piece, pos, overlays);
 
     // Empower: append additional movement pattern(s). A piece can have
-    // multiple patterns stacked on it (e.g. via multiple Soul cards).
+    // multiple patterns stacked on it (e.g. via multiple Patch cards).
     const patterns = empowers(overlays).get(sq);
     if (patterns) {
       for (const pattern of patterns) addEmpowerMoves(moves, sq, piece, pos, overlays, pattern);

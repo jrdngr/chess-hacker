@@ -1,0 +1,10 @@
+{
+  "id": "stack-trace",
+  "name": "Stack Trace",
+  "cost": 1,
+  "rarity": "common",
+  "archetype": "resource",
+  "description": "Look at the top 3 cards of your deck; put them back in any order.",
+  "target": { "kind": "none" },
+  "effect": { "kind": "scry", "count": 3 }
+}

@@ -1,0 +1,11 @@
+{
+  "id": "format-c",
+  "name": "Format C:",
+  "cost": 10,
+  "rarity": "rare",
+  "archetype": "burst",
+  "consume": true,
+  "description": "Destroy any enemy non-King piece. Save up. Consume.",
+  "target": { "kind": "enemy-non-king-piece" },
+  "effect": { "kind": "destroy-piece", "filter": "any" }
+}

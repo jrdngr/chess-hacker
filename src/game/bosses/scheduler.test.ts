@@ -6,10 +6,10 @@ import type { CurseScheduleEntry } from "../types";
 describe("curse scheduler", () => {
   it("fires `on-player-check` triggers exactly once per check event", () => {
     const schedule: CurseScheduleEntry[] = [
-      { trigger: { kind: "on-player-check" }, curseId: "stalwart" },
+      { trigger: { kind: "on-player-check" }, curseId: "throttled" },
     ];
     const a = fireCurses(schedule, makeSchedulerState(), { kind: "player-check", turn: 2 });
-    expect(a.curseIds).toEqual(["stalwart"]);
+    expect(a.curseIds).toEqual(["throttled"]);
 
     // Same turn — once-per-turn cap blocks a second insertion.
     const b = fireCurses(schedule, a.next, { kind: "player-check", turn: 2 });
@@ -17,17 +17,17 @@ describe("curse scheduler", () => {
 
     // New turn — fires again.
     const c = fireCurses(schedule, b.next, { kind: "player-check", turn: 3 });
-    expect(c.curseIds).toEqual(["stalwart"]);
+    expect(c.curseIds).toEqual(["throttled"]);
   });
 
   it("`turn` triggers fire only on their target turn and only once per match", () => {
     const schedule: CurseScheduleEntry[] = [
-      { trigger: { kind: "turn", turn: 1 }, curseId: "final-resolve" },
+      { trigger: { kind: "turn", turn: 1 }, curseId: "hardened" },
     ];
     let s = makeSchedulerState();
 
     const t0 = fireCurses(schedule, s, { kind: "turn-start", turn: 1 });
-    expect(t0.curseIds).toEqual(["final-resolve"]);
+    expect(t0.curseIds).toEqual(["hardened"]);
     s = t0.next;
 
     // Same turn, capped (would be redundant anyway since we already fired).
@@ -42,14 +42,14 @@ describe("curse scheduler", () => {
 
   it("`every-n-turns` fires on multiples of n only", () => {
     const schedule: CurseScheduleEntry[] = [
-      { trigger: { kind: "every-n-turns", n: 4 }, curseId: "greed" },
+      { trigger: { kind: "every-n-turns", n: 4 }, curseId: "memory-leak" },
     ];
     let s = makeSchedulerState();
     for (let turn = 1; turn <= 8; turn++) {
       const r = fireCurses(schedule, s, { kind: "turn-start", turn });
       s = r.next;
       if (turn === 4 || turn === 8) {
-        expect(r.curseIds).toEqual(["greed"]);
+        expect(r.curseIds).toEqual(["memory-leak"]);
       } else {
         expect(r.curseIds).toEqual([]);
       }
@@ -58,12 +58,12 @@ describe("curse scheduler", () => {
 
   it("once-per-turn cap blocks check curse when a turn-start curse already fired", () => {
     const schedule: CurseScheduleEntry[] = [
-      { trigger: { kind: "every-n-turns", n: 1 }, curseId: "greed" },
-      { trigger: { kind: "on-player-check" }, curseId: "stalwart" },
+      { trigger: { kind: "every-n-turns", n: 1 }, curseId: "memory-leak" },
+      { trigger: { kind: "on-player-check" }, curseId: "throttled" },
     ];
     let s = makeSchedulerState();
     const a = fireCurses(schedule, s, { kind: "turn-start", turn: 1 });
-    expect(a.curseIds).toEqual(["greed"]);
+    expect(a.curseIds).toEqual(["memory-leak"]);
     s = a.next;
     const b = fireCurses(schedule, s, { kind: "player-check", turn: 1 });
     expect(b.curseIds).toEqual([]);

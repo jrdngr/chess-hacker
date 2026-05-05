@@ -166,7 +166,7 @@ export class ChoseEngine {
    * Whether `square` is attacked by any piece on `by`'s side under the
    * current overlays. Thin pass-through to the rule layer; used by cards
    * that filter targets by what the player's pieces are threatening
-   * (e.g. Cheap Destroy).
+   * (e.g. Exploit).
    */
   isSquareAttackedBy(square: AlgebraicSquare, by: Side): boolean {
     return isSquareAttacked(this.position, this.overlays, square, by);
@@ -234,7 +234,7 @@ export class ChoseEngine {
 
   /**
    * Place a new piece on an empty square. Used by Summon cards (e.g.,
-   * Knight Soul). Throws if the square is already occupied. Does NOT
+   * Knight Patch). Throws if the square is already occupied. Does NOT
    * flip the turn or record history; the caller is still on the same turn.
    */
   placePiece(square: AlgebraicSquare, piece: Piece): void {
@@ -278,7 +278,7 @@ export class ChoseEngine {
   }
 
   /**
-   * Force the side-to-move. Used by Haste / Quickstep to grant a second
+   * Force the side-to-move. Used by Haste / Overclock to grant a second
    * action to the player after their first move (which would have otherwise
    * flipped the turn to the opponent). Does not record history.
    */
@@ -305,7 +305,7 @@ export class ChoseEngine {
   }
 
   /**
-   * Legal moves *as if it were the other side's turn*. Used by Marionette
+   * Legal moves *as if it were the other side's turn*. Used by Remote Access
    * to enumerate the puppet target's options while the player is still
    * mid-turn. Restores the original turn before returning.
    */
@@ -322,7 +322,7 @@ export class ChoseEngine {
 
   /**
    * Apply a move as if the *other* side made it, while it's still the
-   * current side's turn. Used by Marionette (player makes the opponent
+   * current side's turn. Used by Remote Access (player makes the opponent
    * move) and Trap (push) (push the opponent piece back). Returns the
    * resulting LegalMove descriptor, or null if the move is illegal under
    * the foreign side's rules. After the foreign move resolves, the
@@ -366,7 +366,7 @@ export class ChoseEngine {
   }
 
   /**
-   * Whether `m` would put the opposing side in check. Used by the Stalwart
+   * Whether `m` would put the opposing side in check. Used by the Throttled
    * curse to filter the player's legal-move set down to non-checking moves.
    * Snapshot / apply / inspect / restore — the engine is left untouched.
    */

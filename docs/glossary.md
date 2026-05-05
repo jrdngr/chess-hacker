@@ -21,11 +21,11 @@ Terms used across the choss design and technical docs.
 | **Consume**         | Card-flow keyword: a played card with Consume is removed from the match (lands in the consumed pile) and is not eligible for revival. |
 | **Discard pile**    | Where played cards without Consume land at the moment they're played, plus the end-of-turn hand wipe. Reshuffles into the draw pile when it empties mid-draw. |
 | **Consumed pile**   | Where Consume-keyworded cards land when played. Cards here never re-enter the cycle. |
-| **Retain**          | Card-flow keyword: a card with Retain stays in your hand at end-of-turn discards until played. Granted dynamically by Stash; no card has inherent Retain in the prototype. |
-| **Revive**          | A card effect that returns a card from the discard pile to your hand (Recall, Recover). Cannot reach into the consumed pile. |
-| **Rooted**          | Status keyword: enemy piece cannot move on its next turn except to capture (alias for Root). Also used by Vine Pull as a target filter. |
-| **Soul card**       | One of five (Pawn / Knight / Bishop / Rook / Queen) Empower cards granted to your draw pile when you capture the matching enemy piece. All Souls have Consume. |
-| **Stash**           | Resource card: applies Retain to a chosen card in hand for the rest of the match. |
+| **Retain**          | Card-flow keyword: a card with Retain stays in your hand at end-of-turn discards until played. Granted dynamically by Bookmark; no card has inherent Retain in the prototype. |
+| **Revive**          | A card effect that returns a card from the discard pile to your hand (Restore Point, Restore from Backup). Cannot reach into the consumed pile. |
+| **Rooted**          | Status keyword: enemy piece cannot move on its next turn except to capture (alias for Root). Also used by Extract as a target filter. |
+| **Patch card**       | One of five (Pawn / Knight / Bishop / Rook / Queen) Empower cards granted to your draw pile when you capture the matching enemy piece. All Patches have Consume. |
+| **Bookmark**           | Resource card: applies Retain to a chosen card in hand for the rest of the match. |
 | **FIDE**            | The international chess federation; "FIDE rules" = the standard chess rules baseline.   |
 | **Freeze**          | Status keyword: enemy piece cannot move or capture on its next turn.                    |
 | **Haste**           | Buff keyword: own piece may move a second time this turn but may not capture.           |
