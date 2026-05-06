@@ -280,6 +280,15 @@ export function Run({ mode, onExit, rngSeed }: Props) {
     setExtras((e) => ({ ...e, finalSnapshot: snap }));
   };
 
+  // Dev-panel rewind past match-end: undo the run-side mirror of `onMatchEnd`
+  // so the player can retry the losing line. `lost` reverts to `match`;
+  // pendingWin (a yet-to-be-confirmed win) and the captured final snapshot
+  // both clear so a redo can re-fire them cleanly.
+  const onRevertMatchEnd = () => {
+    setExtras((e) => ({ ...e, pendingWin: null, finalSnapshot: null }));
+    setRun((r) => (r.phase === "lost" ? { ...r, phase: "match" } : r));
+  };
+
   const onConfirmWin = () => {
     if (!extras.pendingWin) return;
     const outcome = extras.pendingWin;
@@ -482,6 +491,7 @@ export function Run({ mode, onExit, rngSeed }: Props) {
             activeBoss={activeBossFor(run)}
             onMatchEnd={onMatchEnd}
             onCaptureFinalSnapshot={onCaptureFinalSnapshot}
+            onRevertMatchEnd={onRevertMatchEnd}
             endOfRunPanel={
               run.phase === "won" || run.phase === "lost" ? (
                 <RunSummary run={run} onExit={onExit} />

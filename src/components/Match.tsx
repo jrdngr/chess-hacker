@@ -246,6 +246,13 @@ type Props = {
     cardState: MatchCardState;
     size: BoardSize;
   }) => void;
+  /**
+   * Run mode: fires when a dev-panel undo rolls the engine back across a
+   * match-end boundary. The Run shell uses it to revert its own phase /
+   * pendingWin (which were advanced by the matching `onMatchEnd`) so the
+   * player can retry a losing line without leaving the run desynchronized.
+   */
+  onRevertMatchEnd?: () => void;
 };
 
 const DEFAULT_AI_MIN_THINK_MS = 500;
@@ -313,6 +320,7 @@ export function Match({
   initialEngineSnapshot,
   initialCardState,
   onCaptureFinalSnapshot,
+  onRevertMatchEnd,
 }: Props = {}) {
   // Dev mode forces the card system on (mode = "vs-ai"); the per-match
   // vs-AI / Local-PvP toggle is hidden in the side panel. The AI itself is
@@ -2317,11 +2325,13 @@ export function Match({
    * dev-mode action). Gated on aiThinking only: the player can rewind out
    * of a checkmate / stalemate to retry the losing line.
    */
-  // Run mode: once the match is over, the Run shell has already recorded the
-  // outcome (loss → "lost" phase, win → pendingWin awaiting reward step), so
-  // letting the player rewind into a different result would desynchronize
-  // the run state. Prototype / dev keep the rewind-out-of-checkmate trick.
-  const undoLockedByRunEnd = runMode === "run" && matchOver;
+  // Run mode without the dev panel: once the match is over, the Run shell
+  // has already recorded the outcome (loss → "lost" phase, win → pendingWin
+  // awaiting reward step), and we don't expose an undo button to the player.
+  // With the dev panel open we *do* allow rewinding past match-end so devs /
+  // testers can retry a losing line; `onRevertMatchEnd` rolls the run state
+  // back in lock-step. Prototype / dev keep the rewind-out-of-checkmate trick.
+  const undoLockedByRunEnd = runMode === "run" && matchOver && !devPanelEnabled;
   const canUndo = cardsEnabled && undoRedo.undoDepth >= 2 && !aiThinking && !undoLockedByRunEnd;
   const canRedo = cardsEnabled && undoRedo.redoDepth > 0 && !aiThinking && !undoLockedByRunEnd;
 
@@ -2335,13 +2345,22 @@ export function Match({
 
   const undo = useCallback(() => {
     if (!canUndo) return;
-    undoRedo.undo((cs, h) => {
+    // Capture before undo: if we were sitting on a terminal state that had
+    // already notified the run shell, rewinding past it must revert that
+    // notification too. matchEndedRef gets re-primed by the natural-outcome
+    // useEffect once the restored position is non-terminal.
+    const wasMatchEnded = runMode === "run" && matchEndedRef.current;
+    const popped = undoRedo.undo((cs, h) => {
       setCardState(cs);
       replaceHistory(h);
       clearTransientUI();
       setVersion((v) => v + 1);
     });
-  }, [canUndo, undoRedo, clearTransientUI, replaceHistory]);
+    if (popped && wasMatchEnded) {
+      matchEndedRef.current = false;
+      onRevertMatchEnd?.();
+    }
+  }, [canUndo, undoRedo, clearTransientUI, replaceHistory, runMode, onRevertMatchEnd]);
 
   const redo = useCallback(() => {
     if (!canRedo) return;
