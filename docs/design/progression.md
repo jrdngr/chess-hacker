@@ -17,10 +17,10 @@ There is **no branching map**. After each match, the player follows the same flo
 ```
 MATCH ENDS (player wins)
    ↓
-REWARD STEP
-   ├─ Card draft (1 of 3)         [or skip for gold]
-   ├─ Piece draft (1 of 3) — Skirmish only   [or skip for gold]
-   └─ Gold reward (win bonus + performance bonuses)
+[BOSS MATCHES ONLY] REWARD STEP
+   ├─ Boss boon (3 fixed options: +1 energy/turn, +1 draw/turn, delete 2 cards)
+   ├─ Boss artifact pick (1 of 3 from the boss-tier pool, or skip for gold)
+   └─ Gold reward (boss win bonus + performance bonuses)
    ↓
 SHOP STEP
    ├─ Single cards / booster packs / artifacts (rotating inventory)
@@ -32,7 +32,7 @@ SHOP STEP
 NEXT MATCH BEGINS
 ```
 
-After **boss matches**, the reward step also includes an **artifact pick** (1 of 3 from the boss-tier pool).
+Non-boss wins skip the reward step and go straight to the shop. **All cards are acquired in the shop** (singles + booster packs); there is no post-match card draft. Capturing an enemy piece during a match still grants the matching Patch card directly into your draw pile.
 
 ## Single-elimination
 
@@ -47,10 +47,9 @@ If the player **wins the act-3 boss**, the run is **won**. Run-win triggers cont
 A run targets **30–60 minutes** of total play time (highly variable based on player and chess pace, since there is no clock). Decisions per run:
 
 - 9 chess matches.
-- 9 card-draft choices (or skips).
 - 9 piece-draft choices (or skips) — Skirmish only.
-- 9 shop visits, each with reroll, buy, and removal sub-decisions.
-- 3 boss-artifact choices.
+- 9 shop visits, each with reroll, buy, and removal sub-decisions (all card acquisition flows through here).
+- 3 boss boon picks + 3 boss-artifact choices.
 
 This rhythm should feel snappy and not bloated. UI choices that minimize between-match friction are valued.
 

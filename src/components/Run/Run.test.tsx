@@ -33,8 +33,9 @@ describe("Run — Royal mini-run", () => {
     expect(screen.getByLabelText(/run progress/i)).toBeInTheDocument();
     // Match 1 of 3.
     expect(screen.getByText(/^1 \/ 3$/)).toBeInTheDocument();
-    // Starter deck is 20 cards (2 + 2 + 16 × 1) — see decks/starter.json.
-    expect(screen.getByText("20")).toBeInTheDocument();
+    // Starter deck is 12 cards (2× Freeze Process + 10 singletons) —
+    // see decks/starter.json.
+    expect(screen.getByText("12")).toBeInTheDocument();
   });
 
   it("Quit run button calls onExit", async () => {

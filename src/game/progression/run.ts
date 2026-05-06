@@ -26,7 +26,6 @@ import type {
   Card,
   CardId,
   CardRarity,
-  DraftOffer,
   RunConfig,
   RunMatchOutcome,
   RunMode,
@@ -36,14 +35,10 @@ import type {
 // ---- Tuning knobs (prototype starting values, see docs/design/economy.md) --
 
 /** Per-match gold reward for a normal (non-boss) win. */
-export const WIN_BONUS_NORMAL = 8;
+export const WIN_BONUS_NORMAL = 10;
 /** Per-match gold reward for a boss win — large bonus per docs/design/bosses.md. */
 export const WIN_BONUS_BOSS = 25;
 
-/** Number of cards offered in a post-match draft. */
-export const DRAFT_CARD_COUNT = 3;
-/** Gold awarded for skipping a card draft (constant across acts in M5). */
-export const SKIP_DRAFT_GOLD = 5;
 /** Number of artifacts offered in a boss-reward pick. */
 export const BOSS_ARTIFACT_COUNT = 3;
 /** Gold awarded for skipping a boss artifact pick. */
@@ -193,9 +188,10 @@ export function previewBossFor(state: RunState): BossDef | null {
 // ---- Match → reward transition ---------------------------------------------
 
 /**
- * Apply the outcome of a finished match. Winning advances to the reward
- * phase with gold + a draft offer prepared on the side. Losing transitions
- * to `phase: "lost"` and keeps the run readable for the loss screen.
+ * Apply the outcome of a finished match. Winning a non-boss match advances
+ * straight to the shop (cards are now shop-only — no card-draft step). Boss
+ * wins go through the reward phase for the boss-pick + boss-artifact picks
+ * and then to the shop. Losing transitions to `phase: "lost"`.
  *
  * Winning the final match short-circuits straight to `won` — there's no
  * next match to spend on, so the reward + shop steps would be cosmetic.
@@ -204,12 +200,13 @@ export function applyMatchOutcome(state: RunState, outcome: RunMatchOutcome): Ru
   if (!outcome.won) {
     return { ...state, phase: "lost" };
   }
-  const winGold = isBossMatch(state) ? WIN_BONUS_BOSS : WIN_BONUS_NORMAL;
+  const boss = isBossMatch(state);
+  const winGold = boss ? WIN_BONUS_BOSS : WIN_BONUS_NORMAL;
   const isFinalMatch = state.matchNumber >= totalMatches(state);
   return {
     ...state,
     gold: state.gold + winGold,
-    phase: isFinalMatch ? "won" : "reward",
+    phase: isFinalMatch ? "won" : boss ? "reward" : "shop",
   };
 }
 
@@ -270,17 +267,7 @@ export function pickRandomCards(count: number, rng: Rng): Card[] {
   return out;
 }
 
-// ---- Reward (post-match draft) ---------------------------------------------
-
-/** Generate a card-draft offer for the current run state. */
-export function generateDraftOffer(state: RunState): { offer: DraftOffer; next: RunState } {
-  const { rng, next } = consumeRng(state);
-  const cards = pickRandomCards(DRAFT_CARD_COUNT, rng);
-  return {
-    offer: { cards, skipGold: SKIP_DRAFT_GOLD },
-    next,
-  };
-}
+// ---- Reward (boss pick + boss artifact) ------------------------------------
 
 /**
  * Generate the boss-reward artifact offer. Skews rare per docs/design/bosses.md
@@ -298,16 +285,6 @@ export function generateBossArtifactOffer(state: RunState): {
     offer: { artifacts, skipGold: SKIP_BOSS_ARTIFACT_GOLD },
     next,
   };
-}
-
-/** Pick a card from the draft — adds it to the deck. */
-export function pickDraftCard(state: RunState, card: Card): RunState {
-  return { ...state, deck: [...state.deck, card] };
-}
-
-/** Skip the draft for gold instead. */
-export function skipDraft(state: RunState, skipGold: number): RunState {
-  return { ...state, gold: state.gold + skipGold };
 }
 
 /**

@@ -7,7 +7,7 @@ The card system is the central self-expression mechanic. Cards augment chess; th
 - **Hand size:** 5 cards.
 - **Draw timing:** at the **start of each player turn**, discard every non-curse, non-retained hand card into the discard pile, then draw until your hand is at 5. (A card played during a turn does not get refilled until the next turn unless an effect explicitly says so.)
 - **Run-start deck:** 20 cards — multiples of cheap utilities. See [`../cards/starter-deck.md`](../cards/starter-deck.md) for the composition and rationale.
-- **Adding to your deck:** post-match draft (pick 1 of 3) and shop purchases. Booster packs may grant 1+ cards. Capturing an enemy piece during a match grants the matching Patch card directly into your draw pile (see "Card economy" below).
+- **Adding to your deck:** the shop is the only source of new cards between matches — single-card offers and booster packs (open the pack, pick 1 from its contents). Capturing an enemy piece during a match grants the matching Patch card directly into your draw pile (see "Card economy" below). There is no post-match card draft.
 - **Removing from your deck:** shop card-removal service (scaling per use).
 
 ## Energy

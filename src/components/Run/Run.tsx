@@ -23,16 +23,12 @@ import {
   enterShop,
   generateBossArtifactOffer,
   generateBossPickOffer,
-  generateDraftOffer,
-  isBossMatch,
   leaveShop,
   nextMatchSetup,
   pickBossArtifact,
   pickBossOption,
-  pickDraftCard,
   previewBossFor,
   skipBossArtifact,
-  skipDraft,
   totalMatches,
 } from "../../game/progression/run";
 import { applyInterest, generateShop } from "../../game/shop/shop";
@@ -47,9 +43,7 @@ import type {
   BossDef,
   BossPickOffer,
   BossPickOption,
-  Card,
   CurseTrigger,
-  DraftOffer,
   MatchCardState,
   RunMatchOutcome,
   RunMode,
@@ -73,7 +67,6 @@ type Props = {
  * offer that was meant for the previous match.
  */
 type PhaseExtras = {
-  draftOffer: DraftOffer | null;
   shop: ShopState | null;
   /** Last-tally interest amount, shown briefly on the next match's banner. */
   lastInterest: number;
@@ -87,7 +80,6 @@ type PhaseExtras = {
   /**
    * Boss artifact offer for the current reward step. Populated when the
    * just-finished match was a boss; null after the player picks or skips.
-   * Reward UI shows the artifact picker first, then the regular card draft.
    */
   bossArtifactOffer: BossArtifactOffer | null;
   /**
@@ -99,7 +91,7 @@ type PhaseExtras = {
   /**
    * Boss-pick (Monster-Train-style 3 options) for the current reward step.
    * Populated on a boss win; null once the player resolves it. Resolution
-   * order: bossPick → bossArtifact → cardDraft.
+   * order: bossPick → bossArtifact → shop.
    */
   bossPickOffer: BossPickOffer | null;
   /**
@@ -132,7 +124,6 @@ type PhaseExtras = {
 export function Run({ mode, onExit, rngSeed }: Props) {
   const [run, setRun] = useState<RunState>(() => createRun({ mode, rngSeed }));
   const [extras, setExtras] = useState<PhaseExtras>({
-    draftOffer: null,
     shop: null,
     lastInterest: 0,
     matchSetup: null,
@@ -159,28 +150,20 @@ export function Run({ mode, onExit, rngSeed }: Props) {
       return;
     }
     if (run.phase === "reward") {
-      // Boss-pick (Monster-Train-style 3-option) is the very first thing the
-      // player sees on a boss win — it gates the artifact pick and the card
-      // draft. Non-boss rewards skip this and mark it resolved immediately.
+      // The reward phase is boss-only now — non-boss wins skip it via
+      // applyMatchOutcome. Resolution order: bossPick → bossArtifact → shop.
       if (!extras.bossPickResolved) {
-        if (isBossMatch(run)) {
-          if (extras.bossPickOffer === null) {
-            setExtras((e) => ({ ...e, bossPickOffer: generateBossPickOffer() }));
-            return;
-          }
-          // Offer is showing — wait for the player to resolve it.
+        if (extras.bossPickOffer === null) {
+          setExtras((e) => ({ ...e, bossPickOffer: generateBossPickOffer() }));
           return;
         }
-        // Non-boss match — fall through to the normal reward pipeline.
-        setExtras((e) => ({ ...e, bossPickResolved: true }));
+        // Offer is showing — wait for the player to resolve it.
         return;
       }
       // Boss-pick may have given the player free deletion charges; gate the
       // rest of the reward step until they're spent.
       if ((run.bossDeleteCharges ?? 0) > 0) return;
-      // Boss artifact offer second — generated once per reward step. The
-      // Reward UI shows it before the regular card draft.
-      if (!extras.bossArtifactGenerated && isBossMatch(run)) {
+      if (!extras.bossArtifactGenerated) {
         const { offer, next } = generateBossArtifactOffer(run);
         setExtras((e) => ({
           ...e,
@@ -190,17 +173,11 @@ export function Run({ mode, onExit, rngSeed }: Props) {
         setRun(next);
         return;
       }
-      if (!extras.bossArtifactGenerated) {
-        // Non-boss reward — mark generation done so the regular draft fires.
-        setExtras((e) => ({ ...e, bossArtifactGenerated: true }));
-        return;
-      }
-      if (extras.draftOffer === null) {
-        const { offer, next } = generateDraftOffer(run);
-        setExtras((e) => ({ ...e, draftOffer: offer }));
-        setRun(next);
-        return;
-      }
+      // Boss-artifact pick still showing — wait for the player.
+      if (extras.bossArtifactOffer !== null) return;
+      // All boss-reward steps resolved → advance to the shop.
+      setRun((r) => enterShop(r));
+      return;
     }
     if (run.phase === "shop" && extras.shop === null) {
       const { shop, next } = generateShop(run);
@@ -209,10 +186,9 @@ export function Run({ mode, onExit, rngSeed }: Props) {
       return;
     }
     if (run.phase === "match") {
-      // Stale draft / shop from previous round must not leak into the next
-      // entry to that phase — drop them as we leave them behind.
+      // Stale shop / boss-reward state from previous round must not leak into
+      // the next entry to that phase — drop them as we leave them behind.
       if (
-        extras.draftOffer !== null ||
         extras.shop !== null ||
         extras.bossArtifactGenerated ||
         extras.bossArtifactOffer !== null ||
@@ -222,7 +198,6 @@ export function Run({ mode, onExit, rngSeed }: Props) {
       ) {
         setExtras((e) => ({
           ...e,
-          draftOffer: null,
           shop: null,
           bossArtifactOffer: null,
           bossArtifactGenerated: false,
@@ -246,7 +221,6 @@ export function Run({ mode, onExit, rngSeed }: Props) {
     }
   }, [
     run,
-    extras.draftOffer,
     extras.shop,
     extras.matchSetup,
     extras.bossArtifactOffer,
@@ -294,20 +268,6 @@ export function Run({ mode, onExit, rngSeed }: Props) {
     const outcome = extras.pendingWin;
     setRun((r) => applyMatchOutcome(r, outcome));
     setExtras((e) => ({ ...e, pendingWin: null }));
-  };
-
-  // ---- Reward phase -------------------------------------------------------
-
-  const onPickDraftCard = (card: Card) => {
-    setRun((r) => enterShop(pickDraftCard(r, card)));
-    setExtras((e) => ({ ...e, draftOffer: null }));
-  };
-
-  const onSkipDraft = () => {
-    if (!extras.draftOffer) return;
-    const skipGold = extras.draftOffer.skipGold;
-    setRun((r) => enterShop(skipDraft(r, skipGold)));
-    setExtras((e) => ({ ...e, draftOffer: null }));
   };
 
   // ---- Boss reward handlers ----------------------------------------------
@@ -507,11 +467,8 @@ export function Run({ mode, onExit, rngSeed }: Props) {
       {run.phase === "reward" && (
         <Reward
           run={run}
-          offer={extras.draftOffer}
           bossArtifactOffer={extras.bossArtifactOffer}
           bossPickOffer={extras.bossPickOffer}
-          onPick={onPickDraftCard}
-          onSkip={onSkipDraft}
           onPickBossArtifact={onPickBossArtifact}
           onSkipBossArtifact={onSkipBossArtifact}
           onPickBossOption={onPickBossOption}

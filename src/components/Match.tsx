@@ -2106,6 +2106,32 @@ export function Match({
           cancelTargeting();
           return;
         }
+        if (k === "enemy-and-own-piece" || k === "rooted-enemy-and-own-piece") {
+          if (!partialTarget) {
+            const piece = engine.pieceAt(sq);
+            if (piece && piece.side === "opponent" && piece.type !== "king") {
+              if (k === "rooted-enemy-and-own-piece" && !rootedSet.has(sq)) {
+                cancelTargeting();
+                return;
+              }
+              setPartialTarget(sq);
+              return;
+            }
+            cancelTargeting();
+            return;
+          }
+          // Phase 2: pick one of the player's pieces.
+          if (
+            tryResolveCard(targetingIndex, {
+              kind: "two-squares",
+              first: partialTarget,
+              second: sq,
+            })
+          )
+            return;
+          cancelTargeting();
+          return;
+        }
         // Single-square targets.
         if (tryResolveCard(targetingIndex, { kind: "square", square: sq })) return;
         cancelTargeting();
@@ -2132,6 +2158,7 @@ export function Match({
       targetingCard,
       partialTarget,
       marionetteMoves,
+      rootedSet,
       engine,
       tryResolveCard,
       cancelTargeting,

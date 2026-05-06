@@ -20,7 +20,7 @@ Gold is earned from four sources:
 
    These are designed to reward a specific style without pressuring every player into the same play pattern.
 
-3. **Skip rewards.** When the player is offered a card draft (or piece draft in Skirmish), they may **skip** the reward and receive a gold bonus instead. The skip-bonus gold scales mildly with run progression — early acts pay less, later acts more — to keep skipping a real choice late.
+3. **Skip rewards.** Some reward steps (Skirmish piece draft, boss artifact pick) offer a **Skip** button to forfeit the reward in exchange for gold. There is no post-match card draft, so no card-draft skip; cards are acquired in the shop instead.
 
 4. **Boss / act-end bonus.** Defeating a boss grants a large gold bonus on top of the boss artifact reward.
 
@@ -34,7 +34,7 @@ The cap is a tuning knob — too high and saving dominates; too low and interest
 
 ## Shop
 
-A **shop opens after every match** (between the post-match reward step and the next match). The shop is the central spending venue.
+A **shop opens after every match**. Non-boss wins go match → shop directly; boss wins go match → boss-reward step (boon + artifact) → shop. The shop is the central spending venue and the only source of new cards.
 
 ### What the shop offers
 
@@ -71,12 +71,12 @@ The player may leave the shop at any time. Gold left in pocket is preserved for 
 
 ## Skip-for-gold flow
 
-After each match, the reward step shows the card draft (and Skirmish piece draft) options. Each draft offers a **Skip** button. Choosing Skip:
+A few reward steps offer a **Skip** button in exchange for gold:
 
-- Forfeits the draft.
-- Awards a gold bonus (typed by which draft was skipped — "skip card draft" vs "skip piece draft" can have different bonuses, with piece-skip slightly more valuable on average since piece drafts are more impactful).
+- **Skirmish piece draft** — skip the piece pick for a gold bonus.
+- **Boss artifact pick** — skip the artifact for a gold bonus.
 
-Skipping is **not** punished. It's a real economic lever and players who run "skip-heavy" gold-hoarding builds should be supported.
+There is no card-draft skip in this prototype: cards are bought in the shop, not drafted. Skipping is **not** punished — it's a real economic lever for "skip-heavy" gold-hoarding builds.
 
 ## Pricing principles
 
@@ -90,13 +90,13 @@ Skipping is **not** punished. It's a real economic lever and players who run "sk
 | Knob                              | Value                                  |
 |-----------------------------------|----------------------------------------|
 | Currencies                        | Gold only                              |
-| Per-match win bonus               | TBD (e.g., 8 gold normal, 25 gold boss) |
+| Per-match win bonus               | 10 gold normal, 25 gold boss           |
 | Interest rate                     | +1 gold per 5 saved                    |
 | Interest cap                      | +5 gold per shop visit                 |
-| Reroll cost                       | Scales **per shop visit**              |
-| Card removal cost                 | Scales **per use over the run**        |
-| Skip card-draft bonus             | TBD (e.g., 4 → 6 → 10 across acts)     |
-| Skip piece-draft bonus            | TBD, slightly higher than card-skip    |
+| Reroll cost                       | Scales **per shop visit** (5 + 1/use)  |
+| Card removal cost                 | Scales **per use over the run** (50 + 25/use) |
+| Skip boss-artifact bonus          | 10 gold                                |
+| Skip piece-draft bonus            | TBD (Skirmish only)                    |
 | Shop card price range             | ~5–15 gold                             |
-| Shop pack price range             | ~3–8 gold                              |
-| Shop artifact price range         | ~10–25 gold                            |
+| Shop pack price range             | ~4–8 gold                              |
+| Shop artifact price range         | ~12–28 gold                            |

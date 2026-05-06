@@ -8,20 +8,16 @@ import {
   dismissBossPreview,
   enterShop,
   generateBossArtifactOffer,
-  generateDraftOffer,
   isBossMatch,
   leaveShop,
   nextMatchSetup,
   pickBossArtifact,
-  pickDraftCard,
   skipBossArtifact,
-  skipDraft,
   STANDARD_RUN_CONFIG,
   totalMatches,
   WIN_BONUS_BOSS,
   WIN_BONUS_NORMAL,
 } from "./run";
-import { STACK_TRACE, FREEZE_PROCESS, PORT_SCAN } from "../cards/library";
 import { parseFen } from "../chess/rules";
 import { standardMatchConfig } from "./standard";
 import type { PieceType, RunMatchOutcome, RunState } from "../types";
@@ -51,11 +47,11 @@ describe("createRun", () => {
     expect(totalMatches(run)).toBe(3);
   });
 
-  it("uses a deterministic seed for reproducible drafts", () => {
-    const a = createRun({ mode: "royal", rngSeed: 42 });
-    const b = createRun({ mode: "royal", rngSeed: 42 });
-    expect(generateDraftOffer(a).offer.cards.map((c) => c.id)).toEqual(
-      generateDraftOffer(b).offer.cards.map((c) => c.id),
+  it("uses a deterministic seed for reproducible boss-artifact offers", () => {
+    const a = createRun({ mode: "standard", rngSeed: 42 });
+    const b = createRun({ mode: "standard", rngSeed: 42 });
+    expect(generateBossArtifactOffer(a).offer.artifacts.map((x) => x.id)).toEqual(
+      generateBossArtifactOffer(b).offer.artifacts.map((x) => x.id),
     );
   });
 
@@ -75,10 +71,10 @@ describe("createRun", () => {
 });
 
 describe("applyMatchOutcome", () => {
-  it("a win advances to reward and pays the normal win bonus", () => {
+  it("a non-boss win advances directly to shop and pays the normal win bonus", () => {
     const run = createRun({ mode: "royal", rngSeed: 1 });
     const next = applyMatchOutcome(run, MOCK_OUTCOME_WIN);
-    expect(next.phase).toBe("reward");
+    expect(next.phase).toBe("shop");
     expect(next.gold).toBe(WIN_BONUS_NORMAL);
     expect(next.matchNumber).toBe(1); // doesn't advance until shop closes
   });
@@ -91,53 +87,10 @@ describe("applyMatchOutcome", () => {
   });
 });
 
-describe("draft", () => {
-  it("draft offer returns DRAFT_CARD_COUNT cards by default", () => {
-    const run = createRun({ mode: "royal", rngSeed: 7 });
-    const { offer } = generateDraftOffer(run);
-    expect(offer.cards.length).toBe(3);
-    expect(offer.skipGold).toBeGreaterThan(0);
-  });
-
-  it("offer cards are distinct", () => {
-    const run = createRun({ mode: "royal", rngSeed: 7 });
-    const { offer } = generateDraftOffer(run);
-    const ids = offer.cards.map((c) => c.id);
-    expect(new Set(ids).size).toBe(ids.length);
-  });
-
-  it("never offers Patch or Shiv cards or curse cards", () => {
-    // Sweep many seeds — none should ever surface the excluded ids.
-    for (let seed = 1; seed < 50; seed++) {
-      const run = createRun({ mode: "royal", rngSeed: seed });
-      const { offer } = generateDraftOffer(run);
-      for (const c of offer.cards) {
-        expect(c.curse).toBeFalsy();
-        expect(c.id.endsWith("-patch")).toBe(false);
-        expect(c.id.startsWith("shiv-")).toBe(false);
-      }
-    }
-  });
-
-  it("picking a draft card adds it to the deck", () => {
-    const run = createRun({ mode: "royal", rngSeed: 1 });
-    const startingSize = run.deck.length;
-    const next = pickDraftCard(run, FREEZE_PROCESS);
-    expect(next.deck.length).toBe(startingSize + 1);
-    expect(next.deck[next.deck.length - 1].id).toBe(FREEZE_PROCESS.id);
-  });
-
-  it("skipping a draft pays the offered skip gold", () => {
-    const run = createRun({ mode: "royal", rngSeed: 1 });
-    const next = skipDraft(run, 5);
-    expect(next.gold).toBe(5);
-    expect(next.deck.length).toBe(run.deck.length);
-  });
-});
-
-describe("phase transitions: reward → shop → next match", () => {
-  it("enterShop moves into the shop phase", () => {
+describe("phase transitions: shop → next match (non-boss)", () => {
+  it("enterShop is a no-op for an already-shop phase, and final-match wins go to won", () => {
     const run = applyMatchOutcome(createRun({ mode: "royal", rngSeed: 1 }), MOCK_OUTCOME_WIN);
+    expect(run.phase).toBe("shop");
     const next = enterShop(run);
     expect(next.phase).toBe("shop");
   });
@@ -145,18 +98,15 @@ describe("phase transitions: reward → shop → next match", () => {
   it("leaveShop advances the match number until totalMatches, then wins", () => {
     let run = createRun({ mode: "royal", rngSeed: 1 });
 
-    // Matches 1 + 2: full reward → shop → next loop.
+    // Matches 1 + 2: non-boss → match → shop directly (no reward step).
     for (let i = 0; i < 2; i++) {
       run = applyMatchOutcome(run, MOCK_OUTCOME_WIN);
-      expect(run.phase).toBe("reward");
-      run = enterShop(pickDraftCard(run, PORT_SCAN));
       expect(run.phase).toBe("shop");
       run = leaveShop(run);
     }
 
     // Match 3 (final): applyMatchOutcome short-circuits to "won" — the
-    // reward / shop steps are skipped because there's no next match to spend
-    // on.
+    // shop step is skipped because there's no next match to spend on.
     run = applyMatchOutcome(run, MOCK_OUTCOME_WIN);
     expect(run.phase).toBe("won");
     expect(run.matchNumber).toBe(3);
@@ -165,7 +115,7 @@ describe("phase transitions: reward → shop → next match", () => {
   it("a loss anywhere ends the run", () => {
     let run = createRun({ mode: "royal", rngSeed: 1 });
     run = applyMatchOutcome(run, MOCK_OUTCOME_WIN);
-    run = enterShop(pickDraftCard(run, STACK_TRACE));
+    expect(run.phase).toBe("shop");
     run = leaveShop(run);
     expect(run.phase).toBe("match");
     expect(run.matchNumber).toBe(2);
