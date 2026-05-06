@@ -24,7 +24,7 @@ Per-card reference for choss. The mechanics doc is [`docs/design/cards.md`](../d
 
 | Card | Type | Cost | Rarity | Effect summary |
 |---|---|---|---|---|
-| [Port Scan](resource.md#reconnaissance) | Resource | 2 | Common | Draw 2. |
+| [Port Scan](resource.md#reconnaissance) | Resource | 1 | Common | Draw 2. |
 | [Stack Trace](resource.md#foresight) | Resource | 0 | Common | Scry top 3 of deck. |
 | [Bookmark](resource.md#stash) | Resource | 1 | Uncommon | Apply Retain to a card in your hand. |
 | [Cache Warmup](resource.md#cache-warmup) | Resource | 1 | Common | +2 energy at the start of your next turn. |
@@ -44,21 +44,23 @@ Per-card reference for choss. The mechanics doc is [`docs/design/cards.md`](../d
 | [Format C:](burst.md#big-destroy) | Burst | 4 | Rare | **Consume.** Destroy any enemy non-King piece. |
 | [kill -9](sacrifice.md#martyrs-gift) | Sacrifice | 1 | Uncommon | **Consume.** Destroy own piece; +2 cards, +1 energy. |
 | [Pawn Patch](movement-extension.md#pawn-soul) | Movement-extension | 1 | Common | **Consume.** Empower own piece w/ pawn movement (this turn). |
-| [Knight Patch](movement-extension.md#knight-soul) | Movement-extension | 2 | Rare | **Consume.** Empower own piece w/ knight L (this turn). |
-| [Bishop Patch](movement-extension.md#bishop-soul) | Movement-extension | 2 | Rare | **Consume.** Empower own piece w/ diagonal slide (this turn). |
-| [Rook Patch](movement-extension.md#rook-soul) | Movement-extension | 3 | Rare | **Consume.** Empower own piece w/ straight slide (this turn). |
-| [Queen Patch](movement-extension.md#queen-soul) | Movement-extension | 3 | Rare | **Consume.** Empower own piece w/ queen movement (this turn). |
+| [Knight Patch](movement-extension.md#knight-patch) | Movement-extension | 2 | Rare | **Consume.** Empower own piece w/ knight L (this turn). |
+| [Bishop Patch](movement-extension.md#bishop-patch) | Movement-extension | 2 | Rare | **Consume.** Empower own piece w/ diagonal slide (this turn). |
+| [Rook Patch](movement-extension.md#rook-patch) | Movement-extension | 3 | Rare | **Consume.** Empower own piece w/ straight slide (this turn). |
+| [Queen Patch](movement-extension.md#queen-patch) | Movement-extension | 4 | Rare | **Consume.** Empower own piece w/ queen movement (this turn). |
+| [Sprint](movement-extension.md#sprint) | Movement-extension | 1 | Common | Give Haste to a friendly piece (move twice, no captures). |
+| [Vanguard](movement-extension.md#vanguard) | Movement-extension | 1 | Common | Pawn-only Overclock: pawn takes 2 actions this turn. |
+| [Blitz](movement-extension.md#blitz) | Movement-extension | 3 | Uncommon | All your pawns gain Haste for 3 turns. |
+| [Reinforce](summon.md#reinforce) | Summon | 4 | Rare | Summon a pawn on any empty square in your half. |
 | [Switch Files](swap.md#switch-files) | Swap/Displace | 2 | Uncommon | Swap two of your own pieces. |
 | [Remote Access](swap.md#marionette) | Swap/Displace | 3 | Rare | **Consume.** Move an enemy piece by its legal moves. |
-| [Extract](swap.md#vine-pull) | Swap/Displace | 2 | Uncommon | Swap one of your pieces with a rooted enemy. |
-| [Restore Point](revival.md#recall) | Resource | 1 | Common | Return a random discarded card to hand. |
-| [Restore from Backup](revival.md#recover) | Resource | 3 | Uncommon | **Consume.** Choose a discarded card to return to hand. |
-| [Daemon Process](power.md#daemon-process) | Power | 4 | Rare | **Consume.** +1 energy at the start of each of your turns for the rest of the match. |
-| [tail -f](power.md#tail-f) | Power | 4 | Rare | **Consume.** +1 card drawn each turn for the rest of the match. |
-| [Fork Process](power.md#fork-process) | Power | 4 | Rare | **Consume.** +1 chess move each turn for the rest of the match. |
+| [Extract](swap.md#extract) | Swap/Displace | 3 | Uncommon | Swap one of your pieces with any enemy non-King piece. |
+| [Restore from Backup](revival.md#recover) | Resource | 1 | Uncommon | **Consume.** Choose a discarded card to return to hand. |
+| [Pawn Storm Power](power.md#pawn-storm-power) | Power | 4 | Rare | **Consume.** Each turn-start, your pawns gain Haste until end of turn. |
+| [Garrison Mode](power.md#garrison-mode) | Power | 4 | Rare | **Consume.** Each turn-start, your rank-1 pieces (except king) are shielded. |
 
 ## Counts
 
 - **By Consume:** 10 cards have Consume; the rest cycle through the discard pile.
-- **By type:** Resource 7, Disruption 4, Spatial 6, Tempo 1, Movement-extension 5, Defensive 1, Burst 2, Sacrifice 1, Swap 3, Power 3.
-- **By cost (0–4):** 1× 0-cost (Stack Trace), 11× 1-cost, 9× 2-cost, 5× 3-cost, 4× 4-cost.
+- **By type:** Resource 6, Disruption 4, Spatial 6, Tempo 1, Movement-extension 8, Defensive 1, Burst 2, Sacrifice 1, Summon 1, Swap 3, Power 2.
+- **By cost (0–4):** 1× 0-cost (Stack Trace), 12× 1-cost, 7× 2-cost, 5× 3-cost, 5× 4-cost.

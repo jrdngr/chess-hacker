@@ -446,7 +446,11 @@ function BossZoneBuffFields({
           onChange={(e) => {
             const k = e.target.value as ZoneRegion["kind"];
             const next: ZoneRegion =
-              k === "rank" ? { kind: "rank", rank: 4 } : ({ kind: k, anchor: "d4" } as ZoneRegion);
+              k === "rank"
+                ? { kind: "rank", rank: 4 }
+                : k === "center"
+                  ? { kind: "center" }
+                  : ({ kind: k, anchor: "d4" } as ZoneRegion);
             onChange({
               ...entry,
               region: next,
@@ -458,6 +462,7 @@ function BossZoneBuffFields({
           <option value="square-orthogonal-1">square-orthogonal-1</option>
           <option value="square-radius-1">square-radius-1</option>
           <option value="rank">rank</option>
+          <option value="center">center</option>
         </select>
       </Row>
       {entry.region.kind === "rank" ? (
@@ -472,7 +477,7 @@ function BossZoneBuffFields({
             })
           }
         />
-      ) : (
+      ) : entry.region.kind === "center" ? null : (
         <FieldRenderer
           field={{ name: "anchor", type: "string" }}
           value={{ anchor: entry.region.anchor }}

@@ -1,8 +1,0 @@
-{
-  "id": "speed-hack",
-  "name": "Speed Hack",
-  "rarity": "common",
-  "description": "Tempo cards cost 1 less (minimum 0).",
-  "emoji": "💨",
-  "effects": [{ "kind": "card-cost-discount", "archetype": "tempo", "amount": 1 }]
-}

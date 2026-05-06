@@ -51,9 +51,27 @@ export function squareCoords(s: AlgebraicSquare): { file: FileIndex; rank: RankI
 
 export const STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-/** Promotion rank for `side` on a board of `size.ranks` ranks. */
-export function promotionRank(size: BoardSize, side: Side): RankIndex {
-  return side === "player" ? size.ranks - 1 : 0;
+/**
+ * Promotion rank for `side` on a board of `size.ranks` ranks.
+ *
+ * Optionally consults `overlays.pawnPromotionRanks` for an artifact-driven
+ * override (e.g. Promotion Engine = rank 7). The override is a 1-indexed
+ * rank for the player side (e.g. 7 → rank-7 promotes). For the opponent
+ * side the rank is mirrored (`size.ranks - rank + 1` from rank 1 = the
+ * board's own rank-1, etc.) but no current artifact targets the opponent
+ * so we keep the override player-only in practice.
+ */
+export function promotionRank(size: BoardSize, side: Side, overlays?: Overlays): RankIndex {
+  const override = overlays?.pawnPromotionRanks?.[side];
+  if (typeof override === "number" && override >= 2 && override <= size.ranks) {
+    // 1-indexed → RankIndex (0-indexed). For "player" the override is the
+    // forward rank a pawn promotes ON, exactly as written. For "opponent"
+    // the override is mirrored from the bottom of the board.
+    return side === "player"
+      ? ((override - 1) as RankIndex)
+      : ((size.ranks - override) as RankIndex);
+  }
+  return side === "player" ? ((size.ranks - 1) as RankIndex) : (0 as RankIndex);
 }
 
 /** Pawn double-move source rank ("starting rank") for `side`. */
@@ -119,6 +137,27 @@ export type Overlays = {
    * Bishop Patch); the value is the set of granted patterns.
    */
   empowers?: ReadonlyMap<AlgebraicSquare, ReadonlySet<EmpowerPattern>>;
+  /**
+   * Pawn Storm artifact (player only): pawns may double-push from any rank.
+   */
+  pawnDoubleFromAnyRank?: ReadonlySet<Side>;
+  /**
+   * Drill Sergeant artifact (player only): pawns may move 1 square backward
+   * (no capture).
+   */
+  pawnBackwardStep?: ReadonlySet<Side>;
+  /**
+   * Promotion Engine artifact (player only): override the promotion rank for
+   * a side. The number is the 1-indexed rank that triggers promotion (e.g. 7
+   * means rank 7 promotes instead of the default rank 8 for player pawns).
+   */
+  pawnPromotionRanks?: { player?: number; opponent?: number };
+  /**
+   * Sniper Optics artifact (player only): rooks may capture an enemy piece
+   * with up to N walls between attacker and target. Movement to empty
+   * squares past a wall is still blocked.
+   */
+  rookAttackThroughWalls?: { player?: number; opponent?: number };
 };
 
 const EMPTY_SET: ReadonlySet<AlgebraicSquare> = new Set();
@@ -407,13 +446,26 @@ export function isSquareAttacked(
 
   // Sliding-piece rays. A wall stops the ray; a piece stops the ray (and
   // contributes if it matches the ray direction and isn't frozen).
+  const rookWallSkip = overlays.rookAttackThroughWalls?.[attacker] ?? 0;
   for (const [df, dr] of QUEEN_DIRS) {
     const isDiag = df !== 0 && dr !== 0;
     let sf = tf + df;
     let sr = tr + dr;
+    // For rook attack-through-wall: when scanning an orthogonal ray for an
+    // attacking rook on `attacker`'s side, allow up to `rookWallSkip` walls
+    // to be ignored before the ray terminates on a piece.
+    let wallsRemaining = isDiag ? 0 : rookWallSkip;
     while (inBounds(size, sf, sr)) {
       const sq = sqAt(sf, sr);
-      if (overlays.walls.has(sq)) break;
+      if (overlays.walls.has(sq)) {
+        if (wallsRemaining > 0) {
+          wallsRemaining--;
+          sf += df;
+          sr += dr;
+          continue;
+        }
+        break;
+      }
       const p = pos.pieces.get(sq);
       if (p) {
         if (p.side === attacker && !isFrozen(sq)) {
@@ -520,13 +572,73 @@ function addPieceMoves(
       break;
     case "rook":
       addSlideMoves(out, from, piece, pos, overlays, ROOK_DIRS);
+      addRookCaptureThroughWallMoves(out, from, piece, pos, overlays);
       break;
     case "queen":
       addSlideMoves(out, from, piece, pos, overlays, QUEEN_DIRS);
+      // Queens get the same wall-skipping capture-only ray on their rook
+      // axes if the artifact is held — they slide both as rook and bishop.
+      addRookCaptureThroughWallMoves(out, from, piece, pos, overlays);
       break;
     case "king":
       addKingMoves(out, from, piece, pos, overlays);
       break;
+  }
+}
+
+/**
+ * Sniper Optics: capture-only ray for rooks (and queens, on their rook axes)
+ * that allows up to N walls between attacker and target. Movement to empty
+ * squares past a wall is still blocked — so only capture moves are emitted on
+ * the extended ray, never quiet slides.
+ */
+function addRookCaptureThroughWallMoves(
+  out: RuleMove[],
+  from: AlgebraicSquare,
+  piece: Piece,
+  pos: Position,
+  overlays: Overlays,
+): void {
+  const wallSkip = overlays.rookAttackThroughWalls?.[piece.side] ?? 0;
+  if (wallSkip <= 0) return;
+  const { file, rank } = squareCoords(from);
+  const size = pos.size;
+  for (const [df, dr] of ROOK_DIRS) {
+    let tf = file + df;
+    let tr = rank + dr;
+    let wallsCrossed = 0;
+    let sawWall = false;
+    while (inBounds(size, tf, tr)) {
+      const to = sqAt(tf, tr);
+      if (overlays.walls.has(to)) {
+        if (wallsCrossed >= wallSkip) break;
+        wallsCrossed++;
+        sawWall = true;
+        tf += df;
+        tr += dr;
+        continue;
+      }
+      const occ = pos.pieces.get(to);
+      if (occ) {
+        // Only emit a move on the *extended* ray (after at least one wall).
+        // Squares before the first wall are already covered by addSlideMoves.
+        if (sawWall && occ.side !== piece.side) {
+          out.push({
+            from,
+            to,
+            isCapture: true,
+            capturedPiece: occ,
+            isDouble: false,
+            isPromotion: false,
+          });
+        }
+        break;
+      }
+      // Empty squares past a wall are not movable to (movement is still
+      // wall-blocked); skip without emitting a move and continue scanning.
+      tf += df;
+      tr += dr;
+    }
   }
 }
 
@@ -607,7 +719,9 @@ function addPawnMoves(
   const size = pos.size;
   const dir = piece.side === "player" ? 1 : -1;
   const startRank = pawnStartRank(size, piece.side);
-  const promoR = promotionRank(size, piece.side);
+  const promoR = promotionRank(size, piece.side, overlays);
+  const doubleFromAnyRank = overlays.pawnDoubleFromAnyRank?.has(piece.side) ?? false;
+  const backwardStep = overlays.pawnBackwardStep?.has(piece.side) ?? false;
 
   const pushPromo = (m: Omit<RuleMove, "promotion" | "isPromotion">) => {
     for (const promo of ["q", "r", "b", "n"] as const) {
@@ -625,11 +739,16 @@ function addPawnMoves(
       } else {
         out.push({ from, to: to1, isCapture: false, isDouble: false, isPromotion: false });
       }
-      if (rank === startRank) {
+      if (rank === startRank || doubleFromAnyRank) {
         const fr2 = rank + 2 * dir;
         if (inBounds(size, file, fr2)) {
           const to2 = sqAt(file, fr2);
           if (!overlays.walls.has(to2) && !pos.pieces.has(to2)) {
+            // Pawn Storm-driven double-pushes don't land en passant (the
+            // double-push semantics are tied to the start-rank concept). We
+            // still set isDouble so the engine sets the EP target — this is a
+            // small over-approximation but matches the natural double-push
+            // behaviour and keeps the EP mechanic predictable.
             out.push({ from, to: to2, isCapture: false, isDouble: true, isPromotion: false });
           }
         }
@@ -671,6 +790,18 @@ function addPawnMoves(
           isPromotion: false,
           epVictim,
         });
+      }
+    }
+  }
+
+  // Backward step (Drill Sergeant): one square opposite the forward direction,
+  // no capture, no promotion. Off-board / walled / occupied squares are blocked.
+  if (backwardStep) {
+    const br = rank - dir;
+    if (inBounds(size, file, br)) {
+      const bsq = sqAt(file, br);
+      if (!overlays.walls.has(bsq) && !pos.pieces.has(bsq)) {
+        out.push({ from, to: bsq, isCapture: false, isDouble: false, isPromotion: false });
       }
     }
   }
@@ -717,6 +848,12 @@ function addEmpowerMoves(
     case "pawn":
       if (piece.type === "pawn") return;
       addEmpowerPawnMoves(out, from, piece, pos, overlays);
+      return;
+    case "king-step":
+      // King already has the king-step pattern natively. Skip to avoid
+      // duplicate move entries.
+      if (piece.type === "king") return;
+      addJumpMoves(out, from, piece, pos, overlays, KING_DIRS);
       return;
   }
 }

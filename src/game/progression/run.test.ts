@@ -58,6 +58,20 @@ describe("createRun", () => {
       generateDraftOffer(b).offer.cards.map((c) => c.id),
     );
   });
+
+  it("standard runs start with Polished Bishop as the default starting artifact", () => {
+    const run = createRun({ mode: "standard", rngSeed: 1 });
+    expect(run.artifacts.map((a) => a.id)).toEqual(["polished-bishop"]);
+  });
+
+  it("startingArtifacts: [] opts out of the default for tests", () => {
+    const run = createRun({ mode: "standard", rngSeed: 1, startingArtifacts: [] });
+    expect(run.artifacts).toEqual([]);
+  });
+
+  it("non-standard runs start with no artifacts", () => {
+    expect(createRun({ mode: "royal", rngSeed: 1 }).artifacts).toEqual([]);
+  });
 });
 
 describe("applyMatchOutcome", () => {

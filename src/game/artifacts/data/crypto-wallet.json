@@ -1,8 +1,0 @@
-{
-  "id": "crypto-wallet",
-  "name": "Crypto Wallet",
-  "rarity": "common",
-  "description": "Gain 2 gold at the start of every match.",
-  "emoji": "💰",
-  "effects": [{ "kind": "gold-on-match-start", "amount": 2 }]
-}

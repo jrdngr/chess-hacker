@@ -78,6 +78,7 @@ export type CardArchetype =
  *  - "two-own-pieces":             two squares each holding a player piece (multi-step).
  *  - "marionette":                 an enemy piece, then one of its legal destinations.
  *  - "rooted-enemy-and-own-piece": a rooted enemy piece, then one of your pieces (multi-step).
+ *  - "enemy-and-own-piece":        any enemy non-king piece, then one of your pieces (multi-step).
  *  - "hand-card":                  another card currently in your hand (Bookmark).
  */
 export type CardTarget =
@@ -91,13 +92,14 @@ export type CardTarget =
   | { kind: "two-own-pieces" }
   | { kind: "marionette" }
   | { kind: "rooted-enemy-and-own-piece" }
+  | { kind: "enemy-and-own-piece" }
   | { kind: "hand-card" };
 
 /** Trap variant — picked per-card when the trap is placed. */
 export type TrapEffect = "capture" | "freeze" | "push";
 
 /** Empower pattern — extra movement granted to a piece. */
-export type EmpowerPattern = "pawn" | "knight" | "bishop" | "rook" | "queen";
+export type EmpowerPattern = "pawn" | "knight" | "bishop" | "rook" | "queen" | "king-step";
 
 /**
  * Effect descriptor — interpreted by the resolver in `game/cards/match.ts`.
@@ -112,7 +114,8 @@ export type CardEffect =
   | { kind: "disarm-piece" }
   | { kind: "compel-piece" }
   | { kind: "shield-piece" }
-  | { kind: "haste-piece" }
+  | { kind: "haste-piece"; durationTurns?: number }
+  | { kind: "haste-all-of-type"; pieceType: PieceType; durationTurns?: number }
   | {
       kind: "empower-piece";
       pattern: EmpowerPattern;
@@ -121,13 +124,20 @@ export type CardEffect =
        * but is dropped immediately if the player moves any other piece first.
        */
       singleUse?: boolean;
+      durationTurns?: number;
     }
-  | { kind: "lightning-piece"; actions: number }
+  | {
+      kind: "lightning-piece";
+      actions: number;
+      /** Optional: only target pieces of this type (e.g. Vanguard = pawn). */
+      pieceTypeFilter?: PieceType;
+    }
   | { kind: "place-wall"; durationTurns: number }
   | { kind: "place-sanctuary"; durationTurns: number }
   | { kind: "place-trap"; trapEffect: TrapEffect; durationTurns: number }
   | { kind: "swap-own-pieces" }
   | { kind: "swap-rooted-with-own" }
+  | { kind: "swap-with-enemy" }
   | { kind: "summon-piece"; pieceType: PieceType }
   | { kind: "sacrifice-piece"; drawCount: number; energyGain: number }
   | { kind: "marionette" }
@@ -200,7 +210,19 @@ export type CardEffect =
 export type PowerEffect =
   | { kind: "energy-per-turn"; amount: number }
   | { kind: "draw-per-turn"; amount: number }
-  | { kind: "extra-chess-move-per-turn"; amount: number };
+  | { kind: "extra-chess-move-per-turn"; amount: number }
+  /**
+   * At the start of each player turn, every player pawn gains Haste until end
+   * of turn. `amount` is reserved for stacking semantics; in this PR a card
+   * always sets it to 1 (one application per turn).
+   */
+  | { kind: "haste-pawns-per-turn"; amount: number }
+  /**
+   * At the start of each player turn, every non-king player piece on rank 1
+   * is shielded until the player's next turn. `amount` reserved for stacking;
+   * always 1 in the prototype.
+   */
+  | { kind: "shield-back-rank-per-turn"; amount: number };
 
 export type Card = {
   id: CardId;
@@ -427,11 +449,12 @@ export type ArtifactRarity = "common" | "uncommon" | "rare";
  *
  *  - card-related: card-cost-discount
  *  - resource / match-rule: hand-size-bonus, start-energy-bonus,
- *    energy-per-turn-bonus, gold-on-match-start
+ *    energy-per-turn-bonus, gold-on-match-start, zone-buff
  *  - conditional triggers: draw-on-capture, energy-on-capture, draw-on-check
+ *  - piece-related: piece-rule-modifier (pawn flags, promotion rank,
+ *    side-wide empowers, sniper-optics rook ray, phalanx adjacency shield)
  *
- * Piece-related effects (e.g. "pawns promote at rank 6") need engine plumbing
- * and land in a follow-up. Single artifact may declare multiple effects.
+ * A single artifact may declare multiple effects.
  */
 export type ArtifactEffect =
   | { kind: "hand-size-bonus"; amount: number }
@@ -447,7 +470,48 @@ export type ArtifactEffect =
    * into `MatchCardState.zoneBuffs` with no expiry; the buff is active for
    * the whole match (subject to the usual control check on the chess board).
    */
-  | { kind: "zone-buff"; region: ZoneRegion; buff: ZoneBuffEffect; sourceLabel: string };
+  | { kind: "zone-buff"; region: ZoneRegion; buff: ZoneBuffEffect; sourceLabel: string }
+  /**
+   * Side-wide rule overrides — the "piece-related" effect domain. Each
+   * artifact bumps a flag the rule engine reads off `Overlays`, or schedules
+   * a per-turn application (for piece-empower-all and phalanx-adjacent-shield).
+   */
+  | {
+      kind: "piece-rule-modifier";
+      modifier: PieceRuleModifier;
+    };
+
+/**
+ * Side-wide piece-rule modifier — the discriminated payload of the
+ * `piece-rule-modifier` ArtifactEffect.
+ */
+export type PieceRuleModifier =
+  /** Pawn Storm: pawns may double-push from any rank, not just the start rank. */
+  | { kind: "pawn-double-from-any-rank" }
+  /** Drill Sergeant: pawns may also move 1 square backward (no capture). */
+  | { kind: "pawn-backward-step" }
+  /**
+   * Promotion Engine: pawns promote when reaching `rank` (1-indexed).
+   * If multiple artifacts declare this, the lowest rank wins.
+   */
+  | { kind: "pawn-promotion-rank"; rank: number }
+  /**
+   * Polished Bishop / Cavalry Doctrine: every player piece of `pieceType`
+   * gains the empower `pattern` for as long as the artifact is held.
+   */
+  | { kind: "piece-empower-all"; pieceType: PieceType; pattern: EmpowerPattern }
+  /**
+   * Sniper Optics: rooks may capture an enemy piece even with up to
+   * `maxWalls` walls in the path between attacker and target. Movement
+   * to empty squares past a wall is still blocked.
+   */
+  | { kind: "rook-attack-through-wall"; maxWalls: number }
+  /**
+   * Phalanx: at the start of each player turn, every player piece that has
+   * at least one orthogonally-adjacent friendly piece is shielded until the
+   * player's next turn.
+   */
+  | { kind: "phalanx-adjacent-shield" };
 
 export type Artifact = {
   id: string;
@@ -576,7 +640,12 @@ export type ZoneRegion =
   /** The anchor square plus its 8 surrounding neighbours (king-radius). */
   | { kind: "square-radius-1"; anchor: AlgebraicSquare }
   /** Every square on the given rank (1-indexed). */
-  | { kind: "rank"; rank: number };
+  | { kind: "rank"; rank: number }
+  /**
+   * The board's central square(s). Odd-sized boards: the single middle square.
+   * Even-sized boards: the central 2×2 block. On 8×8 = d4, e4, d5, e5.
+   */
+  | { kind: "center" };
 
 export type ZoneBuffEffect =
   | { kind: "energy-per-turn"; amount: number }

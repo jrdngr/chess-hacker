@@ -1,7 +1,7 @@
 {
   "id": "restore-from-backup",
   "name": "Restore from Backup",
-  "cost": 3,
+  "cost": 1,
   "rarity": "uncommon",
   "archetype": "resource",
   "consume": true,

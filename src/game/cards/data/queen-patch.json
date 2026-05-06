@@ -1,7 +1,7 @@
 {
   "id": "queen-patch",
   "name": "Queen Patch",
-  "cost": 3,
+  "cost": 4,
   "rarity": "rare",
   "archetype": "movement",
   "consume": true,

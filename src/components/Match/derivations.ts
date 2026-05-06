@@ -7,6 +7,12 @@
 import type { ExtraOverlays } from "../../game/chess/engine";
 import type { EffectInfo, SquareEffects } from "../Board/Board";
 import type { AlgebraicSquare, EmpowerPattern, MatchCardState, Side } from "../../game/types";
+import {
+  pawnBackwardStep,
+  pawnDoubleFromAnyRank,
+  pawnPromotionRank,
+  rookAttackThroughWalls,
+} from "../../game/artifacts/effects";
 
 /**
  * Wall, freeze, root, disarm, compel, shield, sanctuary, trap, empower —
@@ -51,7 +57,10 @@ export function deriveOverlaySets(state: MatchCardState): OverlaySets {
 }
 
 /** Pack the rule-layer's "extra overlays" struct from the derived sets. */
-export function buildExtraOverlays(o: OverlaySets): ExtraOverlays {
+export function buildExtraOverlays(
+  o: OverlaySets,
+  artifacts: MatchCardState["artifacts"] = [],
+): ExtraOverlays {
   // Haste shares Disarm's "may move, may not capture" rule at the move-gen
   // layer (see docs/cards/keywords.md). Union them so a hasted piece cannot
   // capture on either of its two moves.
@@ -59,7 +68,7 @@ export function buildExtraOverlays(o: OverlaySets): ExtraOverlays {
     o.hastedSet.size === 0
       ? o.disarmedSet
       : new Set<AlgebraicSquare>([...o.disarmedSet, ...o.hastedSet]);
-  return {
+  const out: ExtraOverlays = {
     roots: o.rootedSet,
     disarms,
     compels: o.compelledSet,
@@ -67,6 +76,18 @@ export function buildExtraOverlays(o: OverlaySets): ExtraOverlays {
     sanctuaries: o.sanctuarySet,
     empowers: o.empowerMap,
   };
+  // Artifact-driven flags (Pawn Storm / Drill Sergeant / Promotion Engine /
+  // Sniper Optics). Added only when the artifact is held — the rule engine
+  // treats undefined fields as "off".
+  const dbl = pawnDoubleFromAnyRank(artifacts);
+  if (dbl.size > 0) out.pawnDoubleFromAnyRank = dbl;
+  const back = pawnBackwardStep(artifacts);
+  if (back.size > 0) out.pawnBackwardStep = back;
+  const promo = pawnPromotionRank(artifacts);
+  if (typeof promo === "number") out.pawnPromotionRanks = { player: promo };
+  const sniper = rookAttackThroughWalls(artifacts);
+  if (sniper > 0) out.rookAttackThroughWalls = { player: sniper };
+  return out;
 }
 
 /**
@@ -168,7 +189,7 @@ export function deriveSquareEffects(
   // no anchor and no expiry, so they're skipped here — they show in the
   // sidebar instead.
   for (const b of state.zoneBuffs ?? []) {
-    if (b.region.kind === "rank") continue;
+    if (b.region.kind === "rank" || b.region.kind === "center") continue;
     const label = `${b.sourceLabel} (${describeZoneBuffEffect(b.effect)})`;
     if (b.expiresOnTurn === undefined) {
       pushSquare(b.region.anchor, { label });

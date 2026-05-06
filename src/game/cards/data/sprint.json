@@ -1,0 +1,10 @@
+{
+  "id": "sprint",
+  "name": "Sprint",
+  "cost": 1,
+  "rarity": "common",
+  "archetype": "movement",
+  "description": "Give Haste to a friendly piece (move twice this turn; no capture either move).",
+  "target": { "kind": "own-piece" },
+  "effect": { "kind": "haste-piece" }
+}

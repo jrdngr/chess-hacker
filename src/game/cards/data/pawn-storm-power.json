@@ -1,0 +1,14 @@
+{
+  "id": "pawn-storm-power",
+  "name": "Pawn Storm",
+  "cost": 4,
+  "rarity": "rare",
+  "archetype": "power",
+  "consume": true,
+  "description": "Power. At the start of each of your turns, your pawns gain Haste until end of turn. Consume.",
+  "target": { "kind": "none" },
+  "effect": {
+    "kind": "play-power",
+    "effect": { "kind": "haste-pawns-per-turn", "amount": 1 }
+  }
+}

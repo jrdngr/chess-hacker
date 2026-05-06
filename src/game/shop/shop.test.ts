@@ -69,7 +69,7 @@ describe("generateShop", () => {
   });
 
   it("never offers artifacts the player already owns", () => {
-    const owned = getArtifactById("extra-ram");
+    const owned = getArtifactById("keylogger");
     const baseRun = createRun({ mode: "royal", rngSeed: 9 });
     const run = { ...baseRun, artifacts: [owned] };
     for (let seed = 0; seed < 20; seed++) {

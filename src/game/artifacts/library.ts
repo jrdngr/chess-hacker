@@ -17,6 +17,9 @@ import type {
   ArtifactEffect,
   ArtifactRarity,
   CardArchetype,
+  EmpowerPattern,
+  PieceRuleModifier,
+  PieceType,
   ZoneBuffEffect,
   ZoneRegion,
 } from "../types";
@@ -33,7 +36,35 @@ export const VALID_ARTIFACT_EFFECT_KINDS = [
   "energy-on-capture",
   "draw-on-check",
   "zone-buff",
+  "piece-rule-modifier",
 ] as const;
+
+const VALID_PIECE_RULE_MODIFIER_KINDS = [
+  "pawn-double-from-any-rank",
+  "pawn-backward-step",
+  "pawn-promotion-rank",
+  "piece-empower-all",
+  "rook-attack-through-wall",
+  "phalanx-adjacent-shield",
+] as const;
+
+const VALID_EMPOWER_PATTERNS: readonly EmpowerPattern[] = [
+  "pawn",
+  "knight",
+  "bishop",
+  "rook",
+  "queen",
+  "king-step",
+];
+
+const VALID_PIECE_TYPES: readonly PieceType[] = [
+  "pawn",
+  "knight",
+  "bishop",
+  "rook",
+  "queen",
+  "king",
+];
 
 const VALID_ARCHETYPES: readonly CardArchetype[] = [
   "tempo",
@@ -53,6 +84,7 @@ const VALID_ZONE_REGION_KINDS = [
   "square-orthogonal-1",
   "square-radius-1",
   "rank",
+  "center",
 ] as const;
 
 const VALID_ZONE_BUFF_KINDS = ["energy-per-turn", "hand-size"] as const;
@@ -89,6 +121,9 @@ function validateZoneRegion(raw: unknown, errors: string[]): ZoneRegion | null {
     }
     return { kind: "rank", rank: raw.rank };
   }
+  if (kind === "center") {
+    return { kind: "center" };
+  }
   // anchor-based region
   const anchor = raw.anchor;
   if (typeof anchor !== "string" || !SQUARE_RE.test(anchor)) {
@@ -113,6 +148,74 @@ function validateZoneBuff(raw: unknown, errors: string[]): ZoneBuffEffect | null
     return null;
   }
   return { kind: kind as ZoneBuffEffect["kind"], amount: raw.amount };
+}
+
+function validatePieceRuleModifier(raw: unknown, errors: string[]): PieceRuleModifier | null {
+  if (!isPlainObject(raw)) {
+    errors.push("'effect.modifier' must be an object for kind 'piece-rule-modifier'");
+    return null;
+  }
+  const kind = raw.kind;
+  if (
+    typeof kind !== "string" ||
+    !(VALID_PIECE_RULE_MODIFIER_KINDS as readonly string[]).includes(kind)
+  ) {
+    errors.push(
+      `'effect.modifier.kind' must be one of ${VALID_PIECE_RULE_MODIFIER_KINDS.join(", ")}`,
+    );
+    return null;
+  }
+  switch (kind) {
+    case "pawn-double-from-any-rank":
+    case "pawn-backward-step":
+    case "phalanx-adjacent-shield":
+      return { kind } as PieceRuleModifier;
+    case "pawn-promotion-rank": {
+      if (
+        typeof raw.rank !== "number" ||
+        !Number.isInteger(raw.rank) ||
+        raw.rank < 2 ||
+        raw.rank > 8
+      ) {
+        errors.push("'modifier.rank' must be an integer 2..8 for kind 'pawn-promotion-rank'");
+        return null;
+      }
+      return { kind: "pawn-promotion-rank", rank: raw.rank };
+    }
+    case "piece-empower-all": {
+      const pt = raw.pieceType;
+      if (typeof pt !== "string" || !(VALID_PIECE_TYPES as readonly string[]).includes(pt)) {
+        errors.push(
+          `'modifier.pieceType' must be one of ${VALID_PIECE_TYPES.join(", ")} for 'piece-empower-all'`,
+        );
+        return null;
+      }
+      const pat = raw.pattern;
+      if (typeof pat !== "string" || !(VALID_EMPOWER_PATTERNS as readonly string[]).includes(pat)) {
+        errors.push(
+          `'modifier.pattern' must be one of ${VALID_EMPOWER_PATTERNS.join(", ")} for 'piece-empower-all'`,
+        );
+        return null;
+      }
+      return {
+        kind: "piece-empower-all",
+        pieceType: pt as PieceType,
+        pattern: pat as EmpowerPattern,
+      };
+    }
+    case "rook-attack-through-wall": {
+      const mw = raw.maxWalls;
+      if (typeof mw !== "number" || !Number.isInteger(mw) || mw < 1 || mw > 4) {
+        errors.push(
+          "'modifier.maxWalls' must be an integer 1..4 for kind 'rook-attack-through-wall'",
+        );
+        return null;
+      }
+      return { kind: "rook-attack-through-wall", maxWalls: mw };
+    }
+  }
+  // Unreachable — kind already validated against the union above.
+  return null;
 }
 
 function validateArtifactEffect(raw: unknown, errors: string[]): ArtifactEffect | null {
@@ -174,6 +277,11 @@ function validateArtifactEffect(raw: unknown, errors: string[]): ArtifactEffect 
         return null;
       }
       return { kind: "zone-buff", region, buff, sourceLabel };
+    }
+    case "piece-rule-modifier": {
+      const modifier = validatePieceRuleModifier(raw.modifier, errors);
+      if (!modifier) return null;
+      return { kind: "piece-rule-modifier", modifier };
     }
     default:
       errors.push(

@@ -24,7 +24,13 @@ import type {
   Wall,
   ZoneBuff,
 } from "../types";
-import { effectiveCardCost, effectiveEnergyPerTurn, effectiveHandSize } from "../artifacts/effects";
+import {
+  effectiveCardCost,
+  effectiveEnergyPerTurn,
+  effectiveHandSize,
+  hasPhalanxShield,
+  pieceEmpowerAll,
+} from "../artifacts/effects";
 import {
   activeZoneBuffs,
   zoneBuffEnergyPerTurn,
@@ -342,7 +348,112 @@ export function startPlayerTurn(
     // Re-arm extra-chess-move budget from active Powers each turn.
     playerExtraMovesRemaining: powerExtraMoves(tickedState),
   };
-  return refillHand(next, rng, ctx);
+  const refilled = refillHand(next, rng, ctx);
+  return applyStartOfTurnArtifactsAndPowers(refilled, ctx);
+}
+
+/**
+ * Apply start-of-turn artifact and Power effects that need a board snapshot:
+ *  - piece-empower-all (Polished Bishop, Cavalry Doctrine)
+ *  - phalanx-adjacent-shield (Phalanx)
+ *  - haste-pawns-per-turn (Pawn Storm Power)
+ *  - shield-back-rank-per-turn (Garrison Mode Power, king-excluded)
+ *
+ * Each effect re-applies a one-turn status using the current board state, so
+ * the alive()-filter at the top of `startPlayerTurn` doesn't need to know
+ * about them. No-op when `ctx.pieceTypeAt` isn't provided (e.g. tests that
+ * skip the board context entirely).
+ */
+function applyStartOfTurnArtifactsAndPowers(
+  state: MatchCardState,
+  ctx?: ZoneBoardContext,
+): MatchCardState {
+  if (!ctx?.pieceTypeAt) return state;
+  const expires = state.turn + 1;
+  const pieceTypeAt = ctx.pieceTypeAt;
+  const pieceSideAt = ctx.pieceSideAt;
+  const { files, ranks } = ctx.size;
+  const FILES = "abcdefgh";
+
+  const empowerSpecs = pieceEmpowerAll(state.artifacts ?? []);
+  const phalanx = hasPhalanxShield(state.artifacts ?? []);
+  const hastePawns = (state.activePowers ?? []).some((p) => p.kind === "haste-pawns-per-turn");
+  const shieldBackRank = (state.activePowers ?? []).some(
+    (p) => p.kind === "shield-back-rank-per-turn",
+  );
+
+  if (empowerSpecs.length === 0 && !phalanx && !hastePawns && !shieldBackRank) {
+    return state;
+  }
+
+  let next = state;
+  for (let f = 0; f < files; f++) {
+    for (let r = 1; r <= ranks; r++) {
+      const sq = FILES[f] + String(r);
+      if (pieceSideAt(sq) !== "player") continue;
+      const type = pieceTypeAt(sq);
+      if (!type) continue;
+
+      // piece-empower-all: append per (sq, pattern) without dropping any
+      // existing single-use empower (Patches stack independently).
+      for (const spec of empowerSpecs) {
+        if (spec.pieceType !== type) continue;
+        const existing = (next.empowers ?? []).find(
+          (e) => e.square === sq && e.pattern === spec.pattern,
+        );
+        if (existing) continue;
+        next = {
+          ...next,
+          empowers: [
+            ...next.empowers,
+            { square: sq, side: "player", expiresOnTurn: expires, pattern: spec.pattern },
+          ],
+        };
+      }
+
+      // Phalanx: if any orthogonally-adjacent square has a friendly piece,
+      // shield this piece for one turn.
+      if (phalanx && hasOrthFriend(pieceSideAt, files, ranks, f, r)) {
+        next = addStatus(next, "shields", sq, expires, "player");
+      }
+
+      // Pawn Storm Power: haste every player pawn at the start of each turn.
+      if (hastePawns && type === "pawn") {
+        next = addStatus(next, "hastes", sq, expires, "player");
+      }
+
+      // Garrison Mode Power: shield every non-king player piece on rank 1
+      // until the player's next turn.
+      if (shieldBackRank && r === 1 && type !== "king") {
+        next = addStatus(next, "shields", sq, expires, "player");
+      }
+    }
+  }
+  return next;
+}
+
+function hasOrthFriend(
+  pieceSideAt: (sq: AlgebraicSquare) => Side | null,
+  files: number,
+  ranks: number,
+  f: number,
+  r: number,
+): boolean {
+  const FILES = "abcdefgh";
+  const offsets: ReadonlyArray<[number, number]> = [
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1],
+  ];
+  for (const [df, dr] of offsets) {
+    const nf = f + df;
+    const nr = r + dr;
+    if (nf < 0 || nf >= files) continue;
+    if (nr < 1 || nr > ranks) continue;
+    if (pieceSideAt(FILES[nf] + String(nr)) === "player") return true;
+  }
+  return false;
 }
 
 /**
@@ -403,6 +514,8 @@ export type BoardContext = {
   isRooted: (sq: AlgebraicSquare) => boolean;
   /** Number of ranks on the board. Defaults to 8 if unspecified. */
   boardRanks?: number;
+  /** Number of files on the board. Defaults to 8 if unspecified. */
+  boardFiles?: number;
 };
 
 /**
@@ -444,6 +557,7 @@ export type PlayCardFailure =
   | "target-hand-card-self"
   | "target-hand-card-curse"
   | "target-hand-card-already-retained"
+  | "target-piece-type-mismatch"
   | "effect-forbidden-by-modifier";
 
 /**
@@ -590,6 +704,13 @@ function validateTarget(
       ) {
         return "target-patch-same-piece-type";
       }
+      if (
+        card.effect.kind === "lightning-piece" &&
+        card.effect.pieceTypeFilter !== undefined &&
+        card.effect.pieceTypeFilter !== p.type
+      ) {
+        return "target-piece-type-mismatch";
+      }
       return null;
     }
     case "own-non-king-piece": {
@@ -625,6 +746,17 @@ function validateTarget(
       if (!enemy || enemy.side !== "opponent") return "target-not-enemy-piece";
       if (enemy.type === "king") return "target-not-enemy-non-king-piece";
       if (!ctx.isRooted(target.first)) return "target-not-rooted";
+      const own = ctx.pieceAt(target.second);
+      if (!own || own.side !== "player") return "target-not-own-piece";
+      return null;
+    }
+    case "enemy-and-own-piece": {
+      // First: any enemy non-king piece. Second: one of player's pieces.
+      if (target.kind !== "two-squares") return "missing-target";
+      if (target.first === target.second) return "target-not-distinct";
+      const enemy = ctx.pieceAt(target.first);
+      if (!enemy || enemy.side !== "opponent") return "target-not-enemy-piece";
+      if (enemy.type === "king") return "target-not-enemy-non-king-piece";
       const own = ctx.pieceAt(target.second);
       if (!own || own.side !== "player") return "target-not-own-piece";
       return null;
@@ -700,20 +832,41 @@ function applyEffect(
         state: addStatus(state, "shields", squareTarget(target), state.turn + 1, "player"),
         sideEffects: [],
       };
-    case "haste-piece":
+    case "haste-piece": {
+      const dur = effect.durationTurns ?? 1;
       return {
-        state: addStatus(state, "hastes", squareTarget(target), state.turn + 1, "player"),
+        state: addStatus(state, "hastes", squareTarget(target), state.turn + dur, "player"),
         sideEffects: [],
       };
+    }
+    case "haste-all-of-type": {
+      // Walk the board for player pieces of the given type and apply Haste.
+      const dur = effect.durationTurns ?? 1;
+      const expires = state.turn + dur;
+      const files = ctx.boardFiles ?? 8;
+      const ranks = ctx.boardRanks ?? 8;
+      const FILES = "abcdefgh";
+      let next = state;
+      for (let f = 0; f < files; f++) {
+        for (let r = 1; r <= ranks; r++) {
+          const sq = FILES[f] + String(r);
+          const p = ctx.pieceAt(sq);
+          if (!p || p.side !== "player" || p.type !== effect.pieceType) continue;
+          next = addStatus(next, "hastes", sq, expires, "player");
+        }
+      }
+      return { state: next, sideEffects: [] };
+    }
     case "empower-piece": {
       const sq = squareTarget(target);
       // Both regular and single-use empowers expire at the start of the next
       // player turn. Single-use additionally drops as soon as the player moves
       // a different piece (handled by `dropOtherSingleUseEmpowers`).
+      const dur = effect.durationTurns ?? 1;
       const status: EmpowerStatus = {
         square: sq,
         side: "player",
-        expiresOnTurn: state.turn + 1,
+        expiresOnTurn: state.turn + dur,
         pattern: effect.pattern,
       };
       if (effect.singleUse) status.singleUse = true;
@@ -825,6 +978,13 @@ function applyEffect(
       };
     }
     case "swap-rooted-with-own": {
+      if (target.kind !== "two-squares") return { state, sideEffects: [] };
+      return {
+        state,
+        sideEffects: [{ kind: "swap-pieces", a: target.first, b: target.second }],
+      };
+    }
+    case "swap-with-enemy": {
       if (target.kind !== "two-squares") return { state, sideEffects: [] };
       return {
         state,
@@ -993,7 +1153,7 @@ function squareTarget(t: PlayTarget): AlgebraicSquare {
 }
 
 function anchorOf(buff: ZoneBuff): AlgebraicSquare | null {
-  if (buff.region.kind === "rank") return null;
+  if (buff.region.kind === "rank" || buff.region.kind === "center") return null;
   return buff.region.anchor;
 }
 

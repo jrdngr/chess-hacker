@@ -1,0 +1,13 @@
+{
+  "id": "promotion-engine",
+  "name": "Promotion Engine",
+  "rarity": "uncommon",
+  "description": "Your pawns promote at rank 7 instead of rank 8.",
+  "emoji": "👑",
+  "effects": [
+    {
+      "kind": "piece-rule-modifier",
+      "modifier": { "kind": "pawn-promotion-rank", "rank": 7 }
+    }
+  ]
+}

@@ -1,10 +1,10 @@
 {
   "id": "extract",
   "name": "Extract",
-  "cost": 2,
+  "cost": 3,
   "rarity": "uncommon",
   "archetype": "swap",
-  "description": "Swap one of your pieces with a sandboxed enemy piece.",
-  "target": { "kind": "rooted-enemy-and-own-piece" },
-  "effect": { "kind": "swap-rooted-with-own" }
+  "description": "Swap one of your pieces with any enemy non-King piece.",
+  "target": { "kind": "enemy-and-own-piece" },
+  "effect": { "kind": "swap-with-enemy" }
 }

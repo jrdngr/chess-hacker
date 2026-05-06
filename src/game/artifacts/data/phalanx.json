@@ -1,0 +1,13 @@
+{
+  "id": "phalanx",
+  "name": "Phalanx",
+  "rarity": "rare",
+  "description": "At the start of your turn, every friendly piece orthogonally adjacent to another friendly piece is shielded until your next turn.",
+  "emoji": "🛡️",
+  "effects": [
+    {
+      "kind": "piece-rule-modifier",
+      "modifier": { "kind": "phalanx-adjacent-shield" }
+    }
+  ]
+}

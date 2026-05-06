@@ -64,6 +64,14 @@ export type ExtraOverlays = {
   shields?: ReadonlySet<AlgebraicSquare>;
   sanctuaries?: ReadonlySet<AlgebraicSquare>;
   empowers?: ReadonlyMap<AlgebraicSquare, ReadonlySet<EmpowerPattern>>;
+  /** Sides whose pawns may double-push from any rank (Pawn Storm artifact). */
+  pawnDoubleFromAnyRank?: ReadonlySet<Side>;
+  /** Sides whose pawns may also move 1 square backward (Drill Sergeant). */
+  pawnBackwardStep?: ReadonlySet<Side>;
+  /** Side-specific promotion-rank overrides (Promotion Engine). */
+  pawnPromotionRanks?: { player?: number; opponent?: number };
+  /** Side-specific rook attack-through-wall counts (Sniper Optics). */
+  rookAttackThroughWalls?: { player?: number; opponent?: number };
 };
 
 type HistoryEntry = {

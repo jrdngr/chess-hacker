@@ -53,6 +53,7 @@ export const VALID_TARGET_KINDS = [
   "two-own-pieces",
   "marionette",
   "rooted-enemy-and-own-piece",
+  "enemy-and-own-piece",
   "hand-card",
 ] as const;
 export const VALID_EFFECT_KINDS = [
@@ -65,6 +66,7 @@ export const VALID_EFFECT_KINDS = [
   "compel-piece",
   "shield-piece",
   "haste-piece",
+  "haste-all-of-type",
   "empower-piece",
   "lightning-piece",
   "place-wall",
@@ -73,6 +75,7 @@ export const VALID_EFFECT_KINDS = [
   "place-zone-buff",
   "swap-own-pieces",
   "swap-rooted-with-own",
+  "swap-with-enemy",
   "summon-piece",
   "sacrifice-piece",
   "marionette",
@@ -93,6 +96,8 @@ export const VALID_POWER_KINDS = [
   "energy-per-turn",
   "draw-per-turn",
   "extra-chess-move-per-turn",
+  "haste-pawns-per-turn",
+  "shield-back-rank-per-turn",
 ] as const;
 export const VALID_ZONE_BUFF_PATTERNS = ["square-orthogonal-1", "square-radius-1"] as const;
 export const VALID_ZONE_BUFF_EFFECT_KINDS = ["energy-per-turn", "hand-size"] as const;
@@ -106,6 +111,7 @@ export const VALID_EMPOWER_PATTERNS: readonly EmpowerPattern[] = [
   "bishop",
   "rook",
   "queen",
+  "king-step",
 ];
 export const VALID_PIECE_TYPES: readonly PieceType[] = [
   "pawn",
@@ -128,6 +134,26 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
 
 function isPositiveInt(v: unknown): v is number {
   return typeof v === "number" && Number.isInteger(v) && v >= 1;
+}
+
+/**
+ * Validate the optional `durationTurns` field shared by status-applying card
+ * effects (haste-piece, haste-all-of-type, empower-piece). Pushes an error
+ * and returns null on bad input; returns the value (or undefined if absent).
+ */
+function validateDurationTurns(
+  v: unknown,
+  effectKind: string,
+  errors: string[],
+): number | undefined | null {
+  if (v === undefined) return undefined;
+  if (typeof v !== "number" || !Number.isInteger(v) || v < 1 || v > 8) {
+    errors.push(
+      `'effect.durationTurns' must be a positive integer 1..8 if present for kind '${effectKind}'`,
+    );
+    return null;
+  }
+  return v;
 }
 
 function validateTarget(raw: unknown, errors: string[]): CardTarget | null {
@@ -191,8 +217,30 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
       return { kind: "compel-piece" };
     case "shield-piece":
       return { kind: "shield-piece" };
-    case "haste-piece":
-      return { kind: "haste-piece" };
+    case "haste-piece": {
+      const dt = validateDurationTurns(raw.durationTurns, "haste-piece", errors);
+      if (dt === null) return null;
+      const out: CardEffect & { kind: "haste-piece" } = { kind: "haste-piece" };
+      if (typeof dt === "number") out.durationTurns = dt;
+      return out;
+    }
+    case "haste-all-of-type": {
+      const pt = raw.pieceType;
+      if (typeof pt !== "string" || !(VALID_PIECE_TYPES as readonly string[]).includes(pt)) {
+        errors.push(
+          `'effect.pieceType' must be one of ${VALID_PIECE_TYPES.join(", ")} for kind 'haste-all-of-type'`,
+        );
+        return null;
+      }
+      const dt = validateDurationTurns(raw.durationTurns, "haste-all-of-type", errors);
+      if (dt === null) return null;
+      const out: CardEffect & { kind: "haste-all-of-type" } = {
+        kind: "haste-all-of-type",
+        pieceType: pt as PieceType,
+      };
+      if (typeof dt === "number") out.durationTurns = dt;
+      return out;
+    }
     case "empower-piece": {
       const p = raw.pattern;
       if (typeof p !== "string" || !(VALID_EMPOWER_PATTERNS as readonly string[]).includes(p)) {
@@ -206,11 +254,20 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
         errors.push("'effect.singleUse' must be a boolean if present for kind 'empower-piece'");
         return null;
       }
+      const dt = validateDurationTurns(raw.durationTurns, "empower-piece", errors);
+      if (dt === null) return null;
+      if (singleUse === true && typeof dt === "number") {
+        errors.push(
+          "'effect.singleUse' and 'effect.durationTurns' are mutually exclusive for 'empower-piece'",
+        );
+        return null;
+      }
       const out: CardEffect & { kind: "empower-piece" } = {
         kind: "empower-piece",
         pattern: p as EmpowerPattern,
       };
       if (singleUse === true) out.singleUse = true;
+      if (typeof dt === "number") out.durationTurns = dt;
       return out;
     }
     case "lightning-piece": {
@@ -218,7 +275,22 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
         errors.push("'effect.actions' must be a positive integer for kind 'lightning-piece'");
         return null;
       }
-      return { kind: "lightning-piece", actions: raw.actions };
+      const filter = raw.pieceTypeFilter;
+      if (
+        filter !== undefined &&
+        (typeof filter !== "string" || !(VALID_PIECE_TYPES as readonly string[]).includes(filter))
+      ) {
+        errors.push(
+          `'effect.pieceTypeFilter' must be one of ${VALID_PIECE_TYPES.join(", ")} if present for kind 'lightning-piece'`,
+        );
+        return null;
+      }
+      const out: CardEffect & { kind: "lightning-piece" } = {
+        kind: "lightning-piece",
+        actions: raw.actions,
+      };
+      if (typeof filter === "string") out.pieceTypeFilter = filter as PieceType;
+      return out;
     }
     case "place-wall": {
       if (!isPositiveInt(raw.durationTurns)) {
@@ -333,6 +405,8 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
       return { kind: "marionette" };
     case "swap-rooted-with-own":
       return { kind: "swap-rooted-with-own" };
+    case "swap-with-enemy":
+      return { kind: "swap-with-enemy" };
     case "destroy-piece": {
       const filter = raw.filter;
       if (
@@ -444,7 +518,12 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
       return {
         kind: "play-power",
         effect: {
-          kind: innerKind as "energy-per-turn" | "draw-per-turn" | "extra-chess-move-per-turn",
+          kind: innerKind as
+            | "energy-per-turn"
+            | "draw-per-turn"
+            | "extra-chess-move-per-turn"
+            | "haste-pawns-per-turn"
+            | "shield-back-rank-per-turn",
           amount: inner.amount,
         },
       };
@@ -507,6 +586,8 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
     case "empower-piece":
     case "lightning-piece":
       return tk === "own-piece" ? null : `'${effect.kind}' effect requires target.kind 'own-piece'`;
+    case "haste-all-of-type":
+      return tk === "none" ? null : "'haste-all-of-type' effect requires target.kind 'none'";
     case "place-wall":
     case "place-sanctuary":
     case "place-trap":
@@ -530,6 +611,10 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
       return tk === "rooted-enemy-and-own-piece"
         ? null
         : "'swap-rooted-with-own' effect requires target.kind 'rooted-enemy-and-own-piece'";
+    case "swap-with-enemy":
+      return tk === "enemy-and-own-piece"
+        ? null
+        : "'swap-with-enemy' effect requires target.kind 'enemy-and-own-piece'";
     case "marionette":
       return tk === "marionette" ? null : "'marionette' effect requires target.kind 'marionette'";
     case "destroy-piece":

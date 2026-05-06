@@ -96,13 +96,26 @@ Artifacts live as **emoji badges in the top banner** of the run, persistent acro
 - No single artifact should be the obvious "always pick" — pickability depends on deck.
 - Avoid artifacts that grant *both* unconditional power and combo potential. Pick a lane.
 
-## Examples (sketch only — not the final list)
+## Current pool (post power-curve overhaul)
 
-- *Common:* "The first time each match you play a card, gain 1 gold."
-- *Common:* "Hand size +1."
-- *Uncommon:* "Your knights may move 1 square diagonally instead of their L-shape, once per match."
-- *Uncommon:* "When you draw a 0-cost card, draw 1 more."
-- *Rare:* "Pawns promote on rank 6."
-- *Rare:* "Whenever you cast a Spatial card, also place a wall on a random unoccupied square within 2 squares of the target."
+The prototype's artifact pool sits at 12 entries — under the target above; this is acknowledged technical debt that the next content pass will close. The full list:
 
-These are illustrative, not committed. Final list lives in code (data files) and is subject to extensive playtesting.
+**Common (5)**
+- *Bug Bounty:* When you capture an enemy piece, gain 1 energy this turn.
+- *Keylogger:* When you capture an enemy piece, draw 1 card.
+- *Polished Bishop* (default starting artifact for Standard mode): Your bishops may also step 1 square in any direction (king-step) in addition to their diagonal slides.
+- *Pawn Storm:* Your pawns may double-push from any rank, not just the start rank.
+- *Drill Sergeant:* Your pawns may move 1 square backward (no capture).
+
+**Uncommon (5)**
+- *Threat Detector:* When you put the opponent in check, draw 1 card.
+- *Foothold:* Hand size +1 while you have a friendly piece on a center square (d4 / e4 / d5 / e5 on 8×8; the central 2×2 on even-sized boards, the single middle square on odd).
+- *Map Editor:* Spatial cards cost 1 less (minimum 0).
+- *Cavalry Doctrine:* Your knights may also step 1 square in any direction in addition to the L-shape.
+- *Promotion Engine:* Your pawns promote at rank 7 instead of rank 8.
+
+**Rare (2)**
+- *Sniper Optics:* Your rooks may capture an enemy piece even with one wall in the path between attacker and target. Movement to empty squares past a wall is still blocked.
+- *Phalanx:* At the start of your turn, every friendly piece orthogonally adjacent to another friendly piece is shielded until your next turn.
+
+The "piece-related" effect domain — flagged earlier in this doc as a design goal — is now wired up via the `piece-rule-modifier` artifact effect (see `src/game/types.ts`). Six modifier kinds cover the current pool: pawn-double-from-any-rank, pawn-backward-step, pawn-promotion-rank, piece-empower-all, rook-attack-through-wall, and phalanx-adjacent-shield.

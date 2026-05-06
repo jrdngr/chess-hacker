@@ -1,11 +1,11 @@
 {
   "name": "Starter",
-  "description": "Run-start deck: 20 cards. Disruption-heavy core (Freeze Process / chroot / Read-Only multiples) plus a small spatial / swap toolkit and two destroy haymakers (Exploit + Format C:) priced for the late game. See docs/cards/starter-deck.md for the rationale.",
+  "description": "Run-start deck: 20 cards. Disruption-heavy core (Freeze Process / chroot / Read-Only multiples) plus a small spatial / swap toolkit, two destroy haymakers (Exploit + Format C:), and proactive movement openers (Sprint, Vanguard) that flag the new movement / Haste lines. See docs/cards/starter-deck.md for the rationale.",
   "cards": [
     { "id": "exploit", "count": 1 },
     { "id": "format-c", "count": 1 },
-    { "id": "encrypted", "count": 2 },
-    { "id": "read-only", "count": 2 },
+    { "id": "encrypted", "count": 1 },
+    { "id": "read-only", "count": 1 },
     { "id": "chroot", "count": 2 },
     { "id": "freeze-process", "count": 2 },
     { "id": "phishing", "count": 1 },
@@ -16,6 +16,8 @@
     { "id": "switch-files", "count": 1 },
     { "id": "remote-access", "count": 1 },
     { "id": "overclock", "count": 1 },
-    { "id": "extract", "count": 1 }
+    { "id": "extract", "count": 1 },
+    { "id": "sprint", "count": 1 },
+    { "id": "vanguard", "count": 1 }
   ]
 }

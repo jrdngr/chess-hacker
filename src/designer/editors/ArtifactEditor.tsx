@@ -391,6 +391,7 @@ function ZoneRegionFields({
           onChange={(e) => {
             const k = e.target.value as ZoneRegion["kind"];
             if (k === "rank") onChange({ kind: "rank", rank: 4 });
+            else if (k === "center") onChange({ kind: "center" });
             else onChange({ kind: k, anchor: "d4" } as ZoneRegion);
           }}
         >
@@ -398,6 +399,7 @@ function ZoneRegionFields({
           <option value="square-orthogonal-1">square-orthogonal-1</option>
           <option value="square-radius-1">square-radius-1</option>
           <option value="rank">rank</option>
+          <option value="center">center</option>
         </select>
       </Row>
       {region.kind === "rank" ? (
@@ -406,7 +408,7 @@ function ZoneRegionFields({
           value={{ rank: region.rank }}
           onChange={(next) => onChange({ kind: "rank", rank: next.rank as number })}
         />
-      ) : (
+      ) : region.kind === "center" ? null : (
         <FieldRenderer
           field={{ name: "anchor", type: "string" }}
           value={{ anchor: region.anchor }}

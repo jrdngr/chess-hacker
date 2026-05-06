@@ -1,0 +1,14 @@
+{
+  "id": "garrison-mode",
+  "name": "Garrison Mode",
+  "cost": 4,
+  "rarity": "rare",
+  "archetype": "power",
+  "consume": true,
+  "description": "Power. At the start of each of your turns, your pieces on rank 1 (except the king) are shielded until your next turn. Consume.",
+  "target": { "kind": "none" },
+  "effect": {
+    "kind": "play-power",
+    "effect": { "kind": "shield-back-rank-per-turn", "amount": 1 }
+  }
+}

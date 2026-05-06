@@ -69,6 +69,20 @@ function noTarget(): PlayTarget {
   return { kind: "none" };
 }
 
+/** Synthetic random-revive card for tests; replaces the retired Restore Point. */
+function syntheticRandomRevive(): Card {
+  return {
+    id: "test-random-revive",
+    name: "Test Random Revive",
+    cost: 1,
+    rarity: "common",
+    archetype: "resource",
+    description: "Return a random card from your discard pile to your hand.",
+    target: { kind: "none" },
+    effect: { kind: "revive", selection: "random" },
+  };
+}
+
 type WithPiecesOptions = {
   attackedByPlayer?: ReadonlySet<string>;
   rooted?: ReadonlySet<string>;
@@ -765,9 +779,12 @@ describe("disposal: discard, consume, retain, cycle", () => {
     if (!rCurse.ok) expect(rCurse.reason).toBe("target-hand-card-curse");
   });
 
-  it("Restore Point pulls from the discard pile only — never from the consumed pile", () => {
+  it("random revive pulls from the discard pile only — never from the consumed pile", () => {
     const rng = makeRng(215);
-    const recall = getCardById("restore-point");
+    // Restore Point was retired in the power-curve overhaul; the `revive`
+    // (selection: random) effect kind itself remains valid. Build a synthetic
+    // card with the same shape to exercise the resolver path.
+    const recall = syntheticRandomRevive();
     let st = startPlayerTurn(createMatchCardState([recall], rng), rng);
     st = {
       ...st,
@@ -776,15 +793,15 @@ describe("disposal: discard, consume, retain, cycle", () => {
       // Format C: in consumed must NOT be revivable.
       consumedPile: [getCardById("format-c")],
     };
-    const idx = st.hand.findIndex((s) => s.card.id === "restore-point");
+    const idx = st.hand.findIndex((s) => s.card.id === recall.id);
     const r = playCard(st, idx, noTarget(), emptyBoard, rng);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     // The consumed pile is unchanged: Format C: stays gone.
     expect(r.state.consumedPile.some((c) => c.id === "format-c")).toBe(true);
     // The resolver removed one card from the discard pile (emitted as an
-    // add-card-to-hand side effect) and Restore Point itself was discarded after
-    // play. Net discard pile length: 2 - 1 + 1 = 2.
+    // add-card-to-hand side effect) and the synthetic card itself was
+    // discarded after play. Net discard pile length: 2 - 1 + 1 = 2.
     expect(r.state.discardPile.length).toBe(2);
     const fx = r.sideEffects.find((f) => f.kind === "add-card-to-hand");
     expect(fx).toBeDefined();
@@ -854,7 +871,7 @@ describe("playCard — destroy", () => {
 });
 
 describe("card-economy effects", () => {
-  it("Extract rejects a non-rooted enemy with target-not-rooted", () => {
+  it("Extract on any enemy + own piece emits swap-pieces (no rooted requirement)", () => {
     const rng = makeRng(233);
     const vine = getCardById("extract");
     let st = startPlayerTurn(createMatchCardState([vine], rng), rng);
@@ -865,57 +882,54 @@ describe("card-economy effects", () => {
       e2: { type: "pawn", side: "player" },
     });
     const r = playCard(st, idx, { kind: "two-squares", first: "e7", second: "e2" }, ctx, rng);
-    expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.reason).toBe("target-not-rooted");
-  });
-
-  it("Extract on a rooted enemy + own piece emits swap-pieces", () => {
-    const rng = makeRng(234);
-    const vine = getCardById("extract");
-    let st = startPlayerTurn(createMatchCardState([vine], rng), rng);
-    st = { ...st, energy: ENERGY_MAX };
-    const idx = st.hand.findIndex((s) => s.card.id === "extract");
-    const ctx = withPieces(
-      {
-        e7: { type: "pawn", side: "opponent" },
-        e2: { type: "pawn", side: "player" },
-      },
-      { rooted: new Set(["e7"]) },
-    );
-    const r = playCard(st, idx, { kind: "two-squares", first: "e7", second: "e2" }, ctx, rng);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.sideEffects).toEqual([{ kind: "swap-pieces", a: "e7", b: "e2" }]);
   });
 
-  it("Restore Point (random revive) returns one discarded card to hand", () => {
+  it("Extract rejects an enemy King with target-not-enemy-non-king-piece", () => {
+    const rng = makeRng(234);
+    const vine = getCardById("extract");
+    let st = startPlayerTurn(createMatchCardState([vine], rng), rng);
+    st = { ...st, energy: ENERGY_MAX };
+    const idx = st.hand.findIndex((s) => s.card.id === "extract");
+    const ctx = withPieces({
+      e8: { type: "king", side: "opponent" },
+      e2: { type: "pawn", side: "player" },
+    });
+    const r = playCard(st, idx, { kind: "two-squares", first: "e8", second: "e2" }, ctx, rng);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reason).toBe("target-not-enemy-non-king-piece");
+  });
+
+  it("random revive returns one discarded card to hand", () => {
     const rng = makeRng(235);
-    const recall = getCardById("restore-point");
+    const recall = syntheticRandomRevive();
     let st = startPlayerTurn(createMatchCardState([recall], rng), rng);
     st = { ...st, energy: ENERGY_MAX, discardPile: [FIREWALL, FREEZE_PROCESS, ENCRYPTED] };
-    const idx = st.hand.findIndex((s) => s.card.id === "restore-point");
+    const idx = st.hand.findIndex((s) => s.card.id === recall.id);
     const r = playCard(st, idx, noTarget(), emptyBoard, rng);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    // Resolver removed one from discard and emitted add-card-to-hand. Restore Point
-    // itself is non-Consume, so it lands in discard after play. Net discard:
-    // 3 - 1 + 1 = 3.
+    // Resolver removed one from discard and emitted add-card-to-hand. The
+    // synthetic card itself is non-Consume, so it lands in discard after play.
+    // Net discard: 3 - 1 + 1 = 3.
     expect(r.state.discardPile).toHaveLength(3);
     const fx = r.sideEffects.find((f) => f.kind === "add-card-to-hand");
     expect(fx).toBeDefined();
   });
 
-  it("Restore Point on an empty discard pile is a no-op (apart from cycling itself)", () => {
+  it("random revive on an empty discard pile is a no-op (apart from cycling itself)", () => {
     const rng = makeRng(236);
-    const recall = getCardById("restore-point");
+    const recall = syntheticRandomRevive();
     let st = startPlayerTurn(createMatchCardState([recall], rng), rng);
     st = { ...st, energy: ENERGY_MAX, discardPile: [] };
-    const idx = st.hand.findIndex((s) => s.card.id === "restore-point");
+    const idx = st.hand.findIndex((s) => s.card.id === recall.id);
     const r = playCard(st, idx, noTarget(), emptyBoard, rng);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.sideEffects.filter((f) => f.kind === "add-card-to-hand")).toHaveLength(0);
-    // Restore Point itself cycles into the discard pile.
+    // The synthetic card cycles into the discard pile after play.
     expect(r.state.discardPile).toHaveLength(1);
   });
 

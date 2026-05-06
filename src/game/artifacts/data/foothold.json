@@ -2,12 +2,12 @@
   "id": "foothold",
   "name": "Foothold",
   "rarity": "uncommon",
-  "description": "Hand size +1 while you have a friendly piece on rank 4.",
+  "description": "Hand size +1 while you have a friendly piece on a center square (the central 4 squares on an 8×8 board: d4, e4, d5, e5).",
   "emoji": "🪜",
   "effects": [
     {
       "kind": "zone-buff",
-      "region": { "kind": "rank", "rank": 4 },
+      "region": { "kind": "center" },
       "buff": { "kind": "hand-size", "amount": 1 },
       "sourceLabel": "Foothold"
     }
