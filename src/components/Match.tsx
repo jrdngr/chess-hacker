@@ -69,7 +69,6 @@ import {
 } from "../game/chess/validate";
 import { STANDARD_MATCHES, resolvePieceSet } from "../game/progression/standard";
 import {
-  ENERGY_MAX,
   clampEnergy,
   clearStatusesOn,
   completeRevive,
@@ -1279,6 +1278,20 @@ export function Match({
         next = consumeHaste(next, to);
         consumeAndContinue = true;
       }
+      // Fork Process Power: every extra move on the budget keeps the turn
+      // open after a normal player move. Decrement once per move; when the
+      // budget reaches 0 the turn flips normally next time around.
+      if (
+        !consumeAndContinue &&
+        mover?.side === "player" &&
+        (next.playerExtraMovesRemaining ?? 0) > 0
+      ) {
+        next = {
+          ...next,
+          playerExtraMovesRemaining: (next.playerExtraMovesRemaining ?? 0) - 1,
+        };
+        consumeAndContinue = true;
+      }
       if (consumeAndContinue) {
         engine.forceTurn("player");
       }
@@ -2442,7 +2455,6 @@ export function Match({
                 <div className={styles.label}>Energy</div>
                 <div className={styles.energy} aria-label={`Energy: ${cardState.energy}`}>
                   <span className={styles.energyValue}>{cardState.energy}</span>
-                  <span className={styles.energyMax}>/ {ENERGY_MAX}</span>
                 </div>
               </div>
             )}

@@ -18,16 +18,16 @@ Per-card reference for choss. The mechanics doc is [`docs/design/cards.md`](../d
   - [`summon.md`](summon.md) — create new pieces (currently empty in the prototype)
   - [`swap.md`](swap.md) — non-standard piece movement / displacement
   - [`revival.md`](revival.md) — cards that pull from the discard pile back to hand
+  - [`power.md`](power.md) — Slay-the-Spire-style match-scoped passives
 
 ## All cards
-
-24 cards total (see [`design/cards.md`](../design/cards.md) for the cycling rules and the Retain/Consume keywords).
 
 | Card | Type | Cost | Rarity | Effect summary |
 |---|---|---|---|---|
 | [Port Scan](resource.md#reconnaissance) | Resource | 2 | Common | Draw 2. |
-| [Stack Trace](resource.md#foresight) | Resource | 1 | Common | Scry top 3 of deck. |
+| [Stack Trace](resource.md#foresight) | Resource | 0 | Common | Scry top 3 of deck. |
 | [Bookmark](resource.md#stash) | Resource | 1 | Uncommon | Apply Retain to a card in your hand. |
+| [Cache Warmup](resource.md#cache-warmup) | Resource | 1 | Common | +2 energy at the start of your next turn. |
 | [Freeze Process](disruption.md#frostbite) | Disruption | 2 | Common | Freeze enemy piece. |
 | [chroot](disruption.md#tangled-roots) | Disruption | 1 | Common | Root enemy piece. |
 | [Read-Only](disruption.md#fumble) | Disruption | 1 | Common | Disarm enemy piece. |
@@ -37,26 +37,28 @@ Per-card reference for choss. The mechanics doc is [`docs/design/cards.md`](../d
 | [Logic Bomb](spatial.md#spike-pit) | Spatial | 2 | Uncommon | Trap (capture), 4 turns. |
 | [Honeypot](spatial.md#snare) | Spatial | 1 | Common | Trap (freeze), 3 turns. |
 | [Connection Reset](spatial.md#spring-trap) | Spatial | 1 | Common | Trap (push), 3 turns. |
-| [Power Node](spatial.md#standing-stone) | Spatial | 2 | Uncommon | Zone-buff: +1 energy/turn near a square, 4 turns. |
+| [Power Node](spatial.md#standing-stone) | Spatial | 3 | Uncommon | Zone-buff: +1 energy/turn near a square, 4 turns. |
 | [Overclock](tempo.md#quickstep) | Tempo | 2 | Common | Own piece takes 2 actions (moves and captures). |
 | [Encrypted](defensive.md#iron-guard) | Defensive | 1 | Common | Shield own piece. |
-| [Exploit](burst.md#cheap-destroy) | Burst | 4 | Rare | **Consume.** Destroy an attacked enemy non-King piece. |
-| [Format C:](burst.md#big-destroy) | Burst | 10 | Rare | **Consume.** Destroy any enemy non-King piece. |
+| [Exploit](burst.md#cheap-destroy) | Burst | 3 | Rare | **Consume.** Destroy an attacked enemy non-King piece. |
+| [Format C:](burst.md#big-destroy) | Burst | 4 | Rare | **Consume.** Destroy any enemy non-King piece. |
 | [kill -9](sacrifice.md#martyrs-gift) | Sacrifice | 1 | Uncommon | **Consume.** Destroy own piece; +2 cards, +1 energy. |
 | [Pawn Patch](movement-extension.md#pawn-soul) | Movement-extension | 1 | Common | **Consume.** Empower own piece w/ pawn movement (this turn). |
-| [Knight Patch](movement-extension.md#knight-soul) | Movement-extension | 3 | Rare | **Consume.** Empower own piece w/ knight L (this turn). |
-| [Bishop Patch](movement-extension.md#bishop-soul) | Movement-extension | 3 | Rare | **Consume.** Empower own piece w/ diagonal slide (this turn). |
-| [Rook Patch](movement-extension.md#rook-soul) | Movement-extension | 4 | Rare | **Consume.** Empower own piece w/ straight slide (this turn). |
-| [Queen Patch](movement-extension.md#queen-soul) | Movement-extension | 5 | Rare | **Consume.** Empower own piece w/ queen movement (this turn). |
+| [Knight Patch](movement-extension.md#knight-soul) | Movement-extension | 2 | Rare | **Consume.** Empower own piece w/ knight L (this turn). |
+| [Bishop Patch](movement-extension.md#bishop-soul) | Movement-extension | 2 | Rare | **Consume.** Empower own piece w/ diagonal slide (this turn). |
+| [Rook Patch](movement-extension.md#rook-soul) | Movement-extension | 3 | Rare | **Consume.** Empower own piece w/ straight slide (this turn). |
+| [Queen Patch](movement-extension.md#queen-soul) | Movement-extension | 3 | Rare | **Consume.** Empower own piece w/ queen movement (this turn). |
 | [Switch Files](swap.md#switch-files) | Swap/Displace | 2 | Uncommon | Swap two of your own pieces. |
-| [Remote Access](swap.md#marionette) | Swap/Displace | 5 | Rare | **Consume.** Move an enemy piece by its legal moves. |
+| [Remote Access](swap.md#marionette) | Swap/Displace | 3 | Rare | **Consume.** Move an enemy piece by its legal moves. |
 | [Extract](swap.md#vine-pull) | Swap/Displace | 2 | Uncommon | Swap one of your pieces with a rooted enemy. |
 | [Restore Point](revival.md#recall) | Resource | 1 | Common | Return a random discarded card to hand. |
-| [Restore from Backup](revival.md#recover) | Resource | 4 | Uncommon | **Consume.** Choose a discarded card to return to hand. |
+| [Restore from Backup](revival.md#recover) | Resource | 3 | Uncommon | **Consume.** Choose a discarded card to return to hand. |
+| [Daemon Process](power.md#daemon-process) | Power | 4 | Rare | **Consume.** +1 energy at the start of each of your turns for the rest of the match. |
+| [tail -f](power.md#tail-f) | Power | 4 | Rare | **Consume.** +1 card drawn each turn for the rest of the match. |
+| [Fork Process](power.md#fork-process) | Power | 4 | Rare | **Consume.** +1 chess move each turn for the rest of the match. |
 
 ## Counts
 
-- **By rarity:** 14 Common, 7 Uncommon, 6 Rare.
-- **By Consume:** 10 cards have Consume; the remaining 17 cycle through the discard pile.
-- **By type:** Resource 6, Disruption 4, Spatial 6, Tempo 1, Movement-extension 5, Defensive 1, Burst 2, Sacrifice 1, Summon 0, Swap 3.
-- **By cost (0–10):** 0× 0-cost, 11× 1-cost, 9× 2-cost, 2× 3-cost, 2× 4-cost, 2× 5-cost, 0× 6–9-cost, 1× 10-cost.
+- **By Consume:** 10 cards have Consume; the rest cycle through the discard pile.
+- **By type:** Resource 7, Disruption 4, Spatial 6, Tempo 1, Movement-extension 5, Defensive 1, Burst 2, Sacrifice 1, Swap 3, Power 3.
+- **By cost (0–4):** 1× 0-cost (Stack Trace), 11× 1-cost, 9× 2-cost, 5× 3-cost, 4× 4-cost.

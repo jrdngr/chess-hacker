@@ -19,16 +19,12 @@ import type {
   Piece,
   PieceStatus,
   PieceType,
+  PowerEffect,
   Side,
   Wall,
   ZoneBuff,
 } from "../types";
-import {
-  effectiveCardCost,
-  effectiveEnergyPerTurn,
-  effectiveHandSize,
-  effectiveStartingEnergy,
-} from "../artifacts/effects";
+import { effectiveCardCost, effectiveEnergyPerTurn, effectiveHandSize } from "../artifacts/effects";
 import {
   activeZoneBuffs,
   zoneBuffEnergyPerTurn,
@@ -39,18 +35,31 @@ import { getCardById } from "./library";
 
 /** Per `docs/design/cards.md`. */
 export const HAND_SIZE = 5;
-/** Energy gained on the very first player turn. */
-export const STARTING_ENERGY = 1;
-/** Energy added at the start of every subsequent player turn. */
-export const ENERGY_PER_TURN = 1;
-/** Hard cap on banked energy. */
-export const ENERGY_MAX = 10;
+/**
+ * Energy granted at the start of every player turn. Energy does NOT bank —
+ * unspent energy is wiped at end-of-turn alongside the hand. Cards cost
+ * 0–4. `STARTING_ENERGY` is kept as an alias for code that historically
+ * read turn-1's energy separately; the two are now the same value.
+ */
+export const ENERGY_PER_TURN = 3;
+export const STARTING_ENERGY = ENERGY_PER_TURN;
 
+/**
+ * Energy is no longer banked, so there is no upper cap from the engine —
+ * Power cards and Cache Warmup can drive a single turn well past the
+ * baseline. The clamp only enforces a non-negative floor.
+ */
 export function clampEnergy(n: number): number {
   if (n < 0) return 0;
-  if (n > ENERGY_MAX) return ENERGY_MAX;
   return n;
 }
+
+/**
+ * Sentinel value used by tests that want "more than enough energy to play
+ * any card" — kept as an export so legacy callers still compile. It is *not*
+ * an enforced cap; in the post-banking model there is no upper cap.
+ */
+export const ENERGY_MAX = 99;
 
 export type Rng = () => number;
 
@@ -114,6 +123,7 @@ export function createMatchCardState(
     traps: [],
     zoneBuffs: zoneBuffsFromArtifacts(artifacts),
     artifacts,
+    activePowers: [],
   };
 }
 
@@ -184,11 +194,41 @@ export function refillHand(
   rng: Rng = Math.random,
   ctx?: ZoneBoardContext,
 ): MatchCardState {
-  const target = effectiveHandSize(state.artifacts ?? []) + zoneBuffsHandSizeFor(state, ctx);
+  const target =
+    effectiveHandSize(state.artifacts ?? []) +
+    zoneBuffsHandSizeFor(state, ctx) +
+    powerDrawBonus(state);
   const nonCurseInHand = state.hand.filter((h) => !h.card.curse).length;
   const need = target - nonCurseInHand;
   if (need <= 0) return state;
   return drawCards(state, need, rng);
+}
+
+/** Sum of all "draw-per-turn" Power effects on this match. */
+function powerDrawBonus(state: MatchCardState): number {
+  let n = 0;
+  for (const p of state.activePowers ?? []) {
+    if (p.kind === "draw-per-turn") n += p.amount;
+  }
+  return n;
+}
+
+/** Sum of all "energy-per-turn" Power effects on this match. */
+function powerEnergyBonus(state: MatchCardState): number {
+  let n = 0;
+  for (const p of state.activePowers ?? []) {
+    if (p.kind === "energy-per-turn") n += p.amount;
+  }
+  return n;
+}
+
+/** Sum of all "extra-chess-move-per-turn" Power effects on this match. */
+function powerExtraMoves(state: MatchCardState): number {
+  let n = 0;
+  for (const p of state.activePowers ?? []) {
+    if (p.kind === "extra-chess-move-per-turn") n += p.amount;
+  }
+  return n;
 }
 
 /**
@@ -228,9 +268,10 @@ function zoneBuffsEnergyPerTurnFor(state: MatchCardState, ctx?: ZoneBoardContext
  *  - Increment turn counter.
  *  - Expire walls / freezes / sanctuaries / traps / debuffs / shields /
  *    one-turn buffs (haste/empower/lightning) whose `expiresOnTurn <= turn`.
- *  - Refill hand to HAND_SIZE.
- *  - Bank energy: first turn starts at STARTING_ENERGY; subsequent turns
- *    add ENERGY_PER_TURN, capped at ENERGY_MAX. Unspent energy carries.
+ *  - Refill hand to HAND_SIZE (+ artifact / zone-buff / Power bonuses).
+ *  - Reset energy to the per-turn baseline (no banking): ENERGY_PER_TURN
+ *    + artifact bonuses + zone-buff bonus + Power bonus + queued / pending
+ *    one-shot grants - any greed penalty.
  */
 export function startPlayerTurn(
   state: MatchCardState,
@@ -261,18 +302,17 @@ export function startPlayerTurn(
   // Boss B modifier: queued energy from the captures-grant-captured-energy
   // rule. Applied (and cleared) at the start of the player's next turn.
   const queuedCaptureEnergy = state.pendingPlayerEnergyOnTurnStart ?? 0;
-  const energy =
-    turn === 1
-      ? clampEnergy(
-          effectiveStartingEnergy(artifacts) + zoneEnergyBonus + queuedCaptureEnergy - greedPenalty,
-        )
-      : clampEnergy(
-          state.energy +
-            effectiveEnergyPerTurn(artifacts) +
-            zoneEnergyBonus +
-            queuedCaptureEnergy -
-            greedPenalty,
-        );
+  // Cache Warmup et al — bonus carried into this start-of-turn from the
+  // previous turn's plays. Cleared after applying.
+  const pendingNextTurnEnergy = state.pendingEnergyNextTurn ?? 0;
+  const energy = clampEnergy(
+    effectiveEnergyPerTurn(artifacts) +
+      powerEnergyBonus(tickedState) +
+      zoneEnergyBonus +
+      queuedCaptureEnergy +
+      pendingNextTurnEnergy -
+      greedPenalty,
+  );
   const next: MatchCardState = {
     ...tickedState,
     turn,
@@ -298,6 +338,9 @@ export function startPlayerTurn(
     capturedThisTurn: false,
     noZeroCostCardsThisTurn: false,
     pendingPlayerEnergyOnTurnStart: 0,
+    pendingEnergyNextTurn: 0,
+    // Re-arm extra-chess-move budget from active Powers each turn.
+    playerExtraMovesRemaining: powerExtraMoves(tickedState),
   };
   return refillHand(next, rng, ctx);
 }
@@ -892,6 +935,27 @@ function applyEffect(
         i === target.index ? { card: slot.card, retained: true } : slot,
       );
       return { state: { ...state, hand }, sideEffects: [] };
+    }
+    case "pending-energy-next-turn": {
+      return {
+        state: {
+          ...state,
+          pendingEnergyNextTurn: (state.pendingEnergyNextTurn ?? 0) + effect.amount,
+        },
+        sideEffects: [],
+      };
+    }
+    case "play-power": {
+      // Append the power to the match-scoped active list. Card itself goes to
+      // the consumed pile via the `consume: true` flag on the JSON definition,
+      // handled by playCard's disposal step.
+      return {
+        state: {
+          ...state,
+          activePowers: [...(state.activePowers ?? []), { ...effect.effect } as PowerEffect],
+        },
+        sideEffects: [],
+      };
     }
     case "compound": {
       let next = state;

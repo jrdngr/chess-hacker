@@ -21,6 +21,8 @@ import type {
   BoardSize,
   BossArtifactOffer,
   BossDef,
+  BossPickOffer,
+  BossPickOption,
   Card,
   CardId,
   CardRarity,
@@ -299,6 +301,76 @@ export function pickBossArtifact(state: RunState, artifact: Artifact): RunState 
 /** Skip the boss artifact pick for gold instead. */
 export function skipBossArtifact(state: RunState, skipGold: number): RunState {
   return { ...state, gold: state.gold + skipGold };
+}
+
+// ---- Boss reward 3-pick (Monster-Train-style) ------------------------------
+
+/**
+ * Fixed 3-option boss reward, shown on every boss win before the artifact
+ * pick. The options are not RNG-driven; the player always sees the same
+ * three choices.
+ */
+export function generateBossPickOffer(): BossPickOffer {
+  return {
+    options: [
+      { kind: "energy-per-turn-bonus", amount: 1 },
+      { kind: "draw-per-turn-bonus", amount: 1 },
+      { kind: "delete-cards", count: 2 },
+    ],
+  };
+}
+
+/**
+ * Resolve a boss-reward pick. Energy / draw bonuses become synthetic
+ * artifacts on the run's artifact list — the existing artifact effect
+ * machinery already plumbs `energy-per-turn-bonus` / `hand-size-bonus`
+ * through `effectiveEnergyPerTurn` / `effectiveHandSize`. Delete-cards
+ * sets a `bossDeleteCharges` counter; the Reward UI gates the next phase
+ * until both deletions are made.
+ */
+export function pickBossOption(state: RunState, option: BossPickOption): RunState {
+  switch (option.kind) {
+    case "energy-per-turn-bonus": {
+      const artifact: Artifact = {
+        id: `boss-pick-energy-${state.matchNumber}`,
+        name: "Boon: +1 Energy",
+        rarity: "rare",
+        description: "Gain +1 energy at the start of each of your turns for the rest of the run.",
+        effects: [{ kind: "energy-per-turn-bonus", amount: option.amount }],
+      };
+      return { ...state, artifacts: [...state.artifacts, artifact] };
+    }
+    case "draw-per-turn-bonus": {
+      const artifact: Artifact = {
+        id: `boss-pick-draw-${state.matchNumber}`,
+        name: "Boon: +1 Draw",
+        rarity: "rare",
+        description: "Draw 1 additional card each turn for the rest of the run.",
+        effects: [{ kind: "hand-size-bonus", amount: option.amount }],
+      };
+      return { ...state, artifacts: [...state.artifacts, artifact] };
+    }
+    case "delete-cards": {
+      return { ...state, bossDeleteCharges: option.count };
+    }
+  }
+}
+
+/**
+ * Consume one boss-pick deletion charge, removing the card at `deckIndex`
+ * from the run deck. Returns the next state, or null if `deckIndex` is out
+ * of range or no charges remain.
+ */
+export function consumeBossDeleteCharge(state: RunState, deckIndex: number): RunState | null {
+  const charges = state.bossDeleteCharges ?? 0;
+  if (charges <= 0) return null;
+  if (deckIndex < 0 || deckIndex >= state.deck.length) return null;
+  const deck = state.deck.slice(0, deckIndex).concat(state.deck.slice(deckIndex + 1));
+  const remaining = charges - 1;
+  const next: RunState = { ...state, deck };
+  if (remaining > 0) next.bossDeleteCharges = remaining;
+  else delete next.bossDeleteCharges;
+  return next;
 }
 
 // ---- Reward → shop transition ----------------------------------------------

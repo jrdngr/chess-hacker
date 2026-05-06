@@ -111,14 +111,20 @@ Kept for the day Royal is re-enabled with 8x8 bosses. Boss A would use d4/e5 wal
 
 ## Boss rewards
 
-Defeating a boss grants:
+Defeating a boss grants, in this order:
 
 1. A **large gold bonus** (greater than performance-bonus + win-bonus normal-match payouts).
-2. An **artifact reward**: 1-of-3 from the boss-tier artifact pool (skewed rare).
-3. A **card draft** (1-of-3) from the regular card pool. (Boss matches do not have a special card pool.)
-4. (Skirmish only) A **piece draft** (1-of-3), with a slight bias toward the rare tier.
+2. A **boss-reward boon pick** (Monster-Train-style): 1-of-3 fixed options. No skip. Resolves before the artifact and card draft. Options:
+    - **+1 energy / turn** for the rest of the run (synthesized as an artifact with `energy-per-turn-bonus`).
+    - **+1 card draw / turn** for the rest of the run (synthesized as an artifact with `hand-size-bonus`).
+    - **Delete 2 cards** from the run deck (free; gates the next reward step until both deletions are spent).
+3. An **artifact reward**: 1-of-3 from the boss-tier artifact pool (skewed rare).
+4. A **card draft** (1-of-3) from the regular card pool. (Boss matches do not have a special card pool.)
+5. (Skirmish only) A **piece draft** (1-of-3), with a slight bias toward the rare tier.
 
 The player then visits the shop before the next match begins.
+
+The boon pick is the structural counterpoint to the artifact pick: the artifact slate is RNG-driven and rare-skewed (so the player can angle for archetype-specific synergies), while the boon pick is a fixed three-way decision about *run shape* — more energy, more cards, or a leaner deck. Picking "+1 energy" twice across a 9-match run lands the player at a baseline of 5 energy / turn by act 3.
 
 ## What bosses don't do
 

@@ -12,13 +12,13 @@ The card system is the central self-expression mechanic. Cards augment chess; th
 
 ## Energy
 
-- Turn 1 starts with **1 energy**. Each subsequent player turn adds **+1 energy**, up to a hard cap of **10**.
-- **Unspent energy banks** across turns. The natural ramp is 1 → 2 → 3 → ... → 10; the player can choose to spend or save at every step.
-- **Cards cost 0–10 energy.** Most cards cost 0–2; mid cards cost 3–5; haymakers cost 7+.
+- Every player turn starts with **3 energy**. Energy does **not** bank — unspent energy is wiped at end-of-turn alongside the discarded hand.
+- **Cards cost 0–4 energy.** 0 cost = tone-setting cantrips (e.g. Stack Trace); 1–2 = bread-and-butter utility; 3 = strong cards; 4 = haymakers (the cap).
 - **No per-turn cap on cards played** other than the energy budget and hand contents.
-- Artifacts and rare cards may grant temporary or permanent extra energy; gains still respect the cap of 10.
+- Artifacts and Power cards may permanently raise the per-turn baseline (e.g. Daemon Process gives +1/turn for the rest of the match; the boss-reward "+1 energy/turn" boon does the same for the rest of the run).
+- **Cache Warmup** (cost 1, +2 energy on the next turn) is the deliberate way to break the 3-energy ceiling on a future turn — the only "save up" tool in a no-banking world.
 
-Banking is the central tempo mechanic. A typical line is one cheap card per turn, with mid cards every 2–3 turns and a haymaker (e.g. Format C:) every 7–10 turns. Saving means *not playing right now* so a future turn can land a single dominant effect.
+Tempo is per-turn rather than across-turn: the player decides each turn how to spend exactly 3 energy. The decision space stays interesting because card costs span 0–4, so on any given turn you might play four 0-cost cantrips, one cost-3 strong card, two cost-1+cost-2, or hold a slot open for a 4-cost haymaker (Cache Warmup setup or Power).
 
 ## When can cards be played?
 
@@ -83,7 +83,8 @@ Cards group into a handful of archetypes. The prototype card pool should hit all
 4. **Disruption** — freeze enemy piece, force enemy piece to move toward a square, swap two pieces.
 5. **Resource / draw** — gain energy, draw cards, discard-and-redraw.
 6. **Defensive / setup** — shield a piece (one-time damage immunity from capture), promote a pawn early, ward a square.
-7. **Burst / win-condition** — high-cost cards that radically change the board (e.g., "destroy any enemy non-King piece", "your queen makes two moves this turn"). The upper end of the cost range; players bank energy for them.
+7. **Burst / win-condition** — high-cost cards that radically change the board (e.g., "destroy any enemy non-King piece", "your queen makes two moves this turn"). Sit at the cost cap (4); the player either pre-plays a Cache Warmup the prior turn or commits the full per-turn budget to a single card.
+8. **Power** — Slay-the-Spire-style match-scoped passives. Cost 4. Played for keeps: card is consumed and its passive (+1 energy/turn, +1 draw/turn, +1 chess move/turn) applies for the remainder of the match.
 
 The prototype does not need a final card list; it needs enough cards to populate the starter deck plus reasonable drafts/shops. See `roadmap/milestones.md` for the rough sizing target. The current per-card reference, grouped by type, lives in [`../cards/`](../cards/) — see [`../cards/README.md`](../cards/README.md) for the full list and [`../cards/keywords.md`](../cards/keywords.md) for keyword definitions.
 
@@ -134,10 +135,10 @@ and `effect.kind` values for the prototype.
 |------------------------------|------------------------------------------------------|
 | Hand size                    | 5                                                    |
 | Draw timing                  | Discard hand at end of turn; redraw to 5 at start of next turn |
-| Starting energy (turn 1)     | 1                                                    |
-| Energy gain per turn         | +1 (banks unspent)                                   |
-| Energy cap                   | 10                                                   |
-| Card cost range              | 0 – 10                                               |
+| Starting energy (every turn) | 3                                                    |
+| Energy banking               | None — unspent energy is wiped at end of turn        |
+| Energy cap                   | None (Power cards / Cache Warmup can drive a single turn well past the baseline) |
+| Card cost range              | 0 – 4                                                |
 | Cards-per-turn cap           | None beyond energy/hand                              |
 | Disposal                     | Discard pile cycles into draw on empty; Consume removes for the match; Retain skips end-of-turn discard |
 | Reactions on opponent turn   | None (may revisit)                                   |

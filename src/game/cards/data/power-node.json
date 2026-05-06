@@ -1,7 +1,7 @@
 {
   "id": "power-node",
   "name": "Power Node",
-  "cost": 2,
+  "cost": 3,
   "rarity": "uncommon",
   "archetype": "spatial",
   "description": "Place a Power Node on an empty square. While you have a friendly piece on it or any orthogonally adjacent square, gain +1 energy at the start of your turn. Lasts 4 turns.",

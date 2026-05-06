@@ -1,0 +1,14 @@
+{
+  "id": "fork-process",
+  "name": "Fork Process",
+  "cost": 4,
+  "rarity": "rare",
+  "archetype": "power",
+  "consume": true,
+  "description": "Power. Take one additional chess move on each of your turns for the rest of the match. Consume.",
+  "target": { "kind": "none" },
+  "effect": {
+    "kind": "play-power",
+    "effect": { "kind": "extra-chess-move-per-turn", "amount": 1 }
+  }
+}

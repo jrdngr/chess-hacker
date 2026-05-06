@@ -17,7 +17,10 @@ Terms used across the choss design and technical docs.
 | **Disarm**          | Status keyword: enemy piece may move but may not capture on its next turn.              |
 | **Draft**           | A 1-of-3 choice (cards or, in Skirmish, pieces) shown after each match.                 |
 | **Empower**         | Buff keyword: own piece gains an additional movement pattern this turn.                 |
-| **Energy**          | Resource for playing cards. +1 each turn (1 on turn 1), banks unspent up to 10.         |
+| **Energy**          | Resource for playing cards. Every turn starts at 3 (no banking). Costs span 0–4.        |
+| **Cache Warmup**    | Resource card (cost 1): grants +2 energy at the start of your next turn. The deliberate way to break the 3-energy ceiling on a single future turn. |
+| **Power**           | Card archetype: Slay-the-Spire-style match-scoped passives. The card is consumed on play; its effect (energy / draw / chess-move per turn) persists for the rest of the match. |
+| **Boon pick**       | Monster-Train-style 3-option boss reward (+1 energy/turn, +1 draw/turn, delete 2 cards). Resolves before the artifact pick and card draft on every boss win. Run-permanent, not meta-progression. |
 | **Consume**         | Card-flow keyword: a played card with Consume is removed from the match (lands in the consumed pile) and is not eligible for revival. |
 | **Discard pile**    | Where played cards without Consume land at the moment they're played, plus the end-of-turn hand wipe. Reshuffles into the draw pile when it empties mid-draw. |
 | **Consumed pile**   | Where Consume-keyworded cards land when played. Cards here never re-enter the cycle. |

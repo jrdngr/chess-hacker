@@ -30,17 +30,16 @@ The 20 cards every fresh run begins with. The deck is sized to give the player a
 |---|---|---|
 | 1 | 10 | 2× Encrypted, 2× Read-Only, 2× chroot, 2× Firewall, kill -9, Honeypot |
 | 2 | 7 | 2× Freeze Process, Phishing, Trusted Zone, Switch Files, Overclock, Extract |
-| 4 | 1 | Exploit |
-| 5 | 1 | Remote Access |
-| 10 | 1 | Format C: |
+| 3 | 2 | Exploit, Remote Access |
+| 4 | 1 | Format C: |
 
-Average cost: ~2.4. Half the deck is cost-1, so turn 1 is workable on a 1-energy budget; the cost-4/5/10 haymakers reward banking through midgame.
+Average cost: ~1.8. Half the deck is cost-1, so a 3-energy turn can fire two utilities plus a 1-cost on top; the cost-3 / cost-4 haymakers want either a Cache Warmup the prior turn or the player's full per-turn budget.
 
 ## Rationale
 
 - **Disruption-heavy core.** 7 of the 20 cards are status disablers (Freeze Process/chroot/Read-Only/Phishing). Multiples on the workhorses keep the deck reactive — even with cycling, end-of-turn discards mean the "right" disruption isn't always in hand on the right turn.
 - **Spatial coverage.** Two Firewalls plus one each of Honeypot and Trusted Zone give the player wall, trap, and sanctuary tools without overloading the deck on overlapping spatial effects.
-- **Two destroy haymakers, both Consume.** Exploit (cost 4, attacked-only) and Format C: (cost 10, any non-King) bracket the burst archetype: one playable mid-match, one true late-game finisher. Both are Consume so each copy is one piece-removal per match.
+- **Two destroy haymakers, both Consume.** Exploit (cost 3, attacked-only) and Format C: (cost 4, any non-King) bracket the burst archetype: one fits inside a 3-energy turn, one demands the full budget (or a Cache Warmup the prior turn). Both are Consume so each copy is one piece-removal per match.
 - **Swap toolkit.** Switch Files reorganises your own back rank; Extract pays off the rooted enemies created by chroot; Remote Access is the late-game Consume single-shot. Three different swap angles for one slot each — variety over redundancy.
 - **No Retain in the starter.** Bookmark is intentionally a draft/shop pickup so the player feels the friction of un-banked haymakers before the cycling-deck banking tool arrives.
 - **Patches come from captures, not the starter.** Capture-grants-Patch means each enemy you take feeds a matching empower card into your draw pile. Patches all have Consume, so each capture grants exactly one empower trigger — starting with Patch cards in the deck would dilute the supply line.

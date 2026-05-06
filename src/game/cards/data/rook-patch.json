@@ -1,7 +1,7 @@
 {
   "id": "rook-patch",
   "name": "Rook Patch",
-  "cost": 4,
+  "cost": 3,
   "rarity": "rare",
   "archetype": "movement",
   "consume": true,

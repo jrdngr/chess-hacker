@@ -1,7 +1,7 @@
 {
   "id": "bishop-patch",
   "name": "Bishop Patch",
-  "cost": 3,
+  "cost": 2,
   "rarity": "rare",
   "archetype": "movement",
   "consume": true,

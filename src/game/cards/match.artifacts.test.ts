@@ -33,22 +33,25 @@ describe("artifact-driven match state", () => {
     expect(st.hand.length).toBe(HAND_SIZE + 1);
   });
 
-  it("start-energy-bonus stacks with STARTING_ENERGY on turn 1", () => {
+  it("start-energy-bonus folds into the per-turn baseline (banking removed)", () => {
     const rng = makeRng(1);
-    const spark = getArtifactById("cold-boot"); // +1 turn 1
-    const st = startPlayerTurn(createMatchCardState(makeStarterDeck(), rng, [spark]), rng);
+    const spark = getArtifactById("cold-boot"); // +1 (legacy start-energy-bonus)
+    let st = startPlayerTurn(createMatchCardState(makeStarterDeck(), rng, [spark]), rng);
     expect(st.turn).toBe(1);
+    expect(st.energy).toBe(STARTING_ENERGY + 1);
+    // Without banking, every subsequent turn lands on the same elevated baseline.
+    st = startPlayerTurn(st, rng);
     expect(st.energy).toBe(STARTING_ENERGY + 1);
   });
 
-  it("energy-per-turn-bonus adds to the turn-rollover energy gain", () => {
+  it("energy-per-turn-bonus raises every turn's baseline (no carryover)", () => {
     const rng = makeRng(1);
     const drum = getArtifactById("crypto-miner"); // +1/turn
     let st = startPlayerTurn(createMatchCardState(makeStarterDeck(), rng, [drum]), rng);
-    const t1Energy = st.energy;
+    expect(st.energy).toBe(ENERGY_PER_TURN + 1);
     st = startPlayerTurn(st, rng);
     expect(st.turn).toBe(2);
-    expect(st.energy).toBe(t1Energy + ENERGY_PER_TURN + 1);
+    expect(st.energy).toBe(ENERGY_PER_TURN + 1);
   });
 
   it("card-cost-discount lets the player play cards they couldn't otherwise afford", () => {

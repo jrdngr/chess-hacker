@@ -17,15 +17,18 @@ import { RunSummary } from "./RunSummary";
 import {
   activeBossFor,
   applyMatchOutcome,
+  consumeBossDeleteCharge,
   createRun,
   dismissBossPreview,
   enterShop,
   generateBossArtifactOffer,
+  generateBossPickOffer,
   generateDraftOffer,
   isBossMatch,
   leaveShop,
   nextMatchSetup,
   pickBossArtifact,
+  pickBossOption,
   pickDraftCard,
   previewBossFor,
   skipBossArtifact,
@@ -42,6 +45,8 @@ import type {
   BoardSize,
   BossArtifactOffer,
   BossDef,
+  BossPickOffer,
+  BossPickOption,
   Card,
   CurseTrigger,
   DraftOffer,
@@ -92,6 +97,18 @@ type PhaseExtras = {
    */
   bossArtifactGenerated: boolean;
   /**
+   * Boss-pick (Monster-Train-style 3 options) for the current reward step.
+   * Populated on a boss win; null once the player resolves it. Resolution
+   * order: bossPick → bossArtifact → cardDraft.
+   */
+  bossPickOffer: BossPickOffer | null;
+  /**
+   * True once the boss-pick has been resolved for this reward step. Energy /
+   * draw boons resolve immediately; the delete-cards boon stays in-progress
+   * until `run.bossDeleteCharges` is exhausted.
+   */
+  bossPickResolved: boolean;
+  /**
    * Held while the player reviews the just-finished match's final position
    * after a win. The phase stays at `"match"` so `<Match>` keeps its engine
    * state mounted; the win panel replaces the side panel and the player
@@ -121,6 +138,8 @@ export function Run({ mode, onExit, rngSeed }: Props) {
     matchSetup: null,
     bossArtifactOffer: null,
     bossArtifactGenerated: false,
+    bossPickOffer: null,
+    bossPickResolved: false,
     pendingWin: null,
     finalSnapshot: null,
   });
@@ -140,7 +159,26 @@ export function Run({ mode, onExit, rngSeed }: Props) {
       return;
     }
     if (run.phase === "reward") {
-      // Boss artifact offer first — generated once per reward step. The
+      // Boss-pick (Monster-Train-style 3-option) is the very first thing the
+      // player sees on a boss win — it gates the artifact pick and the card
+      // draft. Non-boss rewards skip this and mark it resolved immediately.
+      if (!extras.bossPickResolved) {
+        if (isBossMatch(run)) {
+          if (extras.bossPickOffer === null) {
+            setExtras((e) => ({ ...e, bossPickOffer: generateBossPickOffer() }));
+            return;
+          }
+          // Offer is showing — wait for the player to resolve it.
+          return;
+        }
+        // Non-boss match — fall through to the normal reward pipeline.
+        setExtras((e) => ({ ...e, bossPickResolved: true }));
+        return;
+      }
+      // Boss-pick may have given the player free deletion charges; gate the
+      // rest of the reward step until they're spent.
+      if ((run.bossDeleteCharges ?? 0) > 0) return;
+      // Boss artifact offer second — generated once per reward step. The
       // Reward UI shows it before the regular card draft.
       if (!extras.bossArtifactGenerated && isBossMatch(run)) {
         const { offer, next } = generateBossArtifactOffer(run);
@@ -178,6 +216,8 @@ export function Run({ mode, onExit, rngSeed }: Props) {
         extras.shop !== null ||
         extras.bossArtifactGenerated ||
         extras.bossArtifactOffer !== null ||
+        extras.bossPickOffer !== null ||
+        extras.bossPickResolved ||
         extras.finalSnapshot !== null
       ) {
         setExtras((e) => ({
@@ -186,6 +226,8 @@ export function Run({ mode, onExit, rngSeed }: Props) {
           shop: null,
           bossArtifactOffer: null,
           bossArtifactGenerated: false,
+          bossPickOffer: null,
+          bossPickResolved: false,
           finalSnapshot: null,
         }));
       }
@@ -209,6 +251,8 @@ export function Run({ mode, onExit, rngSeed }: Props) {
     extras.matchSetup,
     extras.bossArtifactOffer,
     extras.bossArtifactGenerated,
+    extras.bossPickOffer,
+    extras.bossPickResolved,
     extras.finalSnapshot,
   ]);
 
@@ -269,6 +313,15 @@ export function Run({ mode, onExit, rngSeed }: Props) {
     const skipGold = extras.bossArtifactOffer.skipGold;
     setRun((r) => skipBossArtifact(r, skipGold));
     setExtras((e) => ({ ...e, bossArtifactOffer: null }));
+  };
+
+  const onPickBossOption = (option: BossPickOption) => {
+    setRun((r) => pickBossOption(r, option));
+    setExtras((e) => ({ ...e, bossPickOffer: null, bossPickResolved: true }));
+  };
+
+  const onDeleteDeckCard = (deckIndex: number) => {
+    setRun((r) => consumeBossDeleteCharge(r, deckIndex) ?? r);
   };
 
   // ---- Boss preview --------------------------------------------------------
@@ -446,10 +499,13 @@ export function Run({ mode, onExit, rngSeed }: Props) {
           run={run}
           offer={extras.draftOffer}
           bossArtifactOffer={extras.bossArtifactOffer}
+          bossPickOffer={extras.bossPickOffer}
           onPick={onPickDraftCard}
           onSkip={onSkipDraft}
           onPickBossArtifact={onPickBossArtifact}
           onSkipBossArtifact={onSkipBossArtifact}
+          onPickBossOption={onPickBossOption}
+          onDeleteDeckCard={onDeleteDeckCard}
         />
       )}
       {run.phase === "shop" && extras.shop && (

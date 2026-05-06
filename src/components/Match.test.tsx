@@ -272,7 +272,7 @@ function findCard(name: string): HTMLElement | undefined {
 }
 
 describe("Match (cards — M3)", () => {
-  it("starts with a hand of 5 and energy 1 (banking start)", () => {
+  it("starts with a hand of 5 and the per-turn baseline energy", () => {
     const ai = makeFakeAi([]);
     render(
       <Match
@@ -286,10 +286,10 @@ describe("Match (cards — M3)", () => {
 
     const hand = screen.getByRole("list", { name: /^hand$/i });
     expect(within(hand).getAllByRole("listitem")).toHaveLength(5);
-    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("1");
+    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("3");
   });
 
-  it("Stack Trace costs 1 and moves to the discard pile", async () => {
+  it("Stack Trace is a 0-cost cantrip and moves to the discard pile", async () => {
     const user = userEvent.setup();
     const ai = makeFakeAi([]);
     render(
@@ -309,7 +309,8 @@ describe("Match (cards — M3)", () => {
     const confirm = await screen.findByRole("button", { name: /confirm/i });
     await user.click(confirm);
 
-    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("0"); // cost 1, starting energy 1
+    // Stack Trace is now free; energy stays at the per-turn baseline (3).
+    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("3");
     // Stack Trace is non-Consume, so it lands in the discard pile.
     expect(screen.getByLabelText(/^discard pile/i)).toHaveTextContent("1");
     const hand = screen.getByRole("list", { name: /^hand$/i });
@@ -1141,7 +1142,7 @@ describe("Match — dev mode", () => {
     expect(screen.getByLabelText(/^side to move:/i)).toHaveTextContent(/white/i);
   });
 
-  it("human-driven Black move triggers turn rollover (energy ramps, hand refills)", async () => {
+  it("human-driven Black move triggers turn rollover (energy resets, hand refills)", async () => {
     const user = userEvent.setup();
     const ai = makeFakeAi([]);
     render(
@@ -1156,13 +1157,14 @@ describe("Match — dev mode", () => {
       />,
     );
 
-    // Play Stack Trace (cost 1) and dismiss the modal so hand size is 4.
+    // Play Stack Trace (cost 0 cantrip) and dismiss the modal so hand size is 4.
     await user.click(findCard("Stack Trace")!);
     await user.click(await screen.findByRole("button", { name: /confirm/i }));
 
     const hand = () => screen.getByRole("list", { name: /^hand$/i });
     expect(within(hand()).getAllByRole("listitem")).toHaveLength(4);
-    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("1");
+    // Stack Trace is now free; energy is unchanged at 2.
+    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("2");
 
     // White move ends the player turn.
     await user.click(squareCell("e2")!);
@@ -1174,9 +1176,9 @@ describe("Match — dev mode", () => {
     await user.click(squareCell("e5")!);
 
     // Turn 2 begins: previous hand discards, new hand draws to 5, energy
-    // ramps to 1 + 1 = 2.
+    // resets to the per-turn baseline (3 — no banking).
     expect(within(hand()).getAllByRole("listitem")).toHaveLength(5);
-    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("2");
+    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("3");
   });
 
   it("Patch fix: Black capture in dev does NOT add a Patch card to the draw pile", async () => {

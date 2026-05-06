@@ -61,7 +61,8 @@ export type CardArchetype =
   | "burst"
   | "sacrifice"
   | "summon"
-  | "swap";
+  | "swap"
+  | "power";
 
 /**
  * What kind of input a card needs from the player when it's played.
@@ -175,7 +176,31 @@ export type CardEffect =
    * and the card stays in hand at end-of-turn discards until played.
    */
   | { kind: "apply-retain-to-hand-card" }
+  /**
+   * Cache Warmup et al. Queues `amount` extra energy onto the *next* player
+   * turn's start-of-turn budget. Stored on `MatchCardState.pendingEnergyNextTurn`
+   * and consumed (cleared) by the next `startPlayerTurn`.
+   */
+  | { kind: "pending-energy-next-turn"; amount: number }
+  /**
+   * Power cards (Slay-the-Spire-style). The played card is consumed and its
+   * `effect.effect` is appended to `MatchCardState.activePowers`, where it
+   * applies for the rest of the match. Each power kind feeds into a different
+   * start-of-turn calculation (energy, hand size, extra chess moves).
+   */
+  | { kind: "play-power"; effect: PowerEffect }
   | { kind: "compound"; effects: CardEffect[] };
+
+/**
+ * Match-scoped passive effects granted by Power cards. Each kind is summed
+ * across all currently-active powers and read at the start of every player
+ * turn. Powers persist for the rest of the match — they are dropped when the
+ * match ends (a fresh `MatchCardState` is created for the next match).
+ */
+export type PowerEffect =
+  | { kind: "energy-per-turn"; amount: number }
+  | { kind: "draw-per-turn"; amount: number }
+  | { kind: "extra-chess-move-per-turn"; amount: number };
 
 export type Card = {
   id: CardId;
@@ -342,6 +367,12 @@ export type RunState = {
    * run costs `BASE + STEP * N` (see shop economy doc).
    */
   removalsUsed: number;
+  /**
+   * Free deck-deletion charges held over from a boss-reward "delete 2 cards"
+   * pick. Decremented when the player completes a deletion in the reward UI;
+   * reaching 0 unblocks the next reward step.
+   */
+  bossDeleteCharges?: number;
   phase: RunPhase;
 };
 
@@ -370,6 +401,21 @@ export type BossArtifactOffer = {
   artifacts: Artifact[];
   /** Gold awarded if the player skips the artifact pick. */
   skipGold: number;
+};
+
+/**
+ * Boss-reward 3-pick — Monster-Train-style fixed options shown after every
+ * boss win. The player picks exactly one (no skip). Resolves into either a
+ * synthetic artifact appended to `RunState.artifacts` (energy / draw bonus)
+ * or a deck-edit charge tracked on `RunState.bossDeleteCharges` (delete-2).
+ */
+export type BossPickOption =
+  | { kind: "energy-per-turn-bonus"; amount: 1 }
+  | { kind: "draw-per-turn-bonus"; amount: 1 }
+  | { kind: "delete-cards"; count: 2 };
+
+export type BossPickOffer = {
+  options: BossPickOption[];
 };
 
 // === Artifacts (M6) ===
@@ -658,4 +704,23 @@ export type MatchCardState = {
    * the AI. Cleared when applied.
    */
   pendingPlayerEnergyOnTurnStart?: number;
+  /**
+   * Cache Warmup (and any future "+N energy next turn" cards): bonus energy
+   * applied at the next start-of-turn and then cleared. Stacks if multiple
+   * cache-warmups are played in the same turn.
+   */
+  pendingEnergyNextTurn?: number;
+  /**
+   * Power-card effects active for the rest of the match. Append-only by
+   * `play-power`; never decremented. Read each turn-start to compute energy,
+   * hand-size, and extra-chess-move bonuses.
+   */
+  activePowers: PowerEffect[];
+  /**
+   * Extra chess moves the player still has this turn (granted by the
+   * "extra-chess-move-per-turn" Power). Set at start-of-turn from
+   * `activePowers` and decremented by `Match.tsx` after each player chess
+   * move. Mirrors the existing `bossExtraMoves` flow.
+   */
+  playerExtraMovesRemaining?: number;
 };

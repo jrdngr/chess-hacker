@@ -1,0 +1,14 @@
+{
+  "id": "tail-f",
+  "name": "tail -f",
+  "cost": 4,
+  "rarity": "rare",
+  "archetype": "power",
+  "consume": true,
+  "description": "Power. Draw 1 additional card at the start of each of your turns for the rest of the match. Consume.",
+  "target": { "kind": "none" },
+  "effect": {
+    "kind": "play-power",
+    "effect": { "kind": "draw-per-turn", "amount": 1 }
+  }
+}

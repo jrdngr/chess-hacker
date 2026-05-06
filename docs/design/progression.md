@@ -69,10 +69,12 @@ Meta-progression in choss is **content-unlocks only**. There are **no persistent
 
 ### What does NOT unlock
 
-- ❌ No starting energy / hand-size buffs that persist across runs.
+- ❌ No starting energy / hand-size buffs that persist *across* runs.
 - ❌ No starting gold buffs.
 - ❌ No "your starter deck improves" buffs.
 - ❌ No multiple characters / decks (single character only — see `overview.md`).
+
+(The boss-reward boon pick — +1 energy/turn, +1 draw/turn, delete 2 cards — is intentionally a permanent buff *within* a run. It is not meta-progression and resets when the run ends. See `bosses.md` for the post-boss reward flow.)
 
 The intent: every run starts equal in power. Long-tail engagement is content variety + Ascension challenge, not power creep.
 

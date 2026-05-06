@@ -214,7 +214,7 @@ describe("playCard — resource", () => {
     expect(st.hand).toHaveLength(6);
   });
 
-  it("Stack Trace: pays 1 energy and discards (UI does the reorder via setDeckTop)", () => {
+  it("Stack Trace: free 0-cost cantrip (UI does the reorder via setDeckTop)", () => {
     const rng = makeRng(20);
     const deck = [STACK_TRACE, FIREWALL, FIREWALL, FIREWALL, FIREWALL, FIREWALL];
     let st = startPlayerTurn(createMatchCardState(deck, rng), rng);
@@ -226,7 +226,8 @@ describe("playCard — resource", () => {
     expect(res.ok).toBe(true);
     if (!res.ok) return;
     st = res.state;
-    expect(st.energy).toBe(energyBefore - 1);
+    // Stack Trace is now a 0-cost tone-setter; no energy is spent.
+    expect(st.energy).toBe(energyBefore);
     // Stack Trace is non-Consume, so it lands in the discard pile.
     expect(st.discardPile.some((c: Card) => c.id === "stack-trace")).toBe(true);
   });
@@ -310,8 +311,8 @@ describe("playCard — disruption / spatial", () => {
     st = r2.state;
     expect(hasWallOn(st, "e4")).toBe(true);
     expect(st.walls[0].expiresOnTurn).toBe(4);
-    // STARTING_ENERGY is 1, Firewall costs 1 → 0 energy after play.
-    expect(st.energy).toBe(0);
+    // STARTING_ENERGY is 3, Firewall costs 1 → 2 energy after play.
+    expect(st.energy).toBe(2);
   });
 
   it("Trusted Zone places a Sanctuary; Logic Bomb / Honeypot / Connection Reset place Traps", () => {
@@ -588,55 +589,55 @@ describe("status helpers", () => {
 });
 
 describe("energy economy", () => {
-  it("starting energy is 1 on the first player turn", () => {
+  it("starting energy is the per-turn baseline on the first player turn", () => {
     const rng = makeRng(200);
     const st = startPlayerTurn(createMatchCardState(makeStarterDeck(), rng), rng);
-    expect(st.energy).toBe(1);
+    expect(st.energy).toBe(STARTING_ENERGY);
     expect(st.turn).toBe(1);
   });
 
-  it("second turn adds +1 energy on top of any carryover", () => {
+  it("each subsequent turn resets to the per-turn baseline (no banking)", () => {
     const rng = makeRng(201);
     const t1 = startPlayerTurn(createMatchCardState(makeStarterDeck(), rng), rng);
-    const t2 = startPlayerTurn(t1, rng); // 1 → 2
-    expect(t2.energy).toBe(2);
-    expect(t2.turn).toBe(2);
+    const t2 = startPlayerTurn(t1, rng);
+    const t3 = startPlayerTurn(t2, rng);
+    expect(t1.energy).toBe(STARTING_ENERGY);
+    expect(t2.energy).toBe(STARTING_ENERGY);
+    expect(t3.energy).toBe(STARTING_ENERGY);
   });
 
-  it("unspent energy banks across turns: 4 + 1 → 5", () => {
+  it("unspent energy is wiped at end-of-turn — turn 2 is still 3, not 6", () => {
     const rng = makeRng(202);
     let st = startPlayerTurn(createMatchCardState(makeStarterDeck(), rng), rng);
-    st = { ...st, energy: 4 };
+    // Don't spend anything — turn 1 still holds STARTING_ENERGY.
+    expect(st.energy).toBe(STARTING_ENERGY);
     st = startPlayerTurn(st, rng);
-    expect(st.energy).toBe(5);
+    expect(st.energy).toBe(STARTING_ENERGY);
   });
 
-  it("natural gain caps at ENERGY_MAX", () => {
-    const rng = makeRng(203);
-    let st = startPlayerTurn(createMatchCardState(makeStarterDeck(), rng), rng);
-    st = { ...st, energy: ENERGY_MAX };
-    st = startPlayerTurn(st, rng);
-    expect(st.energy).toBe(ENERGY_MAX);
-  });
-
-  it("clampEnergy floors at 0 and caps at ENERGY_MAX", () => {
+  it("clampEnergy floors at 0 (no upper cap with banking removed)", () => {
     expect(clampEnergy(-3)).toBe(0);
     expect(clampEnergy(0)).toBe(0);
     expect(clampEnergy(5)).toBe(5);
-    expect(clampEnergy(11)).toBe(ENERGY_MAX);
+    expect(clampEnergy(99)).toBe(99);
   });
 
-  it("kill -9 respects the energy cap", () => {
+  it("Cache Warmup queues +2 energy onto the next turn-start", () => {
     const rng = makeRng(204);
-    let st = startPlayerTurn(createMatchCardState([KILL_9], rng), rng);
-    st = { ...st, energy: ENERGY_MAX };
-    const idx = st.hand.findIndex((s) => s.card.id === "kill-9");
-    const ctx = withPieces({ a2: { type: "pawn", side: "player" } });
-    const r = playCard(st, idx, { kind: "square", square: "a2" }, ctx, rng);
+    const cache = getCardById("cache-warmup");
+    let st = startPlayerTurn(createMatchCardState([cache], rng), rng);
+    const idx = st.hand.findIndex((s) => s.card.id === "cache-warmup");
+    const r = playCard(st, idx, noTarget(), emptyBoard, rng);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    // -1 cost + 1 energyGain, but cap stays in force.
-    expect(r.state.energy).toBeLessThanOrEqual(ENERGY_MAX);
+    st = r.state;
+    expect(st.pendingEnergyNextTurn).toBe(2);
+    // Next turn — baseline + queued 2.
+    st = startPlayerTurn(st, rng);
+    expect(st.energy).toBe(STARTING_ENERGY + 2);
+    // And it doesn't carry forward.
+    st = startPlayerTurn(st, rng);
+    expect(st.energy).toBe(STARTING_ENERGY);
   });
 });
 

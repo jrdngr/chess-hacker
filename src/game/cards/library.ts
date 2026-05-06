@@ -39,6 +39,7 @@ export const VALID_ARCHETYPES: readonly CardArchetype[] = [
   "sacrifice",
   "summon",
   "swap",
+  "power",
 ];
 export const VALID_COSTS: readonly CardCost[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 export const VALID_TARGET_KINDS = [
@@ -84,7 +85,14 @@ export const VALID_EFFECT_KINDS = [
   "boss-extra-move",
   "capture-random-own-minor",
   "apply-retain-to-hand-card",
+  "pending-energy-next-turn",
+  "play-power",
   "compound",
+] as const;
+export const VALID_POWER_KINDS = [
+  "energy-per-turn",
+  "draw-per-turn",
+  "extra-chess-move-per-turn",
 ] as const;
 export const VALID_ZONE_BUFF_PATTERNS = ["square-orthogonal-1", "square-radius-1"] as const;
 export const VALID_ZONE_BUFF_EFFECT_KINDS = ["energy-per-turn", "hand-size"] as const;
@@ -404,6 +412,43 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
       return { kind: "capture-random-own-minor" };
     case "apply-retain-to-hand-card":
       return { kind: "apply-retain-to-hand-card" };
+    case "pending-energy-next-turn": {
+      if (!isPositiveInt(raw.amount)) {
+        errors.push(
+          "'effect.amount' must be a positive integer for kind 'pending-energy-next-turn'",
+        );
+        return null;
+      }
+      return { kind: "pending-energy-next-turn", amount: raw.amount };
+    }
+    case "play-power": {
+      const inner = raw.effect;
+      if (!isPlainObject(inner)) {
+        errors.push("'effect.effect' must be an object for kind 'play-power'");
+        return null;
+      }
+      const innerKind = inner.kind;
+      if (
+        typeof innerKind !== "string" ||
+        !(VALID_POWER_KINDS as readonly string[]).includes(innerKind)
+      ) {
+        errors.push(
+          `'effect.effect.kind' must be one of ${VALID_POWER_KINDS.join(", ")} for kind 'play-power'`,
+        );
+        return null;
+      }
+      if (typeof inner.amount !== "number" || !Number.isInteger(inner.amount) || inner.amount < 1) {
+        errors.push("'effect.effect.amount' must be a positive integer for kind 'play-power'");
+        return null;
+      }
+      return {
+        kind: "play-power",
+        effect: {
+          kind: innerKind as "energy-per-turn" | "draw-per-turn" | "extra-chess-move-per-turn",
+          amount: inner.amount,
+        },
+      };
+    }
     case "compound": {
       const children = raw.effects;
       if (!Array.isArray(children) || children.length === 0) {
@@ -503,6 +548,8 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
     case "forbid-zero-cost-this-turn":
     case "boss-extra-move":
     case "capture-random-own-minor":
+    case "pending-energy-next-turn":
+    case "play-power":
       return tk === "none" ? null : `'${effect.kind}' effect requires target.kind 'none'`;
     case "apply-retain-to-hand-card":
       return tk === "hand-card"

@@ -6,7 +6,7 @@
 // Match-side state plumbing (hand size, energy, capture / check triggers)
 // imports these helpers; callers never iterate the artifact array themselves.
 
-import { HAND_SIZE, STARTING_ENERGY, ENERGY_PER_TURN } from "../cards/match";
+import { HAND_SIZE, ENERGY_PER_TURN } from "../cards/match";
 import type { Artifact, ArtifactEffect, Card } from "../types";
 
 /**
@@ -28,20 +28,20 @@ export function effectiveHandSize(artifacts: ReadonlyArray<Artifact>): number {
   return Math.max(0, n);
 }
 
-/** Energy granted on turn 1 = STARTING_ENERGY + sum of start-energy-bonus. */
-export function effectiveStartingEnergy(artifacts: ReadonlyArray<Artifact>): number {
-  let n = STARTING_ENERGY;
-  each(artifacts, (fx) => {
-    if (fx.kind === "start-energy-bonus") n += fx.amount;
-  });
-  return Math.max(0, n);
-}
-
-/** Energy added at the start of every subsequent turn. */
+/**
+ * Energy granted at the start of every player turn.
+ *
+ * Banking was removed in M9 — there is no longer a distinct "starting" vs
+ * "per-turn" energy concept; every turn starts at the same baseline. Both
+ * `start-energy-bonus` and `energy-per-turn-bonus` artifact effects feed into
+ * this number; legacy artifacts using `start-energy-bonus` (e.g. Cold Boot)
+ * read identically to a +1/turn bonus in the new model.
+ */
 export function effectiveEnergyPerTurn(artifacts: ReadonlyArray<Artifact>): number {
   let n = ENERGY_PER_TURN;
   each(artifacts, (fx) => {
     if (fx.kind === "energy-per-turn-bonus") n += fx.amount;
+    else if (fx.kind === "start-energy-bonus") n += fx.amount;
   });
   return Math.max(0, n);
 }

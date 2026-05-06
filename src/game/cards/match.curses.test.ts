@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   HAND_SIZE,
+  STARTING_ENERGY,
   createMatchCardState,
   insertCurseIntoHand,
   isCardEffectForbidden,
@@ -130,9 +131,11 @@ describe("Boss B — Memory Leak curse", () => {
   it("Memory Leak penalty fires at next start-of-turn if no capture happened", () => {
     const rng = makeRng(12);
     const init = startPlayerTurn(createMatchCardState([], rng), rng);
-    const flagged = { ...init, pendingEnergyLossOnNoCapture: true, energy: 5 };
+    // Energy doesn't carry between turns post-banking, but the penalty still
+    // shaves 1 off the per-turn baseline.
+    const flagged = { ...init, pendingEnergyLossOnNoCapture: true };
     const next = startPlayerTurn(flagged, rng);
-    expect(next.energy).toBe(5 + 1 - 1); // +1 per-turn ramp − 1 Memory Leak penalty
+    expect(next.energy).toBe(STARTING_ENERGY - 1);
     expect(next.pendingEnergyLossOnNoCapture).toBe(false);
   });
 
@@ -143,10 +146,9 @@ describe("Boss B — Memory Leak curse", () => {
       ...init,
       pendingEnergyLossOnNoCapture: true,
       capturedThisTurn: true,
-      energy: 5,
     };
     const next = startPlayerTurn(flagged, rng);
-    expect(next.energy).toBe(5 + 1); // ramp only — no penalty
+    expect(next.energy).toBe(STARTING_ENERGY);
     expect(next.pendingEnergyLossOnNoCapture).toBe(false);
     expect(next.capturedThisTurn).toBe(false);
   });
@@ -156,9 +158,9 @@ describe("Boss B — captures-grant-captured-energy modifier", () => {
   it("queued energy on previous turn lands at next start-of-turn", () => {
     const rng = makeRng(14);
     const init = startPlayerTurn(createMatchCardState([], rng), rng);
-    const queued = { ...init, pendingPlayerEnergyOnTurnStart: 2, energy: 3 };
+    const queued = { ...init, pendingPlayerEnergyOnTurnStart: 2 };
     const next = startPlayerTurn(queued, rng);
-    expect(next.energy).toBe(3 + 1 + 2); // ramp + queued
+    expect(next.energy).toBe(STARTING_ENERGY + 2);
     expect(next.pendingPlayerEnergyOnTurnStart).toBe(0);
   });
 });
