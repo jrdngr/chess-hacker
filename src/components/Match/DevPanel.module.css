@@ -79,6 +79,18 @@
   cursor: pointer;
 }
 
+.smallButton.toggleOnPlayer {
+  background: var(--player-soft);
+  border-color: var(--player);
+  color: var(--player);
+}
+
+.smallButton.toggleOnOpponent {
+  background: var(--opponent-soft);
+  border-color: var(--opponent);
+  color: var(--opponent);
+}
+
 .smallButton:hover:not(:disabled) {
   border-color: var(--player);
 }

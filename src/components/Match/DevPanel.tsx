@@ -375,7 +375,7 @@ export function DevPanel({
             type="button"
             role="radio"
             aria-checked={sideToMove === "player"}
-            className={`${styles.smallButton} ${sideToMove === "player" ? styles.toggleOn : ""}`}
+            className={`${styles.smallButton} ${sideToMove === "player" ? styles.toggleOnPlayer : ""}`}
             onClick={() => onSetSideToMove("player")}
           >
             White
@@ -384,7 +384,7 @@ export function DevPanel({
             type="button"
             role="radio"
             aria-checked={sideToMove === "opponent"}
-            className={`${styles.smallButton} ${sideToMove === "opponent" ? styles.toggleOn : ""}`}
+            className={`${styles.smallButton} ${sideToMove === "opponent" ? styles.toggleOnOpponent : ""}`}
             onClick={() => onSetSideToMove("opponent")}
           >
             Black
