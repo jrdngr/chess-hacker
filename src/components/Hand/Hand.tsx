@@ -7,6 +7,7 @@
 
 import type { CardTarget, HandCard } from "../../game/types";
 
+import { CardKeywords } from "./CardKeywords";
 import styles from "./Hand.module.css";
 
 // Two-step targeting cards (pick A, then pick B) don't fit a single drag-and-
@@ -113,9 +114,6 @@ export function Hand({
             ]
               .filter(Boolean)
               .join(" ");
-            const keywords: string[] = [];
-            if (retained) keywords.push("Retain");
-            if (card.consume) keywords.push("Consume");
             return (
               <button
                 key={`${card.id}-${i}`}
@@ -149,18 +147,7 @@ export function Hand({
                 <span className={styles.cost}>{card.cost}</span>
                 <span className={styles.name}>{card.name}</span>
                 <span className={styles.archetype}>{card.archetype}</span>
-                {keywords.length > 0 && (
-                  <span className={styles.keywords}>
-                    {keywords.map((kw) => (
-                      <span
-                        key={kw}
-                        className={`${styles.keyword} ${styles[`keyword_${kw.toLowerCase()}`] ?? ""}`}
-                      >
-                        {kw}
-                      </span>
-                    ))}
-                  </span>
-                )}
+                <CardKeywords card={card} retained={retained} />
                 <span className={styles.description}>{card.description}</span>
               </button>
             );

@@ -58,7 +58,7 @@ type SavedMatch = {
   hand: Card[];
   drawPile: Card[];
   consumedPile: Card[];   // every played card lives here for the rest of the match
-  energy: number;         // banks across turns, capped at 10
+  energy: number;         // resets to 3 each turn; no banking
   turn: number;
   whoseTurn: Side;
   bossModifier?: BossModifier;

@@ -322,13 +322,15 @@
   top: -36px;
   left: 50%;
   transform: translateX(-50%);
+  max-width: calc(100% - 12px);
   padding: 6px 14px;
   background: var(--panel);
   border: 1px solid var(--player);
   border-radius: 6px;
   color: var(--fg);
   font-size: 13px;
-  white-space: nowrap;
+  text-align: center;
+  overflow-wrap: break-word;
   z-index: 5;
 }
 

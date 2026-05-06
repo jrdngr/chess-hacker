@@ -88,13 +88,12 @@ function ModeMenu({ onPick }: { onPick: (route: Route) => void }) {
     <div className={styles.menu}>
       <h2 className={styles.menuTitle}>Choose a mode</h2>
       <div className={styles.menuList}>
-        {MODE_OPTIONS.map((opt) => (
+        {MODE_OPTIONS.filter((opt) => opt.enabled).map((opt) => (
           <button
             key={opt.id}
             type="button"
             className={styles.menuButton}
-            disabled={!opt.enabled}
-            onClick={() => opt.enabled && onPick(opt.id)}
+            onClick={() => onPick(opt.id)}
           >
             <span className={styles.menuButtonLabel}>{opt.label}</span>
             <span className={styles.menuButtonDesc}>{opt.description}</span>

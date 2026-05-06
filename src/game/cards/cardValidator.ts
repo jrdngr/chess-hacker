@@ -1,0 +1,718 @@
+// Card-JSON validator. Loaded once at startup by `library.ts`; defines the
+// canonical list of acceptable archetype, target, and effect kinds. Adding a
+// new effect or target kind is a two-step change: extend the union types in
+// `../types.ts`, then extend the relevant VALID_* constant + the matching
+// case in `validateEffect` here.
+
+import type {
+  Card,
+  CardArchetype,
+  CardCost,
+  CardEffect,
+  CardId,
+  CardRarity,
+  CardTarget,
+  EmpowerPattern,
+  PieceType,
+  TrapEffect,
+} from "../types";
+
+// ---- Validation enums -------------------------------------------------------
+
+export const VALID_RARITIES: readonly CardRarity[] = ["common", "uncommon", "rare"];
+export const VALID_ARCHETYPES: readonly CardArchetype[] = [
+  "tempo",
+  "spatial",
+  "movement",
+  "disruption",
+  "resource",
+  "defensive",
+  "burst",
+  "sacrifice",
+  "summon",
+  "swap",
+  "power",
+];
+export const VALID_COSTS: readonly CardCost[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+export const VALID_TARGET_KINDS = [
+  "none",
+  "empty-square",
+  "empty-square-own-half",
+  "enemy-piece",
+  "enemy-non-king-piece",
+  "own-piece",
+  "own-non-king-piece",
+  "two-own-pieces",
+  "marionette",
+  "rooted-enemy-and-own-piece",
+  "enemy-and-own-piece",
+  "hand-card",
+] as const;
+export const VALID_EFFECT_KINDS = [
+  "gain-energy",
+  "draw",
+  "scry",
+  "freeze-piece",
+  "root-piece",
+  "disarm-piece",
+  "compel-piece",
+  "shield-piece",
+  "haste-piece",
+  "haste-all-of-type",
+  "empower-piece",
+  "lightning-piece",
+  "place-wall",
+  "place-sanctuary",
+  "place-trap",
+  "place-zone-buff",
+  "swap-own-pieces",
+  "swap-rooted-with-own",
+  "swap-with-enemy",
+  "summon-piece",
+  "sacrifice-piece",
+  "marionette",
+  "destroy-piece",
+  "add-card-to-draw",
+  "revive",
+  "next-move-constraint",
+  "pending-energy-loss-on-no-capture",
+  "forbid-zero-cost-this-turn",
+  "boss-extra-move",
+  "capture-random-own-minor",
+  "apply-retain-to-hand-card",
+  "pending-energy-next-turn",
+  "play-power",
+  "compound",
+] as const;
+export const VALID_POWER_KINDS = [
+  "energy-per-turn",
+  "draw-per-turn",
+  "extra-chess-move-per-turn",
+  "haste-pawns-per-turn",
+  "shield-back-rank-per-turn",
+] as const;
+export const VALID_ZONE_BUFF_PATTERNS = ["square-orthogonal-1", "square-radius-1"] as const;
+export const VALID_ZONE_BUFF_EFFECT_KINDS = ["energy-per-turn", "hand-size"] as const;
+export const VALID_DESTROY_FILTERS = ["any", "attacked-by-player"] as const;
+export const VALID_ADD_CARD_DRAW_SOURCES = ["self", "card-id"] as const;
+export const VALID_REVIVE_SELECTIONS = ["random", "choose"] as const;
+export const VALID_TRAP_EFFECTS: readonly TrapEffect[] = ["capture", "freeze", "push"];
+export const VALID_EMPOWER_PATTERNS: readonly EmpowerPattern[] = [
+  "pawn",
+  "knight",
+  "bishop",
+  "rook",
+  "queen",
+  "king-step",
+];
+export const VALID_PIECE_TYPES: readonly PieceType[] = [
+  "pawn",
+  "knight",
+  "bishop",
+  "rook",
+  "queen",
+  "king",
+];
+
+// ---- Tiny shared helpers ----------------------------------------------------
+
+export function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+function isPositiveInt(v: unknown): v is number {
+  return typeof v === "number" && Number.isInteger(v) && v >= 1;
+}
+
+/**
+ * Validate the optional `durationTurns` field shared by status-applying card
+ * effects (haste-piece, haste-all-of-type, empower-piece). Pushes an error
+ * and returns null on bad input; returns the value (or undefined if absent).
+ */
+function validateDurationTurns(
+  v: unknown,
+  effectKind: string,
+  errors: string[],
+): number | undefined | null {
+  if (v === undefined) return undefined;
+  if (typeof v !== "number" || !Number.isInteger(v) || v < 1 || v > 8) {
+    errors.push(
+      `'effect.durationTurns' must be a positive integer 1..8 if present for kind '${effectKind}'`,
+    );
+    return null;
+  }
+  return v;
+}
+
+// ---- Target validation ------------------------------------------------------
+
+function validateTarget(raw: unknown, errors: string[]): CardTarget | null {
+  if (!isPlainObject(raw)) {
+    errors.push("'target' must be an object with a 'kind' field");
+    return null;
+  }
+  const kind = raw.kind;
+  if (typeof kind !== "string" || !(VALID_TARGET_KINDS as readonly string[]).includes(kind)) {
+    errors.push(`'target.kind' must be one of ${VALID_TARGET_KINDS.join(", ")}`);
+    return null;
+  }
+  return { kind } as CardTarget;
+}
+
+// ---- Effect validation (the big switch) ------------------------------------
+
+function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
+  if (!isPlainObject(raw)) {
+    errors.push("'effect' must be an object with a 'kind' field");
+    return null;
+  }
+  const kind = raw.kind;
+  switch (kind) {
+    case "gain-energy": {
+      if (typeof raw.amount !== "number" || !Number.isFinite(raw.amount)) {
+        errors.push("'effect.amount' must be a number for kind 'gain-energy'");
+        return null;
+      }
+      return { kind: "gain-energy", amount: raw.amount };
+    }
+    case "draw": {
+      if (!isPositiveInt(raw.count)) {
+        errors.push("'effect.count' must be a positive integer for kind 'draw'");
+        return null;
+      }
+      return { kind: "draw", count: raw.count };
+    }
+    case "scry": {
+      if (!isPositiveInt(raw.count)) {
+        errors.push("'effect.count' must be a positive integer for kind 'scry'");
+        return null;
+      }
+      return { kind: "scry", count: raw.count };
+    }
+    case "freeze-piece":
+      return { kind: "freeze-piece" };
+    case "root-piece": {
+      const dt = raw.durationTurns;
+      if (dt !== undefined && (typeof dt !== "number" || !Number.isInteger(dt) || dt < 1)) {
+        errors.push(
+          "'effect.durationTurns' must be a positive integer if present for 'root-piece'",
+        );
+        return null;
+      }
+      const out: CardEffect = { kind: "root-piece" };
+      if (typeof dt === "number") (out as { durationTurns?: number }).durationTurns = dt;
+      return out;
+    }
+    case "disarm-piece":
+      return { kind: "disarm-piece" };
+    case "compel-piece":
+      return { kind: "compel-piece" };
+    case "shield-piece":
+      return { kind: "shield-piece" };
+    case "haste-piece": {
+      const dt = validateDurationTurns(raw.durationTurns, "haste-piece", errors);
+      if (dt === null) return null;
+      const out: CardEffect & { kind: "haste-piece" } = { kind: "haste-piece" };
+      if (typeof dt === "number") out.durationTurns = dt;
+      return out;
+    }
+    case "haste-all-of-type": {
+      const pt = raw.pieceType;
+      if (typeof pt !== "string" || !(VALID_PIECE_TYPES as readonly string[]).includes(pt)) {
+        errors.push(
+          `'effect.pieceType' must be one of ${VALID_PIECE_TYPES.join(", ")} for kind 'haste-all-of-type'`,
+        );
+        return null;
+      }
+      const dt = validateDurationTurns(raw.durationTurns, "haste-all-of-type", errors);
+      if (dt === null) return null;
+      const out: CardEffect & { kind: "haste-all-of-type" } = {
+        kind: "haste-all-of-type",
+        pieceType: pt as PieceType,
+      };
+      if (typeof dt === "number") out.durationTurns = dt;
+      return out;
+    }
+    case "empower-piece": {
+      const p = raw.pattern;
+      if (typeof p !== "string" || !(VALID_EMPOWER_PATTERNS as readonly string[]).includes(p)) {
+        errors.push(
+          `'effect.pattern' must be one of ${VALID_EMPOWER_PATTERNS.join(", ")} for kind 'empower-piece'`,
+        );
+        return null;
+      }
+      const singleUse = raw.singleUse;
+      if (singleUse !== undefined && typeof singleUse !== "boolean") {
+        errors.push("'effect.singleUse' must be a boolean if present for kind 'empower-piece'");
+        return null;
+      }
+      const dt = validateDurationTurns(raw.durationTurns, "empower-piece", errors);
+      if (dt === null) return null;
+      if (singleUse === true && typeof dt === "number") {
+        errors.push(
+          "'effect.singleUse' and 'effect.durationTurns' are mutually exclusive for 'empower-piece'",
+        );
+        return null;
+      }
+      const out: CardEffect & { kind: "empower-piece" } = {
+        kind: "empower-piece",
+        pattern: p as EmpowerPattern,
+      };
+      if (singleUse === true) out.singleUse = true;
+      if (typeof dt === "number") out.durationTurns = dt;
+      return out;
+    }
+    case "lightning-piece": {
+      if (!isPositiveInt(raw.actions)) {
+        errors.push("'effect.actions' must be a positive integer for kind 'lightning-piece'");
+        return null;
+      }
+      const filter = raw.pieceTypeFilter;
+      if (
+        filter !== undefined &&
+        (typeof filter !== "string" || !(VALID_PIECE_TYPES as readonly string[]).includes(filter))
+      ) {
+        errors.push(
+          `'effect.pieceTypeFilter' must be one of ${VALID_PIECE_TYPES.join(", ")} if present for kind 'lightning-piece'`,
+        );
+        return null;
+      }
+      const out: CardEffect & { kind: "lightning-piece" } = {
+        kind: "lightning-piece",
+        actions: raw.actions,
+      };
+      if (typeof filter === "string") out.pieceTypeFilter = filter as PieceType;
+      return out;
+    }
+    case "place-wall": {
+      if (!isPositiveInt(raw.durationTurns)) {
+        errors.push("'effect.durationTurns' must be a positive integer for kind 'place-wall'");
+        return null;
+      }
+      return { kind: "place-wall", durationTurns: raw.durationTurns };
+    }
+    case "place-sanctuary": {
+      if (!isPositiveInt(raw.durationTurns)) {
+        errors.push("'effect.durationTurns' must be a positive integer for kind 'place-sanctuary'");
+        return null;
+      }
+      return { kind: "place-sanctuary", durationTurns: raw.durationTurns };
+    }
+    case "place-trap": {
+      const fx = raw.trapEffect;
+      if (typeof fx !== "string" || !(VALID_TRAP_EFFECTS as readonly string[]).includes(fx)) {
+        errors.push(
+          `'effect.trapEffect' must be one of ${VALID_TRAP_EFFECTS.join(", ")} for kind 'place-trap'`,
+        );
+        return null;
+      }
+      if (!isPositiveInt(raw.durationTurns)) {
+        errors.push("'effect.durationTurns' must be a positive integer for kind 'place-trap'");
+        return null;
+      }
+      return {
+        kind: "place-trap",
+        trapEffect: fx as TrapEffect,
+        durationTurns: raw.durationTurns,
+      };
+    }
+    case "place-zone-buff": {
+      const pattern = raw.pattern;
+      if (
+        typeof pattern !== "string" ||
+        !(VALID_ZONE_BUFF_PATTERNS as readonly string[]).includes(pattern)
+      ) {
+        errors.push(
+          `'effect.pattern' must be one of ${VALID_ZONE_BUFF_PATTERNS.join(", ")} for kind 'place-zone-buff'`,
+        );
+        return null;
+      }
+      if (!isPositiveInt(raw.durationTurns)) {
+        errors.push("'effect.durationTurns' must be a positive integer for kind 'place-zone-buff'");
+        return null;
+      }
+      const buff = raw.buff;
+      if (!isPlainObject(buff)) {
+        errors.push("'effect.buff' must be an object for kind 'place-zone-buff'");
+        return null;
+      }
+      const buffKind = buff.kind;
+      if (
+        typeof buffKind !== "string" ||
+        !(VALID_ZONE_BUFF_EFFECT_KINDS as readonly string[]).includes(buffKind)
+      ) {
+        errors.push(
+          `'effect.buff.kind' must be one of ${VALID_ZONE_BUFF_EFFECT_KINDS.join(", ")} for 'place-zone-buff'`,
+        );
+        return null;
+      }
+      if (typeof buff.amount !== "number" || !Number.isInteger(buff.amount) || buff.amount < 1) {
+        errors.push("'effect.buff.amount' must be a positive integer for kind 'place-zone-buff'");
+        return null;
+      }
+      const sourceLabel = raw.sourceLabel;
+      if (typeof sourceLabel !== "string" || sourceLabel.length === 0) {
+        errors.push("'effect.sourceLabel' must be a non-empty string for kind 'place-zone-buff'");
+        return null;
+      }
+      return {
+        kind: "place-zone-buff",
+        pattern: pattern as "square-orthogonal-1" | "square-radius-1",
+        buff: {
+          kind: buffKind as "energy-per-turn" | "hand-size",
+          amount: buff.amount,
+        },
+        durationTurns: raw.durationTurns,
+        sourceLabel,
+      };
+    }
+    case "swap-own-pieces":
+      return { kind: "swap-own-pieces" };
+    case "summon-piece": {
+      const pt = raw.pieceType;
+      if (typeof pt !== "string" || !(VALID_PIECE_TYPES as readonly string[]).includes(pt)) {
+        errors.push(
+          `'effect.pieceType' must be one of ${VALID_PIECE_TYPES.join(", ")} for kind 'summon-piece'`,
+        );
+        return null;
+      }
+      return { kind: "summon-piece", pieceType: pt as PieceType };
+    }
+    case "sacrifice-piece": {
+      const drawCount = raw.drawCount;
+      const energyGain = raw.energyGain;
+      if (typeof drawCount !== "number" || !Number.isInteger(drawCount) || drawCount < 0) {
+        errors.push("'effect.drawCount' must be a non-negative integer for kind 'sacrifice-piece'");
+        return null;
+      }
+      if (typeof energyGain !== "number" || !Number.isInteger(energyGain) || energyGain < 0) {
+        errors.push(
+          "'effect.energyGain' must be a non-negative integer for kind 'sacrifice-piece'",
+        );
+        return null;
+      }
+      return { kind: "sacrifice-piece", drawCount, energyGain };
+    }
+    case "marionette":
+      return { kind: "marionette" };
+    case "swap-rooted-with-own":
+      return { kind: "swap-rooted-with-own" };
+    case "swap-with-enemy":
+      return { kind: "swap-with-enemy" };
+    case "destroy-piece": {
+      const filter = raw.filter;
+      if (
+        typeof filter !== "string" ||
+        !(VALID_DESTROY_FILTERS as readonly string[]).includes(filter)
+      ) {
+        errors.push(
+          `'effect.filter' must be one of ${VALID_DESTROY_FILTERS.join(", ")} for 'destroy-piece'`,
+        );
+        return null;
+      }
+      return { kind: "destroy-piece", filter: filter as "any" | "attacked-by-player" };
+    }
+    case "add-card-to-draw": {
+      const source = raw.source;
+      if (
+        typeof source !== "string" ||
+        !(VALID_ADD_CARD_DRAW_SOURCES as readonly string[]).includes(source)
+      ) {
+        errors.push(
+          `'effect.source' must be one of ${VALID_ADD_CARD_DRAW_SOURCES.join(", ")} for 'add-card-to-draw'`,
+        );
+        return null;
+      }
+      const cardId = raw.cardId;
+      if (source === "card-id" && (typeof cardId !== "string" || cardId.length === 0)) {
+        errors.push("'effect.cardId' must be a non-empty string when source is 'card-id'");
+        return null;
+      }
+      const out: CardEffect & { kind: "add-card-to-draw" } = {
+        kind: "add-card-to-draw",
+        source: source as "self" | "card-id",
+      };
+      if (typeof cardId === "string" && cardId.length > 0) out.cardId = cardId;
+      return out;
+    }
+    case "revive": {
+      const sel = raw.selection;
+      if (
+        typeof sel !== "string" ||
+        !(VALID_REVIVE_SELECTIONS as readonly string[]).includes(sel)
+      ) {
+        errors.push(
+          `'effect.selection' must be one of ${VALID_REVIVE_SELECTIONS.join(", ")} for 'revive'`,
+        );
+        return null;
+      }
+      return { kind: "revive", selection: sel as "random" | "choose" };
+    }
+    case "next-move-constraint": {
+      const c = raw.constraint;
+      if (c !== "must-not-check") {
+        errors.push("'effect.constraint' must be 'must-not-check' for kind 'next-move-constraint'");
+        return null;
+      }
+      return { kind: "next-move-constraint", constraint: c };
+    }
+    case "pending-energy-loss-on-no-capture": {
+      if (!isPositiveInt(raw.amount)) {
+        errors.push(
+          "'effect.amount' must be a positive integer for kind 'pending-energy-loss-on-no-capture'",
+        );
+        return null;
+      }
+      return { kind: "pending-energy-loss-on-no-capture", amount: raw.amount };
+    }
+    case "forbid-zero-cost-this-turn":
+      return { kind: "forbid-zero-cost-this-turn" };
+    case "boss-extra-move": {
+      if (!isPositiveInt(raw.count)) {
+        errors.push("'effect.count' must be a positive integer for kind 'boss-extra-move'");
+        return null;
+      }
+      return { kind: "boss-extra-move", count: raw.count };
+    }
+    case "capture-random-own-minor":
+      return { kind: "capture-random-own-minor" };
+    case "apply-retain-to-hand-card":
+      return { kind: "apply-retain-to-hand-card" };
+    case "pending-energy-next-turn": {
+      if (!isPositiveInt(raw.amount)) {
+        errors.push(
+          "'effect.amount' must be a positive integer for kind 'pending-energy-next-turn'",
+        );
+        return null;
+      }
+      return { kind: "pending-energy-next-turn", amount: raw.amount };
+    }
+    case "play-power": {
+      const inner = raw.effect;
+      if (!isPlainObject(inner)) {
+        errors.push("'effect.effect' must be an object for kind 'play-power'");
+        return null;
+      }
+      const innerKind = inner.kind;
+      if (
+        typeof innerKind !== "string" ||
+        !(VALID_POWER_KINDS as readonly string[]).includes(innerKind)
+      ) {
+        errors.push(
+          `'effect.effect.kind' must be one of ${VALID_POWER_KINDS.join(", ")} for kind 'play-power'`,
+        );
+        return null;
+      }
+      if (typeof inner.amount !== "number" || !Number.isInteger(inner.amount) || inner.amount < 1) {
+        errors.push("'effect.effect.amount' must be a positive integer for kind 'play-power'");
+        return null;
+      }
+      return {
+        kind: "play-power",
+        effect: {
+          kind: innerKind as
+            | "energy-per-turn"
+            | "draw-per-turn"
+            | "extra-chess-move-per-turn"
+            | "haste-pawns-per-turn"
+            | "shield-back-rank-per-turn",
+          amount: inner.amount,
+        },
+      };
+    }
+    case "compound": {
+      const children = raw.effects;
+      if (!Array.isArray(children) || children.length === 0) {
+        errors.push("'effect.effects' must be a non-empty array for 'compound'");
+        return null;
+      }
+      const resolved: CardEffect[] = [];
+      for (let i = 0; i < children.length; i++) {
+        const child = children[i];
+        if (!isPlainObject(child)) {
+          errors.push(`'effect.effects[${i}]' must be an object`);
+          return null;
+        }
+        if (child.kind === "compound") {
+          errors.push("'compound' effects may not nest 'compound' children (one level only)");
+          return null;
+        }
+        const ce = validateEffect(child, errors);
+        if (!ce) return null;
+        resolved.push(ce);
+      }
+      return { kind: "compound", effects: resolved };
+    }
+    default:
+      errors.push(
+        `'effect.kind' must be one of ${VALID_EFFECT_KINDS.join(", ")} (got ${JSON.stringify(kind)})`,
+      );
+      return null;
+  }
+}
+
+// ---- Cross-field check (target ↔ effect) -----------------------------------
+
+/**
+ * Cross-field check: a card's effect.kind must agree with its target.kind.
+ * The contract is "what the player must aim at to cast this effect" — it's
+ * how the UI knows whether to ask for a square, an own piece, etc.
+ */
+function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | null {
+  const tk = target.kind;
+  switch (effect.kind) {
+    case "gain-energy":
+    case "draw":
+    case "scry":
+      return tk === "none" ? null : `'${effect.kind}' effect requires target.kind 'none'`;
+    case "freeze-piece":
+    case "disarm-piece":
+    case "compel-piece":
+      return tk === "enemy-piece"
+        ? null
+        : `'${effect.kind}' effect requires target.kind 'enemy-piece'`;
+    case "root-piece":
+      return tk === "enemy-piece" || tk === "enemy-non-king-piece"
+        ? null
+        : "'root-piece' effect requires target.kind 'enemy-piece' or 'enemy-non-king-piece'";
+    case "shield-piece":
+    case "haste-piece":
+    case "empower-piece":
+    case "lightning-piece":
+      return tk === "own-piece" ? null : `'${effect.kind}' effect requires target.kind 'own-piece'`;
+    case "haste-all-of-type":
+      return tk === "none" ? null : "'haste-all-of-type' effect requires target.kind 'none'";
+    case "place-wall":
+    case "place-sanctuary":
+    case "place-trap":
+    case "place-zone-buff":
+      return tk === "empty-square"
+        ? null
+        : `'${effect.kind}' effect requires target.kind 'empty-square'`;
+    case "summon-piece":
+      return tk === "empty-square" || tk === "empty-square-own-half"
+        ? null
+        : "'summon-piece' effect requires target.kind 'empty-square' or 'empty-square-own-half'";
+    case "sacrifice-piece":
+      return tk === "own-non-king-piece"
+        ? null
+        : "'sacrifice-piece' effect requires target.kind 'own-non-king-piece'";
+    case "swap-own-pieces":
+      return tk === "two-own-pieces"
+        ? null
+        : "'swap-own-pieces' effect requires target.kind 'two-own-pieces'";
+    case "swap-rooted-with-own":
+      return tk === "rooted-enemy-and-own-piece"
+        ? null
+        : "'swap-rooted-with-own' effect requires target.kind 'rooted-enemy-and-own-piece'";
+    case "swap-with-enemy":
+      return tk === "enemy-and-own-piece"
+        ? null
+        : "'swap-with-enemy' effect requires target.kind 'enemy-and-own-piece'";
+    case "marionette":
+      return tk === "marionette" ? null : "'marionette' effect requires target.kind 'marionette'";
+    case "destroy-piece":
+      return tk === "enemy-non-king-piece"
+        ? null
+        : "'destroy-piece' effect requires target.kind 'enemy-non-king-piece'";
+    case "add-card-to-draw":
+    case "revive":
+      // These effects don't read the target — they're target-agnostic. They
+      // can appear on any card, including compound parents whose primary
+      // effect drives the target.
+      return null;
+    case "next-move-constraint":
+      return tk === "none" ? null : "'next-move-constraint' effect requires target.kind 'none'";
+    case "pending-energy-loss-on-no-capture":
+    case "forbid-zero-cost-this-turn":
+    case "boss-extra-move":
+    case "capture-random-own-minor":
+    case "pending-energy-next-turn":
+    case "play-power":
+      return tk === "none" ? null : `'${effect.kind}' effect requires target.kind 'none'`;
+    case "apply-retain-to-hand-card":
+      return tk === "hand-card"
+        ? null
+        : "'apply-retain-to-hand-card' effect requires target.kind 'hand-card'";
+    case "compound": {
+      for (const child of effect.effects) {
+        const m = targetMatchesEffect(target, child);
+        if (m) return `compound: ${m}`;
+      }
+      return null;
+    }
+  }
+}
+
+// ---- Top-level card validation ---------------------------------------------
+
+export function validateCard(raw: unknown): { card: Card | null; errors: string[] } {
+  const errors: string[] = [];
+  if (!isPlainObject(raw)) {
+    errors.push("file must contain a JSON object");
+    return { card: null, errors };
+  }
+
+  if (typeof raw.id !== "string" || raw.id.length === 0) {
+    errors.push("'id' must be a non-empty string");
+  }
+  if (typeof raw.name !== "string" || raw.name.length === 0) {
+    errors.push("'name' must be a non-empty string");
+  }
+  if (typeof raw.cost !== "number" || !(VALID_COSTS as readonly number[]).includes(raw.cost)) {
+    errors.push(`'cost' must be one of ${VALID_COSTS.join(", ")}`);
+  }
+  if (
+    typeof raw.rarity !== "string" ||
+    !(VALID_RARITIES as readonly string[]).includes(raw.rarity)
+  ) {
+    errors.push(`'rarity' must be one of ${VALID_RARITIES.join(", ")}`);
+  }
+  if (
+    typeof raw.archetype !== "string" ||
+    !(VALID_ARCHETYPES as readonly string[]).includes(raw.archetype)
+  ) {
+    errors.push(`'archetype' must be one of ${VALID_ARCHETYPES.join(", ")}`);
+  }
+  if (raw.consume !== undefined && typeof raw.consume !== "boolean") {
+    errors.push("'consume' must be a boolean if present");
+  }
+  if (raw.retain !== undefined && typeof raw.retain !== "boolean") {
+    errors.push("'retain' must be a boolean if present");
+  }
+  if (raw.curse !== undefined && typeof raw.curse !== "boolean") {
+    errors.push("'curse' must be a boolean if present");
+  }
+  if (typeof raw.description !== "string") {
+    errors.push("'description' must be a string");
+  }
+
+  const target = validateTarget(raw.target, errors);
+  const effect = validateEffect(raw.effect, errors);
+
+  if (errors.length > 0 || !target || !effect) {
+    return { card: null, errors };
+  }
+
+  const mismatch = targetMatchesEffect(target, effect);
+  if (mismatch) {
+    errors.push(mismatch);
+    return { card: null, errors };
+  }
+
+  const card: Card = {
+    id: raw.id as CardId,
+    name: raw.name as string,
+    cost: raw.cost as CardCost,
+    rarity: raw.rarity as CardRarity,
+    archetype: raw.archetype as CardArchetype,
+    description: raw.description as string,
+    target,
+    effect,
+  };
+  if (typeof raw.curse === "boolean") card.curse = raw.curse;
+  if (typeof raw.consume === "boolean") card.consume = raw.consume;
+  if (typeof raw.retain === "boolean") card.retain = raw.retain;
+
+  return { card, errors: [] };
+}

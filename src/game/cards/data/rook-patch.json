@@ -5,7 +5,7 @@
   "rarity": "rare",
   "archetype": "movement",
   "consume": true,
-  "description": "Patch one of your pieces with rook behavior this turn: it gains straight sliding as an additional movement pattern. Lost if you move a different piece first. Consume.",
+  "description": "Patch a piece with rook behavior. Lost if you move another piece first.",
   "target": { "kind": "own-piece" },
   "effect": { "kind": "empower-piece", "pattern": "rook", "singleUse": true }
 }

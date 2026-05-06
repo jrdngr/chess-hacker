@@ -5,7 +5,7 @@
   "rarity": "rare",
   "archetype": "power",
   "consume": true,
-  "description": "Power. At the start of each of your turns, your pieces on rank 1 (except the king) are shielded until your next turn. Consume.",
+  "description": "Power. At the start of each of your turns, your pieces on rank 1 (except the king) are shielded until your next turn.",
   "target": { "kind": "none" },
   "effect": {
     "kind": "play-power",

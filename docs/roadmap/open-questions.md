@@ -6,7 +6,6 @@ Loosely grouped by topic.
 
 ## Cards / energy / hand
 
-- **Starter deck shape.** While the card pool is still small the starter deck is "one of every card in the library" (currently 19 cards) — see [`docs/cards/starter-deck.md`](../cards/starter-deck.md). Once drafts and the shop start contributing copies, this should narrow to a focused subset (8–12 commons) and the rest become draftable. The exact subset is TBD.
 - **Card upgrades.** Currently cut from the prototype. Reconsider after basic loop is working: do we want a shop service or a card-tier system that lets cards become stronger versions of themselves?
 - **Reactions on opponent turn.** Currently disallowed for all cards. Likely to revisit once base play feels good — having "interrupt" cards (e.g., "when an enemy moves to a square adjacent to your queen, freeze that piece") would deepen the design but is non-trivial.
 - **Card art.** Plain text-only cards in the prototype. Add visual identity later as a polish pass.
@@ -65,17 +64,12 @@ Loosely grouped by topic.
 
 ## Technical
 
-- **State management library.** Resolved: ship M0–M4 on React `useState`; adopt Zustand at M5 when run state crosses screens. See `docs/technical/stack.md`.
-- **CSS approach.** Resolved: CSS modules. May switch to Tailwind later if authoring slows iteration; no current pressure.
 - **Stockfish skill levels vs depth.** Default: depth-tuned only. Skill-level option is an additional knob if depth scaling is too coarse.
-- **Walls in Stockfish.** Resolved: UCI `searchmoves` filter restricts the AI to our wall/freeze-aware legal-move set; Stockfish never sees overlays. `engine.move()` re-validates as a defensive fallback. See `docs/technical/chess-integration.md`.
 - **Save format versioning.** Default: simple `version: number` integer. Migration policy: forward-only, fail-soft on incompatibility (drop saved run, preserve meta).
 - **Web Worker placement of curse-AI.** Default main-thread. Move to worker only if profiling shows a problem.
 
 ## UI / UX
 
-- **End-turn button.** Is "end turn" an explicit button or implied by making your move? Default: explicit "End Turn" button. Players may want to play cards after their move.
-- **Card-play affordance.** Drag from hand to target, or click-to-pick-up + click-to-target? Default: click + click (simpler implementation, accessible).
 - **Hand overflow.** Currently hand cap is 5 but curses can push it to 6+. Should the UI fan or stack cards in this case?
 - **Reward / shop screen layout.** TBD by mockup.
 
@@ -83,12 +77,7 @@ Loosely grouped by topic.
 
 - **Tutorial / onboarding.** Out of MVP. Consider a "first-run" mini-tutorial after content is stable.
 - **Audio.** No music in MVP. Consider after gameplay is locked.
-- **Debug tools.** Resolved: shipped as the **Sandbox** dev mode (board editor, free card library, optional AI, action-granular undo/redo). See `docs/technical/dev-mode.md`. M5 will likely add gold / artifact / boss debug toggles to the same panel.
 - **Version display.** Show a small build version somewhere in the UI. Lets us reproduce reported bugs.
-
-## UI / UX (continued)
-
-- **End-turn button.** Resolved: making a chess move ends the turn. Cards must be played BEFORE the move. No explicit End-Turn button — see `docs/technical/architecture.md`.
 
 ## Card-design follow-ups
 

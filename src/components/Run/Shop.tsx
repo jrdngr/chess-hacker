@@ -6,6 +6,7 @@
 import { useState } from "react";
 
 import { CardListModal } from "../Hand/CardListModal";
+import { CardKeywords } from "../Hand/CardKeywords";
 import {
   addPickedPackCard,
   buyArtifactOffer,
@@ -107,6 +108,7 @@ export function Shop({ run, shop, onUpdate, onLeave }: Props) {
                 <span className={styles.archetype}>
                   {offer.card.archetype} · {offer.card.rarity}
                 </span>
+                <CardKeywords card={offer.card} />
                 <span className={styles.description}>{offer.card.description}</span>
                 <span className={styles.price}>{offer.sold ? "sold" : `${offer.price}g`}</span>
               </button>

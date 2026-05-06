@@ -70,6 +70,7 @@ button:hover:not(:disabled) {
 }
 
 button:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
+  border-color: var(--muted);
   cursor: not-allowed;
 }

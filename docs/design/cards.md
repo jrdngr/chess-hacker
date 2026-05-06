@@ -59,7 +59,7 @@ Cycle rules:
 
 UI piles: **Draw: N | Discard: N | Consumed: N**. The discard pile is the active rotation; the consumed pile is the graveyard.
 
-A 20-card deck cycles through itself multiple times in a typical match, so the binding resource is energy, not card supply. Banking energy for haymakers is still the central tempo lever, and Consume cards remain finite per match — capture-grants-Patch keeps the deck fresh on the way.
+A 20-card deck cycles through itself multiple times in a typical match, so the binding resource is energy, not card supply. With energy capped at 3/turn (no banking), Cache Warmup is the only way to land a haymaker without giving up the rest of the turn — and Consume cards remain finite per match, with capture-grants-Patch keeping the deck fresh on the way.
 
 ## Card economy
 

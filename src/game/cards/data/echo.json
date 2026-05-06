@@ -5,7 +5,7 @@
   "rarity": "common",
   "archetype": "disruption",
   "curse": true,
-  "description": "Curse — the boss makes one extra chess move this turn. Cycle this card.",
+  "description": "Curse — the boss makes one extra chess move this turn.",
   "target": { "kind": "none" },
   "effect": { "kind": "boss-extra-move", "count": 1 }
 }

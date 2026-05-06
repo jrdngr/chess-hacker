@@ -5,7 +5,7 @@
   "rarity": "rare",
   "archetype": "burst",
   "consume": true,
-  "description": "Destroy any enemy non-King piece. Consume.",
+  "description": "Destroy any enemy non-King piece.",
   "target": { "kind": "enemy-non-king-piece" },
   "effect": { "kind": "destroy-piece", "filter": "any" }
 }

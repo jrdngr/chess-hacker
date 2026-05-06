@@ -6,7 +6,7 @@
 //                   M3 card system layered on top.
 //
 // Player turn (vs-ai):
-//   1. Match.startPlayerTurn refills hand + resets energy + ticks overlays.
+//   1. startPlayerTurn refills hand + resets energy + ticks overlays.
 //   2. Player may play any number of cards using their energy.
 //   3. Player makes their chess move — this ends their turn and immediately
 //      hands control to the AI. (Cards must be played BEFORE moving a piece.)
@@ -16,21 +16,26 @@
 // state lives as React state here; pure helpers in `game/cards/match.ts`
 // produce new states.
 //
-// Decomposition (in-progress — partial):
+// Decomposition:
 //   - Pure derivations of MatchCardState  → `Match/derivations.ts`
 //   - Pure side-effect appliers + outcome → `Match/sideEffects.ts`
 //   - Undo / redo snapshot stack          → `Match/useUndoRedo.ts`
-// The AI loop, dev editor, and card-play orchestration still live in this
-// file — extracting them is the next refactor pass and will likely happen
-// alongside the M5 store migration (see `docs/technical/architecture.md`).
+//   - Stockfish + AI turn loop            → `Match/useAiLoop.ts`
+//   - Targeting + tryPlay + tryResolveCard + library free-play synth
+//                                         → `Match/useCardPlay.ts`
+//   - Editor brush + palette + edit-mode  → `Match/useDevEditor.ts`
+//   - Sandbox actions (resize, save deck, ...)
+//                                         → `Match/useDevSandbox.ts`
+//   - Click / drag routing                → `Match/useBoardInteraction.ts`
+// Match itself owns top-level run state, history wiring, and the JSX shell.
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { Board, type BoardMode } from "./Board/Board";
 import { CapturedPieces } from "./Board/CapturedPieces";
 import { materialAdvantage } from "./Board/material";
-import { PromotionModal, type PromotionChoice } from "./Board/PromotionModal";
-import { DevPanel, type EditorPiece } from "./Match/DevPanel";
+import { PromotionModal } from "./Board/PromotionModal";
+import { DevPanel } from "./Match/DevPanel";
 import { Hand } from "./Hand/Hand";
 import { ReviveModal } from "./Hand/ReviveModal";
 import { PileInspector } from "./Hand/PileInspector";
@@ -44,55 +49,33 @@ import {
 } from "./Match/derivations";
 import { HistoryModal } from "./Match/HistoryModal";
 import type { HistoryEvent } from "./Match/history";
-import {
-  applyCardSideEffects as applyCardSideEffectsPure,
-  outcomeDetail,
-  outcomeHeadline,
-  resolveTrapForMove,
-} from "./Match/sideEffects";
+import { outcomeDetail, outcomeHeadline } from "./Match/sideEffects";
+import { useAiLoop } from "./Match/useAiLoop";
+import { useCardPlay } from "./Match/useCardPlay";
+import { useBoardInteraction } from "./Match/useBoardInteraction";
+import { useDevEditor } from "./Match/useDevEditor";
+import { useDevSandbox } from "./Match/useDevSandbox";
 import { useUndoRedo } from "./Match/useUndoRedo";
 import { ChoseEngine, type EngineSnapshot, type LegalMove } from "../game/chess/engine";
-import {
-  StockfishEngine,
-  legalMoveToUci,
-  uciToMove,
-  depthForDifficulty,
-  variantFor,
-  type Difficulty,
-  type StockfishOptions,
-} from "../ai/stockfish";
-import { generateChess960Position } from "../game/chess/positions";
+import { type Difficulty, type StockfishEngine, type StockfishOptions } from "../ai/stockfish";
 import { parseFen } from "../game/chess/rules";
 import {
   offendingSquares as validationOffendingSquares,
   validatePosition,
 } from "../game/chess/validate";
-import { STANDARD_MATCHES, resolvePieceSet } from "../game/progression/standard";
 import {
-  clampEnergy,
-  clearStatusesOn,
   completeRevive,
-  consumeHaste,
-  consumeLightningAction,
   createMatchCardState,
-  drawCards,
   drawPileInAcquisitionOrder,
-  dropOtherSingleUseEmpowers,
-  grantPatchOnCapture,
   hasWallOn,
-  hasteAt,
   insertCurseIntoHand,
   isCardEffectForbidden,
   isInPlayerHalf,
   isRooted,
-  lightningAt,
-  playCard,
-  relocateStatuses,
   setDeckTop,
   startPlayerTurn,
   type BoardContext,
   type MatchRules,
-  type PlayTarget,
   type Rng,
 } from "../game/cards/match";
 import { fireCurses, makeSchedulerState, type SchedulerState } from "../game/bosses/scheduler";
@@ -106,12 +89,10 @@ import type {
   CardEffect,
   MatchCardState,
   MatchOutcome,
-  PieceType,
   RunMatchOutcome,
   Side,
   Wall,
 } from "../game/types";
-import { drawOnCapture, drawOnCheck, energyOnCapture } from "../game/artifacts/effects";
 import {
   activeZoneBuffs,
   zoneBuffSquares,
@@ -278,23 +259,6 @@ function zoneBoardContextOf(engine: ChoseEngine): ZoneBoardContext {
   };
 }
 
-function remapAxis(oldCoord: number, oldSize: number, newSize: number): number | null {
-  let coord = oldCoord;
-  let size = oldSize;
-  while (size < newSize) {
-    const insertIdx = Math.floor((size + 1) / 2);
-    if (coord >= insertIdx) coord += 1;
-    size += 1;
-  }
-  while (size > newSize) {
-    const removeIdx = Math.floor(size / 2);
-    if (coord === removeIdx) return null;
-    if (coord > removeIdx) coord -= 1;
-    size -= 1;
-  }
-  return coord;
-}
-
 const HUMAN_SIDE: Side = "player";
 const AI_SIDE: Side = "opponent";
 
@@ -336,8 +300,8 @@ export function Match({
   const [selected, setSelected] = useState<AlgebraicSquare | null>(null);
   // Bumped after each move so derived render values recompute.
   const [version, setVersion] = useState(0);
-  const [aiThinking, setAiThinking] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
+  const bumpVersion = useCallback(() => setVersion((v) => v + 1), []);
+  const resetVersion = useCallback(() => setVersion(0), []);
 
   // ---- Dev-mode state ------------------------------------------------------
   /**
@@ -381,41 +345,6 @@ export function Match({
    * panel. The prototype ignores this and always plays.
    */
   const [devAiOn, setDevAiOn] = useState(initialDevAiOn ?? true);
-  /**
-   * Currently-selected editor brush. When non-null in dev mode, board clicks
-   * place / overwrite / erase pieces instead of doing chess moves.
-   */
-  const [editorPiece, setEditorPiece] = useState<EditorPiece>(null);
-  /**
-   * Sticky edit-mode toggle. When on (and dev panel is active), board
-   * clicks/drags reposition any existing piece — destination is overwritten,
-   * sides are ignored, and dropping on the Erase button deletes the piece.
-   * Stays on across edits until the user clicks the toggle off.
-   */
-  const [editMode, setEditMode] = useState(false);
-  /**
-   * Source square of an in-flight edit-mode drag (a piece dragged off a
-   * board square). Read by the board-drop and erase-button-drop handlers
-   * so they can resolve the drag as a move or a deletion respectively.
-   */
-  const editDragFromRef = useRef<AlgebraicSquare | null>(null);
-  /**
-   * In flight while the user is dragging a piece from the editor palette
-   * (or "erase") onto the board. Read by the board-drop handler so we can
-   * resolve the drop as an edit even if no brush was clicked first.
-   */
-  const paletteDragRef = useRef<{ type: PieceType; side: Side } | "erase" | null>(null);
-  /** Mirror of paletteDragRef so the Board re-renders to accept any-drop. */
-  const [paletteDragActive, setPaletteDragActive] = useState(false);
-  /**
-   * When non-null, a library-card play is in flight: the dev panel injected a
-   * card at hand[0], paid no energy, and we're waiting for targeting (or the
-   * card already resolved). The number stored is the pre-synth energy to
-   * restore once `tryResolveCard` finishes the play. A state mirror (below)
-   * drives UI gating; the ref is for synchronous reads inside callbacks.
-   */
-  const libraryFreePlayRef = useRef<number | null>(null);
-  const [libraryFreePlayActive, setLibraryFreePlayActive] = useState(false);
   /**
    * "Chess vision" — when on, every square attacked by either side gets a
    * coloured tint: blue for player-only, red for opponent-only, purple for
@@ -489,32 +418,8 @@ export function Match({
     });
     return out;
   }, [cardState.hand, matchRules]);
-  /** Hand index waiting for a target click, or null. */
-  const [targetingIndex, setTargetingIndex] = useState<number | null>(null);
-  /** First square in a two-step targeting flow (Switch Files / Remote Access). */
-  const [partialTarget, setPartialTarget] = useState<AlgebraicSquare | null>(null);
-  /** Pre-computed legal moves of the puppet piece while Remote Access is in flight. */
-  const [marionetteMoves, setMarionetteMoves] = useState<LegalMove[]>([]);
-  /** When non-null, Stack Trace is asking the player to reorder the deck top. */
-  const [scryPending, setScryPending] = useState<{ cards: Card[] } | null>(null);
-  /** When true, Restore from Backup is asking the player to pick a card from the discard pile. */
-  const [revivePending, setRevivePending] = useState<boolean>(false);
-  /**
-   * In flight while the player has clicked a pawn promotion target but hasn't
-   * picked which piece to promote to. The chess move itself is not applied
-   * until they choose, so AI turn / outcome detection are paused naturally.
-   */
-  const [promotionPending, setPromotionPending] = useState<{
-    from: AlgebraicSquare;
-    to: AlgebraicSquare;
-    side: Side;
-  } | null>(null);
   /** Which pile inspector is open, if any. */
   const [pileInspector, setPileInspector] = useState<"draw" | "discard" | "consumed" | null>(null);
-
-  // Increments on new game / mode change so stale AI replies are ignored.
-  const generationRef = useRef(0);
-  const aiRef = useRef<StockfishEngine | null>(null);
 
   // Undo / redo stack — one snapshot per turn rollover (prototype) plus one
   // per dev-mode action (editor edit, energy bump, library card play).
@@ -571,37 +476,6 @@ export function Match({
     // engine + cardState are captured by the closure; intentional.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [undoRedo.undoDepth, mode]);
-
-  // Spin up the Fairy-Stockfish worker for every vs-ai match. The engine
-  // supports custom board sizes via the variant config (variantFor maps our
-  // BoardSize to the matching `chossNxM` variant declared in
-  // public/fairy-stockfish/variants.ini, falling back to standard `chess`
-  // for 8x8). Walls, freezes, etc. still ride the searchmoves filter in
-  // doAiMove since they're not part of the engine's variant geometry.
-  const variant = variantFor(engine.size());
-  useEffect(() => {
-    if (mode !== "vs-ai") return;
-    if (displayOnly) return;
-    let ai: StockfishEngine | null = null;
-    try {
-      ai = createAi ? createAi() : new StockfishEngine();
-    } catch (e) {
-      setAiError(e instanceof Error ? e.message : "failed to start AI");
-      return;
-    }
-    aiRef.current = ai;
-    ai.ready()
-      .then(() => {
-        ai?.setVariant(variant);
-      })
-      .catch((e) => {
-        setAiError(e instanceof Error ? e.message : String(e));
-      });
-    return () => {
-      ai?.destroy();
-      aiRef.current = null;
-    };
-  }, [mode, createAi, variant, displayOnly]);
 
   // Sync the current overlays to the engine BEFORE any engine method
   // (legalMoves / inCheck / outcome) is called this render. The engine is
@@ -776,6 +650,183 @@ export function Match({
     matchRules.noPromotion,
   ]);
 
+  // ---- AI move loop ---------------------------------------------------------
+
+  /**
+   * Run the boss curse scheduler against `event` and append any returned
+   * curses to `state.hand`. Pure on the curse list; mutates the scheduler
+   * ref in place. No-ops if there's no active boss.
+   */
+  const applyCurseScheduler = useCallback(
+    (
+      state: MatchCardState,
+      event: import("../game/bosses/scheduler").SchedulerEvent,
+    ): MatchCardState => {
+      if (!activeBoss || activeBoss.curses.length === 0) return state;
+      const result = fireCurses(activeBoss.curses, schedulerStateRef.current, event);
+      schedulerStateRef.current = result.next;
+      let next = state;
+      for (const id of result.curseIds) {
+        try {
+          next = insertCurseIntoHand(next, getCardById(id));
+        } catch {
+          // Unknown curse id — surface in the console but don't break the match.
+          // (This should be caught by the build-time validator anyway.)
+          // eslint-disable-next-line no-console
+          console.error(`[boss] unknown curse id '${id}'`);
+        }
+      }
+      return next;
+    },
+    [activeBoss],
+  );
+
+  // First-turn boss scheduler tick — fires once on mount so a `turn` trigger
+  // pinned to turn 1 (e.g. Boss C's Hardened) lands in the player's hand
+  // before they take any action. Boss A's only trigger is `on-player-check`,
+  // so this is a no-op for it; harmless to fire either way.
+  useEffect(() => {
+    if (firstTurnSchedulerRef.current) return;
+    if (displayOnly) {
+      // Snapshot view — the cardState is already final; running the
+      // scheduler would mutate it past match end and corrupt the display.
+      firstTurnSchedulerRef.current = true;
+      return;
+    }
+    if (!activeBoss || activeBoss.curses.length === 0) return;
+    if (!cardsEnabled) return;
+    firstTurnSchedulerRef.current = true;
+    setCardState((s) => applyCurseScheduler(s, { kind: "turn-start", turn: s.turn }));
+  }, [activeBoss, cardsEnabled, applyCurseScheduler, displayOnly]);
+
+  /**
+   * Roll over to a fresh player turn: refill hand, +1 energy, decay statuses,
+   * commit to React state, push a snapshot for undo. Also fires the boss
+   * scheduler's `turn-start` event so timed curse triggers fire before the
+   * player sees their hand. Caller is responsible for any pre-rollover work
+   * (e.g. trap resolution) — `state` is what gets fed straight into
+   * `startPlayerTurn`.
+   */
+  const applyTurnRollover = useCallback(
+    (state: MatchCardState) => {
+      const turnStarted = startPlayerTurn(state, rng, zoneBoardContextOf(engine));
+      const withCurses = applyCurseScheduler(turnStarted, {
+        kind: "turn-start",
+        turn: turnStarted.turn,
+      });
+      setCardState(withCurses);
+      pushSnapshot(withCurses);
+    },
+    [rng, pushSnapshot, engine, applyCurseScheduler],
+  );
+
+  const { aiThinking, aiError, triggerAiSingleMove, cancelInFlightAi } = useAiLoop({
+    engine,
+    mode,
+    cardsEnabled,
+    difficulty,
+    aiMinThinkMs,
+    displayOnly,
+    createAi,
+    isAiTurn,
+    matchOver,
+    turn,
+    activeBoss,
+    cardState,
+    setCardState,
+    bumpVersion,
+    pushHistory,
+    applyTurnRollover,
+  });
+
+  // ---- Player input handlers -----------------------------------------------
+
+  const boardContext: BoardContext = useMemo(
+    () => ({
+      pieceAt: (sq) => engine.pieceAt(sq),
+      hasWall: (sq) => hasWallOn(cardState, sq),
+      isAttackedBy: (sq, by) => engine.isSquareAttackedBy(sq, by),
+      isRooted: (sq) => isRooted(cardState, sq),
+      boardRanks: engine.size().ranks,
+      boardFiles: engine.size().files,
+    }),
+    // engine is mutable; version forces recompute on each move
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [engine, version, cardState],
+  );
+
+  const cardPlay = useCardPlay({
+    engine,
+    cardState,
+    setCardState,
+    bumpVersion,
+    rng,
+    boardContext,
+    matchRules,
+    mode,
+    runMode,
+    devPanelEnabled,
+    devAiOn,
+    aiThinking,
+    matchOver,
+    turn,
+    applyTurnRollover,
+    applyCurseScheduler,
+    pushHistory,
+    pushSnapshot,
+    setSelected,
+    artifacts,
+    activeBoss,
+  });
+  const {
+    targetingIndex,
+    setTargetingIndex,
+    partialTarget,
+    setPartialTarget,
+    marionetteMoves,
+    setMarionetteMoves,
+    scryPending,
+    setScryPending,
+    revivePending,
+    setRevivePending,
+    promotionPending,
+    setPromotionPending,
+    libraryFreePlayActive,
+    tryPlay,
+    tryResolveCard,
+    cancelTargeting,
+    onCardClick,
+    onCardDragStart,
+    onCardDragEnd,
+    synthesizeLibraryCard,
+    resetCardPlay,
+  } = cardPlay;
+
+  const devEditor = useDevEditor({
+    engine,
+    cardState,
+    setCardState,
+    bumpVersion,
+    pushSnapshot,
+    pushHistory,
+    setSelected,
+  });
+  const {
+    editorPiece,
+    setEditorPiece,
+    editMode,
+    paletteDragActive,
+    paletteDragRef,
+    editDragFromRef,
+    onToggleEditMode,
+    onPaletteDragStart,
+    onPaletteDragEnd,
+    applyEditorEdit,
+    applyEditorMove,
+    eraseDraggedPiece,
+    resetDevEditor,
+  } = devEditor;
+
   const targetingCard: Card | null =
     targetingIndex !== null ? (cardState.hand[targetingIndex]?.card ?? null) : null;
 
@@ -926,1392 +977,96 @@ export function Match({
     return { kind: "target", cardName: targetingCard.name, hint, valid: validTargetSquares };
   }, [targetingCard, partialTarget, validTargetSquares]);
 
-  // ---- AI move loop ---------------------------------------------------------
-
-  /**
-   * Run the boss curse scheduler against `event` and append any returned
-   * curses to `state.hand`. Pure on the curse list; mutates the scheduler
-   * ref in place. No-ops if there's no active boss.
-   */
-  const applyCurseScheduler = useCallback(
-    (
-      state: MatchCardState,
-      event: import("../game/bosses/scheduler").SchedulerEvent,
-    ): MatchCardState => {
-      if (!activeBoss || activeBoss.curses.length === 0) return state;
-      const result = fireCurses(activeBoss.curses, schedulerStateRef.current, event);
-      schedulerStateRef.current = result.next;
-      let next = state;
-      for (const id of result.curseIds) {
-        try {
-          next = insertCurseIntoHand(next, getCardById(id));
-        } catch {
-          // Unknown curse id — surface in the console but don't break the match.
-          // (This should be caught by the build-time validator anyway.)
-          // eslint-disable-next-line no-console
-          console.error(`[boss] unknown curse id '${id}'`);
-        }
-      }
-      return next;
-    },
-    [activeBoss],
-  );
-
-  // First-turn boss scheduler tick — fires once on mount so a `turn` trigger
-  // pinned to turn 1 (e.g. Boss C's Hardened) lands in the player's hand
-  // before they take any action. Boss A's only trigger is `on-player-check`,
-  // so this is a no-op for it; harmless to fire either way.
-  useEffect(() => {
-    if (firstTurnSchedulerRef.current) return;
-    if (displayOnly) {
-      // Snapshot view — the cardState is already final; running the
-      // scheduler would mutate it past match end and corrupt the display.
-      firstTurnSchedulerRef.current = true;
-      return;
-    }
-    if (!activeBoss || activeBoss.curses.length === 0) return;
-    if (!cardsEnabled) return;
-    firstTurnSchedulerRef.current = true;
-    setCardState((s) => applyCurseScheduler(s, { kind: "turn-start", turn: s.turn }));
-  }, [activeBoss, cardsEnabled, applyCurseScheduler, displayOnly]);
-
-  /**
-   * Roll over to a fresh player turn: refill hand, +1 energy, decay statuses,
-   * commit to React state, push a snapshot for undo. Also fires the boss
-   * scheduler's `turn-start` event so timed curse triggers fire before the
-   * player sees their hand. Caller is responsible for any pre-rollover work
-   * (e.g. trap resolution) — `state` is what gets fed straight into
-   * `startPlayerTurn`.
-   */
-  const applyTurnRollover = useCallback(
-    (state: MatchCardState) => {
-      const turnStarted = startPlayerTurn(state, rng, zoneBoardContextOf(engine));
-      const withCurses = applyCurseScheduler(turnStarted, {
-        kind: "turn-start",
-        turn: turnStarted.turn,
-      });
-      setCardState(withCurses);
-      pushSnapshot(withCurses);
-    },
-    [rng, pushSnapshot, engine, applyCurseScheduler],
-  );
-
-  /**
-   * Run a single AI move against the current position. Returns once the move
-   * has been applied (or the call was cancelled / the AI returned nothing).
-   * Both the auto AI loop and the dev "AI: play one move" button funnel
-   * through here.
-   *
-   * Fairy-Stockfish handles every board size we use; the variant was set in
-   * the spawn effect. We restrict the root choice to our overlay-aware legal
-   * moves via UCI `searchmoves` so the engine can't pick a move that walks
-   * through a wall, moves a frozen piece, captures a shielded piece, etc.
-   */
-  const doAiMove = useCallback(
-    async (myGen: number, isCancelled: () => boolean, minThinkMs?: number): Promise<void> => {
-      const wait = minThinkMs ?? aiMinThinkMs;
-
-      const ai = aiRef.current;
-      if (!ai) return;
-      await ai.ready();
-      if (isCancelled() || generationRef.current !== myGen) return;
-      ai.setPosition(engine.fen());
-      const candidates = engine.legalMoves().map(legalMoveToUci);
-      const [uci] = await Promise.all([
-        ai.getBestMove({
-          depth: depthForDifficulty(difficulty),
-          searchMoves: candidates,
-        }),
-        new Promise<void>((resolve) => setTimeout(resolve, wait)),
-      ]);
-      if (isCancelled() || generationRef.current !== myGen) return;
-      if (!uci) return;
-      const move: import("../game/chess/engine").EngineMove = uciToMove(uci);
-
-      // Snapshot the moving piece BEFORE the engine applies the move; its
-      // type drives the move-path computation used by trap resolution.
-      let mover = engine.pieceAt(move.from);
-      // Capture victim must be read BEFORE applying the move — once the engine
-      // resolves, the target square is gone or repopulated.
-      let captured = engine.pieceAt(move.to);
-      let applied = engine.move(move);
-      if (!applied) {
-        const fallback = engine.legalMoves()[0];
-        if (fallback) {
-          mover = engine.pieceAt(fallback.from);
-          captured = engine.pieceAt(fallback.to);
-          applied = engine.move(fallback);
-        }
-      }
-      setVersion((v) => v + 1);
-      if (applied && mover) {
-        pushHistory({
-          kind: "move",
-          turn: cardState.turn,
-          by: mover.side,
-          from: applied.from,
-          to: applied.to,
-          san: applied.san,
-          isCapture: applied.isCapture,
-          isPromotion: applied.isPromotion,
-          isCastle: applied.isCastle,
-          promotion: applied.promotion,
-          capturedType: captured?.type,
-          capturedSide: captured?.side,
-          fenAfter: engine.fen(),
-        });
-      }
-      if (applied && cardsEnabled && mover) {
-        let trapped = resolveTrapForMove(engine, cardState, mover, applied.from, applied.to);
-        // Boss C void: any piece ending its turn on a void square is
-        // destroyed. The AI just moved there — that's its end-of-turn — so
-        // remove it now. We also clear per-piece statuses on the dead square.
-        if (
-          activeBoss?.voidSquares &&
-          activeBoss.voidSquares.includes(applied.to) &&
-          engine.pieceAt(applied.to)
-        ) {
-          engine.removePiece(applied.to);
-          trapped = clearStatusesOn(trapped, applied.to);
-        }
-        // Boss B modifier: when the AI captures a player piece, queue +1
-        // energy for the player's next turn.
-        if (
-          applied.isCapture &&
-          captured?.side === "player" &&
-          activeBoss?.modifier.kind === "captures-grant-captured-energy"
-        ) {
-          trapped = {
-            ...trapped,
-            pendingPlayerEnergyOnTurnStart: (trapped.pendingPlayerEnergyOnTurnStart ?? 0) + 1,
-          };
-        }
-        setVersion((v) => v + 1);
-        // Echo (Boss C): if the boss owes the player one or more extra moves,
-        // decrement the counter and flip the turn back to opponent so the AI
-        // effect fires again. Skip the player-turn rollover until the queue
-        // drains.
-        const extras = trapped.bossExtraMoves ?? 0;
-        if (extras > 0) {
-          const next = { ...trapped, bossExtraMoves: extras - 1 };
-          setCardState(next);
-          engine.forceTurn("opponent");
-          setVersion((v) => v + 1);
-          return;
-        }
-        applyTurnRollover(trapped);
-      }
-    },
-    [
-      engine,
-      difficulty,
-      aiMinThinkMs,
-      cardsEnabled,
-      cardState,
-      applyTurnRollover,
-      pushHistory,
-      activeBoss,
-    ],
-  );
-
-  useEffect(() => {
-    if (!isAiTurn) return;
-    const myGen = ++generationRef.current;
-    setAiThinking(true);
-    let cancelled = false;
-    (async () => {
-      try {
-        await doAiMove(myGen, () => cancelled);
-      } catch (e) {
-        if (cancelled) return;
-        setAiError(e instanceof Error ? e.message : String(e));
-      } finally {
-        if (!cancelled) setAiThinking(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-    // engine is mutable but stable; depending on version triggers each turn.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAiTurn, version]);
-
-  /**
-   * Imperative single-shot AI move. Used by the dev "AI: play one move"
-   * button. The button is gated by `aiThinking`, so no concurrent run is
-   * possible. Bumps generation to invalidate any in-flight effect work.
-   */
-  const triggerAiSingleMove = useCallback(async () => {
-    if (matchOver || aiThinking) return;
-    if (turn !== AI_SIDE) return;
-    const myGen = ++generationRef.current;
-    setAiThinking(true);
-    try {
-      // Manual single-move skips the cosmetic think delay — the player asked
-      // for the move, so don't make them wait. The auto AI loop still uses
-      // aiMinThinkMs so its moves don't snap-resolve.
-      await doAiMove(myGen, () => false, 0);
-    } catch (e) {
-      setAiError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setAiThinking(false);
-    }
-  }, [matchOver, aiThinking, turn, doAiMove]);
-
-  // ---- Player input handlers -----------------------------------------------
-
-  const boardContext: BoardContext = useMemo(
-    () => ({
-      pieceAt: (sq) => engine.pieceAt(sq),
-      hasWall: (sq) => hasWallOn(cardState, sq),
-      isAttackedBy: (sq, by) => engine.isSquareAttackedBy(sq, by),
-      isRooted: (sq) => isRooted(cardState, sq),
-      boardRanks: engine.size().ranks,
-      boardFiles: engine.size().files,
-    }),
-    // engine is mutable; version forces recompute on each move
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [engine, version, cardState],
-  );
-
-  /**
-   * Try to play `target` from `selected`. Returns true if a move was made.
-   * Making a move usually ends the player's turn — the AI loop kicks in via
-   * `isAiTurn` once the engine flips the turn. Exceptions: a hasted or
-   * lightning-statused piece may take another action; in that case we flip
-   * the turn back to the player and decrement / consume the buff.
-   */
-  const tryPlay = useCallback(
-    (from: AlgebraicSquare, to: AlgebraicSquare, promotion?: PromotionChoice): boolean => {
-      let candidates = engine.legalMoves(from).filter((m) => m.to === to);
-      if (cardState.mustNotCheckNextMove) {
-        candidates = candidates.filter((m) => !engine.wouldDeliverCheck(m));
-      }
-      if (matchRules.noPromotion) {
-        candidates = candidates.filter((m) => !m.isPromotion);
-      }
-      if (candidates.length === 0) return false;
-      // Promotion: defer the move until the player picks via the modal.
-      // Multiple candidates with the same from/to differ only by promotion piece.
-      if (candidates[0].isPromotion && !promotion) {
-        setPromotionPending({ from, to, side: engine.turn() });
-        return true;
-      }
-      const legal = promotion ? candidates.find((m) => m.promotion === promotion) : candidates[0];
-      if (!legal) return false;
-      const haste = hasteAt(cardState, from);
-      const lightning = lightningAt(cardState, from);
-      const mover = engine.pieceAt(from);
-      // Snapshot the captured piece BEFORE applying the move — once the
-      // engine resolves, the target square is gone or repopulated.
-      const captured = engine.pieceAt(to);
-      const applied = engine.move({ from, to, promotion: legal.promotion });
-      if (!applied) return false;
-
-      // Single-use empowers (Patch cards) on any *other* piece die the moment
-      // the player commits a chess move with someone else.
-      let next = dropOtherSingleUseEmpowers(cardState, from);
-      // On a capture, drop the captured piece's per-square statuses BEFORE
-      // we relocate the mover's statuses onto `to`. Doing this in the wrong
-      // order would clobber the mover's freshly-relocated shield/haste/etc.
-      // and let opponents capture a shielded piece next turn.
-      if (applied.isCapture) {
-        next = clearStatusesOn(next, to);
-      }
-      // Statuses follow the piece.
-      next = relocateStatuses(next, from, to);
-      if (applied.isCapture) {
-        // Capture-grants-Patch: feed the matching Patch card into the draw
-        // pile. The helper filters by side itself (only player captures grant
-        // patches). In dev mode the human can drive Black, so we pass the
-        // actual mover side rather than hardcoding "player".
-        next = grantPatchOnCapture(next, captured, mover?.side ?? "player", rng);
-      }
-
-      // Resolve any trap triggered by this move (player pieces are not exempt).
-      if (mover) {
-        next = resolveTrapForMove(engine, next, mover, applied.from, applied.to);
-      }
-
-      // Boss C void: any piece ending its turn on a void square is destroyed.
-      // The player's chess move just landed on `applied.to`, so destroy here.
-      if (
-        activeBoss?.voidSquares &&
-        activeBoss.voidSquares.includes(applied.to) &&
-        engine.pieceAt(applied.to)
-      ) {
-        engine.removePiece(applied.to);
-        next = clearStatusesOn(next, applied.to);
-      }
-
-      // Boss B / Memory Leak: track player captures this turn so the start-of-turn
-      // penalty knows whether to fire. Boss B modifier doesn't grant the
-      // player anything on their own captures (the captured side — opponent —
-      // has no energy), so no queued bonus here.
-      if (mover?.side === "player" && applied.isCapture) {
-        next = { ...next, capturedThisTurn: true };
-      }
-
-      // Artifact triggers — only fire on player-side moves. Capture / check
-      // grants apply to the active turn so the player can spend the granted
-      // energy or freshly-drawn cards before turn rollover.
-      if (mover?.side === "player") {
-        if (applied.isCapture) {
-          const drawN = drawOnCapture(artifacts);
-          if (drawN > 0) next = drawCards(next, drawN, rng);
-          const energyN = energyOnCapture(artifacts);
-          if (energyN > 0) next = { ...next, energy: clampEnergy(next.energy + energyN) };
-        }
-        // Engine flips turn after `move`, so `inCheck()` now reports whether
-        // the opponent (the new side-to-move) is in check — exactly the
-        // "you put them in check" trigger.
-        if (engine.inCheck()) {
-          const drawC = drawOnCheck(artifacts);
-          if (drawC > 0) next = drawCards(next, drawC, rng);
-        }
-        // Boss curse triggers — fire AFTER the move resolves so the curse
-        // lands in the player's hand for the next turn (the move that
-        // satisfied the trigger has already been made this turn).
-        if (applied.isCapture) {
-          next = applyCurseScheduler(next, { kind: "player-capture", turn: next.turn });
-        }
-        if (engine.inCheck()) {
-          next = applyCurseScheduler(next, { kind: "player-check", turn: next.turn });
-        }
-      }
-
-      // Throttled constraint is consumed by the player's chess move.
-      if (mover?.side === "player" && next.mustNotCheckNextMove) {
-        next = { ...next, mustNotCheckNextMove: false };
-      }
-
-      // Haste / Lightning: grant another action by flipping the turn back.
-      // Haste: the first move cannot be a capture (rule engine prevents it via
-      // the disarm-overlay union). consumeHaste below removes the status, so
-      // the second move has no capture restriction.
-      // Both: only the FIRST move uses the second-action grant; after that we
-      // flip turn normally. If the trap removed our piece, the buff is moot.
-      const stillOurs = engine.pieceAt(applied.to)?.side === "player";
-      let consumeAndContinue = false;
-      if (stillOurs && lightning && lightning.remaining > 1) {
-        next = consumeLightningAction(next, to);
-        consumeAndContinue = true;
-      } else if (stillOurs && haste) {
-        next = consumeHaste(next, to);
-        consumeAndContinue = true;
-      }
-      // Fork Process Power: every extra move on the budget keeps the turn
-      // open after a normal player move. Decrement once per move; when the
-      // budget reaches 0 the turn flips normally next time around.
-      if (
-        !consumeAndContinue &&
-        mover?.side === "player" &&
-        (next.playerExtraMovesRemaining ?? 0) > 0
-      ) {
-        next = {
-          ...next,
-          playerExtraMovesRemaining: (next.playerExtraMovesRemaining ?? 0) - 1,
-        };
-        consumeAndContinue = true;
-      }
-      if (consumeAndContinue) {
-        engine.forceTurn("player");
-      }
-
-      setSelected(null);
-      setTargetingIndex(null);
-      setPartialTarget(null);
-      setMarionetteMoves([]);
-      setVersion((v) => v + 1);
-
-      // Log the move into the history before any snapshot fires so the
-      // snapshot picks up the new event and undo rewinds the log too.
-      pushHistory({
-        kind: "move",
-        turn: next.turn,
-        by: mover?.side ?? "player",
-        from: applied.from,
-        to: applied.to,
-        san: applied.san,
-        isCapture: applied.isCapture,
-        isPromotion: applied.isPromotion,
-        isCastle: applied.isCastle,
-        promotion: applied.promotion,
-        capturedType: captured?.type,
-        capturedSide: captured?.side,
-        fenAfter: engine.fen(),
-      });
-
-      // Dev panel active + AI off: the human drives Black, so the AI loop
-      // never fires and we have to roll over to a fresh player turn here.
-      // Otherwise just commit; sandbox additionally pushes an action-granular
-      // snapshot so undo can rewind individual half-moves — but skip that push
-      // when the AI is about to respond, so the rollover snapshot lands on
-      // the player's next turn start (one undo == one player turn).
-      if (devPanelEnabled && !devAiOn && mover?.side === "opponent" && !consumeAndContinue) {
-        applyTurnRollover(next);
-      } else {
-        setCardState(next);
-        const aiAboutToRespond = devAiOn && !consumeAndContinue && engine.turn() === AI_SIDE;
-        if (runMode === "dev" && !aiAboutToRespond) pushSnapshot(next);
-      }
-      return true;
-    },
-    [
-      engine,
-      cardState,
-      rng,
-      runMode,
-      devPanelEnabled,
-      devAiOn,
-      applyTurnRollover,
-      pushSnapshot,
-      pushHistory,
-      artifacts,
-      applyCurseScheduler,
-      matchRules.noPromotion,
-      activeBoss,
-    ],
-  );
-  // ^ activeBoss is in the deps because we read its modifier kind (for
-  // captures-grant-captured-energy) inside the closure further below.
-
-  /**
-   * Select a square iff it has a piece the human controls right now.
-   */
-  const trySelect = useCallback(
-    (sq: AlgebraicSquare): boolean => {
-      const piece = engine.pieceAt(sq);
-      if (!piece) return false;
-      if (!controllableSides.has(piece.side)) return false;
-      if (piece.side !== turn) return false;
-      setSelected(sq);
-      return true;
-    },
-    [engine, controllableSides, turn],
-  );
-
-  // ---- Card play handlers --------------------------------------------------
-
-  const cancelTargeting = useCallback(() => {
-    setTargetingIndex(null);
-    setPartialTarget(null);
-    setMarionetteMoves([]);
-    // Library free-play in flight: pop the synthesized hand[0] and restore
-    // the pre-synth energy so the player isn't left with a phantom card.
-    if (libraryFreePlayRef.current !== null) {
-      const restoreEnergy = libraryFreePlayRef.current;
-      libraryFreePlayRef.current = null;
-      setLibraryFreePlayActive(false);
-      setCardState((prev) => ({
-        ...prev,
-        hand: prev.hand.slice(1),
-        energy: restoreEnergy,
-      }));
-    }
-  }, []);
-
-  /**
-   * Apply the side effects produced by `playCard`. Returns the (possibly
-   * further-mutated) match state. Mutates the engine in place. Thin wrapper
-   * over the pure `applyCardSideEffectsPure` so we can hook the revive prompt
-   * into React state.
-   */
-  const applyCardSideEffects = useCallback(
-    (result: { state: MatchCardState; sideEffects: ReadonlyArray<unknown> }): MatchCardState =>
-      applyCardSideEffectsPure(engine, result.state, result.sideEffects, rng, () =>
-        setRevivePending(true),
-      ),
-    [engine, rng],
-  );
-
-  const tryResolveCard = useCallback(
-    (index: number, target: PlayTarget): boolean => {
-      const slot = cardState.hand[index];
-      if (!slot) return false;
-      const card = slot.card;
-      const result = playCard(cardState, index, target, boardContext, rng, matchRules);
-      if (!result.ok) return false;
-      let next = applyCardSideEffects(result);
-
-      // Library free-play: undo the energy deduction and pop the synth card
-      // out of whichever pile it just landed in (consumed or discard) — it
-      // was never in the player's deck. Effect-driven additions to hand /
-      // draw / statuses persist — that's the whole point of testing those
-      // effects via the library.
-      const freePlay = libraryFreePlayRef.current;
-      if (freePlay !== null) {
-        next = { ...next, energy: freePlay };
-        const cp = next.consumedPile;
-        if (cp.length > 0 && cp[cp.length - 1].id === card.id) {
-          next = { ...next, consumedPile: cp.slice(0, -1) };
-        } else {
-          const dp = next.discardPile;
-          if (dp.length > 0 && dp[dp.length - 1].id === card.id) {
-            next = { ...next, discardPile: dp.slice(0, -1) };
-          }
-        }
-        libraryFreePlayRef.current = null;
-        setLibraryFreePlayActive(false);
-      }
-
-      setCardState(next);
-      setTargetingIndex(null);
-      setPartialTarget(null);
-      setMarionetteMoves([]);
-      pushHistory({
-        kind: "card-played",
-        turn: next.turn,
-        cardId: card.id,
-        cardName: card.name,
-        cost: card.cost,
-        energyAfter: next.energy,
-        target,
-      });
-      // Stack Trace: open scry modal showing the new top of deck.
-      if (card.effect.kind === "scry") {
-        const top = next.drawPile.slice(0, card.effect.count);
-        if (top.length > 0) setScryPending({ cards: top });
-      }
-      // Card play may have changed the board (capture / move / new piece) —
-      // make sure derived rendering re-runs.
-      setVersion((v) => v + 1);
-      // Sandbox card-play snapshot — but skip when AI is on, since the card is
-      // part of a turn cycle the AI will close out and one undo should rewind
-      // the whole player turn.
-      if (runMode === "dev" && !devAiOn) pushSnapshot(next);
-      return true;
-    },
-    [
-      cardState,
-      boardContext,
-      rng,
-      applyCardSideEffects,
-      runMode,
-      devAiOn,
-      pushSnapshot,
-      pushHistory,
-      matchRules,
-    ],
-  );
-
-  const onCardClick = useCallback(
-    (index: number) => {
-      if (matchOver || aiThinking) return;
-      if (mode !== "vs-ai") return;
-      // Cards can only be played before the chess move — i.e. while it's the
-      // player's chess turn.
-      if (turn !== HUMAN_SIDE) return;
-      // While a library free-play is in flight the hand indices have shifted
-      // (the synth card sits at hand[0]); ignore hand clicks until it resolves
-      // or is cancelled.
-      if (libraryFreePlayRef.current !== null) return;
-      // Bookmark targeting: when the active card asks for a hand-card target,
-      // the next click on a different hand slot resolves the play.
-      if (targetingIndex !== null && targetingIndex !== index) {
-        const targetingSlot = cardState.hand[targetingIndex];
-        if (targetingSlot && targetingSlot.card.target.kind === "hand-card") {
-          tryResolveCard(targetingIndex, { kind: "hand-card", index });
-          return;
-        }
-      }
-      const slot = cardState.hand[index];
-      if (!slot) return;
-      const card = slot.card;
-      // Toggle off if user clicks the same card they were targeting.
-      if (targetingIndex === index) {
-        cancelTargeting();
-        return;
-      }
-      if (cardState.energy < card.cost) return;
-      if (isCardEffectForbidden(card.effect, matchRules)) return;
-      if (card.target.kind === "none") {
-        tryResolveCard(index, { kind: "none" });
-        return;
-      }
-      // Targeted card — switch into targeting mode and clear any selection.
-      setSelected(null);
-      setPartialTarget(null);
-      setMarionetteMoves([]);
-      setTargetingIndex(index);
-    },
-    [
-      matchOver,
-      aiThinking,
-      mode,
-      turn,
-      cardState,
-      targetingIndex,
-      tryResolveCard,
-      cancelTargeting,
-      matchRules,
-    ],
-  );
-
   // ---- Dev-mode helpers ----------------------------------------------------
 
-  /**
-   * Apply an editor edit to `sq`: place / overwrite / erase based on `brush`.
-   * Pushes a snapshot so undo can rewind the edit.
-   */
-  const applyEditorEdit = useCallback(
-    (sq: AlgebraicSquare, brush: Exclude<EditorPiece, null>) => {
-      if (brush === "erase") {
-        engine.removePiece(sq);
-      } else {
-        // Idempotent overwrite: removePiece is null-safe; placePiece throws on
-        // occupied, so we always remove first.
-        engine.removePiece(sq);
-        engine.placePiece(sq, { type: brush.type, side: brush.side });
-      }
-      // Any status that was on this square belongs to a piece that's now
-      // gone; clear them so the new occupant starts fresh.
-      const next = clearStatusesOn(cardState, sq);
-      setCardState(next);
-      setVersion((v) => v + 1);
-      pushHistory(
-        brush === "erase"
-          ? { kind: "editor-edit", turn: next.turn, square: sq, action: "erase" }
-          : {
-              kind: "editor-edit",
-              turn: next.turn,
-              square: sq,
-              action: "place",
-              pieceType: brush.type,
-              side: brush.side,
-            },
-      );
-      pushSnapshot(next);
-    },
-    [engine, cardState, pushSnapshot, pushHistory],
-  );
-
-  /**
-   * Edit-mode reposition: move the piece at `from` to `to`, overwriting any
-   * occupant. Bypasses chess-move legality entirely. Statuses on both squares
-   * are dropped (the piece's identity may have shifted in ways the tracker
-   * can't follow). Pushes an undo snapshot.
-   */
-  const applyEditorMove = useCallback(
-    (from: AlgebraicSquare, to: AlgebraicSquare) => {
-      if (from === to) return;
-      const piece = engine.pieceAt(from);
-      if (!piece) return;
-      engine.removePiece(from);
-      engine.removePiece(to);
-      engine.placePiece(to, piece);
-      let next = clearStatusesOn(cardState, from);
-      next = clearStatusesOn(next, to);
-      setCardState(next);
-      setVersion((v) => v + 1);
-      pushSnapshot(next);
-    },
-    [engine, cardState, pushSnapshot],
-  );
-
-  /**
-   * Resolve a drop on the Erase button while an edit-mode drag is in flight:
-   * delete the piece at the drag's origin square. No-op if no edit drag is
-   * active (e.g. palette-erase released onto its own button).
-   */
-  const eraseDraggedPiece = useCallback(() => {
-    const from = editDragFromRef.current;
-    editDragFromRef.current = null;
-    if (!from) return;
-    applyEditorEdit(from, "erase");
-    setSelected(null);
-  }, [applyEditorEdit]);
-
-  /**
-   * Force the side-to-move via `engine.forceTurn`. Does NOT advance the
-   * player-turn counter (that's `cardState.turn`, which only `startPlayerTurn`
-   * touches). Useful for setting up scenarios where Black moves first.
-   */
-  const setSideToMove = useCallback(
-    (side: Side) => {
-      if (engine.turn() === side) return;
-      engine.forceTurn(side);
-      setVersion((v) => v + 1);
-      pushSnapshot(cardState);
-    },
-    [engine, cardState, pushSnapshot],
-  );
-
-  const clearBoard = useCallback(() => {
-    for (const { square } of engine.pieces()) {
-      engine.removePiece(square);
-    }
-    // Clearing wipes every piece, so any per-piece status is now stale.
-    const next: MatchCardState = {
-      ...cardState,
-      freezes: [],
-      roots: [],
-      disarms: [],
-      compels: [],
-      shields: [],
-      hastes: [],
-      lightnings: [],
-      empowers: [],
-    };
-    setCardState(next);
-    setVersion((v) => v + 1);
-    pushSnapshot(next);
-  }, [engine, cardState, pushSnapshot]);
-
-  /**
-   * Resize the dev sandbox board. We rebuild the engine from an empty FEN of
-   * the new size, shifting pieces so new ranks/files appear (or are removed)
-   * at the center of the board rather than at the edges — that keeps the
-   * back ranks intact through a +/-1 step. Per-piece statuses are cleared
-   * (their pieces may have moved) but square overlays (walls, sanctuaries,
-   * traps) are left untouched. Validation re-runs automatically via the
-   * version bump.
-   */
-  const resizeBoard = useCallback(
-    (size: BoardSize) => {
-      // Build an empty FEN of the new dimensions.
-      const emptyRow = String(size.files);
-      const board = Array.from({ length: size.ranks }, () => emptyRow).join("/");
-      const fresh = new ChoseEngine(`${board} w - - 0 1`, size);
-      const oldSize = engine.size();
-      // Carry over pieces, applying the center-anchored shift on each axis.
-      for (const { square, piece } of engine.pieces()) {
-        const file = square.charCodeAt(0) - 97; // 'a' = 0
-        const rank = Number(square.slice(1)) - 1;
-        const newFile = remapAxis(file, oldSize.files, size.files);
-        const newRank = remapAxis(rank, oldSize.ranks, size.ranks);
-        if (newFile === null || newRank === null) continue;
-        const newSquare = `${String.fromCharCode(97 + newFile)}${newRank + 1}` as AlgebraicSquare;
-        fresh.placePiece(newSquare, piece);
-      }
-      // Preserve side-to-move.
-      fresh.forceTurn(engine.turn());
-      setEngine(fresh);
-      // Drop per-piece statuses (squares may have moved out of bounds).
-      const next: MatchCardState = {
-        ...cardState,
-        freezes: [],
-        roots: [],
-        disarms: [],
-        compels: [],
-        shields: [],
-        hastes: [],
-        lightnings: [],
-        empowers: [],
-      };
-      setCardState(next);
-      setSelected(null);
-      setVersion((v) => v + 1);
-      pushSnapshot(next);
-    },
-    [engine, cardState, pushSnapshot],
-  );
-
-  /**
-   * Reseed the board to the standard chess starting position with a fresh
-   * deck/hand/energy. Distinct from `resetGame`, which restores `initialFen`
-   * (a test/scenario setup); Standard Start always goes to vanilla chess.
-   */
-  const standardStart = useCallback(() => {
-    const freshEngine = new ChoseEngine();
-    setEngine(freshEngine);
-    const fresh = startPlayerTurn(
-      createMatchCardState(initialDeck ?? makeStarterDeck(), rng, artifacts),
-      rng,
-      zoneBoardContextOf(freshEngine),
-    );
-    setCardState(fresh);
-    setSelected(null);
-    setVersion(0);
-    setTargetingIndex(null);
-    setPartialTarget(null);
-    setMarionetteMoves([]);
-    setScryPending(null);
-    setRevivePending(false);
-    setEditorPiece(null);
-    paletteDragRef.current = null;
-    setPaletteDragActive(false);
-    libraryFreePlayRef.current = null;
-    setLibraryFreePlayActive(false);
-    const initialHistory: HistoryEvent[] = [
-      {
-        kind: "match-start",
-        turn: fresh.turn,
-        fen: freshEngine.fen(),
-        size: freshEngine.size(),
-        mode,
-      },
-    ];
-    replaceHistory(initialHistory);
-    undoRedo.seed({
-      engineSnapshot: freshEngine.snapshot(),
-      cardState: fresh,
-      history: initialHistory,
-    });
-  }, [initialDeck, rng, undoRedo, mode, replaceHistory, artifacts]);
-
-  /**
-   * Reseed the board to a Chess960-style starting position on the *current*
-   * board size. Picks a Standard-mode piece set that fits within the current
-   * file count and runs it through the 960 generator. Resets the
-   * deck/hand/energy like Standard Start does.
-   */
-  const randomStart = useCallback(() => {
-    const r: Rng = rng ?? Math.random;
-    const currentSize = engine.size();
-    const fitting = STANDARD_MATCHES.filter((m) => m.size.files <= currentSize.files);
-    const pool = fitting.length > 0 ? fitting : STANDARD_MATCHES;
-    const cfg = pool[Math.floor(r() * pool.length)];
-    const pieceSet = resolvePieceSet(cfg, r);
-    const { fen, size } = generateChess960Position(pieceSet, currentSize, r);
-    const freshEngine = new ChoseEngine(fen, size);
-    // Cancel any in-flight AI reply — `randomStart` doubles as the "New game"
-    // action on match-over in sandbox, where the AI loop is idle but the
-    // generation bump is still cheap insurance against a stale callback.
-    generationRef.current++;
-    aiRef.current?.stop();
-    setEngine(freshEngine);
-    const fresh = startPlayerTurn(
-      createMatchCardState(initialDeck ?? makeStarterDeck(), rng, artifacts),
-      rng,
-      zoneBoardContextOf(freshEngine),
-    );
-    setCardState(fresh);
-    setSelected(null);
-    setVersion(0);
-    setAiThinking(false);
-    setAiError(null);
-    setTargetingIndex(null);
-    setPartialTarget(null);
-    setMarionetteMoves([]);
-    setScryPending(null);
-    setRevivePending(false);
-    setEditorPiece(null);
-    paletteDragRef.current = null;
-    setPaletteDragActive(false);
-    libraryFreePlayRef.current = null;
-    setLibraryFreePlayActive(false);
-    const initialHistory: HistoryEvent[] = [
-      {
-        kind: "match-start",
-        turn: fresh.turn,
-        fen: freshEngine.fen(),
-        size: freshEngine.size(),
-        mode,
-      },
-    ];
-    replaceHistory(initialHistory);
-    undoRedo.seed({
-      engineSnapshot: freshEngine.snapshot(),
-      cardState: fresh,
-      history: initialHistory,
-    });
-  }, [engine, initialDeck, rng, undoRedo, mode, replaceHistory, artifacts]);
-
-  const bumpEnergy = useCallback(
-    (delta: number) => {
-      setCardState((s) => {
-        const next = { ...s, energy: clampEnergy(s.energy + delta) };
-        pushHistory({
-          kind: "energy-bump",
-          turn: next.turn,
-          delta,
-          energyAfter: next.energy,
-        });
-        pushSnapshot(next);
-        return next;
-      });
-    },
-    [pushSnapshot, pushHistory],
-  );
-
-  /**
-   * Dev-only: synthesize a player checkmate so the Run shell advances to
-   * Reward + Shop and onto the next match. Lets us spot-check AI behaviour
-   * across every board size in one run without grinding through nine real
-   * matches. We flip `matchEndedRef` first so the natural-outcome useEffect
-   * doesn't refire `onMatchEnd` if the engine later reaches a real terminal
-   * state before this Match instance unmounts.
-   */
-  const skipMatchAndWin = useCallback(() => {
-    if (runMode !== "run" || !onMatchEnd || matchOver) return;
-    matchEndedRef.current = true;
-    onMatchEnd({
-      won: true,
-      outcome: { kind: "checkmate", winner: HUMAN_SIDE },
-      turnsPlayed: cardState.turn,
-    });
-  }, [runMode, onMatchEnd, matchOver, cardState.turn]);
-
-  /**
-   * Apply edits from the deck editor: replace draw + spent piles wholesale.
-   * Newly added cards are appended to `acquisitionLog` so the draw-pile
-   * inspector can find them. Removed cards are *not* scrubbed from the log —
-   * its purpose is "what entered the deck", not "what's in it now" (the
-   * inspector multi-set-diffs against drawPile). Pushes a snapshot so undo
-   * rewinds the edit in one step.
-   */
-  const saveDeck = useCallback(
-    (next: { drawPile: Card[]; discardPile: Card[]; consumedPile: Card[]; addedCards: Card[] }) => {
-      setCardState((prev) => {
-        const updated: MatchCardState = {
-          ...prev,
-          drawPile: next.drawPile,
-          discardPile: next.discardPile,
-          consumedPile: next.consumedPile,
-          acquisitionLog: [...prev.acquisitionLog, ...next.addedCards],
-        };
-        pushSnapshot(updated);
-        return updated;
-      });
-    },
-    [pushSnapshot],
-  );
-
-  /**
-   * Replace the run's deck (and the current match's piles) wholesale with
-   * a named deck authored in the Content Designer. The hand stays put —
-   * cards already in play remain in play. Discard / consumed are cleared.
-   * The run shell is notified via `onLoadDeck` so the change persists into
-   * the next match's `initialDeck` (mirrors the `onSaveArtifacts` pattern).
-   */
-  const loadDeck = useCallback(
-    (cards: ReadonlyArray<Card>) => {
-      const next = cards.slice();
-      setCardState((prev) => {
-        const updated: MatchCardState = {
-          ...prev,
-          drawPile: next,
-          discardPile: [],
-          consumedPile: [],
-          acquisitionLog: [...prev.acquisitionLog, ...next],
-        };
-        pushSnapshot(updated);
-        return updated;
-      });
-      onLoadDeck?.(next);
-    },
-    [pushSnapshot, onLoadDeck],
-  );
-
-  /**
-   * Apply edits from the artifact editor: replace the held artifact list
-   * wholesale. The Match-level state drives capture / check triggers, while
-   * `cardState.artifacts` drives card-cost / hand-size / energy effects, so we
-   * update both. The run shell is notified via `onSaveArtifacts` so changes
-   * persist across the next match remount.
-   */
-  const saveArtifacts = useCallback(
-    (next: Artifact[]) => {
-      const frozen = next.slice();
-      setArtifacts(frozen);
-      setCardState((prev) => {
-        const updated: MatchCardState = { ...prev, artifacts: frozen };
-        pushSnapshot(updated);
-        return updated;
-      });
-      onSaveArtifacts?.(frozen);
-    },
-    [pushSnapshot, onSaveArtifacts],
-  );
-
-  /**
-   * Library card play (dev only). Cards played from the library are free
-   * (no energy charged) and never enter the player's piles (the card was
-   * never in the player's deck). Effect-driven mutations — statuses, traps,
-   * cards added to hand/draw, summons, captures — DO persist; that's the
-   * whole point of testing effects from the library.
-   */
-  const playLibraryCard = useCallback(
-    (card: Card) => {
-      if (matchOver || aiThinking) return;
-      if (turn !== HUMAN_SIDE) return;
-      if (libraryFreePlayRef.current !== null) return;
-      if (card.target.kind === "none") {
-        // Resolve immediately. We don't go through tryResolveCard because its
-        // closure has a stale cardState — the synth must be visible to playCard.
-        const restoreEnergy = cardState.energy;
-        const synth: MatchCardState = {
-          ...cardState,
-          hand: [{ card, retained: false }, ...cardState.hand],
-          energy: Math.max(restoreEnergy, card.cost),
-        };
-        const result = playCard(synth, 0, { kind: "none" }, boardContext, rng);
-        if (!result.ok) return;
-        let next = applyCardSideEffects(result);
-        next = { ...next, energy: restoreEnergy };
-        const cp = next.consumedPile;
-        if (cp.length > 0 && cp[cp.length - 1].id === card.id) {
-          next = { ...next, consumedPile: cp.slice(0, -1) };
-        } else {
-          const dp = next.discardPile;
-          if (dp.length > 0 && dp[dp.length - 1].id === card.id) {
-            next = { ...next, discardPile: dp.slice(0, -1) };
-          }
-        }
-        setCardState(next);
-        if (card.effect.kind === "scry") {
-          const top = next.drawPile.slice(0, card.effect.count);
-          if (top.length > 0) setScryPending({ cards: top });
-        }
-        setVersion((v) => v + 1);
-        pushSnapshot(next);
-        return;
-      }
-      // Targeted card — synthesize it at hand[0] and enter targeting mode.
-      // tryResolveCard will see libraryFreePlayRef and apply the free-play
-      // patch when the resolver returns.
-      libraryFreePlayRef.current = cardState.energy;
-      setLibraryFreePlayActive(true);
-      const synth: MatchCardState = {
-        ...cardState,
-        hand: [{ card, retained: false }, ...cardState.hand],
-        energy: Math.max(cardState.energy, card.cost),
-      };
-      setCardState(synth);
-      setSelected(null);
-      setPartialTarget(null);
-      setMarionetteMoves([]);
-      setTargetingIndex(0);
-    },
-    [matchOver, aiThinking, turn, cardState, boardContext, rng, applyCardSideEffects, pushSnapshot],
-  );
-
-  /**
-   * Library card drag-start: synth at hand[0] and enter targeting mode for
-   * EVERY card kind (including no-target — drop-anywhere mode lets the user
-   * drop on any board square to resolve). The drop on the board funnels into
-   * the same `tryResolveCard` path the click flow uses, which already handles
-   * the library free-play patch via `libraryFreePlayRef`.
-   */
-  const dragStartLibraryCard = useCallback(
-    (card: Card) => {
-      if (matchOver || aiThinking) return;
-      if (turn !== HUMAN_SIDE) return;
-      if (libraryFreePlayRef.current !== null) return;
-      libraryFreePlayRef.current = cardState.energy;
-      setLibraryFreePlayActive(true);
-      const synth: MatchCardState = {
-        ...cardState,
-        hand: [{ card, retained: false }, ...cardState.hand],
-        energy: Math.max(cardState.energy, card.cost),
-      };
-      setCardState(synth);
-      setSelected(null);
-      setPartialTarget(null);
-      setMarionetteMoves([]);
-      setTargetingIndex(0);
-    },
-    [matchOver, aiThinking, turn, cardState],
-  );
-
-  const dragEndLibraryCard = useCallback(() => {
-    // If the drop landed on a board square, the resolver already cleared
-    // targeting state and popped the synth (libraryFreePlayRef is null).
-    // If the drop missed, back out the synth via cancelTargeting.
-    if (libraryFreePlayRef.current === null) return;
-    cancelTargeting();
-  }, [cancelTargeting]);
+  const devSandbox = useDevSandbox({
+    engine,
+    setEngine,
+    cardState,
+    setCardState,
+    bumpVersion,
+    resetVersion,
+    rng,
+    pushSnapshot,
+    pushHistory,
+    replaceHistory,
+    undoRedo,
+    mode,
+    artifacts,
+    setArtifacts,
+    initialDeck,
+    onLoadDeck,
+    onSaveArtifacts,
+    onMatchEnd,
+    matchEndedRef,
+    matchOver,
+    runMode,
+    cancelInFlightAi,
+    resetCardPlay,
+    resetDevEditor,
+    setSelected,
+    synthesizeLibraryCard,
+    cancelTargeting,
+  });
+  const {
+    setSideToMove,
+    clearBoard,
+    resizeBoard,
+    standardStart,
+    randomStart,
+    bumpEnergy,
+    skipMatchAndWin,
+    saveDeck,
+    loadDeck,
+    saveArtifacts,
+    playLibraryCard,
+    dragStartLibraryCard,
+    dragEndLibraryCard,
+  } = devSandbox;
 
   // ---- Square click / drag (chess move OR card target) ---------------------
 
-  const onSquareClick = useCallback(
-    (sq: AlgebraicSquare) => {
-      if (aiThinking) return;
-
-      // Editor takes priority while a brush is selected and the dev panel is
-      // active — a click places / overwrites / erases the piece on the square
-      // per the current brush. The brush is consumed by the placement: the
-      // user clicks the palette piece again for each new placement.
-      // Bypasses matchOver: invalid positions register as stalemate, and the
-      // user needs to keep editing precisely to fix that.
-      if (devPanelEnabled && editorPiece !== null) {
-        applyEditorEdit(sq, editorPiece);
-        setEditorPiece(null);
-        return;
-      }
-
-      // Edit-mode click flow (sticky toggle): first click selects the piece
-      // on `sq`; second click moves the selection to `sq`, overwriting any
-      // occupant. Clicking the same square again clears the selection.
-      // Bypasses matchOver for the same reason as the brush flow.
-      if (devPanelEnabled && editMode) {
-        if (selected) {
-          if (sq === selected) {
-            setSelected(null);
-            return;
-          }
-          applyEditorMove(selected, sq);
-          setSelected(null);
-          return;
-        }
-        if (engine.pieceAt(sq)) setSelected(sq);
-        return;
-      }
-
-      if (matchOver) return;
-
-      // Card-targeting takes priority over chess interaction.
-      if (targetingIndex !== null && targetingCard) {
-        const k = targetingCard.target.kind;
-        if (k === "none") {
-          // No-target card resolved by a drop on the board.
-          tryResolveCard(targetingIndex, { kind: "none" });
-          return;
-        }
-        if (k === "two-own-pieces") {
-          if (!partialTarget) {
-            const piece = engine.pieceAt(sq);
-            if (piece && piece.side === "player") {
-              setPartialTarget(sq);
-              return;
-            }
-            cancelTargeting();
-            return;
-          }
-          if (
-            tryResolveCard(targetingIndex, {
-              kind: "two-squares",
-              first: partialTarget,
-              second: sq,
-            })
-          )
-            return;
-          cancelTargeting();
-          return;
-        }
-        if (k === "marionette") {
-          if (!partialTarget) {
-            const piece = engine.pieceAt(sq);
-            if (piece && piece.side === "opponent") {
-              const moves = engine.foreignLegalMoves(sq);
-              if (moves.length > 0) {
-                setPartialTarget(sq);
-                setMarionetteMoves(moves);
-                return;
-              }
-            }
-            cancelTargeting();
-            return;
-          }
-          // Phase 2: pick a destination among marionetteMoves.
-          if (marionetteMoves.some((m) => m.to === sq)) {
-            if (
-              tryResolveCard(targetingIndex, {
-                kind: "two-squares",
-                first: partialTarget,
-                second: sq,
-              })
-            )
-              return;
-          }
-          cancelTargeting();
-          return;
-        }
-        if (k === "enemy-and-own-piece" || k === "rooted-enemy-and-own-piece") {
-          if (!partialTarget) {
-            const piece = engine.pieceAt(sq);
-            if (piece && piece.side === "opponent" && piece.type !== "king") {
-              if (k === "rooted-enemy-and-own-piece" && !rootedSet.has(sq)) {
-                cancelTargeting();
-                return;
-              }
-              setPartialTarget(sq);
-              return;
-            }
-            cancelTargeting();
-            return;
-          }
-          // Phase 2: pick one of the player's pieces.
-          if (
-            tryResolveCard(targetingIndex, {
-              kind: "two-squares",
-              first: partialTarget,
-              second: sq,
-            })
-          )
-            return;
-          cancelTargeting();
-          return;
-        }
-        // Single-square targets.
-        if (tryResolveCard(targetingIndex, { kind: "square", square: sq })) return;
-        cancelTargeting();
-        return;
-      }
-
-      if (selected) {
-        if (tryPlay(selected, sq)) return;
-        if (trySelect(sq)) return;
-      } else if (trySelect(sq)) {
-        return;
-      }
-      setSelected(null);
-    },
-    [
-      matchOver,
-      aiThinking,
-      devPanelEnabled,
-      editorPiece,
-      editMode,
-      applyEditorEdit,
-      applyEditorMove,
-      targetingIndex,
-      targetingCard,
-      partialTarget,
-      marionetteMoves,
-      rootedSet,
-      engine,
-      tryResolveCard,
-      cancelTargeting,
-      selected,
-      tryPlay,
-      trySelect,
-    ],
-  );
-
-  const onSquareDragStart = useCallback(
-    (sq: AlgebraicSquare) => {
-      if (aiThinking || targetingIndex !== null) return;
-      // Edit mode: any piece can be picked up regardless of side or turn.
-      // Stash the origin so the drop handler can resolve a reposition (or
-      // a delete, if dropped on the Erase button). Bypasses matchOver so
-      // the user can recover from invalid positions.
-      if (devPanelEnabled && editMode) {
-        if (!engine.pieceAt(sq)) return;
-        editDragFromRef.current = sq;
-        setSelected(sq);
-        return;
-      }
-      if (matchOver) return;
-      trySelect(sq);
-    },
-    [matchOver, aiThinking, targetingIndex, devPanelEnabled, editMode, engine, trySelect],
-  );
-
-  const onSquareDrop = useCallback(
-    (sq: AlgebraicSquare) => {
-      if (aiThinking) return;
-      // Palette drag (sandbox editor): drop applies the brush regardless of
-      // any other in-flight selection. We clear editorPiece here too — the
-      // dragend handler also clears it, but dragend is unreliable across
-      // browsers, so don't depend on it for the visible highlight.
-      // Bypasses matchOver so editor edits can recover from invalid positions.
-      if (paletteDragRef.current !== null) {
-        applyEditorEdit(sq, paletteDragRef.current);
-        paletteDragRef.current = null;
-        setPaletteDragActive(false);
-        setEditorPiece(null);
-        return;
-      }
-      // Edit-mode reposition: a piece dragged from another square gets
-      // moved to `sq`, overwriting any occupant. Bypasses matchOver so the
-      // user can edit even from a "checkmate" invalid position.
-      if (devPanelEnabled && editMode && editDragFromRef.current) {
-        const from = editDragFromRef.current;
-        editDragFromRef.current = null;
-        applyEditorMove(from, sq);
-        setSelected(null);
-        return;
-      }
-      if (matchOver) return;
-      if (targetingIndex !== null) {
-        // A targeted card was dragged from the hand onto this square. Reuse
-        // the same resolution path as a click on the square.
-        onSquareClick(sq);
-        return;
-      }
-      if (selected && selected !== sq) {
-        if (tryPlay(selected, sq)) return;
-      }
-      // Drop on an invalid target leaves the piece where it was; clear selection.
-      setSelected(null);
-    },
-    [
-      matchOver,
-      aiThinking,
-      targetingIndex,
-      selected,
-      tryPlay,
-      onSquareClick,
-      applyEditorEdit,
-      devPanelEnabled,
-      editMode,
-      applyEditorMove,
-    ],
-  );
-
-  const onDragCancel = useCallback(() => {
-    // Drag ended without landing in a board square or on the Erase button —
-    // both of those handlers clear the ref themselves. In Edit mode, dragging
-    // a piece off the board deletes it (a more discoverable shortcut than
-    // hunting for the Erase button).
-    const from = editDragFromRef.current;
-    editDragFromRef.current = null;
-    setSelected(null);
-    if (from && devPanelEnabled && editMode) {
-      applyEditorEdit(from, "erase");
-    }
-  }, [devPanelEnabled, editMode, applyEditorEdit]);
-
-  // ---- Card drag (hand → board) -------------------------------------------
-
-  const onCardDragStart = useCallback(
-    (index: number) => {
-      if (matchOver || aiThinking) return;
-      if (mode !== "vs-ai") return;
-      if (turn !== HUMAN_SIDE) return;
-      // Library free-play in flight: the synth is at hand[0] and indices have
-      // shifted; ignore drags on the regular hand until the play resolves.
-      if (libraryFreePlayRef.current !== null) return;
-      const slot = cardState.hand[index];
-      if (!slot) return;
-      const card = slot.card;
-      if (cardState.energy < card.cost) return;
-      if (isCardEffectForbidden(card.effect, matchRules)) return;
-      // Enter targeting mode so the board highlights drop targets — this is
-      // the same setup as clicking the card. For no-target cards it triggers
-      // the "drop anywhere" board overlay; the drop will resolve immediately.
-      setSelected(null);
-      setPartialTarget(null);
-      setMarionetteMoves([]);
-      setTargetingIndex(index);
-    },
-    [matchOver, aiThinking, mode, turn, cardState, matchRules],
-  );
-
-  const onCardDragEnd = useCallback(() => {
-    // If the drop landed on a valid target, the resolver already cleared
-    // targeting state. If it didn't (drop outside the board, drop on an
-    // invalid square), back out of targeting so the player isn't stuck.
-    setTargetingIndex(null);
-    setPartialTarget(null);
-    setMarionetteMoves([]);
-  }, []);
+  const { onSquareClick, onSquareDragStart, onSquareDrop, onDragCancel } = useBoardInteraction({
+    engine,
+    controllableSides,
+    turn,
+    aiThinking,
+    matchOver,
+    devPanelEnabled,
+    selected,
+    setSelected,
+    targetingIndex,
+    targetingCard,
+    partialTarget,
+    marionetteMoves,
+    setPartialTarget,
+    setMarionetteMoves,
+    tryPlay,
+    tryResolveCard,
+    cancelTargeting,
+    editorPiece,
+    setEditorPiece,
+    editMode,
+    paletteDragRef,
+    editDragFromRef,
+    applyEditorEdit,
+    applyEditorMove,
+    onPaletteDragEnd,
+    rootedSet,
+  });
 
   // ---- Game lifecycle -------------------------------------------------------
 
   const resetGame = useCallback(() => {
-    generationRef.current++;
-    aiRef.current?.stop();
+    cancelInFlightAi();
     const freshEngine = new ChoseEngine(initialFen, initialBoardSize);
     setEngine(freshEngine);
     setSelected(null);
     setVersion(0);
-    setAiThinking(false);
-    setAiError(null);
-    setTargetingIndex(null);
-    setPartialTarget(null);
-    setMarionetteMoves([]);
-    setScryPending(null);
-    setRevivePending(false);
+    resetCardPlay();
     undoRedo.reset();
     replaceHistory([]);
-    setEditorPiece(null);
-    paletteDragRef.current = null;
-    setPaletteDragActive(false);
-    libraryFreePlayRef.current = null;
-    setLibraryFreePlayActive(false);
+    resetDevEditor();
     if (mode === "vs-ai") {
       setCardState(
         startPlayerTurn(
@@ -2323,28 +1078,33 @@ export function Match({
     } else {
       setCardState(createMatchCardState([], rng, artifacts));
     }
-  }, [initialFen, initialBoardSize, initialDeck, mode, rng, undoRedo, replaceHistory, artifacts]);
+  }, [
+    initialFen,
+    initialBoardSize,
+    initialDeck,
+    mode,
+    rng,
+    undoRedo,
+    replaceHistory,
+    artifacts,
+    cancelInFlightAi,
+    resetCardPlay,
+    resetDevEditor,
+  ]);
 
   const onModeChange = useCallback(
     (next: MatchMode) => {
       if (next === mode) return;
-      generationRef.current++;
-      aiRef.current?.stop();
+      cancelInFlightAi();
       setMode(next);
       const freshEngine = new ChoseEngine(initialFen, initialBoardSize);
       setEngine(freshEngine);
       setSelected(null);
       setVersion(0);
-      setAiThinking(false);
-      setAiError(null);
-      setTargetingIndex(null);
+      resetCardPlay();
       undoRedo.reset();
       replaceHistory([]);
-      setEditorPiece(null);
-      paletteDragRef.current = null;
-      setPaletteDragActive(false);
-      libraryFreePlayRef.current = null;
-      setLibraryFreePlayActive(false);
+      resetDevEditor();
       if (next === "vs-ai") {
         setCardState(
           startPlayerTurn(
@@ -2357,7 +1117,19 @@ export function Match({
         setCardState(createMatchCardState([], rng, artifacts));
       }
     },
-    [mode, initialFen, initialBoardSize, initialDeck, rng, undoRedo, replaceHistory, artifacts],
+    [
+      mode,
+      initialFen,
+      initialBoardSize,
+      initialDeck,
+      rng,
+      undoRedo,
+      replaceHistory,
+      artifacts,
+      cancelInFlightAi,
+      resetCardPlay,
+      resetDevEditor,
+    ],
   );
 
   /**
@@ -2382,7 +1154,7 @@ export function Match({
     setPartialTarget(null);
     setMarionetteMoves([]);
     setScryPending(null);
-  }, []);
+  }, [setTargetingIndex, setPartialTarget, setMarionetteMoves, setScryPending]);
 
   const undo = useCallback(() => {
     if (!canUndo) return;
@@ -2643,19 +1415,10 @@ export function Match({
           onClose={runMode === "run" ? () => setDevPanelOpen(false) : undefined}
           editorPiece={editorPiece}
           onPickEditorPiece={setEditorPiece}
-          onPaletteDragStart={(piece) => {
-            paletteDragRef.current = piece;
-            setPaletteDragActive(true);
-          }}
-          onPaletteDragEnd={() => {
-            paletteDragRef.current = null;
-            setPaletteDragActive(false);
-            // Drag is a fresh action — clear any previously-clicked brush so
-            // it doesn't linger after the drag completes.
-            setEditorPiece(null);
-          }}
+          onPaletteDragStart={onPaletteDragStart}
+          onPaletteDragEnd={onPaletteDragEnd}
           editMode={editMode}
-          onToggleEditMode={() => setEditMode((v) => !v)}
+          onToggleEditMode={onToggleEditMode}
           onErasePieceDrop={eraseDraggedPiece}
           sideToMove={turn}
           onSetSideToMove={setSideToMove}

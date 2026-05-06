@@ -5,7 +5,7 @@
   "rarity": "common",
   "archetype": "movement",
   "consume": true,
-  "description": "Patch one of your pieces with pawn behavior this turn: it gains pawn movement (forward step + diagonal-forward capture). Lost if you move a different piece first. Consume.",
+  "description": "Patch a piece with pawn behavior. Lost if you move another piece first.",
   "target": { "kind": "own-piece" },
   "effect": { "kind": "empower-piece", "pattern": "pawn", "singleUse": true }
 }

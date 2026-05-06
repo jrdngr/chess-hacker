@@ -12,6 +12,7 @@
 import type { ReactNode } from "react";
 
 import type { Card } from "../../game/types";
+import { CardKeywords } from "./CardKeywords";
 import styles from "./CardListModal.module.css";
 
 type Props = {
@@ -58,6 +59,7 @@ export function CardListModal({
                 <span className={styles.cardName}>
                   <span className={styles.cost}>{card.cost}</span>
                   <span>{card.name}</span>
+                  <CardKeywords card={card} />
                 </span>
                 {renderControls && (
                   <span className={styles.controls}>{renderControls(card, i)}</span>

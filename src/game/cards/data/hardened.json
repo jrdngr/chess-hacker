@@ -5,7 +5,7 @@
   "rarity": "common",
   "archetype": "disruption",
   "curse": true,
-  "description": "Curse — you may not play any 0-cost cards for the rest of this turn. Cycle this card.",
+  "description": "Curse — you may not play any 0-cost cards for the rest of this turn.",
   "target": { "kind": "none" },
   "effect": { "kind": "forbid-zero-cost-this-turn" }
 }
