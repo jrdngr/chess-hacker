@@ -63,7 +63,8 @@ export function buildExtraOverlays(
 ): ExtraOverlays {
   // Haste shares Disarm's "may move, may not capture" rule at the move-gen
   // layer (see docs/cards/keywords.md). Union them so a hasted piece cannot
-  // capture on either of its two moves.
+  // capture on its first move. The second move's legal moves are computed
+  // after `consumeHaste` removes the status, so captures are allowed there.
   const disarms =
     o.hastedSet.size === 0
       ? o.disarmedSet

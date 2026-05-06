@@ -50,7 +50,7 @@ While a piece is shielded, **captures targeting it are not legal moves**. The op
 
 ### Haste
 
-A hasted piece **may move a second time on the same turn, but may not capture** (on either move). The two moves must be otherwise legal in the chess sense (no moving into check, etc.).
+A hasted piece **may move a second time on the same turn**. The **first move cannot capture**; the second move may. Both moves must be otherwise legal in the chess sense (no moving into check, etc.).
 
 - **Duration:** the current turn only.
 - **Edge cases:** the second move counts as a normal move for any rules that count moves (e.g., en passant only off the immediately preceding move).

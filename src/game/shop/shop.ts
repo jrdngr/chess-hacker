@@ -20,6 +20,8 @@ export const SHOP_PACKS = 2;
 export const SHOP_ARTIFACTS = 1;
 /** Cards revealed inside a common booster pack — player picks 1. */
 export const PACK_CARD_COUNT = 3;
+/** Common pack price — fixed so the pack is always a known, cheap commitment. */
+export const COMMON_PACK_PRICE = 5;
 
 /** Reroll cost: starts at base, +step per reroll already used this shop. */
 export const REROLL_COST_BASE = 5;
@@ -40,11 +42,6 @@ function priceForCard(card: Card, rng: Rng): number {
   const base = card.rarity === "rare" ? 13 : card.rarity === "uncommon" ? 8 : 5;
   // ±1 randomness so two-of-a-rarity in the same shop don't tie exactly.
   return base + Math.floor(rng() * 3);
-}
-
-/** Booster pack price — packs are cheap (~3–8 gold). */
-function priceForPack(rng: Rng): number {
-  return 4 + Math.floor(rng() * 4);
 }
 
 /** Artifact price by rarity — artifacts are pricier than single cards. */
@@ -78,7 +75,7 @@ function buildOffers(state: RunState, rng: Rng): ShopOffer[] {
 
   for (let i = 0; i < SHOP_PACKS; i++) {
     const pack = generateCommonPack(rng, i);
-    offers.push({ kind: "booster", pack, price: priceForPack(rng) });
+    offers.push({ kind: "booster", pack, price: COMMON_PACK_PRICE });
   }
 
   const ownedIds = new Set(state.artifacts.map((a) => a.id));
@@ -109,10 +106,18 @@ export function generateShop(state: RunState): { shop: Shop; next: RunState } {
 }
 
 function generateCommonPack(rng: Rng, slot: number): BoosterPack {
-  // Common-flavored pack: 3 random commons. Other pack flavors land later.
-  const commons = eligibleCardsByRarity("common");
-  void commons; // pickRandomCards already weights toward commons.
-  const cards = pickRandomCards(PACK_CARD_COUNT, rng);
+  // Common pack: PACK_CARD_COUNT distinct commons drawn from the full common
+  // pool. We sample without replacement so a pack never shows the same card
+  // twice. If the pool is smaller than PACK_CARD_COUNT (shouldn't happen in
+  // practice), the cap below shrinks the pack rather than looping forever.
+  const commons = eligibleCardsByRarity("common").slice();
+  const cap = Math.min(PACK_CARD_COUNT, commons.length);
+  const cards: Card[] = [];
+  for (let i = 0; i < cap; i++) {
+    const idx = Math.floor(rng() * commons.length);
+    cards.push(commons[idx]);
+    commons.splice(idx, 1);
+  }
   return {
     id: `common-pack-${slot}`,
     name: "Common Pack",

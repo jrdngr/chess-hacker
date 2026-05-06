@@ -1292,7 +1292,9 @@ export function consumeLightningAction(
   return { ...state, lightnings };
 }
 
-/** Drop a haste status (e.g., after the second move was made). */
+/** Drop a haste status. Called right after the FIRST move resolves so the
+ *  second move's legal moves are generated without the haste-disarm union
+ *  (i.e., the second move is allowed to capture). */
 export function consumeHaste(state: MatchCardState, square: AlgebraicSquare): MatchCardState {
   return { ...state, hastes: state.hastes.filter((h) => h.square !== square) };
 }

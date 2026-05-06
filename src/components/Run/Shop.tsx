@@ -120,36 +120,14 @@ export function Shop({ run, shop, onUpdate, onLeave }: Props) {
                 aria-label={
                   offer.sold
                     ? `${offer.pack.name} (opened)`
-                    : `Open ${offer.pack.name} for ${offer.price} gold. Contents: ${offer.pack.contents.map((c) => `${c.name} (${c.cost} energy) — ${c.description}`).join("; ")}`
+                    : `Open ${offer.pack.name} for ${offer.price} gold. Contents are revealed after purchase — pick 1 of ${offer.pack.contents.length}.`
                 }
               >
                 <span className={styles.packBadge}>Pack</span>
                 <span className={styles.name}>{offer.pack.name}</span>
                 <span className={styles.archetype}>Pick 1 of {offer.pack.contents.length}</span>
-                <span className={styles.description}>
-                  {offer.pack.contents.map((c) => c.name).join(", ")}
-                </span>
+                <span className={styles.description}>Contents revealed on purchase.</span>
                 <span className={styles.price}>{offer.sold ? "opened" : `${offer.price}g`}</span>
-                <span className={styles.packTooltip} role="tooltip">
-                  <span className={styles.packTooltipHeader}>{offer.pack.name}</span>
-                  <span className={styles.packTooltipHint}>
-                    Pick 1 of {offer.pack.contents.length}
-                  </span>
-                  <ul className={styles.packTooltipList}>
-                    {offer.pack.contents.map((c, idx) => (
-                      <li key={`${c.id}-${idx}`} className={styles.packTooltipCard}>
-                        <span className={styles.packTooltipCardHead}>
-                          <span className={styles.packTooltipCost}>{c.cost}</span>
-                          <span className={styles.packTooltipName}>{c.name}</span>
-                          <span className={styles.packTooltipMeta}>
-                            {c.archetype} · {c.rarity}
-                          </span>
-                        </span>
-                        <span className={styles.packTooltipDesc}>{c.description}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </span>
               </button>
             )}
             {offer.kind === "artifact" && (

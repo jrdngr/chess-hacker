@@ -41,7 +41,7 @@ A **shop opens after every match**. Non-boss wins go match → shop directly; bo
 | Slot type        | What                                                      | Pricing (rough)           |
 |------------------|-----------------------------------------------------------|---------------------------|
 | Single cards     | A small rotating selection (3–5) of cards available to buy directly. Mix of commons / uncommons. | ~5–15 gold each. Higher rarity = higher cost. |
-| Booster packs    | A small selection (1–3) of card-pack bundles. Open the pack, pick 1–N cards from its contents (Balatro booster style). Different pack types for different archetypes. | ~3–8 gold per pack       |
+| Booster packs    | A small selection (1–3) of card-pack bundles. Contents are hidden until purchased; opening reveals N distinct cards drawn from the pack's pool, and the player picks 1. Different pack types for different archetypes. | Common pack: fixed at 5 gold. Other pack flavours TBD. |
 | Artifacts        | A small selection (1–2) of artifacts. Mostly common/uncommon; rares appear occasionally. | ~10–25 gold each. Rare = expensive. |
 
 All offerings are randomly selected each time the shop is generated. Prices are slot-based with some randomness.
@@ -98,5 +98,5 @@ There is no card-draft skip in this prototype: cards are bought in the shop, not
 | Skip boss-artifact bonus          | 10 gold                                |
 | Skip piece-draft bonus            | TBD (Skirmish only)                    |
 | Shop card price range             | ~5–15 gold                             |
-| Shop pack price range             | ~4–8 gold                              |
+| Common pack price                 | 5 gold (fixed)                         |
 | Shop artifact price range         | ~12–28 gold                            |

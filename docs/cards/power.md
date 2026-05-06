@@ -13,7 +13,7 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 - **Keywords:** **Consume**
 - **Target:** none
 - **Effect:** Power. At the start of each of your turns, your pawns gain Haste until end of turn.
-- **Design note:** Pawn-swarm payoff. Every player pawn on the board enters the turn with the Haste status (move twice, no captures), so a long pawn front becomes a hard wall to break. Combos with the Pawn Storm artifact (any-rank double-push), Promotion Engine (rank-7 promotion), and Vanguard / Blitz on the same turn.
+- **Design note:** Pawn-swarm payoff. Every player pawn on the board enters the turn with the Haste status (move twice; first move can't capture), so a long pawn front advances and strikes in the same turn. Combos with the Pawn Storm artifact (any-rank double-push), Promotion Engine (rank-7 promotion), and Vanguard / Blitz on the same turn.
 
 ## Garrison Mode
 

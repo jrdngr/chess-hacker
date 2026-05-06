@@ -63,8 +63,8 @@ This is the primary way Patches enter your deck — none of them appear in the s
 - **Cost:** 1
 - **Rarity:** Common
 - **Target:** own piece
-- **Effect:** Give Haste to a friendly piece (it may move twice this turn, neither move a capture).
-- **Design note:** First Haste card in the catalogue. Cheap reposition that opens fork lines a single move can't reach. The "no captures" clause keeps it from doubling as a free attack burst on the second move; combine with Vanguard / Overclock for capture chains.
+- **Effect:** Give Haste to a friendly piece (it may move twice this turn; the first move cannot capture, the second may).
+- **Design note:** First Haste card in the catalogue. The "first move can't capture" clause forces a reposition before the strike — Haste is move-then-capture, while Vanguard / Overclock allow either action in either slot.
 
 ## Vanguard
 

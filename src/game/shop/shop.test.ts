@@ -19,6 +19,8 @@ import {
   SHOP_ARTIFACTS,
   SHOP_CARDS,
   SHOP_PACKS,
+  COMMON_PACK_PRICE,
+  PACK_CARD_COUNT,
 } from "./shop";
 import { allArtifacts, getArtifactById } from "../artifacts/library";
 import { ARTIFACT_SLOT_CAP } from "../types";
@@ -240,5 +242,29 @@ describe("booster packs", () => {
     const next = addPickedPackCard(run, FREEZE_PROCESS);
     expect(next.deck.length).toBe(run.deck.length + 1);
     expect(next.deck[next.deck.length - 1].id).toBe(FREEZE_PROCESS.id);
+  });
+
+  it("common packs are always priced at COMMON_PACK_PRICE across many seeds", () => {
+    for (let seed = 1; seed < 30; seed++) {
+      const run = createRun({ mode: "royal", rngSeed: seed });
+      const gen = generateShop(run);
+      for (const offer of gen.shop.offers) {
+        if (offer.kind === "booster") expect(offer.price).toBe(COMMON_PACK_PRICE);
+      }
+    }
+  });
+
+  it("common pack contents are all distinct commons", () => {
+    for (let seed = 1; seed < 30; seed++) {
+      const run = createRun({ mode: "royal", rngSeed: seed });
+      const gen = generateShop(run);
+      for (const offer of gen.shop.offers) {
+        if (offer.kind !== "booster") continue;
+        const ids = offer.pack.contents.map((c) => c.id);
+        expect(new Set(ids).size).toBe(ids.length); // no dupes
+        expect(offer.pack.contents.length).toBe(PACK_CARD_COUNT);
+        for (const card of offer.pack.contents) expect(card.rarity).toBe("common");
+      }
+    }
   });
 });

@@ -48,7 +48,7 @@ Per-card reference for choss. The mechanics doc is [`docs/design/cards.md`](../d
 | [Bishop Patch](movement-extension.md#bishop-patch) | Movement-extension | 2 | Rare | **Consume.** Empower own piece w/ diagonal slide (this turn). |
 | [Rook Patch](movement-extension.md#rook-patch) | Movement-extension | 3 | Rare | **Consume.** Empower own piece w/ straight slide (this turn). |
 | [Queen Patch](movement-extension.md#queen-patch) | Movement-extension | 4 | Rare | **Consume.** Empower own piece w/ queen movement (this turn). |
-| [Sprint](movement-extension.md#sprint) | Movement-extension | 1 | Common | Give Haste to a friendly piece (move twice, no captures). |
+| [Sprint](movement-extension.md#sprint) | Movement-extension | 1 | Common | Give Haste to a friendly piece (move twice; first move can't capture). |
 | [Vanguard](movement-extension.md#vanguard) | Movement-extension | 1 | Common | Pawn-only Overclock: pawn takes 2 actions this turn. |
 | [Blitz](movement-extension.md#blitz) | Movement-extension | 3 | Uncommon | All your pawns gain Haste for 3 turns. |
 | [Reinforce](summon.md#reinforce) | Summon | 4 | Rare | Summon a pawn on any empty square in your half. |

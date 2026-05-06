@@ -31,7 +31,7 @@ Terms used across the choss design and technical docs.
 | **Bookmark**           | Resource card: applies Retain to a chosen card in hand for the rest of the match. |
 | **FIDE**            | The international chess federation; "FIDE rules" = the standard chess rules baseline.   |
 | **Freeze**          | Status keyword: enemy piece cannot move or capture on its next turn.                    |
-| **Haste**           | Buff keyword: own piece may move a second time this turn but may not capture.           |
+| **Haste**           | Buff keyword: own piece may move a second time this turn; first move cannot capture.    |
 | **Heat**            | Synonym for Ascension level.                                                            |
 | **Match**           | A single chess game inside a run. 9 matches per run.                                    |
 | **Modifier**        | A persistent rule change for a match (used by bosses and Ascension).                    |

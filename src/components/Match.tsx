@@ -1286,7 +1286,9 @@ export function Match({
       }
 
       // Haste / Lightning: grant another action by flipping the turn back.
-      // Haste: must not be a capture move (rule engine already prevents this).
+      // Haste: the first move cannot be a capture (rule engine prevents it via
+      // the disarm-overlay union). consumeHaste below removes the status, so
+      // the second move has no capture restriction.
       // Both: only the FIRST move uses the second-action grant; after that we
       // flip turn normally. If the trap removed our piece, the buff is moot.
       const stillOurs = engine.pieceAt(applied.to)?.side === "player";

@@ -4,7 +4,7 @@
   "cost": 1,
   "rarity": "common",
   "archetype": "movement",
-  "description": "Give Haste to a friendly piece (move twice this turn; no capture either move).",
+  "description": "Give Haste to a friendly piece (move twice this turn; the first move cannot capture).",
   "target": { "kind": "own-piece" },
   "effect": { "kind": "haste-piece" }
 }
