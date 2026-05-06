@@ -11,13 +11,19 @@
 //
 // Pure TypeScript — no React. The pattern matches the rest of `game/`.
 
-import type { AlgebraicSquare, BoardSize, Side, ZoneBuff, ZoneRegion } from "../types";
+import type { AlgebraicSquare, BoardSize, PieceType, Side, ZoneBuff, ZoneRegion } from "../types";
 
 /** Just enough of the chess board to evaluate zone-buff control. */
 export type ZoneBoardContext = {
   size: BoardSize;
   /** Whose piece (if any) sits on this square. */
   pieceSideAt: (sq: AlgebraicSquare) => Side | null;
+  /**
+   * Optional: full piece info at a square. Provided by the React layer to
+   * support start-of-turn artifact effects (piece-empower-all, phalanx)
+   * that need piece type, not just side.
+   */
+  pieceTypeAt?: (sq: AlgebraicSquare) => PieceType | null;
 };
 
 /** Enumerate every square in `region` that fits on a `size` board. */
@@ -26,6 +32,10 @@ export function regionSquares(region: ZoneRegion, size: BoardSize): Set<Algebrai
   if (region.kind === "rank") {
     if (region.rank < 1 || region.rank > size.ranks) return out;
     for (let f = 0; f < size.files; f++) out.add("abcdefgh"[f] + region.rank);
+    return out;
+  }
+  if (region.kind === "center") {
+    for (const [f, r] of centerCoords(size)) out.add("abcdefgh"[f] + r);
     return out;
   }
   // Anchor-based patterns share the same expansion logic, just different
@@ -50,6 +60,25 @@ export function regionSquares(region: ZoneRegion, size: BoardSize): Set<Algebrai
     if (r < 1 || r > size.ranks) continue;
     out.add("abcdefgh"[f] + r);
   }
+  return out;
+}
+
+/**
+ * Coordinates of the board's central square(s).
+ *  - Odd-sized boards: the single middle square.
+ *  - Even-sized boards: the central 2×2 block.
+ *
+ * Files are 0-indexed; ranks are 1-indexed (matching algebraic).
+ */
+export function centerCoords(size: BoardSize): Array<[number, number]> {
+  const out: Array<[number, number]> = [];
+  const fileMid = (size.files - 1) / 2;
+  const rankMid = (size.ranks + 1) / 2; // 1-indexed midpoint
+  const fs =
+    size.files % 2 === 1 ? [Math.floor(fileMid)] : [Math.floor(fileMid), Math.ceil(fileMid)];
+  const rs =
+    size.ranks % 2 === 1 ? [Math.floor(rankMid)] : [Math.floor(rankMid), Math.ceil(rankMid)];
+  for (const f of fs) for (const r of rs) out.push([f, r]);
   return out;
 }
 

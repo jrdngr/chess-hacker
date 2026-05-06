@@ -28,7 +28,7 @@ This is the primary way Patches enter your deck — none of them appear in the s
 
 ## Knight Patch
 
-- **Cost:** 3
+- **Cost:** 2
 - **Rarity:** Rare
 - **Target:** own piece
 - **Effect:** Target own piece: **Empower** with the knight L-shape as an additional movement pattern **this turn**. Lost if you move a different piece first.
@@ -36,7 +36,7 @@ This is the primary way Patches enter your deck — none of them appear in the s
 
 ## Bishop Patch
 
-- **Cost:** 3
+- **Cost:** 2
 - **Rarity:** Rare
 - **Target:** own piece
 - **Effect:** Target own piece: **Empower** with diagonal sliding as an additional movement pattern **this turn**. Lost if you move a different piece first.
@@ -44,7 +44,7 @@ This is the primary way Patches enter your deck — none of them appear in the s
 
 ## Rook Patch
 
-- **Cost:** 4
+- **Cost:** 3
 - **Rarity:** Rare
 - **Target:** own piece
 - **Effect:** Target own piece: **Empower** with straight sliding as an additional movement pattern **this turn**. Lost if you move a different piece first.
@@ -52,8 +52,32 @@ This is the primary way Patches enter your deck — none of them appear in the s
 
 ## Queen Patch
 
-- **Cost:** 5
+- **Cost:** 4
 - **Rarity:** Rare
 - **Target:** own piece
 - **Effect:** Target own piece: **Empower** with **both** straight and diagonal sliding (i.e. queen movement) as additional movement patterns **this turn**. Lost if you move a different piece first.
 - **Design note:** The apex Patch. A pawn or knight briefly threatens the entire board. The +1 cost over Rook Patch reflects that the queen pattern is strictly the strongest single-piece empower available.
+
+## Sprint
+
+- **Cost:** 1
+- **Rarity:** Common
+- **Target:** own piece
+- **Effect:** Give Haste to a friendly piece (it may move twice this turn, neither move a capture).
+- **Design note:** First Haste card in the catalogue. Cheap reposition that opens fork lines a single move can't reach. The "no captures" clause keeps it from doubling as a free attack burst on the second move; combine with Vanguard / Overclock for capture chains.
+
+## Vanguard
+
+- **Cost:** 1
+- **Rarity:** Common
+- **Target:** own piece (must be a pawn)
+- **Effect:** Target friendly **pawn** may take 2 actions this turn (moves and captures).
+- **Design note:** Pawn-only Overclock at lower cost. Reuses the existing `lightning-piece` resolver with a piece-type filter so the pawn gets the same multi-action treatment Overclock grants any piece. Combos with Pawn Storm artifact (chained double-pushes) and Promotion Engine.
+
+## Blitz
+
+- **Cost:** 3
+- **Rarity:** Uncommon
+- **Target:** none
+- **Effect:** All your pawns gain Haste for 3 turns.
+- **Design note:** Multi-turn pawn-swarm payoff. The Haste status applied here lasts longer than Sprint's single-turn application; combos with Pawn Storm artifact, Promotion Engine, and the Pawn Storm Power for a sustained pawn assault.

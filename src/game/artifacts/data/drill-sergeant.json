@@ -1,0 +1,13 @@
+{
+  "id": "drill-sergeant",
+  "name": "Drill Sergeant",
+  "rarity": "common",
+  "description": "Your pawns may move 1 square backward (no capture).",
+  "emoji": "📣",
+  "effects": [
+    {
+      "kind": "piece-rule-modifier",
+      "modifier": { "kind": "pawn-backward-step" }
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "id": "polished-bishop",
+  "name": "Polished Bishop",
+  "rarity": "common",
+  "description": "Your bishops may also step 1 square in any direction (king-step), in addition to their diagonal slides.",
+  "emoji": "🪞",
+  "effects": [
+    {
+      "kind": "piece-rule-modifier",
+      "modifier": { "kind": "piece-empower-all", "pieceType": "bishop", "pattern": "king-step" }
+    }
+  ]
+}

@@ -15,7 +15,7 @@ import { makeRng, shuffle, type Rng } from "../cards/match";
 import { generateChess960Position } from "../chess/positions";
 import { resolvePieceSet, standardMatchConfig } from "./standard";
 import { bossForMatch } from "../bosses/library";
-import { pickRandomArtifacts } from "../artifacts/library";
+import { ARTIFACT_LIBRARY, pickRandomArtifacts } from "../artifacts/library";
 import type {
   Artifact,
   BoardSize,
@@ -63,6 +63,19 @@ export type CreateRunOptions = {
   config?: RunConfig;
   /** Override starting deck — tests pass a deterministic deck. */
   startingDeck?: Card[];
+  /**
+   * Override the starting-artifact ids. Defaults to `["polished-bishop"]`
+   * for standard mode and `[]` for everything else. Pass `[]` explicitly to
+   * opt out (e.g. tests asserting initial artifact emptiness).
+   */
+  startingArtifacts?: string[];
+};
+
+/** Default starting artifacts for a run in `mode`. */
+const DEFAULT_STARTING_ARTIFACTS: Record<RunMode, string[]> = {
+  standard: ["polished-bishop"],
+  royal: [],
+  skirmish: [],
 };
 
 export function createRun(opts: CreateRunOptions): RunState {
@@ -72,6 +85,14 @@ export function createRun(opts: CreateRunOptions): RunState {
   const initialPhase = bossForActStart(opts.mode === "standard" ? 1 : null)
     ? "boss-preview"
     : "match";
+  const startingIds = opts.startingArtifacts ?? DEFAULT_STARTING_ARTIFACTS[opts.mode];
+  const artifacts: Artifact[] = [];
+  for (const id of startingIds) {
+    const a = ARTIFACT_LIBRARY[id];
+    if (a) artifacts.push(a);
+    // Silently skip unknown ids — test fixtures sometimes pass a stale id;
+    // we don't want createRun() to throw and bring down the whole UI.
+  }
   return {
     mode: opts.mode,
     ascension: opts.ascension ?? 0,
@@ -81,7 +102,7 @@ export function createRun(opts: CreateRunOptions): RunState {
     matchNumber: 1,
     gold: 0,
     deck: opts.startingDeck ?? makeStarterDeck(),
-    artifacts: [],
+    artifacts,
     rngSeed: opts.rngSeed ?? Math.floor(Math.random() * 0xffffffff),
     rngCursor: 0,
     removalsUsed: 0,

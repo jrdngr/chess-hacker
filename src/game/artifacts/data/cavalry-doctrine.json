@@ -1,0 +1,13 @@
+{
+  "id": "cavalry-doctrine",
+  "name": "Cavalry Doctrine",
+  "rarity": "uncommon",
+  "description": "Your knights may also step 1 square in any direction in addition to the L-shape.",
+  "emoji": "🐎",
+  "effects": [
+    {
+      "kind": "piece-rule-modifier",
+      "modifier": { "kind": "piece-empower-all", "pieceType": "knight", "pattern": "king-step" }
+    }
+  ]
+}

@@ -14,7 +14,7 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 
 ## Remote Access
 
-- **Cost:** 5
+- **Cost:** 3
 - **Rarity:** Rare
 - **Keywords:** **Consume**
 - **Target:** enemy piece
@@ -25,8 +25,8 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 
 ## Extract
 
-- **Cost:** 2
+- **Cost:** 3
 - **Rarity:** Uncommon
-- **Target:** a rooted enemy non-King piece + one of your pieces (two-step pick)
-- **Effect:** Swap the two pieces' positions. The rooted enemy ends up where your piece was; your piece takes the rooted square.
-- **Design note:** pairs with chroot: root the enemy, then drag them off their square. Generally the rooted enemy keeps its root status after the swap (statuses follow the piece). A tempo swing rather than material.
+- **Target:** any enemy non-King piece + one of your pieces (two-step pick)
+- **Effect:** Swap the two pieces' positions. The chosen enemy ends up where your piece was; your piece takes the enemy's square.
+- **Design note:** Repositions any threat without needing a setup card. Combos with chroot for the trap-payoff line (root, then yank), but no longer requires it. The +1 cost over the rooted-only version reflects the unconditional reach.

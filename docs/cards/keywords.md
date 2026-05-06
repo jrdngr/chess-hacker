@@ -66,6 +66,7 @@ An empowered piece **gains an additional movement pattern**, defined per card (e
   - **rook** — straight slide along files and ranks (blocked normally).
   - **queen** — both straight and diagonal slides (= bishop + rook).
   - **pawn** — one square forward in your direction, plus diagonal-forward captures. No double-push, no en passant, no promotion — those are intrinsic to actual pawns.
+  - **king-step** — one square in any direction (the king's native move). Used by the Polished Bishop and Cavalry Doctrine artifacts to give bishops and knights a 1-square ortho-step option.
 - **Edge cases:** the granted pattern follows the same blocking rules as a real piece of that move-type. Granting a pattern the piece already covers is a no-op (e.g. Bishop Patch on a queen).
 
 ## Square / board effects

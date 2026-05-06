@@ -161,3 +161,162 @@ describe("rules — isSquareAttacked direct", () => {
     expect(isInCheck(pos, overlays(["e5"]))).toBe(false);
   });
 });
+
+// ---- Power-curve overhaul: piece-rule-modifier artifacts -------------------
+
+describe("rules — Pawn Storm (pawn-double-from-any-rank)", () => {
+  // Player pawn on d3 (one rank past the start rank). Without the artifact:
+  // only the single push to d4 is legal. With it: both d4 and d5 are legal.
+  const fen = "4k3/8/8/8/8/3P4/8/4K3 w - - 0 1";
+
+  it("without artifact: pawn on d3 cannot double-push to d5", () => {
+    const pos = parseFen(fen);
+    const moves = legalMoves(pos, NO_OVERLAYS, "d3").map((m) => m.to);
+    expect(moves).toContain("d4");
+    expect(moves).not.toContain("d5");
+  });
+
+  it("with artifact: pawn on d3 may double-push to d5", () => {
+    const pos = parseFen(fen);
+    const ov = {
+      ...NO_OVERLAYS,
+      pawnDoubleFromAnyRank: new Set<"player" | "opponent">(["player"]),
+    };
+    const moves = legalMoves(pos, ov, "d3").map((m) => m.to);
+    expect(moves).toContain("d4");
+    expect(moves).toContain("d5");
+  });
+});
+
+describe("rules — Drill Sergeant (pawn-backward-step)", () => {
+  // Pawn on d4 with empty d3 behind it.
+  const fen = "4k3/8/8/8/3P4/8/8/4K3 w - - 0 1";
+
+  it("without artifact: backward step is illegal", () => {
+    const pos = parseFen(fen);
+    const moves = legalMoves(pos, NO_OVERLAYS, "d4").map((m) => m.to);
+    expect(moves).not.toContain("d3");
+  });
+
+  it("with artifact: pawn may step backward to d3 (no capture)", () => {
+    const pos = parseFen(fen);
+    const ov = {
+      ...NO_OVERLAYS,
+      pawnBackwardStep: new Set<"player" | "opponent">(["player"]),
+    };
+    const moves = legalMoves(pos, ov, "d4").filter((m) => m.to === "d3");
+    expect(moves).toHaveLength(1);
+    expect(moves[0].isCapture).toBe(false);
+  });
+});
+
+describe("rules — Promotion Engine (pawn-promotion-rank override)", () => {
+  // Player pawn on d6 with d7 empty. Promotion-rank override = 7 means the
+  // single push to d7 promotes; without override, it's a quiet push.
+  const fen = "4k3/8/3P4/8/8/8/8/4K3 w - - 0 1";
+
+  it("without override: pawn on d6 → d7 is a non-promotion push", () => {
+    const pos = parseFen(fen);
+    const moves = legalMoves(pos, NO_OVERLAYS, "d6").filter((m) => m.to === "d7");
+    expect(moves.every((m) => !m.isPromotion)).toBe(true);
+  });
+
+  it("with override (rank=7): pawn on d6 → d7 emits promotion options", () => {
+    const pos = parseFen(fen);
+    const ov = { ...NO_OVERLAYS, pawnPromotionRanks: { player: 7 } };
+    const moves = legalMoves(pos, ov, "d6").filter((m) => m.to === "d7");
+    expect(moves.length).toBeGreaterThanOrEqual(1);
+    expect(moves.every((m) => m.isPromotion)).toBe(true);
+  });
+});
+
+describe("rules — Polished Bishop / Cavalry Doctrine (king-step empower)", () => {
+  it("a bishop with king-step empower can step 1 square orthogonally", () => {
+    // Player bishop on d4. Plain bishop has no orthogonal moves.
+    const pos = parseFen("4k3/8/8/8/3B4/8/8/4K3 w - - 0 1");
+    const ov = {
+      ...NO_OVERLAYS,
+      empowers: new Map([["d4", new Set<"king-step">(["king-step"])]]),
+    };
+    const moves = legalMoves(pos, ov, "d4").map((m) => m.to);
+    expect(moves).toContain("d5"); // ortho-1 forward
+    expect(moves).toContain("e4"); // ortho-1 right
+  });
+
+  it("a knight with king-step empower can step 1 square orthogonally", () => {
+    const pos = parseFen("4k3/8/8/8/3N4/8/8/4K3 w - - 0 1");
+    const ov = {
+      ...NO_OVERLAYS,
+      empowers: new Map([["d4", new Set<"king-step">(["king-step"])]]),
+    };
+    const moves = legalMoves(pos, ov, "d4").map((m) => m.to);
+    // L-shape moves still present
+    expect(moves).toContain("c6");
+    // Plus orthogonal step
+    expect(moves).toContain("d5");
+  });
+});
+
+describe("rules — Sniper Optics (rook-attack-through-wall)", () => {
+  // Player rook on a1, enemy bishop on a8, walls between them on a4.
+  const fen = "b7/8/8/8/8/8/8/R3K3 w - - 0 1";
+
+  it("without artifact: rook can't see across the wall, bishop is safe", () => {
+    const pos = parseFen(fen);
+    const ov = { ...NO_OVERLAYS, walls: new Set<AlgebraicSquare>(["a4"]) };
+    const moves = legalMoves(pos, ov, "a1").map((m) => m.to);
+    expect(moves).not.toContain("a8");
+  });
+
+  it("with maxWalls=1: rook may capture the bishop on a8 across one wall", () => {
+    const pos = parseFen(fen);
+    const ov = {
+      ...NO_OVERLAYS,
+      walls: new Set<AlgebraicSquare>(["a4"]),
+      rookAttackThroughWalls: { player: 1 },
+    };
+    const moves = legalMoves(pos, ov, "a1").filter((m) => m.to === "a8");
+    expect(moves).toHaveLength(1);
+    expect(moves[0].isCapture).toBe(true);
+  });
+
+  it("with maxWalls=1 + 2 walls on the ray: rook still cannot capture", () => {
+    const pos = parseFen(fen);
+    const ov = {
+      ...NO_OVERLAYS,
+      walls: new Set<AlgebraicSquare>(["a4", "a6"]),
+      rookAttackThroughWalls: { player: 1 },
+    };
+    const moves = legalMoves(pos, ov, "a1").map((m) => m.to);
+    expect(moves).not.toContain("a8");
+  });
+
+  it("rook may NOT move to an empty square past the wall (capture-only)", () => {
+    // Empty a8 — no piece to capture. Rook must not be allowed to slide there.
+    const pos = parseFen("4k3/8/8/8/8/8/8/R3K3 w - - 0 1");
+    const ov = {
+      ...NO_OVERLAYS,
+      walls: new Set<AlgebraicSquare>(["a4"]),
+      rookAttackThroughWalls: { player: 1 },
+    };
+    const moves = legalMoves(pos, ov, "a1").map((m) => m.to);
+    expect(moves).not.toContain("a8");
+    // Movement up to (but not into / past) the wall is still allowed.
+    expect(moves).toContain("a3");
+    expect(moves).not.toContain("a4");
+  });
+
+  it("isSquareAttacked sees the rook attack across one wall (delivers check)", () => {
+    // Black king on a8 (in line with a1 rook through one wall).
+    const pos = parseFen("k7/8/8/8/8/8/8/R3K3 w - - 0 1");
+    const ov = {
+      ...NO_OVERLAYS,
+      walls: new Set<AlgebraicSquare>(["a4"]),
+      rookAttackThroughWalls: { player: 1 },
+    };
+    expect(isSquareAttacked(pos, ov, "a8", "player")).toBe(true);
+    // Without the override the rook does NOT attack across the wall.
+    const ov2 = { ...NO_OVERLAYS, walls: new Set<AlgebraicSquare>(["a4"]) };
+    expect(isSquareAttacked(pos, ov2, "a8", "player")).toBe(false);
+  });
+});

@@ -561,7 +561,12 @@ function describeHazards(boss: BossDef): string {
   }
   if (boss.zoneBuffs && boss.zoneBuffs.length > 0) {
     for (const b of boss.zoneBuffs) {
-      const where = b.region.kind === "rank" ? `rank ${b.region.rank}` : b.region.anchor;
+      const where =
+        b.region.kind === "rank"
+          ? `rank ${b.region.rank}`
+          : b.region.kind === "center"
+            ? "the center"
+            : b.region.anchor;
       const fx =
         b.buff.kind === "energy-per-turn"
           ? `+${b.buff.amount} energy/turn`

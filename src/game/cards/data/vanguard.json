@@ -1,0 +1,10 @@
+{
+  "id": "vanguard",
+  "name": "Vanguard",
+  "cost": 1,
+  "rarity": "common",
+  "archetype": "movement",
+  "description": "Target friendly pawn may take 2 actions this turn (moves and captures).",
+  "target": { "kind": "own-piece" },
+  "effect": { "kind": "lightning-piece", "actions": 2, "pieceTypeFilter": "pawn" }
+}

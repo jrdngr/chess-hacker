@@ -274,6 +274,7 @@ function zoneBoardContextOf(engine: ChoseEngine): ZoneBoardContext {
   return {
     size: engine.size(),
     pieceSideAt: (sq) => engine.pieceAt(sq)?.side ?? null,
+    pieceTypeAt: (sq) => engine.pieceAt(sq)?.type ?? null,
   };
 }
 
@@ -607,7 +608,10 @@ export function Match({
   // mutable and shared; setting overlays here is idempotent.
   const overlays = useMemo(() => deriveOverlaySets(cardState), [cardState]);
   const { walledSet, frozenSet, rootedSet, sanctuarySet, trapSet } = overlays;
-  const extraOverlays = useMemo(() => buildExtraOverlays(overlays), [overlays]);
+  const extraOverlays = useMemo(
+    () => buildExtraOverlays(overlays, cardState.artifacts),
+    [overlays, cardState.artifacts],
+  );
   engine.setOverlays(walledSet, frozenSet, extraOverlays);
 
   // Chess-vision overlays. Computed only when the toggle is on. Recomputed
@@ -667,7 +671,9 @@ export function Match({
       const inactive = buffs.filter((b) => !activeSet.has(b));
       const anchors = new Set<AlgebraicSquare>();
       for (const b of buffs) {
-        if (b.region.kind !== "rank") anchors.add(b.region.anchor);
+        if (b.region.kind !== "rank" && b.region.kind !== "center") {
+          anchors.add(b.region.anchor);
+        }
       }
       return {
         active: zoneBuffSquares(activeList, engine.size()),
@@ -837,7 +843,7 @@ export function Match({
       }
       return out;
     }
-    if (targetKind === "rooted-enemy-and-own-piece") {
+    if (targetKind === "rooted-enemy-and-own-piece" || targetKind === "enemy-and-own-piece") {
       if (partialTarget) {
         // Phase 2: any of the player's pieces (other than the picked enemy).
         for (const { square, piece } of allPieces) {
@@ -845,11 +851,12 @@ export function Match({
         }
         return out;
       }
-      // Phase 1: rooted enemy non-king pieces.
+      // Phase 1: enemy non-king pieces. The rooted variant additionally
+      // requires the enemy piece to carry a Tangled (root) status.
       for (const { square, piece } of allPieces) {
         if (piece.side !== "opponent") continue;
         if (piece.type === "king") continue;
-        if (!rootedSet.has(square)) continue;
+        if (targetKind === "rooted-enemy-and-own-piece" && !rootedSet.has(square)) continue;
         out.add(square);
       }
       return out;
@@ -912,6 +919,10 @@ export function Match({
       hint = partialTarget
         ? `Pick one of your pieces to swap with the rooted enemy for ${targetingCard.name}`
         : `Pick a rooted enemy piece for ${targetingCard.name}`;
+    else if (k === "enemy-and-own-piece")
+      hint = partialTarget
+        ? `Pick one of your pieces to swap with the chosen enemy for ${targetingCard.name}`
+        : `Pick an enemy piece for ${targetingCard.name}`;
     return { kind: "target", cardName: targetingCard.name, hint, valid: validTargetSquares };
   }, [targetingCard, partialTarget, validTargetSquares]);
 
@@ -1156,6 +1167,7 @@ export function Match({
       isAttackedBy: (sq, by) => engine.isSquareAttackedBy(sq, by),
       isRooted: (sq) => isRooted(cardState, sq),
       boardRanks: engine.size().ranks,
+      boardFiles: engine.size().files,
     }),
     // engine is mutable; version forces recompute on each move
     // eslint-disable-next-line react-hooks/exhaustive-deps

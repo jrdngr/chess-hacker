@@ -1,0 +1,13 @@
+{
+  "id": "sniper-optics",
+  "name": "Sniper Optics",
+  "rarity": "rare",
+  "description": "Your rooks may capture an enemy piece even with one wall in the path between attacker and target. Movement to empty squares past a wall is still blocked.",
+  "emoji": "🎯",
+  "effects": [
+    {
+      "kind": "piece-rule-modifier",
+      "modifier": { "kind": "rook-attack-through-wall", "maxWalls": 1 }
+    }
+  ]
+}

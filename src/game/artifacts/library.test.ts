@@ -35,19 +35,19 @@ describe("artifact library", () => {
     }
   });
 
-  it("the pool covers all four effect domains", () => {
+  it("the pool covers the active effect domains", () => {
     const kinds = new Set<string>();
     for (const a of allArtifacts()) for (const fx of a.effects) kinds.add(fx.kind);
-    // Card-related (cost discount), match-rule (hand size / energy / gold),
-    // and conditional triggers (capture / check) — all present.
+    // Conditional triggers (capture / check), card-related (cost discount on
+    // spatial via Map Editor), the new piece-rule-modifier domain, and at
+    // least one zone-buff (Foothold center-square). Resource artifacts
+    // (hand-size / energy / gold) are out of the prototype pool — boss-pick
+    // rewards still synthesise them at runtime, but no library entries
+    // declare them after the M-power-curve overhaul.
     expect(kinds.has("card-cost-discount")).toBe(true);
-    expect(
-      kinds.has("hand-size-bonus") ||
-        kinds.has("start-energy-bonus") ||
-        kinds.has("energy-per-turn-bonus"),
-    ).toBe(true);
-    expect(kinds.has("gold-on-match-start")).toBe(true);
     expect(kinds.has("draw-on-capture") || kinds.has("draw-on-check")).toBe(true);
+    expect(kinds.has("piece-rule-modifier")).toBe(true);
+    expect(kinds.has("zone-buff")).toBe(true);
   });
 });
 
@@ -67,10 +67,10 @@ describe("pickRandomArtifacts", () => {
 
   it("never returns artifacts in excludeIds", () => {
     const rng = makeRng(11);
-    const exclude = new Set(["extra-ram"]);
+    const exclude = new Set(["keylogger"]);
     for (let seed = 0; seed < 20; seed++) {
       const picks = pickRandomArtifacts(allArtifacts().length, makeRng(seed), exclude);
-      for (const p of picks) expect(p.id).not.toBe("extra-ram");
+      for (const p of picks) expect(p.id).not.toBe("keylogger");
     }
     void rng;
   });

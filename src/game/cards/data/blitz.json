@@ -1,0 +1,10 @@
+{
+  "id": "blitz",
+  "name": "Blitz",
+  "cost": 3,
+  "rarity": "uncommon",
+  "archetype": "movement",
+  "description": "All your pawns gain Haste for 3 turns.",
+  "target": { "kind": "none" },
+  "effect": { "kind": "haste-all-of-type", "pieceType": "pawn", "durationTurns": 3 }
+}

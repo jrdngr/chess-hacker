@@ -1,0 +1,13 @@
+{
+  "id": "pawn-storm",
+  "name": "Pawn Storm",
+  "rarity": "common",
+  "description": "Your pawns may push 2 squares forward from any rank, not just the starting rank.",
+  "emoji": "🌪️",
+  "effects": [
+    {
+      "kind": "piece-rule-modifier",
+      "modifier": { "kind": "pawn-double-from-any-rank" }
+    }
+  ]
+}
