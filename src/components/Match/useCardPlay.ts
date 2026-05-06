@@ -20,6 +20,7 @@ import {
   clearStatusesOn,
   consumeHaste,
   consumeLightningAction,
+  discardHandAtTurnEnd,
   dropOtherSingleUseEmpowers,
   drawCards,
   grantPatchOnCapture,
@@ -303,6 +304,15 @@ export function useCardPlay({
       }
       if (consumeAndContinue) {
         engine.forceTurn("player");
+      }
+
+      // Player's chess move ended their turn (no Haste/Lightning/extra-move
+      // continuation): clear non-retained, non-curse cards from hand into the
+      // discard pile *now* so the discard animation runs while the AI thinks.
+      // The next `startPlayerTurn` calls discardHandAtTurnEnd again, but it's
+      // a no-op once the hand has already been cleared.
+      if (mover?.side === "player" && !consumeAndContinue) {
+        next = discardHandAtTurnEnd(next);
       }
 
       setSelected(null);

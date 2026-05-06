@@ -476,7 +476,7 @@ describe("Match (cards — M3)", () => {
     expect(squareCell("e7")?.getAttribute("aria-label") ?? "").not.toMatch(/frozen/);
   });
 
-  it("once the player has moved a piece, cards are no longer playable that turn", async () => {
+  it("once the player has moved a piece, the hand is discarded so no cards remain to play", async () => {
     const user = userEvent.setup();
     // AI never moves so we stay paused on the AI's turn after the player moves.
     const ai = makeFakeAi([]);
@@ -491,16 +491,22 @@ describe("Match (cards — M3)", () => {
       />,
     );
 
-    // Make a chess move — turn flips to opponent.
+    // Make a chess move — this ends the player's turn, which immediately
+    // discards the hand into the discard pile so the discard animation can
+    // play while the AI thinks.
     await user.click(squareCell("e2")!);
     await user.click(squareCell("e4")!);
 
-    // Now try to play a card — should be disabled.
-    const card = findCard("Firewall")!;
-    expect(card).toBeDisabled();
+    // The hand is empty — there's nothing left to play during the opponent's turn.
+    expect(findCard("Firewall")).toBeUndefined();
+    const hand = screen.getByRole("list", { name: /^hand$/i });
+    expect(within(hand).queryAllByRole("listitem")).toHaveLength(0);
 
-    // Energy is unchanged.
+    // Energy is unchanged (no card was played; the only deduction would be the
+    // start-of-next-turn refresh which hasn't fired because the AI is stalled).
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("3");
+    // The five hand cards have moved to the discard pile.
+    expect(screen.getByLabelText(/^discard pile/i)).toHaveTextContent("5");
   });
 
   it("clicking the same selected card again cancels targeting", async () => {
