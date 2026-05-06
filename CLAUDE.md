@@ -48,6 +48,13 @@ When you start work, **read `docs/README.md` first** — it is the index for eve
 - Develop on `claude/chess-roguelite-deckbuilder-G70qQ`.
 - Don't open pull requests unless explicitly asked.
 
+## Source control
+
+This repo uses [Jujutsu (`jj`)](https://github.com/jj-vcs/jj), not plain `git`, for source control.
+
+- **Whenever a unit of work is completed, commit it** with `jj commit -m "<commit msg>"`. Don't batch unrelated changes into one commit.
+- Only use these `jj` commands: `jj commit`, `jj new`, `jj describe`. Do not run any other `jj` subcommands (no `jj rebase`, `jj squash`, `jj abandon`, `jj git push`, etc.) — if something else seems needed, stop and ask.
+
 ## Tech reminders
 
 - Stack: TypeScript + React (Vite) + custom chess engine (`src/game/chess/`) + Stockfish.wasm + localStorage. See `docs/technical/stack.md` for rationale.
