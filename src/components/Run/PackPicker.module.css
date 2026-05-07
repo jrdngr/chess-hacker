@@ -1,0 +1,142 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.dialog {
+  background: #1f1f24;
+  color: #f4f4f4;
+  padding: 28px;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 720px;
+  width: calc(100% - 64px);
+}
+
+.title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--player);
+  text-align: center;
+}
+
+.hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.cardSlot {
+  display: flex;
+}
+
+.card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 28px 12px 14px 12px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+  font: inherit;
+  color: inherit;
+  transition:
+    transform 80ms ease-out,
+    border-color 80ms ease-out,
+    box-shadow 80ms ease-out;
+  min-height: 200px;
+  overflow: visible;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  border-color: var(--player);
+}
+
+.card.selected {
+  border-color: var(--player);
+  box-shadow:
+    0 0 0 2px var(--player),
+    0 8px 20px rgba(244, 162, 60, 0.18);
+  transform: translateY(-3px);
+}
+
+.cost {
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--player);
+  background: rgba(244, 162, 60, 0.16);
+  padding: 1px 8px;
+  border-radius: 999px;
+}
+
+.name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.archetype {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.description {
+  font-size: 12px;
+  color: var(--fg);
+  line-height: 1.35;
+  flex: 1;
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.confirm {
+  padding: 10px 32px;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--panel);
+  color: var(--fg);
+  border: 1px solid var(--player);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.confirm:hover:not(:disabled) {
+  background: rgba(244, 162, 60, 0.12);
+}
+
+.confirm:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

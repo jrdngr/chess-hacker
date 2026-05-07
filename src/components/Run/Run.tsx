@@ -108,6 +108,12 @@ type PhaseExtras = {
    */
   pendingWin: RunMatchOutcome | null;
   /**
+   * Outcome of the most recent match — kept around past `onMatchEnd` so the
+   * end-of-run screen can show *why* the run ended (checkmate / stalemate /
+   * draw). Cleared when the run advances into a new match.
+   */
+  finalOutcome: RunMatchOutcome | null;
+  /**
    * Full engine + card-system snapshot of the just-finished match's final
    * state. Captured via `onCaptureFinalSnapshot` so that even after reward /
    * shop unmount the live `<Match>`, the run-complete screen can re-mount a
@@ -133,6 +139,7 @@ export function Run({ mode, onExit, rngSeed }: Props) {
     bossPickResolved: false,
     pendingWin: null,
     finalSnapshot: null,
+    finalOutcome: null,
   });
 
   // Lazy-generate the draft / shop on phase entry. The phase transitions
@@ -194,7 +201,8 @@ export function Run({ mode, onExit, rngSeed }: Props) {
         extras.bossArtifactOffer !== null ||
         extras.bossPickOffer !== null ||
         extras.bossPickResolved ||
-        extras.finalSnapshot !== null
+        extras.finalSnapshot !== null ||
+        extras.finalOutcome !== null
       ) {
         setExtras((e) => ({
           ...e,
@@ -204,6 +212,7 @@ export function Run({ mode, onExit, rngSeed }: Props) {
           bossPickOffer: null,
           bossPickResolved: false,
           finalSnapshot: null,
+          finalOutcome: null,
         }));
       }
       // Generate a per-match starting position the first time we land on
@@ -228,6 +237,7 @@ export function Run({ mode, onExit, rngSeed }: Props) {
     extras.bossPickOffer,
     extras.bossPickResolved,
     extras.finalSnapshot,
+    extras.finalOutcome,
   ]);
 
   // ---- Match phase --------------------------------------------------------
@@ -237,10 +247,11 @@ export function Run({ mode, onExit, rngSeed }: Props) {
       // Pause on the final position so the player can review the win and
       // confirm before the reward step takes over the screen. The phase
       // stays "match" until they hit Continue in the win panel.
-      setExtras((e) => ({ ...e, pendingWin: outcome }));
+      setExtras((e) => ({ ...e, pendingWin: outcome, finalOutcome: outcome }));
       return;
     }
     setRun((r) => applyMatchOutcome(r, outcome));
+    setExtras((e) => ({ ...e, finalOutcome: outcome }));
     // Keep matchSetup populated here so Match stays mounted through "lost" —
     // the player sees the final board with the run summary alongside. The
     // setup is cleared when the run advances into reward/shop/boss-preview.
@@ -259,7 +270,7 @@ export function Run({ mode, onExit, rngSeed }: Props) {
   // pendingWin (a yet-to-be-confirmed win) and the captured final snapshot
   // both clear so a redo can re-fire them cleanly.
   const onRevertMatchEnd = () => {
-    setExtras((e) => ({ ...e, pendingWin: null, finalSnapshot: null }));
+    setExtras((e) => ({ ...e, pendingWin: null, finalSnapshot: null, finalOutcome: null }));
     setRun((r) => (r.phase === "lost" ? { ...r, phase: "match" } : r));
   };
 
@@ -454,7 +465,7 @@ export function Run({ mode, onExit, rngSeed }: Props) {
             onRevertMatchEnd={onRevertMatchEnd}
             endOfRunPanel={
               run.phase === "won" || run.phase === "lost" ? (
-                <RunSummary run={run} onExit={onExit} />
+                <RunSummary run={run} outcome={extras.finalOutcome?.outcome} onExit={onExit} />
               ) : extras.pendingWin ? (
                 <MatchWonPanel run={run} outcome={extras.pendingWin} onContinue={onConfirmWin} />
               ) : undefined
@@ -488,12 +499,16 @@ export function Run({ mode, onExit, rngSeed }: Props) {
           initialEngineSnapshot={extras.finalSnapshot.engineSnapshot}
           initialCardState={extras.finalSnapshot.cardState}
           displayOnly
-          endOfRunPanel={<RunSummary run={run} onExit={onExit} />}
+          endOfRunPanel={
+            <RunSummary run={run} outcome={extras.finalOutcome?.outcome} onExit={onExit} />
+          }
         />
       )}
       {(run.phase === "won" || run.phase === "lost") &&
         !extras.matchSetup &&
-        !(run.phase === "won" && extras.finalSnapshot) && <RunSummary run={run} onExit={onExit} />}
+        !(run.phase === "won" && extras.finalSnapshot) && (
+          <RunSummary run={run} outcome={extras.finalOutcome?.outcome} onExit={onExit} />
+        )}
     </div>
   );
 }

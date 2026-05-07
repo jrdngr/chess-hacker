@@ -7,6 +7,7 @@ import { useState } from "react";
 
 import { CardListModal } from "../Hand/CardListModal";
 import { CardKeywords } from "../Hand/CardKeywords";
+import { PackPicker } from "./PackPicker";
 import {
   addPickedPackCard,
   buyArtifactOffer,
@@ -206,22 +207,7 @@ export function Shop({ run, shop, onUpdate, onLeave }: Props) {
         />
       )}
 
-      {openedPack && (
-        <CardListModal
-          title={openedPack.name}
-          hint="Pick 1 card to add to your deck."
-          cards={openedPack.contents}
-          renderControls={(card) => (
-            <button
-              type="button"
-              className={cardListStyles.confirmButton}
-              onClick={() => onPickPackCard(card)}
-            >
-              Pick
-            </button>
-          )}
-        />
-      )}
+      {openedPack && <PackPicker pack={openedPack} onConfirm={onPickPackCard} />}
 
       <div className={styles.footer}>
         <button type="button" className={styles.continueButton} onClick={onLeave}>

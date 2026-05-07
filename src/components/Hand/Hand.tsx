@@ -10,8 +10,8 @@
 // fallback for the retain-flag re-issue), so when the hand prop changes we
 // can tell which slots are *new* (animate from the draw pile into place) and
 // which are *gone* (render briefly as an absolutely-positioned "ghost" that
-// slides toward the discard or consumed pile, then unmount). Curses vanish
-// in place — no destination pile.
+// slides toward the discard pile, then unmount). Curses and Consume cards
+// vanish in place — no destination pile is rendered for the consumed cards.
 
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 
@@ -32,17 +32,17 @@ const NON_DRAGGABLE_TARGETS: ReadonlySet<CardTarget["kind"]> = new Set([
 ]);
 
 // Each card's slide from draw pile → hand slot lasts this long.
-const ENTER_DURATION_MS = 500;
-// Each card's slide from hand → discard / consumed pile lasts this long.
-const EXIT_DURATION_MS = 500;
+const ENTER_DURATION_MS = 400;
+// Each card's slide from hand → discard pile lasts this long.
+const EXIT_DURATION_MS = 400;
 // Time between successive cards starting their enter animation. Cards leave
 // the pile in slot order (slot 0 first, slot N-1 last) so the swarm fans out
 // across the hand area instead of arriving as a single rigid line.
-const ENTER_STAGGER_MS = 80;
+const ENTER_STAGGER_MS = 64;
 // Mirror of ENTER_STAGGER_MS for the exit. Cards leave hand in reverse slot
 // order — slot N-1 (closest to the discard pile) goes first, slot 0 last —
 // so the discard plays as a time-reverse of the draw fan.
-const EXIT_STAGGER_MS = 80;
+const EXIT_STAGGER_MS = 64;
 const ENTER_EASING = "cubic-bezier(0.2, 0.7, 0.2, 1)";
 const ENTER_TRANSITION = `transform ${ENTER_DURATION_MS}ms ${ENTER_EASING}, opacity ${ENTER_DURATION_MS}ms ease-out`;
 
@@ -76,7 +76,6 @@ type Props = {
   enabled: boolean;
   drawPileCount: number;
   discardPileCount: number;
-  consumedPileCount: number;
   /**
    * Hand indexes the active boss modifier forbids playing (e.g. Boss A's
    * "no walls" rule disables every place-wall card). Greys out the card and
@@ -91,8 +90,6 @@ type Props = {
   onDrawPileClick?: () => void;
   /** Open the discard-pile inspector modal. */
   onDiscardPileClick?: () => void;
-  /** Open the consumed-pile inspector modal. */
-  onConsumedPileClick?: () => void;
 };
 
 export function Hand({
@@ -102,14 +99,12 @@ export function Hand({
   enabled,
   drawPileCount,
   discardPileCount,
-  consumedPileCount,
   forbiddenIndexes,
   onCardClick,
   onCardDragStart,
   onCardDragEnd,
   onDrawPileClick,
   onDiscardPileClick,
-  onConsumedPileClick,
 }: Props) {
   // When the active targeting card asks for a hand-card target (Bookmark),
   // every hand slot except the playing one and curses becomes a click
@@ -122,7 +117,6 @@ export function Hand({
   const handAreaRef = useRef<HTMLDivElement>(null);
   const drawPileRef = useRef<HTMLButtonElement>(null);
   const discardPileRef = useRef<HTMLButtonElement>(null);
-  const consumedPileRef = useRef<HTMLButtonElement>(null);
 
   // HandCard reference → stable slot id. WeakMap keeps the per-slot identity
   // alive only as long as the HandCard is reachable from the parent; once it's
@@ -234,12 +228,10 @@ export function Hand({
       const id = slotIdMapRef.current.get(slot)!;
       const startRect = slotRectsRef.current.get(id)!;
       const isCurse = !!slot.card.curse;
-      // Curses vanish in place (per docs/design/bosses.md); other cards fly
-      // toward the consumed pile if Consume, otherwise toward the discard.
-      let pileEl: HTMLButtonElement | null = null;
-      if (!isCurse) {
-        pileEl = slot.card.consume ? consumedPileRef.current : discardPileRef.current;
-      }
+      const isConsume = !!slot.card.consume;
+      // Curses and Consume cards vanish in place — they don't go to the
+      // discard pile. Everything else flies toward the discard pile.
+      const pileEl = !isCurse && !isConsume ? discardPileRef.current : null;
       let endTransform = "scale(0.7)";
       if (pileEl) {
         const pileRect = pileEl.getBoundingClientRect();
@@ -256,7 +248,7 @@ export function Hand({
         curse: isCurse,
         startRect,
         endTransform,
-        fadeOnly: isCurse,
+        fadeOnly: isCurse || isConsume,
         delayMs: k * EXIT_STAGGER_MS,
       });
       // The slot will never render again — drop its bookkeeping.
@@ -423,30 +415,17 @@ export function Hand({
         )}
       </div>
 
-      <div className={styles.pileGroup}>
-        <button
-          type="button"
-          ref={discardPileRef}
-          className={styles.pile}
-          aria-label="Discard pile"
-          onClick={onDiscardPileClick}
-          disabled={!onDiscardPileClick}
-        >
-          <span className={styles.pileLabel}>Discard</span>
-          <span className={styles.pileCount}>{discardPileCount}</span>
-        </button>
-        <button
-          type="button"
-          ref={consumedPileRef}
-          className={styles.pile}
-          aria-label="Consumed pile"
-          onClick={onConsumedPileClick}
-          disabled={!onConsumedPileClick}
-        >
-          <span className={styles.pileLabel}>Consumed</span>
-          <span className={styles.pileCount}>{consumedPileCount}</span>
-        </button>
-      </div>
+      <button
+        type="button"
+        ref={discardPileRef}
+        className={styles.pile}
+        aria-label="Discard pile"
+        onClick={onDiscardPileClick}
+        disabled={!onDiscardPileClick}
+      >
+        <span className={styles.pileLabel}>Discard</span>
+        <span className={styles.pileCount}>{discardPileCount}</span>
+      </button>
 
       {ghosts.length > 0 && (
         <div className={styles.ghostLayer} aria-hidden="true">

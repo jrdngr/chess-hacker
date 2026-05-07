@@ -276,6 +276,13 @@
   color: var(--player);
 }
 
+.summaryReason {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
 .summaryDetail {
   margin: 0;
   font-size: 14px;

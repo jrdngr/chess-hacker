@@ -419,7 +419,7 @@ export function Match({
     return out;
   }, [cardState.hand, matchRules]);
   /** Which pile inspector is open, if any. */
-  const [pileInspector, setPileInspector] = useState<"draw" | "discard" | "consumed" | null>(null);
+  const [pileInspector, setPileInspector] = useState<"draw" | "discard" | null>(null);
 
   // Undo / redo stack — one snapshot per turn rollover (prototype) plus one
   // per dev-mode action (editor edit, energy bump, library card play).
@@ -1398,14 +1398,12 @@ export function Match({
             enabled={!aiThinking && !matchOver && turn === HUMAN_SIDE && !libraryFreePlayActive}
             drawPileCount={cardState.drawPile.length}
             discardPileCount={cardState.discardPile.length}
-            consumedPileCount={cardState.consumedPile.length}
             forbiddenIndexes={forbiddenHandIndexes}
             onCardClick={onCardClick}
             onCardDragStart={onCardDragStart}
             onCardDragEnd={onCardDragEnd}
             onDrawPileClick={() => setPileInspector("draw")}
             onDiscardPileClick={() => setPileInspector("discard")}
-            onConsumedPileClick={() => setPileInspector("consumed")}
           />
         )}
       </div>
@@ -1512,14 +1510,6 @@ export function Match({
           title="Discard pile"
           hint="Cards waiting to cycle back. They reshuffle into your draw pile when it empties."
           cards={cardState.discardPile}
-          onClose={() => setPileInspector(null)}
-        />
-      )}
-      {pileInspector === "consumed" && (
-        <PileInspector
-          title="Consumed pile"
-          hint="Cards consumed for the rest of the match. They will not return."
-          cards={cardState.consumedPile}
           onClose={() => setPileInspector(null)}
         />
       )}
