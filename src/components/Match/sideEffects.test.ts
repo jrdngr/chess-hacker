@@ -2,13 +2,17 @@ import { describe, expect, it } from "vitest";
 
 import { ChoseEngine } from "../../game/chess/engine";
 import { createMatchCardState, makeRng } from "../../game/cards/match";
-import type { MatchCardState } from "../../game/types";
+import type { MatchCardState, Trap } from "../../game/types";
 
-import { applyCardSideEffects } from "./sideEffects";
+import { applyCardSideEffects, resolveTrapForMove } from "./sideEffects";
 
 function freshState(): MatchCardState {
   const rng = makeRng(1);
   return createMatchCardState([], rng);
+}
+
+function withTraps(state: MatchCardState, traps: Trap[]): MatchCardState {
+  return { ...state, traps };
 }
 
 describe("Rollback (undo-last-enemy-move side effect)", () => {
@@ -148,6 +152,95 @@ describe("Rollback (undo-last-enemy-move side effect)", () => {
       () => {},
     );
     expect(e.fen()).toBe(new ChoseEngine().fen());
+  });
+});
+
+describe("resolveTrapForMove — intermediate-square interception preserves the target", () => {
+  // The bug: an enemy bishop sliding through a Honeypot (freeze) trap to
+  // capture a player bishop would still capture it, even though the bishop
+  // never reached the target square. Same problem for capture and push traps.
+  // Fix: when the trap fires on an intermediate path square, the would-be
+  // captured piece on `to` is restored.
+
+  it("freeze trap on the path: target piece on `to` is preserved", () => {
+    // Black bishop on a1 sliding to e5 (path: b2, c3, d4, e5). Honeypot on c3.
+    // White (player) bishop on e5 — black is trying to capture it.
+    const e = new ChoseEngine("4k3/8/8/4B3/8/8/8/b3K3 b - - 0 1");
+    const mover = e.pieceAt("a1")!;
+    const captured = e.pieceAt("e5");
+    expect(captured?.side).toBe("player");
+
+    e.move({ from: "a1", to: "e5" });
+    const state = withTraps(freshState(), [{ square: "c3", effect: "freeze", expiresOnTurn: 99 }]);
+    resolveTrapForMove(e, state, mover, "a1", "e5", captured);
+
+    // Black bishop is frozen on c3 (the trap square), not on e5.
+    expect(e.pieceAt("c3")).toEqual({ type: "bishop", side: "opponent" });
+    expect(e.pieceAt("e5")).toEqual({ type: "bishop", side: "player" });
+    expect(e.pieceAt("a1")).toBeNull();
+  });
+
+  it("capture trap on the path: target piece on `to` is preserved", () => {
+    // Black rook on h8 sliding to h1 (path includes h4). Logic Bomb on h4.
+    // White rook on h1 — the trap should destroy the black rook before it
+    // can capture the white rook.
+    const e = new ChoseEngine("4k2r/8/8/8/8/8/8/4K2R b - - 0 1");
+    const mover = e.pieceAt("h8")!;
+    const captured = e.pieceAt("h1");
+    expect(captured?.side).toBe("player");
+
+    e.move({ from: "h8", to: "h1" });
+    const state = withTraps(freshState(), [{ square: "h4", effect: "capture", expiresOnTurn: 99 }]);
+    resolveTrapForMove(e, state, mover, "h8", "h1", captured);
+
+    // Black rook destroyed; white rook still on h1.
+    expect(e.pieceAt("h1")).toEqual({ type: "rook", side: "player" });
+    expect(e.pieceAt("h8")).toBeNull();
+    // Black rook isn't anywhere on the board.
+    for (const r of [1, 2, 3, 4, 5, 6, 7, 8]) {
+      const sq = `h${r}` as const;
+      expect(e.pieceAt(sq)?.side === "opponent").toBe(false);
+    }
+  });
+
+  it("push trap on the path: target piece on `to` is preserved", () => {
+    // Black bishop on a1 sliding to d4 capturing a player piece (path: b2, c3, d4).
+    // Connection Reset on c3 — bishop should be pushed back to b2 and the
+    // player piece on d4 should be safe.
+    const e = new ChoseEngine("4k3/8/8/8/3P4/8/8/b3K3 b - - 0 1");
+    const mover = e.pieceAt("a1")!;
+    const captured = e.pieceAt("d4");
+    expect(captured?.side).toBe("player");
+
+    e.move({ from: "a1", to: "d4" });
+    const state = withTraps(freshState(), [{ square: "c3", effect: "push", expiresOnTurn: 99 }]);
+    resolveTrapForMove(e, state, mover, "a1", "d4", captured);
+
+    // Black bishop pushed back to b2 (one square before the trap on c3).
+    expect(e.pieceAt("b2")).toEqual({ type: "bishop", side: "opponent" });
+    expect(e.pieceAt("d4")).toEqual({ type: "pawn", side: "player" });
+    expect(e.pieceAt("a1")).toBeNull();
+    expect(e.pieceAt("c3")).toBeNull();
+  });
+
+  it("trap on `to` itself: target IS captured (piece reached the square)", () => {
+    // Sanity check: when the trap is at the destination, the moving piece
+    // did successfully reach `to`, so any capture there stands. The trap
+    // then fires post-arrival.
+    // Black rook on h8 → h4 (path: h7..h4). Logic Bomb on h4 (the destination).
+    // Player pawn on h4 — black rook captures it, then trap removes the rook.
+    const e = new ChoseEngine("4k2r/8/8/8/7P/8/8/4K3 b - - 0 1");
+    const mover = e.pieceAt("h8")!;
+    const captured = e.pieceAt("h4");
+    expect(captured?.side).toBe("player");
+
+    e.move({ from: "h8", to: "h4" });
+    const state = withTraps(freshState(), [{ square: "h4", effect: "capture", expiresOnTurn: 99 }]);
+    resolveTrapForMove(e, state, mover, "h8", "h4", captured);
+
+    // Both pieces gone — pawn captured by rook, rook captured by trap.
+    expect(e.pieceAt("h4")).toBeNull();
+    expect(e.pieceAt("h8")).toBeNull();
   });
 });
 

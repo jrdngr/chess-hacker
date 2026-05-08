@@ -183,7 +183,14 @@ export function useAiLoop({
         });
       }
       if (applied && cardsEnabled && mover) {
-        let trapped = resolveTrapForMove(engine, cardState, mover, applied.from, applied.to);
+        let trapped = resolveTrapForMove(
+          engine,
+          cardState,
+          mover,
+          applied.from,
+          applied.to,
+          captured,
+        );
         // Boss C void: any piece ending its turn on a void square is
         // destroyed. The AI just moved there — that's its end-of-turn — so
         // remove it now. We also clear per-piece statuses on the dead square.

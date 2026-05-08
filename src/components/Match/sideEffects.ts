@@ -34,6 +34,13 @@ import type {
  * The first trap found along the move path (origin → destination, exclusive
  * of origin) fires; subsequent traps on the same path are not consulted —
  * the piece never made it that far.
+ *
+ * `capturedAtTo`: the piece that sat on `to` BEFORE the chess move applied,
+ * or null. When a trap fires on an intermediate square, the moving piece
+ * never reached `to`, so any capture there must be undone — the captured
+ * piece is restored on `to`. (Engine history still records the capture; same
+ * trade-off Rollback accepts. capturedPieces() will count it as captured
+ * even though it's back on the board.)
  */
 export function resolveTrapForMove(
   engine: ChoseEngine,
@@ -41,6 +48,7 @@ export function resolveTrapForMove(
   mover: Piece,
   from: AlgebraicSquare,
   to: AlgebraicSquare,
+  capturedAtTo: Piece | null = null,
 ): MatchCardState {
   const path = movePath(mover.type, from, to);
   for (let i = 0; i < path.length; i++) {
@@ -52,6 +60,7 @@ export function resolveTrapForMove(
       ...cardState,
       traps: cardState.traps.filter((t) => t.square !== sq),
     };
+    const intermediate = sq !== to;
     if (trap.effect === "capture") {
       // The piece is captured at the trap square. Engine may have it on `to`
       // (if the trap is at `to`) or at `to` after a pass-through; in either
@@ -59,13 +68,21 @@ export function resolveTrapForMove(
       // engine position is `to` regardless of where on the path the trap sat.
       engine.removePiece(to);
       next = clearStatusesOn(next, to);
+      // Intermediate trap: piece never reached `to`. Put back whatever it
+      // would have captured.
+      if (intermediate && capturedAtTo) {
+        engine.placePiece(to, capturedAtTo);
+      }
     } else if (trap.effect === "freeze") {
       // If the trap was on an intermediate square, drag the piece back to it
       // so it stops at the trigger point. (For a trap on `to` itself, no
       // displacement is needed.)
-      if (sq !== to) {
+      if (intermediate) {
         engine.displacePiece(to, sq);
         next = relocateStatuses(next, to, sq);
+        if (capturedAtTo) {
+          engine.placePiece(to, capturedAtTo);
+        }
       }
       next = {
         ...next,
@@ -87,6 +104,9 @@ export function resolveTrapForMove(
       } else if (pushBack !== to) {
         engine.displacePiece(to, pushBack);
         next = relocateStatuses(next, to, pushBack);
+        if (intermediate && capturedAtTo) {
+          engine.placePiece(to, capturedAtTo);
+        }
       }
     }
     return next;
@@ -138,9 +158,10 @@ export function applyCardSideEffects(
       engine.swapPieces(fx.a, fx.b);
     } else if (fx.kind === "foreign-move") {
       const mover = engine.pieceAt(fx.from);
+      const captured = engine.pieceAt(fx.to);
       engine.applyForeignMove({ from: fx.from, to: fx.to });
       next = relocateStatuses(next, fx.from, fx.to);
-      if (mover) next = resolveTrapForMove(engine, next, mover, fx.from, fx.to);
+      if (mover) next = resolveTrapForMove(engine, next, mover, fx.from, fx.to, captured);
     } else if (fx.kind === "add-card-to-hand") {
       next = addToHand(next, fx.card);
     } else if (fx.kind === "add-card-to-draw") {

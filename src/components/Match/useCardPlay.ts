@@ -218,7 +218,7 @@ export function useCardPlay({
 
       // Resolve any trap triggered by this move (player pieces are not exempt).
       if (mover) {
-        next = resolveTrapForMove(engine, next, mover, applied.from, applied.to);
+        next = resolveTrapForMove(engine, next, mover, applied.from, applied.to, captured);
       }
 
       // Boss C void: any piece ending its turn on a void square is destroyed.
