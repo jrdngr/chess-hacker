@@ -12,19 +12,19 @@ Per-match piece curve:
 
 | Match | Board | Per-side composition | Total | Move target |
 |---|---|---|---|---|
-| 1 | 6×6 | K + 6 pawns + random pieces (budget 6 pts, pool {N,B,R}) | 11–12 | ~10 |
-| 2 | 6×6 | K + 6 pawns + random pieces (budget 11 pts, pool {N,B,R}) | 12–14 | ~13 |
+| 1 | 6×6 | K + 6 pawns + random pieces (budget 9 pts, pool {N,B,R}) | 9–10 | ~12 |
+| 2 | 6×6 | K + 6 pawns + random pieces (budget 13 pts, pool {N,B,R}) | 10 | ~15 |
 | 3 (Boss A) | 6×6 | K + 6 pawns + N + B + R | 10 | ~16 |
-| 4 | 7×7 | K + 7 pawns + random pieces (budget 11 pts, pool {N,B,R}) | 11–13 | ~18 |
-| 5 | 7×7 | K + 7 pawns + random pieces (budget 16 pts, pool {N,B,R}) | 12–14 | ~22 |
+| 4 | 7×7 | K + 7 pawns + random pieces (budget 13 pts, pool {N,B,R}) | 11 | ~20 |
+| 5 | 7×7 | K + 7 pawns + random pieces (budget 18 pts, pool {N,B,R}) | 12–13 | ~24 |
 | 6 (Boss B) | 7×7 | K + 7 pawns + 2 N + 2 B + 2 R | 14 | ~28 |
-| 7 | 8×8 | K + 8 pawns + random pieces (budget 19 pts, pool {N,B,R,Q}) | 13–15 | ~35 |
-| 8 | 8×8 | K + 8 pawns + random pieces (budget 22 pts, pool {N,B,R,Q}) | 14–16 | ~42 |
+| 7 | 8×8 | K + 8 pawns + random pieces (budget 21 pts, pool {N,B,R,Q}) | 13–14 | ~36 |
+| 8 | 8×8 | K + 8 pawns + random pieces (budget 24 pts, pool {N,B,R,Q}) | 14–15 | ~44 |
 | 9 (Boss C) | 8×8 | K + 8 pawns + 2 N + 2 B + 2 R + Q | 16 | ~50 |
 
 The composition for non-boss matches is **rolled per match** from a non-pawn points budget plus a pool of allowed piece types (knight = 3, bishop = 3, rook = 5, queen = 9). Pieces are drawn until no allowed type both fits the remaining budget and is below its Chess960 cap (≤2 N, ≤2 B, ≤2 R, ≤1 Q). Pawns fill the front rank fully (`pawns = files`); the king is always present. Bosses keep hand-tuned explicit compositions because their hazards (`bosses.md`) are designed around them.
 
-Numbers are tuning knobs (centralized in `src/game/progression/standard.ts`). The aim: an average player should checkmate match 1 in roughly 10 moves; match 9 should average ~50.
+Numbers are tuning knobs (centralized in `src/game/progression/standard.ts`). The aim: an average player should checkmate match 1 in roughly 12 moves; match 9 should average ~50.
 
 ### Generalized Chess960
 

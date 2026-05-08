@@ -45,7 +45,7 @@ Terms used across the choss design and technical docs.
 | **BoardSize**       | `{ files, ranks }` describing the active board. Standard mode uses three square sizes — one per act (6×6, 7×7, 8×8); the dev sandbox supports any size from 3×3 to 8×8. |
 | **Chess960**        | Randomized starting position (from the official 960). The Standard generator generalizes the rules (bishops on opposite colors, king between rooks) to any board / piece set. |
 | **Royal**           | One of three run modes — both sides start with the standard 16-piece chess army on 8x8. Currently disabled in the menu (post-prototype). |
-| **Standard**        | The default run mode — three square boards, one per act (6×6, 7×7, 8×8); the board only grows after each act-end boss. Points-budget piece curve grows from K + 6 pawns + ~2 minor pieces up to a full 16-piece army. |
+| **Standard**        | The default run mode — three square boards, one per act (6×6, 7×7, 8×8); the board only grows after each act-end boss. Points-budget piece curve grows from K + 6 pawns + 3 minors (or rook + minor) up to a full 16-piece army. |
 | **Run**             | A single playthrough — 9 matches across 3 acts. Single elimination.                     |
 | **Sanctuary**       | Square keyword: pieces standing on the square cannot be captured.                       |
 | **Shield**          | Buff keyword: captures targeting the shielded piece are not legal moves.                |

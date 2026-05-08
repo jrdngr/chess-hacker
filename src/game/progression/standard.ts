@@ -103,14 +103,14 @@ const MINORS_ROOK_QUEEN: PieceType[] = ["knight", "bishop", "rook", "queen"];
  * 3, 6, 9). The piece curve grows monotonically.
  */
 export const STANDARD_MATCHES: ReadonlyArray<StandardMatchConfig> = [
-  M(1, 6, 6, random(MINORS_AND_ROOK, 6), false, 10),
-  M(2, 6, 6, random(MINORS_AND_ROOK, 11), false, 13),
+  M(1, 6, 6, random(MINORS_AND_ROOK, 9), false, 12),
+  M(2, 6, 6, random(MINORS_AND_ROOK, 13), false, 15),
   M(3, 6, 6, explicit(["king", "knight", "bishop", "rook"]), true, 16),
-  M(4, 7, 7, random(MINORS_AND_ROOK, 11), false, 18),
-  M(5, 7, 7, random(MINORS_AND_ROOK, 16), false, 22),
+  M(4, 7, 7, random(MINORS_AND_ROOK, 13), false, 20),
+  M(5, 7, 7, random(MINORS_AND_ROOK, 18), false, 24),
   M(6, 7, 7, explicit(["king", "knight", "knight", "bishop", "bishop", "rook", "rook"]), true, 28),
-  M(7, 8, 8, random(MINORS_ROOK_QUEEN, 19), false, 35),
-  M(8, 8, 8, random(MINORS_ROOK_QUEEN, 22), false, 42),
+  M(7, 8, 8, random(MINORS_ROOK_QUEEN, 21), false, 36),
+  M(8, 8, 8, random(MINORS_ROOK_QUEEN, 24), false, 44),
   M(
     9,
     8,

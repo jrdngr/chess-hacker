@@ -131,7 +131,7 @@ Standard is the active default mode. Replaces the old "Full Royal run" milestone
 
 - Variable board size threaded through the engine, rules, FEN parser, Board UI, and Match shell. (Originally seven sizes growing one file/rank per match; later collapsed to three square sizes — one per act, growing only after each boss — see `docs/design/modes.md`.)
 - Generalized Chess960 generator (`src/game/chess/positions.ts`) producing a per-match starting position for whatever board / piece set the run hands it.
-- Per-match curve table in `src/game/progression/standard.ts` — points-budget driven for non-bosses (M1 K + 6P + ~2 minors → M9 full standard chess army on 8×8), explicit hand-tuned compositions for bosses.
+- Per-match curve table in `src/game/progression/standard.ts` — points-budget driven for non-bosses (M1 K + 6P + 3 minors (or rook + minor) → M9 full standard chess army on 8×8), explicit hand-tuned compositions for bosses.
 - Toy AI (`src/ai/toyAi.ts`) for non-8×8 matches; Stockfish stays for 8×8.
 - Dev sandbox: 3..8 size pickers per axis, live position validation (extra kings, kings adjacent, pawns on back ranks, wrong-side-in-check) with red highlights on offending pieces.
 - Bosses placed on each act's board (Boss A 6×6, Boss B 7×7, Boss C 8×8).

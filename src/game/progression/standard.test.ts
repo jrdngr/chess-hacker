@@ -85,18 +85,18 @@ describe("rollPieceSet", () => {
     }
   });
 
-  it("on M1 spec (budget 6, pool {N,B,R}, 6×6) yields 11- or 12-point armies (incl. 6 pawns)", () => {
+  it("on M1 spec (budget 9, pool {N,B,R}, 6×6) yields K + 3 minors or K + rook + minor", () => {
     const seen = new Set<string>();
     for (let seed = 1; seed < 80; seed++) {
       const rolled = rollPieceSet(
-        { kind: "random", allowedPieces: NBR, nonPawnPointsBudget: 6 },
+        { kind: "random", allowedPieces: NBR, nonPawnPointsBudget: 9 },
         6,
         6,
         makeRng(seed),
       );
       const nonPawn = valueOf(rolled.backRank);
-      const total = nonPawn + rolled.pawns;
-      expect([11, 12]).toContain(total);
+      // Either 3 minors (9 pts) or 1 rook + 1 minor (8 pts).
+      expect([8, 9]).toContain(nonPawn);
       const counts = countBy(rolled.backRank);
       seen.add(
         `K${counts.get("king") ?? 0}N${counts.get("knight") ?? 0}B${counts.get("bishop") ?? 0}R${counts.get("rook") ?? 0}`,
