@@ -1315,12 +1315,7 @@ export function Match({
                 </div>
               </div>
             )}
-            {cardsEnabled && (
-              <StatusEffectsList
-                statusEffects={cardState.statusEffects}
-                currentTurn={cardState.turn}
-              />
-            )}
+            {cardsEnabled && <StatusEffectsList cardState={cardState} />}
             {cardsEnabled && (cardState.zoneBuffs?.length ?? 0) > 0 && (
               <div className={styles.statusBlock}>
                 <div className={styles.label}>Zone buffs</div>

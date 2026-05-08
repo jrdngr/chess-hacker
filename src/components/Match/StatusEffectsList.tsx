@@ -1,22 +1,24 @@
 // Sidebar list of active status effects (boss curses; future player buffs).
 //
-// Renders one badge per active StatusEffect on MatchCardState. Each badge
-// shows the def's name, a one-liner trigger description, an optional
-// remaining-fires / remaining-turns hint, and a tooltip with the full
-// description. Hidden when the list is empty (mirrors the zone-buff block).
+// Renders one badge per StatusEffect attached to MatchCardState. Each badge
+// shows the def's name, either its trigger description (when idle) or a
+// concrete "what it's doing right now" line plus an Active pill (when its
+// effect is currently constraining gameplay), an optional remaining-fires /
+// remaining-turns hint, and a tooltip with the full description. A short
+// glow plays the turn it fires; a persistent glow stays on while the effect
+// is active.
 
-import type { StatusEffect, StatusTrigger } from "../../game/types";
+import type { CardEffect, MatchCardState, StatusEffect, StatusTrigger } from "../../game/types";
 import { getStatusEffectById } from "../../game/status/library";
 
 import styles from "./StatusEffectsList.module.css";
 
 type Props = {
-  statusEffects: ReadonlyArray<StatusEffect>;
-  /** Current player turn — used to fire the brief "just fired" glow. */
-  currentTurn: number;
+  cardState: MatchCardState;
 };
 
-export function StatusEffectsList({ statusEffects, currentTurn }: Props) {
+export function StatusEffectsList({ cardState }: Props) {
+  const { statusEffects, turn } = cardState;
   if (statusEffects.length === 0) return null;
   return (
     <div className={styles.statusBlock}>
@@ -26,19 +28,32 @@ export function StatusEffectsList({ statusEffects, currentTurn }: Props) {
           const def = safeLookup(s.defId);
           if (!def) return null;
           const flavorClass = def.flavor === "blessing" ? styles.blessing : styles.curse;
-          const recentlyFired = s.lastFiredOnTurn === currentTurn;
-          const triggerLabel = describeStatusTrigger(def.trigger);
+          const recentlyFired = s.lastFiredOnTurn === turn;
+          const active = isEffectActive(def.effect, cardState);
+          const stateLabel = active
+            ? describeActiveState(def.effect, cardState)
+            : describeStatusTrigger(def.trigger);
           const lifetime = describeLifetime(s);
-          const meta = lifetime ? `${triggerLabel} · ${lifetime}` : triggerLabel;
+          const meta = lifetime ? `${stateLabel} · ${lifetime}` : stateLabel;
+          const className = [
+            styles.item,
+            flavorClass,
+            active && styles.active,
+            recentlyFired && styles.recentlyFired,
+          ]
+            .filter(Boolean)
+            .join(" ");
           return (
             <li
               key={`${s.defId}:${i}`}
-              className={[styles.item, flavorClass, recentlyFired && styles.recentlyFired]
-                .filter(Boolean)
-                .join(" ")}
+              className={className}
               title={def.description}
+              aria-label={`${def.name}${active ? " — active" : ""}`}
             >
-              <span className={styles.name}>{def.name}</span>
+              <span className={styles.nameRow}>
+                <span className={styles.name}>{def.name}</span>
+                {active && <span className={styles.activeBadge}>Active</span>}
+              </span>
               <span className={styles.meta}>{meta}</span>
             </li>
           );
@@ -53,6 +68,38 @@ function safeLookup(id: string) {
     return getStatusEffectById(id);
   } catch {
     return null;
+  }
+}
+
+function isEffectActive(effect: CardEffect, state: MatchCardState): boolean {
+  switch (effect.kind) {
+    case "next-move-constraint":
+      return state.mustNotCheckNextMove === true;
+    case "pending-energy-loss-on-no-capture":
+      return state.pendingEnergyLossOnNoCapture === true;
+    case "forbid-zero-cost-this-turn":
+      return state.noZeroCostCardsThisTurn === true;
+    case "boss-extra-move":
+      return (state.bossExtraMoves ?? 0) > 0;
+    default:
+      return false;
+  }
+}
+
+function describeActiveState(effect: CardEffect, state: MatchCardState): string {
+  switch (effect.kind) {
+    case "next-move-constraint":
+      return "Your next move must not deliver check";
+    case "pending-energy-loss-on-no-capture":
+      return "Capture this turn or lose energy next turn";
+    case "forbid-zero-cost-this-turn":
+      return "0-cost cards locked this turn";
+    case "boss-extra-move": {
+      const n = state.bossExtraMoves ?? 0;
+      return n === 1 ? "Boss takes 1 extra move" : `Boss takes ${n} extra moves`;
+    }
+    default:
+      return "Active";
   }
 }
 
