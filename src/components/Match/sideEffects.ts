@@ -148,18 +148,57 @@ export function applyCardSideEffects(
     } else if (fx.kind === "revive-prompt") {
       onRevivePrompt();
     } else if (fx.kind === "undo-last-enemy-move") {
-      // Rollback. Pop the engine's most recent move and put the moved piece
-      // (and any piece it captured) back. We only act if the last move was
-      // by the opponent — Rollback isn't meant to retract the player's own
-      // moves. Per-piece statuses on `to` follow the moved piece back to
-      // `from`; statuses tied to a captured player piece (re-spawned on `to`)
-      // were cleared when it was taken and stay cleared.
-      const last = engine.lastMoveBy();
-      if (last === "opponent") {
-        const undone = engine.undoLastMove();
-        if (undone) {
-          next = relocateStatuses(next, undone.to, undone.from);
+      // Rollback. Walk the opponent's most recent move backward as a board
+      // edit — the engine's history is left untouched, and the side-to-move
+      // is unchanged, so the player keeps their action. Two visible effects:
+      //   1. The moved enemy piece returns to its origin square.
+      //   2. If the move captured a player piece, that piece is restored to
+      //      its own square (the `to` square for ordinary captures; the
+      //      `epVictim` square for en-passant captures).
+      // Castling is reversed by walking the rook back as well; promotion is
+      // reversed by re-spawning a pawn on the origin square (the queen on
+      // `to` is removed). Per-piece statuses follow the moved piece.
+      //
+      // Importantly, this does NOT pop engine history. The opponent's "ghost"
+      // move stays in the move log so the player sees what would have
+      // happened, and the dev-panel Undo (which restores from snapshots) is
+      // not knocked off — every snapshot's engine history is internally
+      // consistent because we never reach into the history array here.
+      const last = engine.lastMoveDetails();
+      if (last && last.by === "opponent") {
+        const movedPiece = engine.pieceAt(last.to);
+        engine.removePiece(last.to);
+        if (movedPiece) {
+          // Promotion reversal: the piece on `to` is the promoted form; put
+          // a pawn back on `from` rather than (e.g.) a queen.
+          const restoredType: PieceType = last.promotion ? "pawn" : movedPiece.type;
+          engine.placePiece(last.from, { type: restoredType, side: movedPiece.side });
         }
+        // Castling: also walk the rook back to its corner. Only the
+        // opponent's branches are reachable here because we gated on
+        // `last.by === "opponent"` above; the rank-1 cases stay as a
+        // documentation reference for symmetry.
+        if (last.castle === "K") {
+          const rook = engine.pieceAt("f8");
+          if (rook) {
+            engine.removePiece("f8");
+            engine.placePiece("h8", rook);
+          }
+        } else if (last.castle === "Q") {
+          const rook = engine.pieceAt("d8");
+          if (rook) {
+            engine.removePiece("d8");
+            engine.placePiece("a8", rook);
+          }
+        }
+        // Restore the captured piece (if any) on its own square.
+        if (last.captured && last.captured.side === "player") {
+          const capturedSquare = last.epVictim ?? last.to;
+          if (!engine.pieceAt(capturedSquare)) {
+            engine.placePiece(capturedSquare, last.captured);
+          }
+        }
+        next = relocateStatuses(next, last.to, last.from);
       }
     } else if (fx.kind === "remove-random-own-minor") {
       // Bit Rot (Boss C). Pick uniformly at random from the player's

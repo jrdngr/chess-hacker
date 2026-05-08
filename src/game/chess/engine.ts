@@ -80,12 +80,8 @@ type HistoryEntry = {
   by: Side;
   /** What the move captured, if anything. */
   captured: Piece | null;
-  /**
-   * Full position prior to the move. Used to support `undoLastMove` (which
-   * restores it verbatim) and threefold-repetition detection (which derives
-   * the FEN signature on demand).
-   */
-  positionBefore: Position;
+  /** Position signature for repetition counting. */
+  signatureBefore: string;
 };
 
 /**
@@ -226,48 +222,46 @@ export class ChoseEngine {
     const captured = found.capturedPiece
       ? { type: found.capturedPiece.type, side: found.capturedPiece.side }
       : null;
-    const positionBefore = this.position;
+    const signatureBefore = repetitionSignature(this.position);
     // Build the LegalMove (with SAN) against the position *before* applying.
     const legal = this.toLegalMove(found);
     this.position = applyMove(this.position, found);
-    this.history.push({ move: found, by, captured, positionBefore });
+    this.history.push({ move: found, by, captured, signatureBefore });
     return legal;
   }
 
   /**
-   * Pop the most recent move from history and restore the engine to the
-   * position it had before that move. Returns metadata about the undone
-   * move (move squares, the side that made it, and any captured piece) so
-   * card-state callers can relocate per-piece statuses; returns null if
-   * the history is empty.
-   *
-   * Used by Rollback (the card). Does NOT support partial / multi-step undo;
-   * callers wanting to walk further back should call this repeatedly.
+   * Read-only metadata about the most recent recorded move. Used by
+   * Rollback (the card) to walk the moved piece back to its origin square
+   * without touching engine history. Returns null if no move has been
+   * recorded yet.
    */
-  undoLastMove(): {
+  lastMoveDetails(): {
     from: AlgebraicSquare;
     to: AlgebraicSquare;
     by: Side;
     captured: Piece | null;
+    /** Promotion target if the move promoted; absent otherwise. */
+    promotion?: "q" | "r" | "b" | "n";
+    /** Castle side if the move was castling; absent otherwise. */
+    castle?: "K" | "Q";
+    /**
+     * Square of the en-passant victim (different from `to` only on en-passant
+     * captures). Absent when the move was not en-passant.
+     */
+    epVictim?: AlgebraicSquare;
   } | null {
-    const last = this.history.pop();
+    const last = this.history[this.history.length - 1];
     if (!last) return null;
-    this.position = last.positionBefore;
     return {
       from: last.move.from,
       to: last.move.to,
       by: last.by,
       captured: last.captured,
+      ...(last.move.promotion ? { promotion: last.move.promotion } : {}),
+      ...(last.move.castle ? { castle: last.move.castle } : {}),
+      ...(last.move.epVictim ? { epVictim: last.move.epVictim } : {}),
     };
-  }
-
-  /**
-   * Whether the most recent recorded move was made by `side`. Used by the
-   * Rollback card's UI to gate playability and by tests.
-   */
-  lastMoveBy(): Side | null {
-    const last = this.history[this.history.length - 1];
-    return last ? last.by : null;
   }
 
   /**
@@ -480,7 +474,7 @@ export class ChoseEngine {
     const sig = repetitionSignature(this.position);
     let count = 1; // current position counts once
     for (const h of this.history) {
-      if (repetitionSignature(h.positionBefore) === sig) count++;
+      if (h.signatureBefore === sig) count++;
       if (count >= 3) return true;
     }
     return false;

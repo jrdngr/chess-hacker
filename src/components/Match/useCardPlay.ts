@@ -460,10 +460,17 @@ export function useCardPlay({
       // Card play may have changed the board (capture / move / new piece) —
       // make sure derived rendering re-runs.
       bumpVersion();
+      // Rollback alters the chess board (an enemy piece walks back, a captured
+      // piece re-spawns) and then the player still gets their chess move. We
+      // push a snapshot here so Undo from the next state lands on the
+      // post-Rollback board rather than rewinding all the way to the start of
+      // the player's turn — the player's chess move after Rollback should be
+      // independently undoable.
+      const playedRollback = result.sideEffects.some((fx) => fx.kind === "undo-last-enemy-move");
       // Sandbox card-play snapshot — but skip when AI is on, since the card is
       // part of a turn cycle the AI will close out and one undo should rewind
       // the whole player turn.
-      if (runMode === "dev" && !devAiOn) pushSnapshot(next);
+      if ((runMode === "dev" && !devAiOn) || playedRollback) pushSnapshot(next);
       return true;
     },
     [
