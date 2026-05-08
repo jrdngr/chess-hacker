@@ -14,7 +14,11 @@ import {
   VALID_ZONE_BUFF_PATTERNS,
 } from "../game/cards/library";
 import { VALID_ARTIFACT_EFFECT_KINDS, VALID_ARTIFACT_RARITIES } from "../game/artifacts/library";
-import { VALID_BOSS_MODIFIER_KINDS, VALID_CURSE_TRIGGER_KINDS } from "../game/bosses/library";
+import { VALID_BOSS_MODIFIER_KINDS } from "../game/bosses/library";
+import {
+  VALID_STATUS_EFFECT_FLAVORS,
+  VALID_STATUS_EFFECT_TRIGGER_KINDS,
+} from "../game/status/validate";
 
 export {
   VALID_ADD_CARD_DRAW_SOURCES,
@@ -23,13 +27,14 @@ export {
   VALID_ARTIFACT_RARITIES,
   VALID_BOSS_MODIFIER_KINDS,
   VALID_COSTS,
-  VALID_CURSE_TRIGGER_KINDS,
   VALID_DESTROY_FILTERS,
   VALID_EFFECT_KINDS,
   VALID_EMPOWER_PATTERNS,
   VALID_PIECE_TYPES,
   VALID_RARITIES,
   VALID_REVIVE_SELECTIONS,
+  VALID_STATUS_EFFECT_FLAVORS,
+  VALID_STATUS_EFFECT_TRIGGER_KINDS,
   VALID_TARGET_KINDS,
   VALID_TRAP_EFFECTS,
   VALID_ZONE_BUFF_EFFECT_KINDS,
@@ -102,6 +107,37 @@ export const CARD_EFFECT_FIELDS: Record<string, FieldSpec[]> = {
   "undo-last-enemy-move": [],
   // compound: see special-case renderer
 };
+
+/**
+ * Per-status-trigger payload schema. Drives the dynamic sub-form rendering
+ * in the StatusEffectEditor. Triggers without payload have an empty array.
+ */
+export const STATUS_EFFECT_TRIGGER_FIELDS: Record<string, FieldSpec[]> = {
+  "turn-start": [],
+  "every-n-turns": [
+    { name: "n", type: "number", min: 1 },
+    { name: "firstOnTurn", type: "number", min: 1, optional: true },
+  ],
+  "on-self-capture": [],
+  "on-opponent-capture": [],
+  "on-self-check": [],
+  "on-self-pawn-move": [],
+};
+
+/** Default payload when the user picks a status-trigger kind in the dropdown. */
+export function defaultStatusEffectTriggerPayload(kind: string): Record<string, unknown> | null {
+  const fields = STATUS_EFFECT_TRIGGER_FIELDS[kind];
+  if (!fields) return null;
+  const out: Record<string, unknown> = {};
+  for (const f of fields) {
+    if (f.optional) continue;
+    if (f.type === "number") out[f.name] = f.min ?? 1;
+    else if (f.type === "string") out[f.name] = "";
+    else if (f.type === "boolean") out[f.name] = false;
+    else if (f.type === "enum") out[f.name] = f.enumValues[0];
+  }
+  return out;
+}
 
 /** Per-artifact-effect payload schema. */
 export const ARTIFACT_EFFECT_FIELDS: Record<string, FieldSpec[]> = {

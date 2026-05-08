@@ -1,12 +1,14 @@
 import { CARD_LIBRARY } from "../../game/cards/library";
 import { ARTIFACT_LIBRARY } from "../../game/artifacts/library";
 import { BOSS_DEFS } from "../../game/bosses/library";
+import { STATUS_EFFECT_DEFS } from "../../game/status/library";
 
 import type {
   DesignerArtifactEntry,
   DesignerBossEntry,
   DesignerCardEntry,
   DesignerState,
+  DesignerStatusEffectEntry,
 } from "./types";
 
 /**
@@ -42,11 +44,21 @@ export function freshDesignerState(): DesignerState {
     };
   }
 
+  const statusEffects: Record<string, DesignerStatusEffectEntry> = {};
+  for (const s of STATUS_EFFECT_DEFS) {
+    statusEffects[s.id] = {
+      data: clone(s),
+      source: "library",
+      modified: false,
+    };
+  }
+
   return {
-    version: 1,
+    version: 2,
     cards,
     artifacts,
     bosses,
+    statusEffects,
     decks: {},
   };
 }
@@ -67,6 +79,9 @@ export function reseedLibrary(prev: DesignerState): DesignerState {
   }
   for (const e of Object.values(prev.bosses)) {
     if (e.source === "user") fresh.bosses[e.data.id] = e;
+  }
+  for (const e of Object.values(prev.statusEffects ?? {})) {
+    if (e.source === "user") fresh.statusEffects[e.data.id] = e;
   }
   fresh.decks = { ...prev.decks };
   return fresh;

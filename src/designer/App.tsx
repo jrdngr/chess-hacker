@@ -4,14 +4,16 @@ import { CardEditor } from "./editors/CardEditor";
 import { ArtifactEditor } from "./editors/ArtifactEditor";
 import { BossEditor } from "./editors/BossEditor";
 import { DeckEditor } from "./editors/DeckEditor";
+import { StatusEffectEditor } from "./editors/StatusEffectEditor";
 import { TopBar } from "./components/TopBar";
 
-type Tab = "cards" | "artifacts" | "bosses" | "decks";
+type Tab = "cards" | "artifacts" | "bosses" | "statusEffects" | "decks";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "cards", label: "Cards" },
   { id: "artifacts", label: "Artifacts" },
   { id: "bosses", label: "Bosses" },
+  { id: "statusEffects", label: "Status Effects" },
   { id: "decks", label: "Decks" },
 ];
 
@@ -53,6 +55,7 @@ export function App() {
         {tab === "cards" && <CardEditor />}
         {tab === "artifacts" && <ArtifactEditor />}
         {tab === "bosses" && <BossEditor />}
+        {tab === "statusEffects" && <StatusEffectEditor />}
         {tab === "decks" && <DeckEditor />}
       </main>
     </div>

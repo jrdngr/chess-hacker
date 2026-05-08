@@ -130,6 +130,7 @@ export function createMatchCardState(
     zoneBuffs: zoneBuffsFromArtifacts(artifacts),
     artifacts,
     activePowers: [],
+    statusEffects: [],
   };
 }
 
@@ -191,9 +192,6 @@ export function drawCards(
  * artifact bonuses, plus any active zone-buff `hand-size` bonuses); never
  * trims an oversized hand. `ctx` is optional — without it, zone-buffs are
  * skipped (e.g., legacy tests that don't model the chess board).
- *
- * Curses (per docs/design/bosses.md) are "bonus" cards beyond the cap, so
- * they don't count toward the hand count when deciding how many to refill.
  */
 export function refillHand(
   state: MatchCardState,
@@ -204,8 +202,7 @@ export function refillHand(
     effectiveHandSize(state.artifacts ?? []) +
     zoneBuffsHandSizeFor(state, ctx) +
     powerDrawBonus(state);
-  const nonCurseInHand = state.hand.filter((h) => !h.card.curse).length;
-  const need = target - nonCurseInHand;
+  const need = target - state.hand.length;
   if (need <= 0) return state;
   return drawCards(state, need, rng);
 }
@@ -238,15 +235,15 @@ function powerExtraMoves(state: MatchCardState): number {
 }
 
 /**
- * End-of-turn discard: every non-curse, non-retained hand slot is moved to
- * the discard pile. Curses must be played to leave hand (see
- * `docs/design/bosses.md`). Retained cards stay in hand until played.
+ * End-of-turn discard: every non-retained hand slot is moved to the discard
+ * pile. Retained cards (Bookmark, or an inherent Retain keyword) stay in
+ * hand until played.
  */
 export function discardHandAtTurnEnd(state: MatchCardState): MatchCardState {
   const keep: HandCard[] = [];
   const discardPile = state.discardPile.slice();
   for (const slot of state.hand) {
-    if (slot.card.curse || slot.retained || slot.card.retain) {
+    if (slot.retained || slot.card.retain) {
       keep.push(slot);
     } else {
       discardPile.push(slot.card);
@@ -285,7 +282,7 @@ export function startPlayerTurn(
   ctx?: ZoneBoardContext,
 ): MatchCardState {
   // Turn 1 has no previous turn to clean up; turn 2+ discards last turn's
-  // un-retained, non-curse hand cards into the discard pile before refilling.
+  // un-retained hand cards into the discard pile before refilling.
   const cleared = state.turn === 0 ? state : discardHandAtTurnEnd(state);
   state = cleared;
   const turn = state.turn + 1;
@@ -301,7 +298,7 @@ export function startPlayerTurn(
   // doesn't grant its bonus on its own expiry tick.
   const tickedState: MatchCardState = { ...state, zoneBuffs: liveZoneBuffs };
   const zoneEnergyBonus = zoneBuffsEnergyPerTurnFor(tickedState, ctx);
-  // Boss B / Memory Leak: if the curse left a pending penalty and no capture
+  // Boss B / Memory Leak: if the status left a pending penalty and no capture
   // happened between then and now, take 1 energy. The flag is cleared
   // whether or not it triggered.
   const greedPenalty = state.pendingEnergyLossOnNoCapture && !state.capturedThisTurn ? 1 : 0;
@@ -334,11 +331,11 @@ export function startPlayerTurn(
     empowers: alive(state.empowers),
     sanctuaries: alive(state.sanctuaries),
     traps: alive(state.traps),
-    // The Throttled curse's must-not-check flag is consumed by the chess
-    // move it constrains; if the player skipped the move (e.g. the curse
-    // was played late and no move followed), the start of the next turn
-    // is the natural place to clear it.
-    mustNotCheckNextMove: false,
+    // Note: the Throttled status's must-not-check flag is NOT reset here.
+    // It's set the moment the player checks the boss (via on-self-check)
+    // and must persist across the AI turn so the player's NEXT chess move
+    // — which may be the first move of the next player turn — is correctly
+    // constrained. The flag is consumed by that next move (see useCardPlay).
     // Reset turn-scoped flags / counters consumed above.
     pendingEnergyLossOnNoCapture: false,
     capturedThisTurn: false,
@@ -464,18 +461,6 @@ function aliveWalls(walls: ReadonlyArray<Wall>, turn: number): Wall[] {
   return walls.filter((w) => w.permanent === true || w.expiresOnTurn > turn);
 }
 
-/**
- * Insert a curse card into the player's hand. Per docs/design/bosses.md:
- *  - Curses are bonus, beyond the hand-size cap.
- *  - They cannot be voluntarily discarded (no UI path; the hand only loses
- *    cards via play, and curses vanish on play).
- *
- * Returns a new state with `card` appended to the hand.
- */
-export function insertCurseIntoHand(state: MatchCardState, card: Card): MatchCardState {
-  return { ...state, hand: [...state.hand, { card, retained: false }] };
-}
-
 // ---- Card play --------------------------------------------------------------
 
 /**
@@ -557,7 +542,6 @@ export type PlayCardFailure =
   | "target-patch-same-piece-type"
   | "target-hand-card-out-of-range"
   | "target-hand-card-self"
-  | "target-hand-card-curse"
   | "target-hand-card-already-retained"
   | "target-piece-type-mismatch"
   | "effect-forbidden-by-modifier";
@@ -600,11 +584,9 @@ export function playCard(
   }
   const cost = effectiveCardCost(card, state.artifacts ?? []);
   if (state.energy < cost) return { ok: false, reason: "not-enough-energy" };
-  // Hardened (Boss C): once the curse has resolved this turn, no further
-  // 0-cost cards may be played. Curses themselves are exempt — the player
-  // can't voluntarily discard them, so blocking curse plays would soft-lock
-  // the hand.
-  if (state.noZeroCostCardsThisTurn && cost === 0 && !card.curse) {
+  // Hardened (Boss C): once the status fires this turn, no further 0-cost
+  // cards may be played for the rest of the turn.
+  if (state.noZeroCostCardsThisTurn && cost === 0) {
     return { ok: false, reason: "effect-forbidden-by-modifier" };
   }
 
@@ -620,15 +602,12 @@ export function playCard(
 
   // Splice the played slot out of hand. Then route the played card based on
   // its disposal mode:
-  //  - Curses vanish (per docs/design/bosses.md).
   //  - `consume: true` cards land in the consumed pile (gone for the match,
   //    not eligible for revival).
   //  - All others land in the discard pile (will cycle back via shuffle).
   const hand = next.hand.slice();
   hand.splice(cardIndex, 1);
-  if (card.curse) {
-    next = { ...next, hand };
-  } else if (card.consume) {
+  if (card.consume) {
     next = { ...next, hand, consumedPile: [...next.consumedPile, card] };
   } else {
     next = { ...next, hand, discardPile: [...next.discardPile, card] };
@@ -777,7 +756,6 @@ function validateTarget(
       }
       if (target.index === playingIndex) return "target-hand-card-self";
       const slot = state.hand[target.index];
-      if (slot.card.curse) return "target-hand-card-curse";
       if (slot.retained) return "target-hand-card-already-retained";
       return null;
     }

@@ -1,0 +1,8 @@
+{
+  "id": "hardened",
+  "name": "Hardened",
+  "description": "Turn 1: you cannot play 0-cost cards for the rest of the turn.",
+  "trigger": { "kind": "turn-start" },
+  "effect": { "kind": "forbid-zero-cost-this-turn" },
+  "flavor": "curse"
+}

@@ -50,6 +50,11 @@ type Params = {
   pushHistory: (event: HistoryEvent) => HistoryEvent[];
   /** Match's start-of-player-turn rollover (refill hand, tick overlays, snapshot). */
   applyTurnRollover: (state: MatchCardState) => void;
+  /** Match's status-effect dispatcher; fired after AI captures so opponent-side triggers land. */
+  applyStatusEffects: (
+    state: MatchCardState,
+    event: import("../../game/status/dispatch").StatusEvent,
+  ) => MatchCardState;
 };
 
 type Result = {
@@ -78,6 +83,7 @@ export function useAiLoop({
   bumpVersion,
   pushHistory,
   applyTurnRollover,
+  applyStatusEffects,
 }: Params): Result {
   const [aiThinking, setAiThinking] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -214,6 +220,23 @@ export function useAiLoop({
             pendingPlayerEnergyOnTurnStart: (trapped.pendingPlayerEnergyOnTurnStart ?? 0) + 1,
           };
         }
+        // Status effect triggers — fire on AI captures so player-targeting
+        // statuses with "on-opponent-capture" triggers (currently none, but
+        // wired in for future player-applied curses on the enemy) take effect.
+        if (applied.isCapture) {
+          trapped = applyStatusEffects(trapped, {
+            kind: "capture",
+            by: "opponent",
+            turn: trapped.turn,
+          });
+        }
+        if (mover.type === "pawn") {
+          trapped = applyStatusEffects(trapped, {
+            kind: "pawn-move",
+            by: "opponent",
+            turn: trapped.turn,
+          });
+        }
         bumpVersion();
         // Echo (Boss C): if the boss owes the player one or more extra moves,
         // decrement the counter and flip the turn back to opponent so the AI
@@ -237,6 +260,7 @@ export function useAiLoop({
       cardsEnabled,
       cardState,
       applyTurnRollover,
+      applyStatusEffects,
       pushHistory,
       activeBoss,
       bumpVersion,

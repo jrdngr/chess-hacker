@@ -5,9 +5,7 @@ import type {
   BossDef,
   BossId,
   BossModifier,
-  CardId,
-  CurseScheduleEntry,
-  CurseTrigger,
+  StatusEffectId,
   ZoneRegion,
 } from "../../game/types";
 
@@ -16,11 +14,7 @@ import { EnumPicker } from "../components/EnumPicker";
 import { FieldRenderer } from "../components/FieldRenderer";
 import { Field, Row, Section, TwoPane } from "../components/Layout";
 import { SquarePicker } from "../components/SquarePicker";
-import {
-  VALID_BOSS_MODIFIER_KINDS,
-  VALID_CURSE_TRIGGER_KINDS,
-  VALID_ZONE_BUFF_EFFECT_KINDS,
-} from "../schemas";
+import { VALID_BOSS_MODIFIER_KINDS, VALID_ZONE_BUFF_EFFECT_KINDS } from "../schemas";
 import { useStore } from "../state/useStore";
 import { downloadJson, exportBossEntry } from "../state/exporters";
 import type { DesignerBossEntry, NewPropertyAnnotation } from "../state/types";
@@ -69,7 +63,7 @@ export function BossEditor() {
       modifier: { kind: "no-player-walls" },
       modifierDescription: "",
       hazardWalls: [],
-      curses: [],
+      statusEffects: [],
       description: "",
     };
     update((s) => ({
@@ -153,25 +147,20 @@ function BossForm({
     else write([...list, sq]);
   };
 
-  const curseCardIds = Object.values(state.cards)
-    .filter((e) => e.data.curse === true)
-    .map((e) => e.data.id);
+  const statusEffectIds = Object.values(state.statusEffects).map((e) => e.data.id);
 
-  const setCurse = (i: number, next: CurseScheduleEntry) => {
-    const arr = b.curses.slice();
+  const setStatusEffect = (i: number, next: StatusEffectId) => {
+    const arr = [...b.statusEffects];
     arr[i] = next;
-    setData({ curses: arr });
+    setData({ statusEffects: arr });
   };
-  const addCurse = () => {
+  const addStatusEffect = () => {
     setData({
-      curses: [
-        ...b.curses,
-        { trigger: { kind: "turn", turn: 1 }, curseId: (curseCardIds[0] ?? "") as CardId },
-      ],
+      statusEffects: [...b.statusEffects, (statusEffectIds[0] ?? "") as StatusEffectId],
     });
   };
-  const removeCurse = (i: number) => {
-    setData({ curses: b.curses.filter((_, j) => j !== i) });
+  const removeStatusEffect = (i: number) => {
+    setData({ statusEffects: b.statusEffects.filter((_, j) => j !== i) });
   };
 
   return (
@@ -312,87 +301,39 @@ function BossForm({
         </button>
       </Section>
 
-      <Section title={`Curses (${b.curses.length})`}>
-        {b.curses.map((c, i) => (
-          <fieldset
-            key={i}
-            style={{
-              border: "1px solid #2a2d33",
-              padding: 8,
-              borderRadius: 4,
-              marginBottom: 6,
-            }}
-          >
-            <Row>
-              <span style={{ fontSize: 11, opacity: 0.7, minWidth: 80 }}>trigger</span>
+      <Section title={`Status effects (${b.statusEffects.length})`}>
+        {b.statusEffects.map((id, i) => {
+          const def = state.statusEffects[id]?.data;
+          return (
+            <Row key={i}>
+              <span style={{ fontSize: 11, opacity: 0.7, minWidth: 80 }}>statusEffectId</span>
               <select
-                value={c.trigger.kind}
-                onChange={(e) => {
-                  const k = e.target.value as CurseTrigger["kind"];
-                  let nextTrigger: CurseTrigger;
-                  if (k === "turn") nextTrigger = { kind: "turn", turn: 1 };
-                  else if (k === "every-n-turns") nextTrigger = { kind: "every-n-turns", n: 4 };
-                  else nextTrigger = { kind: k };
-                  setCurse(i, { ...c, trigger: nextTrigger });
-                }}
+                value={id}
+                onChange={(e) => setStatusEffect(i, e.target.value as StatusEffectId)}
               >
-                {VALID_CURSE_TRIGGER_KINDS.map((k) => (
-                  <option key={k} value={k}>
-                    {k}
+                {!statusEffectIds.includes(id) && id && <option value={id}>{id} (unknown)</option>}
+                {statusEffectIds.map((sid) => (
+                  <option key={sid} value={sid}>
+                    {sid}
                   </option>
                 ))}
               </select>
-              {c.trigger.kind === "turn" && (
-                <FieldRenderer
-                  field={{ name: "turn", type: "number", min: 1 }}
-                  value={{ turn: c.trigger.turn }}
-                  onChange={(next) =>
-                    setCurse(i, {
-                      ...c,
-                      trigger: { kind: "turn", turn: next.turn as number },
-                    })
-                  }
-                />
+              {def && (
+                <span style={{ fontSize: 11, opacity: 0.7, marginLeft: 8 }}>
+                  {def.trigger.kind} → {def.effect.kind}
+                </span>
               )}
-              {c.trigger.kind === "every-n-turns" && (
-                <FieldRenderer
-                  field={{ name: "n", type: "number", min: 1 }}
-                  value={{ n: c.trigger.n }}
-                  onChange={(next) =>
-                    setCurse(i, {
-                      ...c,
-                      trigger: { kind: "every-n-turns", n: next.n as number },
-                    })
-                  }
-                />
-              )}
+              <button onClick={() => removeStatusEffect(i)}>remove</button>
             </Row>
-            <Row>
-              <span style={{ fontSize: 11, opacity: 0.7, minWidth: 80 }}>curseId</span>
-              <select
-                value={c.curseId}
-                onChange={(e) => setCurse(i, { ...c, curseId: e.target.value as CardId })}
-              >
-                {!curseCardIds.includes(c.curseId) && c.curseId && (
-                  <option value={c.curseId}>{c.curseId} (unknown)</option>
-                )}
-                {curseCardIds.map((id) => (
-                  <option key={id} value={id}>
-                    {id}
-                  </option>
-                ))}
-              </select>
-              <button onClick={() => removeCurse(i)}>remove</button>
-            </Row>
-          </fieldset>
-        ))}
-        <button onClick={addCurse} disabled={curseCardIds.length === 0}>
-          + Add curse
+          );
+        })}
+        <button onClick={addStatusEffect} disabled={statusEffectIds.length === 0}>
+          + Add status effect
         </button>
-        {curseCardIds.length === 0 && (
+        {statusEffectIds.length === 0 && (
           <div style={{ fontSize: 11, opacity: 0.6, marginTop: 4 }}>
-            No cards marked <code>curse: true</code> exist in the designer state — create one in the
-            Cards tab to populate this list.
+            No status effects exist in the designer state — create one in the Status Effects tab to
+            populate this list.
           </div>
         )}
       </Section>

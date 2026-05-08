@@ -44,7 +44,7 @@ import type {
   MatchCardState,
   Side,
 } from "../../game/types";
-import type { SchedulerEvent } from "../../game/bosses/scheduler";
+import type { StatusEvent } from "../../game/status/dispatch";
 
 const HUMAN_SIDE: Side = "player";
 const AI_SIDE: Side = "opponent";
@@ -68,7 +68,7 @@ type Params = {
   matchOver: boolean;
   turn: Side;
   applyTurnRollover: (state: MatchCardState) => void;
-  applyCurseScheduler: (state: MatchCardState, event: SchedulerEvent) => MatchCardState;
+  applyStatusEffects: (state: MatchCardState, event: StatusEvent) => MatchCardState;
   pushHistory: (event: HistoryEvent) => HistoryEvent[];
   pushSnapshot: (state: MatchCardState) => void;
   /** Provided by Match (eventually by useBoardInteraction); clears the chess-move selection. */
@@ -135,7 +135,7 @@ export function useCardPlay({
   matchOver,
   turn,
   applyTurnRollover,
-  applyCurseScheduler,
+  applyStatusEffects,
   pushHistory,
   pushSnapshot,
   setSelected,
@@ -257,20 +257,42 @@ export function useCardPlay({
           const drawC = drawOnCheck(artifacts);
           if (drawC > 0) next = drawCards(next, drawC, rng);
         }
-        // Boss curse triggers — fire AFTER the move resolves so the curse
-        // lands in the player's hand for the next turn (the move that
-        // satisfied the trigger has already been made this turn).
-        if (applied.isCapture) {
-          next = applyCurseScheduler(next, { kind: "player-capture", turn: next.turn });
-        }
-        if (engine.inCheck()) {
-          next = applyCurseScheduler(next, { kind: "player-check", turn: next.turn });
-        }
       }
 
-      // Throttled constraint is consumed by the player's chess move.
+      // Throttled constraint is consumed by the player's chess move that just
+      // resolved. We clear the flag BEFORE firing the status-effect dispatcher
+      // so an on-self-check status (Throttled) can re-set it to constrain the
+      // player's NEXT chess move, not this one.
       if (mover?.side === "player" && next.mustNotCheckNextMove) {
         next = { ...next, mustNotCheckNextMove: false };
+      }
+
+      // Status effect triggers — fire AFTER the move resolves and after we've
+      // consumed any single-move flag from a previous trigger. on-self-check /
+      // on-self-capture / on-self-pawn-move statuses (e.g. Boss A's Throttled,
+      // Boss C's Echo) take effect immediately on the new state.
+      if (mover?.side === "player") {
+        if (applied.isCapture) {
+          next = applyStatusEffects(next, {
+            kind: "capture",
+            by: "player",
+            turn: next.turn,
+          });
+        }
+        if (engine.inCheck()) {
+          next = applyStatusEffects(next, {
+            kind: "check",
+            by: "player",
+            turn: next.turn,
+          });
+        }
+        if (mover.type === "pawn") {
+          next = applyStatusEffects(next, {
+            kind: "pawn-move",
+            by: "player",
+            turn: next.turn,
+          });
+        }
       }
 
       // Haste / Lightning: grant another action by flipping the turn back.
@@ -365,7 +387,7 @@ export function useCardPlay({
       pushSnapshot,
       pushHistory,
       artifacts,
-      applyCurseScheduler,
+      applyStatusEffects,
       matchRules.noPromotion,
       activeBoss,
       bumpVersion,

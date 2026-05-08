@@ -174,29 +174,30 @@ export type CardEffect =
       sourceLabel: string;
     }
   /**
-   * Curse-only: constrains the next chess move. Currently the only variant
-   * is `must-not-check`, used by Boss A's Throttled curse.
+   * Status-effect payload (Boss A / Throttled): constrains the next chess
+   * move. Currently the only variant is `must-not-check`.
    */
   | { kind: "next-move-constraint"; constraint: "must-not-check" }
   /**
-   * Curse-only (Boss B / Memory Leak): if the player makes no capture this turn,
-   * lose `amount` energy at the start of the next turn. Implemented via the
-   * `pendingEnergyLossOnNoCapture` flag on `MatchCardState`.
+   * Status-effect payload (Boss B / Memory Leak): if the player makes no
+   * capture this turn, lose `amount` energy at the start of the next turn.
+   * Implemented via the `pendingEnergyLossOnNoCapture` flag on
+   * `MatchCardState`.
    */
   | { kind: "pending-energy-loss-on-no-capture"; amount: number }
   /**
-   * Curse-only (Boss C / Hardened): no further 0-cost cards may be
-   * played for the remainder of the current player turn.
+   * Status-effect payload (Boss C / Hardened): no further 0-cost cards may
+   * be played for the remainder of the current player turn.
    */
   | { kind: "forbid-zero-cost-this-turn" }
   /**
-   * Curse-only (Boss C / Echo): grants the boss `count` extra chess moves
-   * after its next normal move resolves.
+   * Status-effect payload (Boss C / Echo): grants the boss `count` extra
+   * chess moves after its next normal move resolves.
    */
   | { kind: "boss-extra-move"; count: number }
   /**
-   * Curse-only (Boss C / Bit Rot): immediately destroys one of the
-   * player's minor pieces (knight or bishop), chosen at random.
+   * Status-effect payload (Boss C / Bit Rot): immediately destroys one of
+   * the player's minor pieces (knight or bishop), chosen at random.
    */
   | { kind: "capture-random-own-minor" }
   /**
@@ -257,7 +258,6 @@ export type Card = {
   cost: CardCost;
   rarity: CardRarity;
   archetype: CardArchetype;
-  curse?: boolean;
   /**
    * Consume keyword: the card is removed from the match (lands in the
    * `consumedPile`) when played, instead of cycling through the discard
@@ -595,27 +595,7 @@ export type BossModifier =
   | { kind: "no-promotion" };
 
 /**
- * When the boss inserts a curse into the player's hand. Triggers fire
- * deterministically; "max one curse per turn" is enforced by the scheduler.
- */
-export type CurseTrigger =
-  /** Once, at the start of player turn N (1-indexed). */
-  | { kind: "turn"; turn: number }
-  /** Every N player turns, starting at turn `n` (so turns N, 2N, 3N…). */
-  | { kind: "every-n-turns"; n: number }
-  /** Whenever the player puts the boss in check. */
-  | { kind: "on-player-check" }
-  /** Whenever the player captures any boss piece. */
-  | { kind: "on-player-capture" };
-
-export type CurseScheduleEntry = {
-  trigger: CurseTrigger;
-  /** Card id from the curse pool — looked up via `getCardById`. */
-  curseId: CardId;
-};
-
-/**
- * A boss encounter: name + modifier + hazards + curse schedule. Bosses are
+ * A boss encounter: name + modifier + hazards + status effects. Bosses are
  * hand-crafted (one per act), not generated. See `docs/design/bosses.md`.
  */
 export type BossDef = {
@@ -638,10 +618,86 @@ export type BossDef = {
    * buff at d1 (player must contest the back-rank center).
    */
   zoneBuffs?: ReadonlyArray<{ region: ZoneRegion; buff: ZoneBuffEffect; sourceLabel: string }>;
-  /** Curse schedule — fired by the per-match scheduler. */
-  curses: ReadonlyArray<CurseScheduleEntry>;
+  /**
+   * Status effects the boss applies to the player at match start. Each id
+   * references a StatusEffectDef in `src/game/status/data/<id>.json`.
+   * Replaces the legacy curse-card-in-hand mechanism.
+   */
+  statusEffects: ReadonlyArray<StatusEffectId>;
   /** Tag-line shown in the boss preview. */
   description: string;
+};
+
+// === Status effects (replaces curse-card system) =============================
+//
+// A status effect is a passive trigger-and-fire entry on MatchCardState. When
+// its trigger condition is met during gameplay, the framework applies its
+// `effect` (a regular CardEffect) against the match state. Side-symmetric:
+// boss-applied statuses target the player (and read player-side events);
+// future player-applied statuses target the opponent. See
+// `docs/design/status-effects.md`.
+
+/** Status-effect identifier. Matches a JSON filename in `src/game/status/data/`. */
+export type StatusEffectId = string;
+
+/**
+ * What event causes a StatusEffect to fire. The framework wires each kind
+ * to a hook point in the match shell.
+ *
+ *  - turn-start          → start of OWNER's turn.
+ *  - every-n-turns       → every N OWNER turns. First fire on turn `firstOnTurn`
+ *                          (defaults to `n`).
+ *  - on-self-capture     → "owner" captured a piece.
+ *  - on-opponent-capture → owner's opponent captured a piece.
+ *  - on-self-check       → owner put the other king in check.
+ *  - on-self-pawn-move   → owner moved a pawn (any move; capture or not).
+ */
+export type StatusTrigger =
+  | { kind: "turn-start" }
+  | { kind: "every-n-turns"; n: number; firstOnTurn?: number }
+  | { kind: "on-self-capture" }
+  | { kind: "on-opponent-capture" }
+  | { kind: "on-self-check" }
+  | { kind: "on-self-pawn-move" };
+
+/**
+ * The static "what is this status" — author-facing definition. Stored in
+ * `src/game/status/data/<id>.json`; loaded once at startup.
+ */
+export type StatusEffectDef = {
+  id: StatusEffectId;
+  /** Player-facing label (e.g. "Throttled"). */
+  name: string;
+  /** Player-facing one-liner (e.g. "Your next chess move must not deliver check."). */
+  description: string;
+  /** When does the effect fire? */
+  trigger: StatusTrigger;
+  /** What does it do? Reuses the existing CardEffect union and handlers. */
+  effect: CardEffect;
+  /** Optional category — drives the badge color/glyph in the HUD. */
+  flavor?: "curse" | "blessing";
+};
+
+/**
+ * A live instance of a status effect attached to a match. `target` is the
+ * side whose events its trigger watches and whose state its effect mutates.
+ * (Boss curses always target "player" in the prototype.) `source` is the
+ * side that applied it.
+ */
+export type StatusEffect = {
+  defId: StatusEffectId;
+  source: Side;
+  target: Side;
+  /** Owner-side turn on which the status expires (optional). */
+  expiresOnTurn?: number;
+  /** Remaining trigger fires before the status drops (optional). */
+  remainingTriggers?: number;
+  /** Last owner-turn the status fired on, used by `oncePerTurn`. */
+  lastFiredOnTurn?: number;
+  /** When true, can fire at most once per owner-turn (default true). */
+  oncePerTurn?: boolean;
+  /** Owner-turn on which the status was attached. Used by `every-n-turns` math. */
+  attachedOnTurn?: number;
 };
 
 // === Zone-control buffs (M7) ===
@@ -820,4 +876,12 @@ export type MatchCardState = {
    * move. Mirrors the existing `bossExtraMoves` flow.
    */
   playerExtraMovesRemaining?: number;
+  /**
+   * Active status effects (boss curses; future player-applied curses).
+   * Replaces the old "curse card forced into hand" mechanism. Each entry is
+   * a live instance of a StatusEffectDef; the dispatcher in
+   * `src/game/status/dispatch.ts` ticks them on every match event. Always
+   * present; defaults to [].
+   */
+  statusEffects: StatusEffect[];
 };

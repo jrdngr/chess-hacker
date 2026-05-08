@@ -34,6 +34,6 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 - **Rarity:** Uncommon
 - **Target:** another card in your hand
 - **Effect:** Apply **Retain** to the chosen card. It stays in your hand at end-of-turn discards until you play it.
-- **Design note:** lets the player save a card across turn rollovers. Useful for the cost-4 haymaker drawn in a turn you can't afford it (no Cache Warmup on hand) — Bookmark it, draw fresh next turn, then play. Cannot target curses (they must be played to leave hand) or already-retained slots.
+- **Design note:** lets the player save a card across turn rollovers. Useful for the cost-4 haymaker drawn in a turn you can't afford it (no Cache Warmup on hand) — Bookmark it, draw fresh next turn, then play. Cannot target already-retained slots.
 
   Implementation: hand entries carry a per-instance `retained` flag (see `MatchCardState.hand` in `src/game/types.ts`). The flag survives end-of-turn discards but is dropped when the card is played.

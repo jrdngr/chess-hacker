@@ -3,6 +3,7 @@ import type {
   DesignerBossEntry,
   DesignerCardEntry,
   DesignerState,
+  DesignerStatusEffectEntry,
   NewPropertyAnnotation,
 } from "./types";
 
@@ -29,6 +30,12 @@ export function exportArtifactEntry(entry: DesignerArtifactEntry): WithNew<typeo
 }
 
 export function exportBossEntry(entry: DesignerBossEntry): WithNew<typeof entry.data> {
+  return withNew(entry.data, entry.newProperties);
+}
+
+export function exportStatusEffectEntry(
+  entry: DesignerStatusEffectEntry,
+): WithNew<typeof entry.data> {
   return withNew(entry.data, entry.newProperties);
 }
 

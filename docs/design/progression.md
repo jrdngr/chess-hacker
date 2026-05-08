@@ -97,11 +97,11 @@ Modifiers are **not** randomized per-level. Each Ascension level is a fixed, han
 
 - **A1: Tighter Economy.** All shop prices +20%.
 - **A2: Sharper Mind.** Stockfish AI uses higher depth.
-- **A3: Heavier Curses.** Boss curses fire more often.
+- **A3: Heavier Curses.** Boss status effects fire more often.
 - **A4: Reduced Hand.** Hand size 4 instead of 5.
 - **A5: Persistent Loss.** (Skirmish) Pieces captured during a match are lost permanently for the run.
 - **A6: Tighter Start.** Match starts with 0 energy (down from 1); the first +1 still arrives on turn 2.
-- **A7: Ascended Bosses.** Boss A and B get an additional curse trigger.
+- **A7: Ascended Bosses.** Boss A and B get an additional status effect.
 - **A8: Final Trial.** Boss C gets an additional layer (multi-phase or harder modifier).
 - ...and so on.
 

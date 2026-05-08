@@ -36,6 +36,7 @@ import { CapturedPieces } from "./Board/CapturedPieces";
 import { materialAdvantage } from "./Board/material";
 import { PromotionModal } from "./Board/PromotionModal";
 import { DevPanel } from "./Match/DevPanel";
+import { StatusEffectsList } from "./Match/StatusEffectsList";
 import { Hand } from "./Hand/Hand";
 import { ReviveModal } from "./Hand/ReviveModal";
 import { PileInspector } from "./Hand/PileInspector";
@@ -49,7 +50,7 @@ import {
 } from "./Match/derivations";
 import { HistoryModal } from "./Match/HistoryModal";
 import type { HistoryEvent } from "./Match/history";
-import { outcomeDetail, outcomeHeadline } from "./Match/sideEffects";
+import { applyCardSideEffects, outcomeDetail, outcomeHeadline } from "./Match/sideEffects";
 import { useAiLoop } from "./Match/useAiLoop";
 import { useCardPlay } from "./Match/useCardPlay";
 import { useBoardInteraction } from "./Match/useBoardInteraction";
@@ -68,7 +69,6 @@ import {
   createMatchCardState,
   drawPileInAcquisitionOrder,
   hasWallOn,
-  insertCurseIntoHand,
   isCardEffectForbidden,
   isInPlayerHalf,
   isRooted,
@@ -78,8 +78,8 @@ import {
   type MatchRules,
   type Rng,
 } from "../game/cards/match";
-import { fireCurses, makeSchedulerState, type SchedulerState } from "../game/bosses/scheduler";
-import { getCardById, getNamedDecks, makeStarterDeck } from "../game/cards/library";
+import { fireStatusEffects, type StatusEvent } from "../game/status/dispatch";
+import { getNamedDecks, makeStarterDeck } from "../game/cards/library";
 import type {
   AlgebraicSquare,
   Artifact,
@@ -91,6 +91,7 @@ import type {
   MatchOutcome,
   RunMatchOutcome,
   Side,
+  StatusEffect,
   Wall,
 } from "../game/types";
 import {
@@ -387,13 +388,29 @@ export function Match({
       }));
       base = { ...base, zoneBuffs: [...base.zoneBuffs, ...buffs] };
     }
+    if (activeBoss && activeBoss.statusEffects.length > 0) {
+      // Boss status effects target the player and persist for the match. Some
+      // statuses are one-shot (e.g. Hardened fires turn 1 only); we mark these
+      // with `remainingTriggers: 1` so the dispatcher self-removes them after
+      // firing. Anything else stays for the whole match.
+      const fxs: StatusEffect[] = activeBoss.statusEffects.map((id) => {
+        const fx: StatusEffect = {
+          defId: id,
+          source: "opponent",
+          target: "player",
+          attachedOnTurn: 0,
+          oncePerTurn: true,
+        };
+        if (id === "hardened") fx.remainingTriggers = 1;
+        return fx;
+      });
+      base = { ...base, statusEffects: [...base.statusEffects, ...fxs] };
+    }
     const fresh = startPlayerTurn(base, rng, zoneBoardContextOf(engine));
     return initialEnergy !== undefined ? { ...fresh, energy: initialEnergy } : fresh;
   });
-  /** Per-match curse-scheduler state. Reset on new game / mode change. */
-  const schedulerStateRef = useRef<SchedulerState>(makeSchedulerState());
-  /** Tracks whether the first-turn scheduler tick has already fired. */
-  const firstTurnSchedulerRef = useRef(false);
+  /** Tracks whether the first-turn status tick has already fired. */
+  const firstTurnStatusRef = useRef(false);
 
   // Boss modifiers materialised into a MatchRules object the playCard helper
   // and the Hand UI both consume. `no-player-walls` blocks place-wall cards.
@@ -654,56 +671,61 @@ export function Match({
   // ---- AI move loop ---------------------------------------------------------
 
   /**
-   * Run the boss curse scheduler against `event` and append any returned
-   * curses to `state.hand`. Pure on the curse list; mutates the scheduler
-   * ref in place. No-ops if there's no active boss.
+   * Fire the status-effect dispatcher against `event` and apply any board
+   * side effects (e.g. Bit Rot's piece removal) through the standard helper.
+   * Pure on the active status list; safely no-ops when there are no statuses.
+   *
+   * Builds a minimal BoardContext from the engine inline — none of the
+   * boss-shipped status effects read the context, but we pass one through
+   * so future effects (e.g. piece-tied debuffs from a player-applied curse)
+   * have what they need.
    */
-  const applyCurseScheduler = useCallback(
-    (
-      state: MatchCardState,
-      event: import("../game/bosses/scheduler").SchedulerEvent,
-    ): MatchCardState => {
-      if (!activeBoss || activeBoss.curses.length === 0) return state;
-      const result = fireCurses(activeBoss.curses, schedulerStateRef.current, event);
-      schedulerStateRef.current = result.next;
-      let next = state;
-      for (const id of result.curseIds) {
-        try {
-          next = insertCurseIntoHand(next, getCardById(id));
-        } catch {
-          // Unknown curse id — surface in the console but don't break the match.
-          // (This should be caught by the build-time validator anyway.)
-          // eslint-disable-next-line no-console
-          console.error(`[boss] unknown curse id '${id}'`);
-        }
+  const applyStatusEffects = useCallback(
+    (state: MatchCardState, event: StatusEvent): MatchCardState => {
+      if (state.statusEffects.length === 0) return state;
+      const ctx: BoardContext = {
+        pieceAt: (sq) => engine.pieceAt(sq),
+        hasWall: (sq) => hasWallOn(state, sq),
+        isAttackedBy: (sq, by) => engine.isSquareAttackedBy(sq, by),
+        isRooted: (sq) => isRooted(state, sq),
+        boardRanks: engine.size().ranks,
+        boardFiles: engine.size().files,
+      };
+      const result = fireStatusEffects(state, event, ctx, rng ?? Math.random);
+      let next = result.state;
+      if (result.sideEffects.length > 0) {
+        next = applyCardSideEffects(engine, next, result.sideEffects, rng, () => {});
       }
       return next;
     },
-    [activeBoss],
+    [engine, rng],
   );
 
-  // First-turn boss scheduler tick — fires once on mount so a `turn` trigger
-  // pinned to turn 1 (e.g. Boss C's Hardened) lands in the player's hand
-  // before they take any action. Boss A's only trigger is `on-player-check`,
-  // so this is a no-op for it; harmless to fire either way.
+  // First-turn status tick — fires once on mount so a `turn-start` trigger
+  // (e.g. Boss C's Hardened) takes effect before the player can act. Triggers
+  // that fire on later events (on-self-check, every-n-turns past 1) just no-op
+  // here.
   useEffect(() => {
-    if (firstTurnSchedulerRef.current) return;
+    if (firstTurnStatusRef.current) return;
     if (displayOnly) {
-      // Snapshot view — the cardState is already final; running the
-      // scheduler would mutate it past match end and corrupt the display.
-      firstTurnSchedulerRef.current = true;
+      firstTurnStatusRef.current = true;
       return;
     }
-    if (!activeBoss || activeBoss.curses.length === 0) return;
     if (!cardsEnabled) return;
-    firstTurnSchedulerRef.current = true;
-    setCardState((s) => applyCurseScheduler(s, { kind: "turn-start", turn: s.turn }));
-  }, [activeBoss, cardsEnabled, applyCurseScheduler, displayOnly]);
+    if (cardState.statusEffects.length === 0) {
+      firstTurnStatusRef.current = true;
+      return;
+    }
+    firstTurnStatusRef.current = true;
+    setCardState((s) =>
+      applyStatusEffects(s, { kind: "turn-start", side: "player", turn: s.turn }),
+    );
+  }, [cardsEnabled, applyStatusEffects, displayOnly, cardState.statusEffects.length]);
 
   /**
    * Roll over to a fresh player turn: refill hand, +1 energy, decay statuses,
-   * commit to React state, push a snapshot for undo. Also fires the boss
-   * scheduler's `turn-start` event so timed curse triggers fire before the
+   * commit to React state, push a snapshot for undo. Also fires the status
+   * dispatcher's `turn-start` event so timed status triggers fire before the
    * player sees their hand. Caller is responsible for any pre-rollover work
    * (e.g. trap resolution) — `state` is what gets fed straight into
    * `startPlayerTurn`.
@@ -711,14 +733,15 @@ export function Match({
   const applyTurnRollover = useCallback(
     (state: MatchCardState) => {
       const turnStarted = startPlayerTurn(state, rng, zoneBoardContextOf(engine));
-      const withCurses = applyCurseScheduler(turnStarted, {
+      const withStatuses = applyStatusEffects(turnStarted, {
         kind: "turn-start",
+        side: "player",
         turn: turnStarted.turn,
       });
-      setCardState(withCurses);
-      pushSnapshot(withCurses);
+      setCardState(withStatuses);
+      pushSnapshot(withStatuses);
     },
-    [rng, pushSnapshot, engine, applyCurseScheduler],
+    [rng, pushSnapshot, engine, applyStatusEffects],
   );
 
   const { aiThinking, aiError, triggerAiSingleMove, cancelInFlightAi } = useAiLoop({
@@ -738,6 +761,7 @@ export function Match({
     bumpVersion,
     pushHistory,
     applyTurnRollover,
+    applyStatusEffects,
   });
 
   // ---- Player input handlers -----------------------------------------------
@@ -772,7 +796,7 @@ export function Match({
     matchOver,
     turn,
     applyTurnRollover,
-    applyCurseScheduler,
+    applyStatusEffects,
     pushHistory,
     pushSnapshot,
     setSelected,
@@ -1290,6 +1314,12 @@ export function Match({
                   <span className={styles.energyValue}>{cardState.energy}</span>
                 </div>
               </div>
+            )}
+            {cardsEnabled && (
+              <StatusEffectsList
+                statusEffects={cardState.statusEffects}
+                currentTurn={cardState.turn}
+              />
             )}
             {cardsEnabled && (cardState.zoneBuffs?.length ?? 0) > 0 && (
               <div className={styles.statusBlock}>

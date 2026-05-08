@@ -212,10 +212,9 @@ export function applyMatchOutcome(state: RunState, outcome: RunMatchOutcome): Ru
 
 // ---- Card pools ------------------------------------------------------------
 
-/** Cards eligible to appear in shops and drafts — excludes curses and Patches. */
+/** Cards eligible to appear in shops and drafts — excludes Patches and Shivs. */
 function rewardEligibleCards(): Card[] {
   return Object.values(CARD_LIBRARY).filter((c) => {
-    if (c.curse) return false;
     if (c.id.endsWith("-patch")) return false; // Patches are earned via captures.
     if (c.id.startsWith("shiv-")) return false; // Shivs only spawn from Trick Bag.
     return true;

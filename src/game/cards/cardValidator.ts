@@ -697,9 +697,6 @@ export function validateCard(raw: unknown): { card: Card | null; errors: string[
   if (raw.retain !== undefined && typeof raw.retain !== "boolean") {
     errors.push("'retain' must be a boolean if present");
   }
-  if (raw.curse !== undefined && typeof raw.curse !== "boolean") {
-    errors.push("'curse' must be a boolean if present");
-  }
   if (typeof raw.description !== "string") {
     errors.push("'description' must be a string");
   }
@@ -727,7 +724,6 @@ export function validateCard(raw: unknown): { card: Card | null; errors: string[
     target,
     effect,
   };
-  if (typeof raw.curse === "boolean") card.curse = raw.curse;
   if (typeof raw.consume === "boolean") card.consume = raw.consume;
   if (typeof raw.retain === "boolean") card.retain = raw.retain;
 

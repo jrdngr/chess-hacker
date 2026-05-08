@@ -21,6 +21,7 @@ When you start work, **read `docs/README.md` first** — it is the index for eve
 | Artifacts / relics                              | `docs/design/artifacts.md`                                        |
 | Gold, shop, interest, pricing                   | `docs/design/economy.md`                                          |
 | Bosses (3 hand-crafted)                         | `docs/design/bosses.md`                                           |
+| Status effects (replaces boss curse cards)      | `docs/design/status-effects.md`                                   |
 | Run flow + meta-progression (Ascension)         | `docs/design/progression.md`                                      |
 | Chess rules (standard + custom extensions)      | `docs/design/chess-rules.md`                                      |
 | Visual / audio direction                        | `docs/design/theme.md`                                            |

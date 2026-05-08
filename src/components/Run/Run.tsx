@@ -34,7 +34,6 @@ import {
 import { applyInterest, generateShop } from "../../game/shop/shop";
 import { artifactEmoji } from "../../game/artifacts/library";
 import { goldOnMatchStart } from "../../game/artifacts/effects";
-import { getCardById } from "../../game/cards/library";
 import type { EngineSnapshot } from "../../game/chess/engine";
 import type {
   Artifact,
@@ -43,13 +42,14 @@ import type {
   BossDef,
   BossPickOffer,
   BossPickOption,
-  CurseTrigger,
   MatchCardState,
   RunMatchOutcome,
   RunMode,
   RunState,
   Shop as ShopState,
+  StatusTrigger,
 } from "../../game/types";
+import { getStatusEffectById } from "../../game/status/library";
 
 import styles from "./Run.module.css";
 
@@ -374,23 +374,21 @@ export function Run({ mode, onExit, rngSeed }: Props) {
                 </span>
               )}
               <span className={styles.bossTooltipSection}>
-                <span className={styles.bossTooltipHeading}>Curses</span>
-                {activeBoss.curses.length === 0 ? (
+                <span className={styles.bossTooltipHeading}>Status effects</span>
+                {activeBoss.statusEffects.length === 0 ? (
                   <span className={styles.bossTooltipText}>None.</span>
                 ) : (
                   <ul className={styles.bossTooltipCurseList}>
-                    {activeBoss.curses.map((c, i) => {
-                      const card = safeLookupCurse(c.curseId);
+                    {activeBoss.statusEffects.map((id, i) => {
+                      const def = safeLookupStatus(id);
                       return (
-                        <li key={`${c.curseId}-${i}`} className={styles.bossTooltipCurse}>
+                        <li key={`${id}-${i}`} className={styles.bossTooltipCurse}>
                           <span className={styles.bossTooltipCurseTrigger}>
-                            {describeTrigger(c.trigger)}
+                            {def ? describeTrigger(def.trigger) : ""}
                           </span>
-                          <span className={styles.bossTooltipCurseName}>
-                            {card?.name ?? c.curseId}
-                          </span>
-                          {card && (
-                            <span className={styles.bossTooltipCurseDesc}>{card.description}</span>
+                          <span className={styles.bossTooltipCurseName}>{def?.name ?? id}</span>
+                          {def && (
+                            <span className={styles.bossTooltipCurseDesc}>{def.description}</span>
                           )}
                         </li>
                       );
@@ -549,22 +547,26 @@ function describeHazards(boss: BossDef): string {
   return parts.join(" ");
 }
 
-function describeTrigger(t: CurseTrigger): string {
+function describeTrigger(t: StatusTrigger): string {
   switch (t.kind) {
-    case "turn":
-      return `Turn ${t.turn}`;
+    case "turn-start":
+      return "Turn start";
     case "every-n-turns":
       return `Every ${t.n} turns`;
-    case "on-player-check":
+    case "on-self-check":
       return "When you check";
-    case "on-player-capture":
+    case "on-self-capture":
       return "When you capture";
+    case "on-opponent-capture":
+      return "When the boss captures";
+    case "on-self-pawn-move":
+      return "When you move a pawn";
   }
 }
 
-function safeLookupCurse(id: string) {
+function safeLookupStatus(id: string) {
   try {
-    return getCardById(id);
+    return getStatusEffectById(id);
   } catch {
     return null;
   }
@@ -577,18 +579,18 @@ function bossAriaLabel(boss: BossDef): string {
   if (hazards.length > 0) {
     parts.push(`Hazards: ${hazards}`);
   }
-  if (boss.curses.length === 0) {
-    parts.push("No curses.");
+  if (boss.statusEffects.length === 0) {
+    parts.push("No status effects.");
   } else {
-    const curseDescriptions = boss.curses
-      .map((c) => {
-        const card = safeLookupCurse(c.curseId);
-        const name = card?.name ?? c.curseId;
-        const desc = card ? ` — ${card.description}` : "";
-        return `${describeTrigger(c.trigger)}: ${name}${desc}`;
+    const statusDescriptions = boss.statusEffects
+      .map((id) => {
+        const def = safeLookupStatus(id);
+        const name = def?.name ?? id;
+        const desc = def ? ` — ${def.description}` : "";
+        return `${def ? describeTrigger(def.trigger) : ""}: ${name}${desc}`;
       })
       .join("; ");
-    parts.push(`Curses: ${curseDescriptions}`);
+    parts.push(`Status effects: ${statusDescriptions}`);
   }
   return parts.join(". ");
 }

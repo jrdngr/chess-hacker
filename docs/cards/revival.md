@@ -19,4 +19,4 @@ Revival lets the player skip the wait for the discard pile to cycle back. With r
 
 Cards with Consume (Format C:, Patches, Remote Access, kill -9, Restore from Backup itself) are *not* in the discard pile after they've been played; they're in the consumed pile and unreachable by revival. Consume is the contract for "this card is finite per match."
 
-The earlier Restore Point card (random revive, cost 1) was retired in the power-curve overhaul; the random-revive code path is still valid in the schema (boss curses or future cards may use it), but no card definition currently invokes it.
+The earlier Restore Point card (random revive, cost 1) was retired in the power-curve overhaul; the random-revive code path is still valid in the schema (status effects or future cards may use it), but no card definition currently invokes it.

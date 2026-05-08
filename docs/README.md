@@ -29,6 +29,7 @@ docs/
 │   ├── bosses.md
 │   ├── progression.md
 │   ├── chess-rules.md
+│   ├── status-effects.md
 │   └── theme.md
 ├── cards/                     ← per-card reference, grouped by type
 │   ├── README.md
@@ -65,7 +66,7 @@ docs/
 - **Shop:** Balatro-style after every match. Buys: single cards + booster packs + artifacts. Services: reroll (scaling per shop), card removal (scaling per use). Currency: gold only. Skip rewards for gold. Balatro-style interest.
 - **Artifacts:** sources = shop + boss rewards. 3 rarity tiers (C/U/R). Cap of 5 slots. Effects span cards, pieces, resources, conditional triggers.
 - **Board:** 8×8 maximum. Standard mode uses three square sizes — one per act (6×6, 7×7, 8×8) — and only grows the board after each act-end boss; the dev sandbox supports any size from 3×3 to 8×8. Card-spawned square effects, zone-control buffs, walls/blocks. No portals.
-- **Bosses:** 3 hand-crafted, visible at act start. Combine match-modifier rules + fixed board hazards + curse cards forced into the player's hand.
+- **Bosses:** 3 hand-crafted, visible at act start. Combine match-modifier rules + fixed board hazards + persistent status effects (see `design/status-effects.md`).
 - **Win conditions:** standard chess — checkmate, stalemate, draws all enforced. Draws count as run-loss. No clock.
 - **Meta-progression:** content unlocks only (no power buffs); Ascension/heat ladder for replay; single character.
 - **Stack:** TypeScript + React (Vite), custom chess engine (`src/game/chess/`), Stockfish.wasm, localStorage.

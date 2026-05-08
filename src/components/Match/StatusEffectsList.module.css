@@ -1,0 +1,72 @@
+.statusBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted, #888);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(176, 74, 74, 0.06);
+  border: 1px solid rgba(176, 74, 74, 0.45);
+  font-size: 12px;
+}
+
+.curse {
+  background: linear-gradient(180deg, rgba(176, 74, 74, 0.12), rgba(176, 74, 74, 0.04));
+}
+
+.blessing {
+  background: linear-gradient(180deg, rgba(74, 176, 110, 0.12), rgba(74, 176, 110, 0.04));
+  border-color: rgba(74, 176, 110, 0.45);
+}
+
+.name {
+  font-weight: 500;
+  color: var(--text, #ddd);
+}
+
+.curse .name {
+  color: #d97a7a;
+}
+
+.blessing .name {
+  color: #7ad99a;
+}
+
+.meta {
+  font-size: 10px;
+  opacity: 0.75;
+}
+
+.recentlyFired {
+  animation: status-glow 600ms ease-out;
+}
+
+@keyframes status-glow {
+  0% {
+    box-shadow: 0 0 0 2px rgba(176, 74, 74, 0.5);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(176, 74, 74, 0);
+  }
+}

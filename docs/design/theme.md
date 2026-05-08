@@ -19,7 +19,7 @@ The prototype uses an **abstract minimalist** aesthetic with a light **hacker-in
   - Wall: neutral gray-on-gray, heavy fill.
   - Square effects: per-effect-type tint — e.g., red for damage zones, green for buff zones, purple for control marks.
   - Zone-control buffs: subtle outline glow on the controlled region.
-  - Curse cards: a desaturated red border around the card.
+  - Status effect badges: a desaturated red border for curses; green for blessings.
 
 Color choices are **functional first, aesthetic second**. Colorblind accessibility: distinguish using shape and outline pattern in addition to color.
 
@@ -55,7 +55,7 @@ All pieces fit comfortably within a board square, with consistent visual weight.
   - Top-left: turn indicator + energy display + draw/spent pile counts.
   - Top-right: opponent piece roster summary (Skirmish) or boss-modifier reminder (boss matches).
   - Right sidebar: artifact slots (always visible, hover for details).
-  - Curses-in-hand visually distinct from regular cards (the desaturated red border).
+  - Status effects shown as labeled badges in the side panel (red border for curses).
 - **Reward / shop screens:** modal-style overlays, full-screen with a "back to map / continue" button.
 - **Run map:** a simple linear progress bar with 9 nodes, current position marked.
 
@@ -63,7 +63,7 @@ All pieces fit comfortably within a board square, with consistent visual weight.
 
 - **Card play:** card lifts, plays its effect with a short visualization, then animates to the spent pile.
 - **Move animations:** smooth piece glide along the move path. Captures pop the captured piece off.
-- **Curse insertions:** a visible flash + the card sliding into hand from above with a curse-tinted effect.
+- **Status effect fires:** a brief glow on the status badge in the side panel when its trigger fires.
 - Motion should be **fast** (300–400ms total per animation). Players replaying matches will hate slow animations.
 
 ## Audio direction

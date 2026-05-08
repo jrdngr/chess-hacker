@@ -5,7 +5,7 @@ The card system is the central self-expression mechanic. Cards augment chess; th
 ## Hand and deck
 
 - **Hand size:** 5 cards.
-- **Draw timing:** at the **start of each player turn**, discard every non-curse, non-retained hand card into the discard pile, then draw until your hand is at 5. (A card played during a turn does not get refilled until the next turn unless an effect explicitly says so.)
+- **Draw timing:** at the **start of each player turn**, discard every non-retained hand card into the discard pile, then draw until your hand is at 5. (A card played during a turn does not get refilled until the next turn unless an effect explicitly says so.)
 - **Run-start deck:** 20 cards — multiples of cheap utilities. See [`../cards/starter-deck.md`](../cards/starter-deck.md) for the composition and rationale.
 - **Adding to your deck:** the shop is the only source of new cards between matches — single-card offers and booster packs (open the pack, pick 1 from its contents). Capturing an enemy piece during a match grants the matching Patch card directly into your draw pile (see "Card economy" below). There is no post-match card draft.
 - **Removing from your deck:** shop card-removal service (scaling per use).
@@ -26,7 +26,7 @@ In the prototype, cards are played **on the player's own turn**, before or after
 
 - **No card phase:** there is no separate "spell phase" between move-and-end-turn. Cards and the move share a single open phase on your turn; you may interleave them in any order, except that some cards explicitly modify your upcoming move and must be played *before* it.
 - **No reactions:** no cards may be played on the opponent's turn in the prototype. (We may revisit this for a future expansion; see `roadmap/open-questions.md`.)
-- **No opponent cards:** the AI does not play cards. Boss "curse cards" (see `bosses.md`) appear in the *player's* hand, not as an opponent deck.
+- **No opponent cards:** the AI does not play cards. Bosses apply persistent **status effects** to the player (see `bosses.md` and `status-effects.md`); they do not have a deck.
 
 ## Targeting
 
@@ -53,9 +53,8 @@ The hand is wiped at the end of every player turn and a fresh hand is drawn at t
 Cycle rules:
 
 1. Played cards without Consume go to the **discard pile**.
-2. End-of-turn discards every non-curse, non-retained hand card into the discard pile.
+2. End-of-turn discards every non-retained hand card into the discard pile.
 3. When the draw pile is empty mid-draw, the discard pile is shuffled to form a new draw pile and drawing continues. The consumed pile never re-enters the cycle.
-4. Curses vanish on play (per `bosses.md`); Retain cannot be applied to a curse.
 
 UI piles: **Draw: N | Discard: N | Consumed: N**. The discard pile is the active rotation; the consumed pile is the graveyard.
 
@@ -94,9 +93,9 @@ Cards do **not** have upgraded versions in the prototype. Card upgrade as a shop
 
 Reconsider this decision only after the basic loop is working — adding upgrade is a meaningful design and UI undertaking. See `roadmap/open-questions.md`.
 
-## Curse cards (bosses only)
+## Boss disruption (status effects, not cards)
 
-Some bosses can place **curse cards** into the player's hand mid-match. Curse cards have detrimental effects and must be played to be removed from hand. They cost 0 energy, do not count against the hand size cap, and do not enter the player's deck (they vanish when played and do not return). See `bosses.md` for boss curse-card specifics.
+Bosses don't have decks. Instead, they apply **status effects** to the player at match start — passive triggers that fire automatically on game events (turn start, on-check, on-capture, etc.) and apply detrimental effects in place. See `bosses.md` and `status-effects.md`.
 
 ## Where cards live in the codebase
 

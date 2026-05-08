@@ -1,0 +1,8 @@
+{
+  "id": "throttled",
+  "name": "Throttled",
+  "description": "When you check the boss, your next chess move must not deliver check.",
+  "trigger": { "kind": "on-self-check" },
+  "effect": { "kind": "next-move-constraint", "constraint": "must-not-check" },
+  "flavor": "curse"
+}

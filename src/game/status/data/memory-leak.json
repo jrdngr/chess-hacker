@@ -1,0 +1,8 @@
+{
+  "id": "memory-leak",
+  "name": "Memory Leak",
+  "description": "Every 4 turns: capture an enemy piece this turn or lose 1 energy next turn.",
+  "trigger": { "kind": "every-n-turns", "n": 4 },
+  "effect": { "kind": "pending-energy-loss-on-no-capture", "amount": 1 },
+  "flavor": "curse"
+}

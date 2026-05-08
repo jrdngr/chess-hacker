@@ -1,4 +1,4 @@
-import type { Artifact, BossDef, Card } from "../../game/types";
+import type { Artifact, BossDef, Card, StatusEffectDef } from "../../game/types";
 
 export type DesignerSource = "library" | "user";
 
@@ -12,7 +12,8 @@ export type NewPropertyPath =
   | "card.target.kind"
   | "card.effect.kind"
   | "artifact.effect.kind"
-  | "boss.modifier.kind";
+  | "boss.modifier.kind"
+  | "statusEffect.trigger.kind";
 
 export type NewPropertyPayloadField = {
   name: string;
@@ -51,6 +52,13 @@ export type DesignerBossEntry = {
   newProperties?: NewPropertyAnnotation[];
 };
 
+export type DesignerStatusEffectEntry = {
+  data: StatusEffectDef;
+  source: DesignerSource;
+  modified: boolean;
+  newProperties?: NewPropertyAnnotation[];
+};
+
 export type DesignerDeckEntry = {
   /** Deck name; doubles as the slug seed and identifier. */
   name: string;
@@ -59,9 +67,10 @@ export type DesignerDeckEntry = {
 };
 
 export type DesignerState = {
-  version: 1;
+  version: 2;
   cards: Record<string, DesignerCardEntry>;
   artifacts: Record<string, DesignerArtifactEntry>;
   bosses: Record<string, DesignerBossEntry>;
+  statusEffects: Record<string, DesignerStatusEffectEntry>;
   decks: Record<string, DesignerDeckEntry>;
 };

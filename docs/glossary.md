@@ -12,7 +12,7 @@ Terms used across the choss design and technical docs.
 | **Card**            | An effect played from hand. Costs energy. By default a played card lands in the discard pile and cycles back into the draw pile when it empties; the Consume keyword removes it from the match instead. |
 | **choss**           | Chess + Roguelite. Working name of the project.                                         |
 | **Compel**          | Status keyword: enemy piece is forced to move on its next turn (must capture if able).  |
-| **Curse card**      | A 0-cost detrimental card injected into the player's hand by a boss. Vanishes when played. |
+| **Status effect**   | A persistent passive on a side of a match. Fires automatically when its trigger condition (turn-start, every-N-turns, on-check, on-capture, etc.) is met. Used by bosses today; future cards may apply status effects to the enemy. See `design/status-effects.md`. |
 | **Deck**            | The persistent card collection of a run. Grows by drafting / shopping; shrinks by removal. |
 | **Disarm**          | Status keyword: enemy piece may move but may not capture on its next turn.              |
 | **Draft**           | A 1-of-3 choice (cards or, in Skirmish, pieces) shown after each match.                 |

@@ -115,7 +115,7 @@ A card with **Retain** stays in your hand at end-of-turn discards. It only leave
 - **Inherent**: the card definition declares `retain: true`. None of the prototype cards have inherent Retain.
 - **Granted**: the **Bookmark** card applies Retain to a chosen card in your hand for the rest of the match. Bookmark itself does not have Retain.
 
-Retain cannot be applied to a curse card (Bookmark filters them out). Retain ends when the card is played.
+Retain ends when the card is played.
 
 ### Consume
 
@@ -126,7 +126,7 @@ A card with **Consume** is removed from the match when played — it lands in th
 
 ### Discard & cycle
 
-Played cards without Consume go to the **discard pile**. End-of-turn dumps every non-curse, non-retained hand card into the discard pile. When the draw pile is empty mid-draw, the discard pile is shuffled to form a new draw pile and drawing continues. Curses vanish on play and are not part of the cycle (see `docs/design/bosses.md`).
+Played cards without Consume go to the **discard pile**. End-of-turn dumps every non-retained hand card into the discard pile. When the draw pile is empty mid-draw, the discard pile is shuffled to form a new draw pile and drawing continues.
 
 ### Revive
 

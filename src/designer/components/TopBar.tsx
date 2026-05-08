@@ -22,7 +22,7 @@ export function TopBar() {
     file.text().then((text) => {
       try {
         const parsed = JSON.parse(text) as DesignerState;
-        if (parsed.version !== 1) {
+        if (parsed.version !== 2) {
           alert(`Unsupported state version: ${(parsed as { version?: unknown }).version}`);
           return;
         }

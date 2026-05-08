@@ -12,7 +12,6 @@ import {
   dropOtherSingleUseEmpowers,
   grantPatchOnCapture,
   hasWallOn,
-  insertCurseIntoHand,
   isCompelled,
   isDisarmed,
   isFrozen,
@@ -825,24 +824,18 @@ describe("disposal: discard, consume, retain, cycle", () => {
     expect(st.hand.find((s) => s.card.id === "format-c")?.retained).toBe(true);
   });
 
-  it("Bookmark rejects targeting itself, an already-retained slot, or a curse", () => {
+  it("Bookmark rejects targeting itself or an already-retained slot", () => {
     const rng = makeRng(214);
     const stash = getCardById("bookmark");
     let st = startPlayerTurn(createMatchCardState([], rng), rng);
     st = addToHand(st, stash);
     st = addToHand(st, FIREWALL);
-    st = insertCurseIntoHand(st, getCardById("throttled"));
     st = { ...st, energy: ENERGY_MAX };
     const stashIdx = st.hand.findIndex((s) => s.card.id === "bookmark");
     // Self-target → rejected.
     const rSelf = playCard(st, stashIdx, { kind: "hand-card", index: stashIdx }, emptyBoard, rng);
     expect(rSelf.ok).toBe(false);
     if (!rSelf.ok) expect(rSelf.reason).toBe("target-hand-card-self");
-    // Curse target → rejected.
-    const curseIdx = st.hand.findIndex((s) => s.card.id === "throttled");
-    const rCurse = playCard(st, stashIdx, { kind: "hand-card", index: curseIdx }, emptyBoard, rng);
-    expect(rCurse.ok).toBe(false);
-    if (!rCurse.ok) expect(rCurse.reason).toBe("target-hand-card-curse");
   });
 
   it("random revive pulls from the discard pile only — never from the consumed pile", () => {

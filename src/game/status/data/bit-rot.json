@@ -1,0 +1,8 @@
+{
+  "id": "bit-rot",
+  "name": "Bit Rot",
+  "description": "Every 5 turns: one of your knights or bishops is destroyed at random.",
+  "trigger": { "kind": "every-n-turns", "n": 5 },
+  "effect": { "kind": "capture-random-own-minor" },
+  "flavor": "curse"
+}

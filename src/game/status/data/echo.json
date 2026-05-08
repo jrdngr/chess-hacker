@@ -1,0 +1,8 @@
+{
+  "id": "echo",
+  "name": "Echo",
+  "description": "When you check the boss, the boss makes one extra chess move this turn.",
+  "trigger": { "kind": "on-self-check" },
+  "effect": { "kind": "boss-extra-move", "count": 1 },
+  "flavor": "curse"
+}

@@ -1,12 +1,13 @@
 // Boss-preview screen — shown at act start so the player knows what's
-// coming. Per docs/design/bosses.md: name, signature mechanic, curse pool.
+// coming. Per docs/design/bosses.md: name, signature mechanic, status-effect
+// pool.
 //
-// Surfaces the modifier rule, the hazard list, and one row per scheduled
-// curse with its trigger and (looked-up) description so the player can plan
-// shopping and drafting around the encounter.
+// Surfaces the modifier rule, the hazard list, and one row per status effect
+// with its trigger and description so the player can plan shopping and
+// drafting around the encounter.
 
-import type { BossDef, CurseTrigger } from "../../game/types";
-import { getCardById } from "../../game/cards/library";
+import type { BossDef, StatusTrigger } from "../../game/types";
+import { getStatusEffectById } from "../../game/status/library";
 
 import styles from "./BossPreview.module.css";
 
@@ -40,19 +41,21 @@ export function BossPreview({ boss, onContinue }: Props) {
         )}
 
         <div className={styles.spec}>
-          <dt>Curses</dt>
+          <dt>Status effects</dt>
           <dd>
-            {boss.curses.length === 0 ? (
+            {boss.statusEffects.length === 0 ? (
               <em className={styles.muted}>None.</em>
             ) : (
               <ul className={styles.curseList}>
-                {boss.curses.map((c, i) => {
-                  const card = safeLookupCurse(c.curseId);
+                {boss.statusEffects.map((id, i) => {
+                  const def = safeLookupStatus(id);
                   return (
-                    <li key={`${c.curseId}-${i}`} className={styles.curse}>
-                      <span className={styles.curseTrigger}>{describeTrigger(c.trigger)}</span>
-                      <span className={styles.curseName}>{card?.name ?? c.curseId}</span>
-                      {card && <span className={styles.curseDesc}>{card.description}</span>}
+                    <li key={`${id}-${i}`} className={styles.curse}>
+                      <span className={styles.curseTrigger}>
+                        {def ? describeStatusTrigger(def.trigger) : ""}
+                      </span>
+                      <span className={styles.curseName}>{def?.name ?? id}</span>
+                      {def && <span className={styles.curseDesc}>{def.description}</span>}
                     </li>
                   );
                 })}
@@ -95,22 +98,26 @@ function describeHazards(boss: BossDef): string {
   return parts.join(" ");
 }
 
-function describeTrigger(t: CurseTrigger): string {
+function describeStatusTrigger(t: StatusTrigger): string {
   switch (t.kind) {
-    case "turn":
-      return `Turn ${t.turn}`;
+    case "turn-start":
+      return "Turn start";
     case "every-n-turns":
       return `Every ${t.n} turns`;
-    case "on-player-check":
+    case "on-self-check":
       return "When you check";
-    case "on-player-capture":
+    case "on-self-capture":
       return "When you capture";
+    case "on-opponent-capture":
+      return "When the boss captures";
+    case "on-self-pawn-move":
+      return "When you move a pawn";
   }
 }
 
-function safeLookupCurse(id: string) {
+function safeLookupStatus(id: string) {
   try {
-    return getCardById(id);
+    return getStatusEffectById(id);
   } catch {
     return null;
   }

@@ -56,7 +56,6 @@ type ExitGhost = {
   ghostId: number;
   card: Card;
   retained: boolean;
-  curse: boolean;
   startRect: Rect;
   // Center offset to translate to (relative to startRect's top-left) plus the
   // shrink scale. Computed once when the ghost is created so it survives even
@@ -107,8 +106,8 @@ export function Hand({
   onDiscardPileClick,
 }: Props) {
   // When the active targeting card asks for a hand-card target (Bookmark),
-  // every hand slot except the playing one and curses becomes a click
-  // target. We surface that mode so the slots can be highlighted.
+  // every hand slot except the playing one becomes a click target. We
+  // surface that mode so the slots can be highlighted.
   const targetingHandCard =
     targetingIndex !== null && hand[targetingIndex]?.card.target.kind === "hand-card";
 
@@ -227,11 +226,10 @@ export function Hand({
       const slot = prevHand[j];
       const id = slotIdMapRef.current.get(slot)!;
       const startRect = slotRectsRef.current.get(id)!;
-      const isCurse = !!slot.card.curse;
       const isConsume = !!slot.card.consume;
-      // Curses and Consume cards vanish in place — they don't go to the
-      // discard pile. Everything else flies toward the discard pile.
-      const pileEl = !isCurse && !isConsume ? discardPileRef.current : null;
+      // Consume cards vanish in place — they don't go to the discard pile.
+      // Everything else flies toward the discard pile.
+      const pileEl = !isConsume ? discardPileRef.current : null;
       let endTransform = "scale(0.7)";
       if (pileEl) {
         const pileRect = pileEl.getBoundingClientRect();
@@ -245,10 +243,9 @@ export function Hand({
         ghostId: nextGhostId++,
         card: slot.card,
         retained: slot.retained,
-        curse: isCurse,
         startRect,
         endTransform,
-        fadeOnly: isCurse || isConsume,
+        fadeOnly: isConsume,
         delayMs: k * EXIT_STAGGER_MS,
       });
       // The slot will never render again — drop its bookkeeping.
@@ -350,10 +347,9 @@ export function Hand({
             const forbidden = forbiddenIndexes?.has(i) ?? false;
             const playable = enabled && affordable && !forbidden;
             // When Bookmark is asking for a hand-card target, the slot is
-            // clickable as a target if it isn't the playing slot, isn't a
-            // curse, and isn't already retained.
-            const isBookmarkTarget =
-              targetingHandCard && !isTargeting && !card.curse && !slot.retained;
+            // clickable as a target if it isn't the playing slot and isn't
+            // already retained.
+            const isBookmarkTarget = targetingHandCard && !isTargeting && !slot.retained;
             const clickable = playable || isBookmarkTarget;
             // Two-step cards (Switch Files, Remote Access) and hand-card targets
             // (Bookmark) still resolve via click; everything else can be dragged
@@ -365,7 +361,6 @@ export function Hand({
               !clickable && styles.disabled,
               isTargeting && styles.targeting,
               isBookmarkTarget && styles.stashTarget,
-              card.curse && styles.curse,
               retained && styles.retained,
             ]
               .filter(Boolean)
@@ -444,7 +439,7 @@ export function Hand({
 
 /**
  * One card animating from its last hand slot toward the discard / consumed
- * pile (or fading in place for curses). On mount, applies an inline
+ * pile (or fading in place for Consume cards). On mount, applies an inline
  * `transform` that translates + shrinks toward the pile centre — the CSS
  * transition on `.ghost` runs the motion. After EXIT_DURATION_MS the parent
  * removes us from state and we unmount.
@@ -483,13 +478,7 @@ function ExitGhostCard({ ghost, onDone }: { ghost: ExitGhost; onDone: () => void
 
   const card = ghost.card;
   const retained = ghost.retained || card.retain === true;
-  const cls = [
-    styles.card,
-    styles.ghost,
-    moving && styles.ghostMoving,
-    card.curse && styles.curse,
-    retained && styles.retained,
-  ]
+  const cls = [styles.card, styles.ghost, moving && styles.ghostMoving, retained && styles.retained]
     .filter(Boolean)
     .join(" ");
   const style: React.CSSProperties = {

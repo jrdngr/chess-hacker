@@ -12,6 +12,6 @@
       "sourceLabel": "Server Farm"
     }
   ],
-  "curses": [{ "trigger": { "kind": "every-n-turns", "n": 4 }, "curseId": "memory-leak" }],
+  "statusEffects": ["memory-leak"],
   "description": "A bloated mining operation. Every trade pays the house — and the server farm on d1 hums with siphoned power."
 }

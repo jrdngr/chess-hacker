@@ -237,14 +237,6 @@ function CardForm({
           <label>
             <input
               type="checkbox"
-              checked={card.curse === true}
-              onChange={(e) => setCard({ curse: e.target.checked || undefined })}
-            />{" "}
-            curse
-          </label>
-          <label>
-            <input
-              type="checkbox"
               checked={card.consume === true}
               onChange={(e) => setCard({ consume: e.target.checked || undefined })}
             />{" "}

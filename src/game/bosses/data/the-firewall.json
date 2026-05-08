@@ -5,6 +5,6 @@
   "modifier": { "kind": "no-player-walls" },
   "modifierDescription": "You cannot place walls.",
   "hazardWalls": ["c3", "d4"],
-  "curses": [{ "trigger": { "kind": "on-player-check" }, "curseId": "throttled" }],
+  "statusEffects": ["throttled"],
   "description": "A hardened bastion guards the central files. Your firewalls won't compile here — find another way through."
 }

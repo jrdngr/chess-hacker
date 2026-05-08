@@ -45,7 +45,7 @@ A single match is a chess game with two augmentations:
 
 On the player's turn, the player may **play any number of cards** (limited only by energy and hand contents), then make exactly one chess move. Cards are mostly played during the player's own turn, before or after the move; some specific card effects may target the move itself (e.g. "this turn, your knight may also move 1 square diagonally"). There are **no reactions** on the opponent's turn in the prototype.
 
-The opponent (Stockfish.wasm at depth-tuned strength, plus a custom layer for boss curse-cards) plays standard chess plus any boss-specified rule modifiers. The opponent does **not** have a deck of cards in any current design.
+The opponent (Stockfish.wasm at depth-tuned strength, plus a custom layer for boss status effects) plays standard chess plus any boss-specified rule modifiers. The opponent does **not** have a deck of cards in any current design.
 
 A match ends when one side achieves checkmate (player wins / loses), is stalemated (draw, counts as loss), or any standard draw rule fires (50-move, threefold repetition).
 

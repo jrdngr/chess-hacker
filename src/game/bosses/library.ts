@@ -6,27 +6,26 @@
 //
 // All three bosses are wired end-to-end through Match.tsx:
 //   Boss A (6×6) — modifier: no-player-walls; hazards: c3/d4 walls;
-//                  curse: Throttled on player check.
+//                  status effect: Throttled (fires on player check).
 //   Boss B (7×7) — modifier: captures grant the captured side +1 energy;
 //                  hazards: pre-placed +1 energy/turn buff anchored at d1;
-//                  curse: Memory Leak every 4 turns.
+//                  status effect: Memory Leak (every 4 turns).
 //   Boss C (8×8) — modifier: pawn promotion disabled;
 //                  hazards: 2x2 void at d4/d5/e4/e5 (any piece ending on
 //                  one of these squares is destroyed);
-//                  curses: Hardened (turn 1), Echo (on player check),
+//                  status effects: Hardened (turn 1), Echo (on player check),
 //                  Bit Rot (every 5 turns).
 //
-// `curseId` references are validated lazily (at first lookup, via
-// `getCardById`) to avoid module-init ordering between card and boss
-// libraries.
+// `statusEffects` ids are validated lazily (at first lookup, via
+// `getStatusEffectById`) to avoid module-init ordering between status and
+// boss libraries.
 
 import type {
   AlgebraicSquare,
   BossDef,
   BossId,
   BossModifier,
-  CurseScheduleEntry,
-  CurseTrigger,
+  StatusEffectId,
   ZoneBuffEffect,
   ZoneRegion,
 } from "../types";
@@ -37,12 +36,6 @@ export const VALID_BOSS_MODIFIER_KINDS = [
   "no-player-walls",
   "captures-grant-captured-energy",
   "no-promotion",
-] as const;
-export const VALID_CURSE_TRIGGER_KINDS = [
-  "turn",
-  "every-n-turns",
-  "on-player-check",
-  "on-player-capture",
 ] as const;
 
 const VALID_ZONE_REGION_KINDS = [
@@ -57,10 +50,6 @@ const SQUARE_RE = /^[a-h][1-8]$/;
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
-}
-
-function isPositiveInt(v: unknown): v is number {
-  return typeof v === "number" && Number.isInteger(v) && v >= 1;
 }
 
 function validateSquare(v: unknown, label: string, errors: string[]): AlgebraicSquare | null {
@@ -85,56 +74,6 @@ function validateModifier(raw: unknown, errors: string[]): BossModifier | null {
     return null;
   }
   return { kind } as BossModifier;
-}
-
-function validateCurseTrigger(raw: unknown, errors: string[]): CurseTrigger | null {
-  if (!isPlainObject(raw)) {
-    errors.push("'trigger' must be an object with a 'kind' field");
-    return null;
-  }
-  const kind = raw.kind;
-  if (
-    typeof kind !== "string" ||
-    !(VALID_CURSE_TRIGGER_KINDS as readonly string[]).includes(kind)
-  ) {
-    errors.push(`'trigger.kind' must be one of ${VALID_CURSE_TRIGGER_KINDS.join(", ")}`);
-    return null;
-  }
-  switch (kind) {
-    case "turn": {
-      if (!isPositiveInt(raw.turn)) {
-        errors.push("'trigger.turn' must be a positive integer for kind 'turn'");
-        return null;
-      }
-      return { kind: "turn", turn: raw.turn };
-    }
-    case "every-n-turns": {
-      if (!isPositiveInt(raw.n)) {
-        errors.push("'trigger.n' must be a positive integer for kind 'every-n-turns'");
-        return null;
-      }
-      return { kind: "every-n-turns", n: raw.n };
-    }
-    case "on-player-check":
-      return { kind: "on-player-check" };
-    case "on-player-capture":
-      return { kind: "on-player-capture" };
-  }
-  return null;
-}
-
-function validateCurseEntry(raw: unknown, errors: string[]): CurseScheduleEntry | null {
-  if (!isPlainObject(raw)) {
-    errors.push("curse entry must be an object");
-    return null;
-  }
-  const trigger = validateCurseTrigger(raw.trigger, errors);
-  const curseId = raw.curseId;
-  if (typeof curseId !== "string" || curseId.length === 0) {
-    errors.push("'curseId' must be a non-empty string");
-  }
-  if (!trigger || typeof curseId !== "string" || curseId.length === 0) return null;
-  return { trigger, curseId };
 }
 
 function validateZoneRegion(raw: unknown, errors: string[]): ZoneRegion | null {
@@ -266,19 +205,17 @@ export function validateBossDef(raw: unknown): { boss?: BossDef; errors: string[
     }
   }
 
-  const cursesRaw = raw.curses;
-  const curses: CurseScheduleEntry[] = [];
-  if (!Array.isArray(cursesRaw)) {
-    errors.push("'curses' must be an array (use [] for none)");
+  const statusEffectsRaw = raw.statusEffects;
+  const statusEffects: StatusEffectId[] = [];
+  if (!Array.isArray(statusEffectsRaw)) {
+    errors.push("'statusEffects' must be an array of status effect ids (use [] for none)");
   } else {
-    cursesRaw.forEach((entry, i) => {
-      const childErrors: string[] = [];
-      const e = validateCurseEntry(entry, childErrors);
-      if (!e) {
-        for (const m of childErrors) errors.push(`curses[${i}]: ${m}`);
-      } else {
-        curses.push(e);
+    statusEffectsRaw.forEach((entry, i) => {
+      if (typeof entry !== "string" || entry.length === 0) {
+        errors.push(`statusEffects[${i}] must be a non-empty status effect id string`);
+        return;
       }
+      statusEffects.push(entry);
     });
   }
 
@@ -291,7 +228,7 @@ export function validateBossDef(raw: unknown): { boss?: BossDef; errors: string[
     modifier: modifier!,
     modifierDescription: modifierDescription as string,
     hazardWalls,
-    curses,
+    statusEffects,
     description: description as string,
   };
   if (voidSquaresRaw !== undefined) boss.voidSquares = voidSquares;
