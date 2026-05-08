@@ -50,6 +50,17 @@ export type GoOptions = (
    * variant config; overlays are choss-side).
    */
   searchMoves?: ReadonlyArray<string>;
+  /**
+   * Optional watchdog (ms). If the engine doesn't reply with `bestmove`
+   * within this window, the wrapper sends `stop`, waits a 1s grace period
+   * for the engine to respond, then rejects with a timeout error and dumps
+   * recent UCI lines to the console. Default: undefined (no watchdog).
+   *
+   * Defends against a rare freeze where the search never returns a move —
+   * the game should not lock up; the caller can fall back to a random
+   * legal move and surface an error.
+   */
+  watchdogMs?: number;
 };
 
 export type StockfishOptions = {
@@ -95,6 +106,13 @@ export function variantFor(size: BoardSize): string {
   return `choss${size.files}x${size.ranks}`;
 }
 
+/**
+ * Recent-UCI-line ring buffer size. Kept on each engine instance and dumped
+ * on a watchdog-triggered timeout so a future hang has diagnostic context
+ * in the browser console.
+ */
+const UCI_LINE_BUFFER = 60;
+
 export class StockfishEngine {
   private worker: Worker;
   private variantPath: string;
@@ -104,6 +122,12 @@ export class StockfishEngine {
   private bestMoveResolve: ((uci: string) => void) | null = null;
   private bestMoveReject: ((err: Error) => void) | null = null;
   private destroyed = false;
+  /** Recent UCI lines (engine → main), oldest first. Capped to UCI_LINE_BUFFER. */
+  private recentLines: string[] = [];
+  /** Active watchdog timer, if any. Cleared by bestmove arrival or destroy. */
+  private watchdogTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Grace timer between sending `stop` and rejecting on watchdog timeout. */
+  private watchdogStopTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(opts: StockfishOptions = {}) {
     const url = opts.workerUrl ?? DEFAULT_WORKER_URL;
@@ -146,6 +170,10 @@ export class StockfishEngine {
   /**
    * Ask the engine for the best move at the current position.
    * Resolves with a UCI move string. Rejects if a search is already running.
+   *
+   * If `opts.watchdogMs` is set, arms a timer that — if no bestmove arrives —
+   * sends `stop`, gives the engine 1s to respond, then rejects (and dumps
+   * the recent UCI line buffer to the console).
    */
   getBestMove(opts: GoOptions): Promise<string> {
     if (this.destroyed) return Promise.reject(new Error("stockfish destroyed"));
@@ -164,6 +192,29 @@ export class StockfishEngine {
           ? ` searchmoves ${opts.searchMoves.join(" ")}`
           : "";
       this.send(`${head}${restrict}`);
+
+      const wd = opts.watchdogMs;
+      if (typeof wd === "number" && wd > 0) {
+        this.watchdogTimer = setTimeout(() => {
+          this.watchdogTimer = null;
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[stockfish] watchdog: no bestmove after ${wd}ms — sending stop. Recent UCI lines:\n` +
+              this.recentLines.map((l) => `  ${l}`).join("\n"),
+          );
+          this.send("stop");
+          // Grace: give the engine a second to respond to `stop` (it normally
+          // emits a bestmove based on its current best line). If it doesn't,
+          // null out the in-flight handles and reject so callers can recover.
+          this.watchdogStopTimer = setTimeout(() => {
+            this.watchdogStopTimer = null;
+            const rej = this.bestMoveReject;
+            this.bestMoveResolve = null;
+            this.bestMoveReject = null;
+            rej?.(new Error(`stockfish watchdog timed out after ${wd}ms`));
+          }, 1000);
+        }, wd);
+      }
     });
   }
 
@@ -177,6 +228,7 @@ export class StockfishEngine {
 
   destroy(): void {
     if (this.destroyed) return;
+    this.clearWatchdog();
     try {
       // Bypass `send`'s destroyed-guard so the engine gets a clean shutdown.
       this.worker.postMessage("quit");
@@ -192,6 +244,17 @@ export class StockfishEngine {
     }
   }
 
+  private clearWatchdog(): void {
+    if (this.watchdogTimer !== null) {
+      clearTimeout(this.watchdogTimer);
+      this.watchdogTimer = null;
+    }
+    if (this.watchdogStopTimer !== null) {
+      clearTimeout(this.watchdogStopTimer);
+      this.watchdogStopTimer = null;
+    }
+  }
+
   private send(cmd: string): void {
     if (this.destroyed) return;
     this.worker.postMessage(cmd);
@@ -199,6 +262,10 @@ export class StockfishEngine {
 
   private handleLine(line: string): void {
     if (typeof line !== "string") return;
+
+    // Buffer the line so a watchdog timeout has diagnostic context to dump.
+    this.recentLines.push(line);
+    if (this.recentLines.length > UCI_LINE_BUFFER) this.recentLines.shift();
 
     // Surface the proxy worker's init log lines so a hung handshake is
     // diagnosable from devtools. These stay in `info string` form so they
@@ -227,6 +294,7 @@ export class StockfishEngine {
     }
     if (line.startsWith("bestmove")) {
       // "bestmove e2e4" or "bestmove e7e8q ponder ..."
+      this.clearWatchdog();
       const parts = line.split(/\s+/);
       const uci = parts[1];
       const resolve = this.bestMoveResolve;

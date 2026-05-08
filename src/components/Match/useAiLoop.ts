@@ -22,6 +22,13 @@ import { resolveTrapForMove } from "./sideEffects";
 import type { HistoryEvent } from "./history";
 
 const AI_SIDE: Side = "opponent";
+/**
+ * Watchdog for `getBestMove`. Depth 6 on the boards we use should finish in
+ * well under a second; 15s is generous and only fires when something has
+ * genuinely gone wrong with the engine. On timeout we fall back to a random
+ * legal move (see `doAiMove`) so the game doesn't lock up.
+ */
+const AI_WATCHDOG_MS = 15_000;
 
 type Params = {
   engine: ChoseEngine;
@@ -144,24 +151,51 @@ export function useAiLoop({
       if (isCancelled() || generationRef.current !== myGen) return;
       ai.setPosition(engine.fen());
       const candidates = engine.legalMoves().map(legalMoveToUci);
-      const [uci] = await Promise.all([
-        ai.getBestMove({
-          depth: depthForDifficulty(difficulty),
-          searchMoves: candidates,
-        }),
-        new Promise<void>((resolve) => setTimeout(resolve, wait)),
-      ]);
+      // Engine reply, watchdog'd so a freak hang falls back to a random move
+      // instead of locking the game on "thinking…" forever. On rejection we
+      // surface the error and let the existing `if (!applied)` fallback
+      // below pick a legal move so the game keeps progressing.
+      let uci = "";
+      let engineFailed = false;
+      try {
+        [uci] = await Promise.all([
+          ai.getBestMove({
+            depth: depthForDifficulty(difficulty),
+            searchMoves: candidates,
+            watchdogMs: AI_WATCHDOG_MS,
+          }),
+          new Promise<void>((resolve) => setTimeout(resolve, wait)),
+        ]);
+      } catch (e) {
+        engineFailed = true;
+        const msg = e instanceof Error ? e.message : String(e);
+        // eslint-disable-next-line no-console
+        console.warn(`[ai] getBestMove failed; falling back to random legal move: ${msg}`);
+        setAiError(`AI engine error: ${msg} — playing a random legal move`);
+      }
       if (isCancelled() || generationRef.current !== myGen) return;
-      if (!uci) return;
-      const move = uciToMove(uci);
+      // Empty uci with no failure = engine genuinely reports no legal move
+      // (stalemate/checkmate); skip without a fallback. On engineFailed we
+      // proceed so the random-move fallback below fires.
+      if (!uci && !engineFailed) return;
 
       // Snapshot the moving piece BEFORE the engine applies the move; its
       // type drives the move-path computation used by trap resolution.
-      let mover: Piece | null = engine.pieceAt(move.from);
+      // A malformed UCI string is treated as "no move"; the fallback below
+      // picks a legal one so the game progresses.
+      let move: ReturnType<typeof uciToMove> | null = null;
+      if (uci) {
+        try {
+          move = uciToMove(uci);
+        } catch {
+          move = null;
+        }
+      }
+      let mover: Piece | null = move ? engine.pieceAt(move.from) : null;
       // Capture victim must be read BEFORE applying the move — once the engine
       // resolves, the target square is gone or repopulated.
-      let captured: Piece | null = engine.pieceAt(move.to);
-      let applied = engine.move(move);
+      let captured: Piece | null = move ? engine.pieceAt(move.to) : null;
+      let applied = move ? engine.move(move) : null;
       if (!applied) {
         const fallback = engine.legalMoves()[0];
         if (fallback) {

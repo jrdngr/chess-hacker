@@ -210,6 +210,90 @@ describe("StockfishEngine", () => {
     ).not.toThrow();
     sf.destroy();
   });
+
+  describe("watchdog", () => {
+    it("sends `stop` when no bestmove arrives within watchdogMs", async () => {
+      vi.useFakeTimers();
+      try {
+        const sf = new StockfishEngine({ workerUrl: "/fake.js" });
+        const w = FakeWorker.instances[0]!;
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        const search = sf.getBestMove({ depth: 4, watchdogMs: 50 }).catch(() => {});
+        expect(w.posted.at(-1)).toBe("go depth 4");
+
+        // Watchdog fires → wrapper sends `stop`.
+        await vi.advanceTimersByTimeAsync(50);
+        expect(w.posted.at(-1)).toBe("stop");
+
+        // Engine responds late with a bestmove during the 1s grace period —
+        // wrapper resolves the in-flight search rather than rejecting.
+        w.emit("bestmove e7e5");
+        await search;
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("rejects after the 1s grace period if engine doesn't respond to stop", async () => {
+      vi.useFakeTimers();
+      try {
+        const sf = new StockfishEngine({ workerUrl: "/fake.js" });
+        const w = FakeWorker.instances[0]!;
+        const settled = sf.getBestMove({ depth: 4, watchdogMs: 50 }).then(
+          () => "resolved",
+          (e: Error) => `rejected:${e.message}`,
+        );
+
+        await vi.advanceTimersByTimeAsync(50);
+        expect(w.posted.at(-1)).toBe("stop");
+
+        // Engine never responds — grace timer fires after 1s.
+        await vi.advanceTimersByTimeAsync(1000);
+        expect(await settled).toMatch(/^rejected:.*watchdog/);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("does not fire when bestmove arrives before the watchdog", async () => {
+      vi.useFakeTimers();
+      try {
+        const sf = new StockfishEngine({ workerUrl: "/fake.js" });
+        const w = FakeWorker.instances[0]!;
+        const p = sf.getBestMove({ depth: 4, watchdogMs: 100 });
+
+        await vi.advanceTimersByTimeAsync(20);
+        w.emit("bestmove e7e5");
+        await expect(p).resolves.toBe("e7e5");
+
+        // Even after the would-be watchdog window, no `stop` was sent.
+        await vi.advanceTimersByTimeAsync(200);
+        expect(w.posted).not.toContain("stop");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("destroy() clears a pending watchdog", async () => {
+      vi.useFakeTimers();
+      try {
+        const sf = new StockfishEngine({ workerUrl: "/fake.js" });
+        const w = FakeWorker.instances[0]!;
+        const settled = sf.getBestMove({ depth: 4, watchdogMs: 50 }).then(
+          () => "resolved",
+          (e: Error) => `rejected:${e.message}`,
+        );
+        sf.destroy();
+        // Advance past the watchdog window — `stop` must NOT be sent on a
+        // destroyed engine, and the only rejection should be from destroy.
+        await vi.advanceTimersByTimeAsync(2000);
+        expect(w.posted).not.toContain("stop");
+        expect(await settled).toMatch(/^rejected:.*destroyed/);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
 });
 
 describe("variantFor", () => {

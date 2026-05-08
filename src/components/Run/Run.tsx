@@ -6,13 +6,16 @@
 // painful" — the M5 mini-run touches at most three siblings (Match, Reward,
 // Shop), all owned by this shell.
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { BossPreview } from "./BossPreview";
 import { Match } from "../Match";
 import { MatchWonPanel } from "./MatchWonPanel";
 import { Reward } from "./Reward";
-import { Shop } from "./Shop";
+import { RunHistoryModal } from "./RunHistoryModal";
+import { Shop, type ShopAction } from "./Shop";
+import { artifactIds, deckIds, summarizeOffer, type RunHistoryEvent } from "./runHistory";
+import type { HistoryEvent } from "../Match/history";
 import { RunSummary } from "./RunSummary";
 import {
   activeBossFor,
@@ -142,6 +145,68 @@ export function Run({ mode, onExit, rngSeed }: Props) {
     finalOutcome: null,
   });
 
+  // Run-level event log — covers every shell transition (match-start,
+  // match-end, shop transactions, reward picks) plus all per-match events
+  // forwarded from <Match> via `onAppendHistory`. The ref is the canonical
+  // source so callbacks can append synchronously without reading stale state;
+  // a parallel useState mirror drives modal re-renders.
+  const runHistoryRef = useRef<RunHistoryEvent[]>([]);
+  const [runHistory, setRunHistory] = useState<RunHistoryEvent[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  const pushRunEvent = useCallback((event: RunHistoryEvent) => {
+    const next = [...runHistoryRef.current, event];
+    runHistoryRef.current = next;
+    setRunHistory(next);
+  }, []);
+
+  // Seed the run-start event once. We capture the run's seed + starting deck
+  // + starting artifacts so a replayer has everything it needs to reconstruct
+  // the run from scratch.
+  const runStartLoggedRef = useRef(false);
+  useEffect(() => {
+    if (runStartLoggedRef.current) return;
+    runStartLoggedRef.current = true;
+    pushRunEvent({
+      kind: "run-start",
+      mode: run.mode,
+      ascension: run.ascension,
+      rngSeed: run.rngSeed,
+      startingDeckIds: deckIds(run.deck),
+      startingArtifactIds: artifactIds(run.artifacts),
+    });
+    // Run is captured by the closure; we only ever fire this once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // De-dup match-start logging — the matchSetup useEffect can run twice in
+  // strict mode and we don't want a duplicate event per match.
+  const lastMatchStartLoggedRef = useRef<number>(-1);
+  // De-dup shop-enter logging similarly: the shop-generation useEffect can
+  // re-fire once after entering the shop phase.
+  const lastShopEnterLoggedRef = useRef<number>(-1);
+
+  // Forwarded by <Match>; tag each per-match event with the current match
+  // number so a single export can reconstruct what happened across the run.
+  // We read matchNumber off the live run state — pushHistory inside Match
+  // fires from React event handlers, so by the time the callback runs the
+  // current match is whichever the run shell is showing.
+  const matchNumberRef = useRef(run.matchNumber);
+  useEffect(() => {
+    matchNumberRef.current = run.matchNumber;
+  }, [run.matchNumber]);
+
+  const onAppendHistory = useCallback(
+    (event: HistoryEvent) => {
+      pushRunEvent({
+        kind: "match-event",
+        matchNumber: matchNumberRef.current,
+        event,
+      });
+    },
+    [pushRunEvent],
+  );
+
   // Lazy-generate the draft / shop on phase entry. The phase transitions
   // happen via setRun(...) and the new state lands here as a fresh `run`;
   // we mirror that into `extras` so the phase UI has its prepared content.
@@ -190,6 +255,17 @@ export function Run({ mode, onExit, rngSeed }: Props) {
       const { shop, next } = generateShop(run);
       setExtras((e) => ({ ...e, shop }));
       setRun(next);
+      if (lastShopEnterLoggedRef.current !== next.matchNumber) {
+        lastShopEnterLoggedRef.current = next.matchNumber;
+        pushRunEvent({
+          kind: "shop-enter",
+          matchNumber: next.matchNumber,
+          gold: next.gold,
+          offers: shop.offers.map(summarizeOffer),
+          rerollCost: shop.rerollCost,
+          removalCost: shop.removalCost,
+        });
+      }
       return;
     }
     if (run.phase === "match") {
@@ -224,8 +300,25 @@ export function Run({ mode, onExit, rngSeed }: Props) {
       if (extras.matchSetup === null) {
         const { fen, size, next } = nextMatchSetup(run);
         const matchStartGold = goldOnMatchStart(next.artifacts);
-        setRun(matchStartGold > 0 ? { ...next, gold: next.gold + matchStartGold } : next);
+        const finalRun = matchStartGold > 0 ? { ...next, gold: next.gold + matchStartGold } : next;
+        setRun(finalRun);
         setExtras((e) => ({ ...e, matchSetup: { fen, size } }));
+        if (lastMatchStartLoggedRef.current !== finalRun.matchNumber) {
+          lastMatchStartLoggedRef.current = finalRun.matchNumber;
+          const boss = activeBossFor(finalRun);
+          pushRunEvent({
+            kind: "match-start",
+            matchNumber: finalRun.matchNumber,
+            act: finalRun.act,
+            matchInAct: finalRun.matchInAct,
+            fen,
+            size,
+            deckIds: deckIds(finalRun.deck),
+            artifactIds: artifactIds(finalRun.artifacts),
+            bossId: boss?.id ?? null,
+            goldAtStart: finalRun.gold,
+          });
+        }
       }
     }
   }, [
@@ -238,11 +331,19 @@ export function Run({ mode, onExit, rngSeed }: Props) {
     extras.bossPickResolved,
     extras.finalSnapshot,
     extras.finalOutcome,
+    pushRunEvent,
   ]);
 
   // ---- Match phase --------------------------------------------------------
 
   const onMatchEnd = (outcome: RunMatchOutcome) => {
+    pushRunEvent({
+      kind: "match-end",
+      matchNumber: matchNumberRef.current,
+      won: outcome.won,
+      outcome: outcome.outcome,
+      turnsPlayed: outcome.turnsPlayed,
+    });
     if (outcome.won) {
       // Pause on the final position so the player can review the win and
       // confirm before the reward step takes over the screen. The phase
@@ -270,12 +371,14 @@ export function Run({ mode, onExit, rngSeed }: Props) {
   // pendingWin (a yet-to-be-confirmed win) and the captured final snapshot
   // both clear so a redo can re-fire them cleanly.
   const onRevertMatchEnd = () => {
+    pushRunEvent({ kind: "revert-match-end", matchNumber: matchNumberRef.current });
     setExtras((e) => ({ ...e, pendingWin: null, finalSnapshot: null, finalOutcome: null }));
     setRun((r) => (r.phase === "lost" ? { ...r, phase: "match" } : r));
   };
 
   const onConfirmWin = () => {
     if (!extras.pendingWin) return;
+    pushRunEvent({ kind: "match-win-confirmed", matchNumber: matchNumberRef.current });
     const outcome = extras.pendingWin;
     setRun((r) => applyMatchOutcome(r, outcome));
     setExtras((e) => ({ ...e, pendingWin: null }));
@@ -284,6 +387,11 @@ export function Run({ mode, onExit, rngSeed }: Props) {
   // ---- Boss reward handlers ----------------------------------------------
 
   const onPickBossArtifact = (artifact: Artifact) => {
+    pushRunEvent({
+      kind: "boss-artifact-pick",
+      matchNumber: matchNumberRef.current,
+      artifactId: artifact.id,
+    });
     setRun((r) => pickBossArtifact(r, artifact));
     setExtras((e) => ({ ...e, bossArtifactOffer: null }));
   };
@@ -291,22 +399,50 @@ export function Run({ mode, onExit, rngSeed }: Props) {
   const onSkipBossArtifact = () => {
     if (!extras.bossArtifactOffer) return;
     const skipGold = extras.bossArtifactOffer.skipGold;
+    pushRunEvent({
+      kind: "boss-artifact-skip",
+      matchNumber: matchNumberRef.current,
+      skipGold,
+    });
     setRun((r) => skipBossArtifact(r, skipGold));
     setExtras((e) => ({ ...e, bossArtifactOffer: null }));
   };
 
   const onPickBossOption = (option: BossPickOption) => {
+    pushRunEvent({
+      kind: "boss-pick",
+      matchNumber: matchNumberRef.current,
+      option,
+    });
     setRun((r) => pickBossOption(r, option));
     setExtras((e) => ({ ...e, bossPickOffer: null, bossPickResolved: true }));
   };
 
   const onDeleteDeckCard = (deckIndex: number) => {
-    setRun((r) => consumeBossDeleteCharge(r, deckIndex) ?? r);
+    const card = run.deck[deckIndex];
+    setRun((r) => {
+      const next = consumeBossDeleteCharge(r, deckIndex);
+      if (next && card) {
+        pushRunEvent({
+          kind: "boss-delete-card",
+          matchNumber: matchNumberRef.current,
+          deckIndex,
+          cardId: card.id,
+          chargesRemaining: next.bossDeleteCharges ?? 0,
+        });
+      }
+      return next ?? r;
+    });
   };
 
   // ---- Boss preview --------------------------------------------------------
 
   const onDismissBossPreview = () => {
+    pushRunEvent({
+      kind: "boss-preview-dismissed",
+      act: run.act,
+      bossId: previewBossFor(run)?.id ?? null,
+    });
     setRun((r) => dismissBossPreview(r));
   };
 
@@ -317,10 +453,82 @@ export function Run({ mode, onExit, rngSeed }: Props) {
     setExtras((e) => ({ ...e, shop: next.shop }));
   };
 
+  const onShopAction = (action: ShopAction) => {
+    // We log against the freshly-updated state — `setRun` from `onShopUpdate`
+    // already fired by the time React calls us. Read from the run ref via
+    // the latest render-time `run` (closure-captured); this is fine because
+    // every onShopUpdate triggers a re-render before the next user action.
+    switch (action.kind) {
+      case "buy-card":
+        pushRunEvent({
+          kind: "shop-buy-card",
+          matchNumber: matchNumberRef.current,
+          offerIndex: action.offerIndex,
+          cardId: action.card.id,
+          pricePaid: action.pricePaid,
+          goldAfter: run.gold - action.pricePaid,
+        });
+        return;
+      case "buy-artifact":
+        pushRunEvent({
+          kind: "shop-buy-artifact",
+          matchNumber: matchNumberRef.current,
+          offerIndex: action.offerIndex,
+          artifactId: action.artifact.id,
+          pricePaid: action.pricePaid,
+          goldAfter: run.gold - action.pricePaid,
+        });
+        return;
+      case "open-pack":
+        pushRunEvent({
+          kind: "shop-open-pack",
+          matchNumber: matchNumberRef.current,
+          offerIndex: action.offerIndex,
+          packId: action.pack.id,
+          contentIds: action.pack.contents.map((c) => c.id),
+          pricePaid: action.pricePaid,
+          goldAfter: run.gold - action.pricePaid,
+        });
+        return;
+      case "pick-pack-card":
+        pushRunEvent({
+          kind: "shop-pick-pack-card",
+          matchNumber: matchNumberRef.current,
+          cardId: action.card.id,
+        });
+        return;
+      case "reroll":
+        pushRunEvent({
+          kind: "shop-reroll",
+          matchNumber: matchNumberRef.current,
+          cost: action.cost,
+          goldAfter: run.gold - action.cost,
+          offers: action.newOffers.map(summarizeOffer),
+        });
+        return;
+      case "remove-card":
+        pushRunEvent({
+          kind: "shop-remove-card",
+          matchNumber: matchNumberRef.current,
+          deckIndex: action.deckIndex,
+          cardId: action.card.id,
+          pricePaid: action.pricePaid,
+          goldAfter: run.gold - action.pricePaid,
+        });
+        return;
+    }
+  };
+
   const onLeaveShop = () => {
     setRun((r) => {
       const { state, interest } = applyInterest(r);
       setExtras((e) => ({ ...e, shop: null, lastInterest: interest }));
+      pushRunEvent({
+        kind: "shop-leave",
+        matchNumber: r.matchNumber,
+        interest,
+        goldAfter: state.gold,
+      });
       return leaveShop(state);
     });
   };
@@ -423,6 +631,15 @@ export function Run({ mode, onExit, rngSeed }: Props) {
         {extras.lastInterest > 0 && run.phase === "match" && (
           <span className={styles.bannerInterest}>+{extras.lastInterest} interest</span>
         )}
+        <button
+          type="button"
+          onClick={() => setHistoryOpen(true)}
+          className={styles.log}
+          title="Show / export run log"
+          aria-label="Show run log"
+        >
+          Log ({runHistory.length})
+        </button>
         <button type="button" onClick={onExit} className={styles.quit}>
           Quit run
         </button>
@@ -439,6 +656,7 @@ export function Run({ mode, onExit, rngSeed }: Props) {
       activeBoss,
       extras.lastInterest,
       onExit,
+      runHistory.length,
     ],
   );
 
@@ -461,6 +679,7 @@ export function Run({ mode, onExit, rngSeed }: Props) {
             onMatchEnd={onMatchEnd}
             onCaptureFinalSnapshot={onCaptureFinalSnapshot}
             onRevertMatchEnd={onRevertMatchEnd}
+            onAppendHistory={onAppendHistory}
             endOfRunPanel={
               run.phase === "won" || run.phase === "lost" ? (
                 <RunSummary run={run} outcome={extras.finalOutcome?.outcome} onExit={onExit} />
@@ -485,7 +704,13 @@ export function Run({ mode, onExit, rngSeed }: Props) {
         />
       )}
       {run.phase === "shop" && extras.shop && (
-        <Shop run={run} shop={extras.shop} onUpdate={onShopUpdate} onLeave={onLeaveShop} />
+        <Shop
+          run={run}
+          shop={extras.shop}
+          onUpdate={onShopUpdate}
+          onLeave={onLeaveShop}
+          onAction={onShopAction}
+        />
       )}
       {run.phase === "won" && !extras.matchSetup && extras.finalSnapshot && (
         <Match
@@ -507,6 +732,7 @@ export function Run({ mode, onExit, rngSeed }: Props) {
         !(run.phase === "won" && extras.finalSnapshot) && (
           <RunSummary run={run} outcome={extras.finalOutcome?.outcome} onExit={onExit} />
         )}
+      {historyOpen && <RunHistoryModal events={runHistory} onClose={() => setHistoryOpen(false)} />}
     </div>
   );
 }

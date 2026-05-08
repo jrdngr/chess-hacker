@@ -239,6 +239,35 @@ describe("Match (vs AI)", () => {
     expect(elapsed).toBeGreaterThanOrEqual(280); // small slack for timer jitter
   });
 
+  it("falls back to a random legal move if the AI rejects", async () => {
+    const user = userEvent.setup();
+    // AI engine that always errors instead of returning a move. The match
+    // should still progress: doAiMove falls back to the first legal move.
+    const ai: Partial<StockfishEngine> = {
+      ready: () => Promise.resolve(),
+      setVariant: () => {},
+      setPosition: () => {},
+      getBestMove: () => Promise.reject(new Error("simulated engine failure")),
+      stop: () => {},
+      destroy: () => {},
+    };
+    render(<Match initialMode="vs-ai" createAi={() => ai as StockfishEngine} aiMinThinkMs={0} />);
+
+    await user.click(squareCell("e2")!);
+    await user.click(squareCell("e4")!);
+
+    // The AI loop catches the rejection and applies the first legal black
+    // move (a7-a6 from the alphabetical iteration order in our move
+    // generator), so the side to move flips back to white.
+    await waitFor(() => {
+      expect(screen.getByText(/^white/i)).toBeInTheDocument();
+    });
+
+    // The side panel surfaces the AI error so the player knows the engine
+    // misbehaved.
+    expect(screen.getByRole("alert")).toHaveTextContent(/AI engine error/i);
+  });
+
   it("difficulty selector lets the user pick a depth", async () => {
     const user = userEvent.setup();
     const ai = makeFakeAi([]);

@@ -17,19 +17,56 @@ import {
   rerollShop,
 } from "../../game/shop/shop";
 import { ARTIFACT_SLOT_CAP } from "../../game/types";
-import type { BoosterPack, Card, RunState, Shop as ShopState } from "../../game/types";
+import type {
+  Artifact,
+  BoosterPack,
+  Card,
+  RunState,
+  Shop as ShopState,
+  ShopOffer,
+} from "../../game/types";
 
 import styles from "./Shop.module.css";
 import cardListStyles from "../Hand/CardListModal.module.css";
+
+/**
+ * Structured description of a shop action — fed to `onAction` so the run
+ * log can record what the player did with enough detail to reproduce the
+ * state change. Fires after the action resolves; the corresponding state
+ * update flows through `onUpdate` as usual.
+ */
+export type ShopAction =
+  | { kind: "buy-card"; offerIndex: number; card: Card; pricePaid: number }
+  | {
+      kind: "open-pack";
+      offerIndex: number;
+      pack: BoosterPack;
+      pricePaid: number;
+    }
+  | { kind: "pick-pack-card"; card: Card }
+  | {
+      kind: "buy-artifact";
+      offerIndex: number;
+      artifact: Artifact;
+      pricePaid: number;
+    }
+  | { kind: "reroll"; cost: number; newOffers: ReadonlyArray<ShopOffer> }
+  | { kind: "remove-card"; deckIndex: number; card: Card; pricePaid: number };
 
 type Props = {
   run: RunState;
   shop: ShopState;
   onUpdate: (next: { state: RunState; shop: ShopState }) => void;
   onLeave: () => void;
+  /**
+   * Optional: receives a structured action description after each shop
+   * interaction resolves. Used by the run shell to feed its log; ignored
+   * by tests that don't care about telemetry.
+   */
+  onAction?: (action: ShopAction) => void;
 };
 
-export function Shop({ run, shop, onUpdate, onLeave }: Props) {
+export function Shop({ run, shop, onUpdate, onLeave, onAction }: Props) {
   // Pack-pick modal state — non-null means a pack is open and the player is
   // about to pick 1 card from `pack.contents`.
   const [openedPack, setOpenedPack] = useState<BoosterPack | null>(null);
@@ -37,39 +74,85 @@ export function Shop({ run, shop, onUpdate, onLeave }: Props) {
   const [removalMode, setRemovalMode] = useState(false);
 
   const onBuyCard = (index: number) => {
+    const offer = shop.offers[index];
     const next = buyCardOffer(run, shop, index);
-    if (next) onUpdate(next);
+    if (next) {
+      onUpdate(next);
+      if (offer && offer.kind === "card") {
+        onAction?.({
+          kind: "buy-card",
+          offerIndex: index,
+          card: offer.card,
+          pricePaid: offer.price,
+        });
+      }
+    }
   };
 
   const onBuyArtifact = (index: number) => {
+    const offer = shop.offers[index];
     const next = buyArtifactOffer(run, shop, index);
-    if (next) onUpdate(next);
+    if (next) {
+      onUpdate(next);
+      if (offer && offer.kind === "artifact") {
+        onAction?.({
+          kind: "buy-artifact",
+          offerIndex: index,
+          artifact: offer.artifact,
+          pricePaid: offer.price,
+        });
+      }
+    }
   };
 
   const atArtifactCap = run.artifacts.length >= ARTIFACT_SLOT_CAP;
 
   const onOpenPack = (index: number) => {
+    const offer = shop.offers[index];
     const next = openBoosterOffer(run, shop, index);
     if (!next) return;
     onUpdate({ state: next.state, shop: next.shop });
     setOpenedPack(next.pack);
+    if (offer && offer.kind === "booster") {
+      onAction?.({
+        kind: "open-pack",
+        offerIndex: index,
+        pack: next.pack,
+        pricePaid: offer.price,
+      });
+    }
   };
 
   const onPickPackCard = (card: Card) => {
     onUpdate({ state: addPickedPackCard(run, card), shop });
     setOpenedPack(null);
+    onAction?.({ kind: "pick-pack-card", card });
   };
 
   const onReroll = () => {
+    const cost = shop.rerollCost;
     const next = rerollShop(run, shop);
-    if (next) onUpdate(next);
+    if (next) {
+      onUpdate(next);
+      onAction?.({ kind: "reroll", cost, newOffers: next.shop.offers });
+    }
   };
 
   const onRemoveDeckCard = (index: number) => {
+    const card = run.deck[index];
+    const cost = shop.removalCost;
     const next = removeCard(run, shop, index);
     if (next) {
       onUpdate(next);
       setRemovalMode(false);
+      if (card) {
+        onAction?.({
+          kind: "remove-card",
+          deckIndex: index,
+          card,
+          pricePaid: cost,
+        });
+      }
     }
   };
 

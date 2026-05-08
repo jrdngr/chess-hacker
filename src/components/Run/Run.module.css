@@ -258,6 +258,26 @@
   border-color: var(--square-check);
 }
 
+.log {
+  margin-left: auto;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.log:hover {
+  color: var(--fg);
+  border-color: var(--player);
+}
+
+.log + .quit {
+  margin-left: 0;
+}
+
 .summary {
   display: flex;
   flex-direction: column;

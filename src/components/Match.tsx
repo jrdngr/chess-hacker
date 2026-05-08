@@ -236,6 +236,14 @@ type Props = {
    * player can retry a losing line without leaving the run desynchronized.
    */
   onRevertMatchEnd?: () => void;
+  /**
+   * Run mode: fires whenever a per-match history event is appended (chess
+   * move, card play, turn rollover, editor edit). The Run shell uses this to
+   * fold per-match events into the run-level log so a single export covers
+   * the whole run. Optional — if absent (prototype / sandbox) Match still
+   * keeps its own local log for the in-match History modal.
+   */
+  onAppendHistory?: (event: HistoryEvent) => void;
 };
 
 const DEFAULT_AI_MIN_THINK_MS = 500;
@@ -288,6 +296,7 @@ export function Match({
   initialCardState,
   onCaptureFinalSnapshot,
   onRevertMatchEnd,
+  onAppendHistory,
 }: Props = {}) {
   // Dev mode forces the card system on (mode = "vs-ai"); the per-match
   // vs-AI / Local-PvP toggle is hidden in the side panel. The AI itself is
@@ -453,10 +462,19 @@ export function Match({
   const [history, setHistory] = useState<HistoryEvent[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
 
+  // Latest forwarder ref so pushHistory's identity doesn't churn whenever the
+  // parent's callback identity changes (Run.tsx hands us a fresh closure on
+  // every render). pushHistory itself is referenced by every sub-hook's deps.
+  const onAppendHistoryRef = useRef(onAppendHistory);
+  useEffect(() => {
+    onAppendHistoryRef.current = onAppendHistory;
+  }, [onAppendHistory]);
+
   const pushHistory = useCallback((event: HistoryEvent): HistoryEvent[] => {
     const next = [...historyRef.current, event];
     historyRef.current = next;
     setHistory(next);
+    onAppendHistoryRef.current?.(event);
     return next;
   }, []);
 
@@ -490,6 +508,7 @@ export function Match({
     ];
     historyRef.current = initial;
     setHistory(initial);
+    onAppendHistoryRef.current?.(initial[0]);
     undoRedo.seed({ engineSnapshot: engine.snapshot(), cardState, history: initial });
     // engine + cardState are captured by the closure; intentional.
     // eslint-disable-next-line react-hooks/exhaustive-deps
