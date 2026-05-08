@@ -220,8 +220,12 @@ describe("Empower (pawn pattern)", () => {
     expect(pos.turn).toBe("player");
   });
 
-  it("pawn empower grants diagonal-forward captures", () => {
+  it("pawn empower does NOT grant diagonal-forward captures (empower never captures)", () => {
     // White knight on c3 with pawn empower; black piece on b4 and d4.
+    // The native knight L-shape can capture (b5 / d5) but the empower-pawn
+    // pattern is non-capturing — b4 / d4 must NOT appear among the empower's
+    // diagonal captures, even though they would be the pawn's normal attack
+    // squares.
     const pos = parseFen("4k3/8/8/8/1p1p4/2N5/8/4K3 w - - 0 1");
     const overlays: Overlays = {
       ...baseOverlays(),
@@ -229,14 +233,88 @@ describe("Empower (pawn pattern)", () => {
     };
     const moves = legalMoves(pos, overlays, "c3");
     const captures = moves.filter((m) => m.isCapture).map((m) => m.to);
-    expect(captures).toContain("b4");
-    expect(captures).toContain("d4");
+    expect(captures).not.toContain("b4");
+    expect(captures).not.toContain("d4");
+    // Native knight L captures still work — d4 is reachable via L? No, b4/d4
+    // aren't knight L-targets from c3. Confirm c3's knight moves are present
+    // and unchanged: a2, a4, b1, b5, d1, d5, e2, e4 (subset of which are on board).
+    const destinations = moves.map((m) => m.to);
+    expect(destinations).toContain("b5");
+    expect(destinations).toContain("d5");
+  });
+
+  it("empower (knight pattern) does not capture: enemy on knight-target square is not a destination", () => {
+    // White rook on a1 + black piece on b3 (a knight L from a1). Native rook
+    // moves can't reach b3, and the empower-knight pattern is non-capturing.
+    const pos = parseFen("4k3/8/8/8/8/1p6/8/R3K3 w - - 0 1");
+    const overlays: Overlays = {
+      ...baseOverlays(),
+      empowers: new Map([["a1", new Set(["knight" as const])]]),
+    };
+    const moves = legalMoves(pos, overlays, "a1");
+    const destinations = moves.map((m) => m.to);
+    expect(destinations).not.toContain("b3");
+    // The other empower L-target from a1, c2, is empty so it remains a legal step.
+    expect(destinations).toContain("c2");
+  });
+});
+
+describe("Empower (diagonal-step pattern)", () => {
+  it("a pawn with diagonal-step empower can step 1 square diagonally to an empty square", () => {
+    const pos = parseFen("4k3/8/8/8/3P4/8/8/4K3 w - - 0 1");
+    const overlays: Overlays = {
+      ...baseOverlays(),
+      empowers: new Map([["d4", new Set(["diagonal-step" as const])]]),
+    };
+    const moves = legalMoves(pos, overlays, "d4").map((m) => m.to);
+    // All four diagonals are empty.
+    expect(moves).toEqual(expect.arrayContaining(["c5", "e5", "c3", "e3"]));
+  });
+
+  it("diagonal-step does not capture an enemy piece on a diagonal target", () => {
+    const pos = parseFen("4k3/8/8/2p1p3/3P4/8/8/4K3 w - - 0 1");
+    const overlays: Overlays = {
+      ...baseOverlays(),
+      empowers: new Map([["d4", new Set(["diagonal-step" as const])]]),
+    };
+    const moves = legalMoves(pos, overlays, "d4");
+    // The native pawn capture *does* hit c5 / e5; that's the pawn's own
+    // moveset, not the empower. Empower never adds a capture, but the native
+    // pawn capture is still legal — c5 / e5 should appear as captures.
+    const captureTargets = moves.filter((m) => m.isCapture).map((m) => m.to);
+    expect(captureTargets).toEqual(expect.arrayContaining(["c5", "e5"]));
+  });
+});
+
+describe("Empower (horizontal-step pattern)", () => {
+  it("a pawn with horizontal-step empower can step 1 square left or right to an empty square", () => {
+    const pos = parseFen("4k3/8/8/8/3P4/8/8/4K3 w - - 0 1");
+    const overlays: Overlays = {
+      ...baseOverlays(),
+      empowers: new Map([["d4", new Set(["horizontal-step" as const])]]),
+    };
+    const moves = legalMoves(pos, overlays, "d4").map((m) => m.to);
+    expect(moves).toEqual(expect.arrayContaining(["c4", "e4"]));
+  });
+
+  it("horizontal-step does not capture", () => {
+    const pos = parseFen("4k3/8/8/8/2pPp3/8/8/4K3 w - - 0 1");
+    const overlays: Overlays = {
+      ...baseOverlays(),
+      empowers: new Map([["d4", new Set(["horizontal-step" as const])]]),
+    };
+    const moves = legalMoves(pos, overlays, "d4");
+    // c4 / e4 hold enemy pieces; horizontal-step empower must not emit them.
+    const empowerTargets = moves.filter((m) => m.to === "c4" || m.to === "e4");
+    expect(empowerTargets).toEqual([]);
   });
 });
 
 describe("Empower (queen pattern)", () => {
-  it("a non-queen piece gains both bishop and rook slides", () => {
-    // White knight on d4 with queen empower; lone enemy king tucked away.
+  it("a non-queen piece gains both bishop and rook slides up to (but not capturing) any blocker", () => {
+    // White knight on d4 with queen empower; enemy king on h8 is on the
+    // up-right diagonal. Empower never captures, so the diagonal slide
+    // stops on g7 (last empty square) and never reaches h8.
     const pos = parseFen("7k/8/8/8/3N4/8/8/4K3 w - - 0 1");
     const overlays: Overlays = {
       ...baseOverlays(),
@@ -245,7 +323,8 @@ describe("Empower (queen pattern)", () => {
     const moves = legalMoves(pos, overlays, "d4").map((m) => m.to);
     // Diagonal (bishop)
     expect(moves).toContain("a7");
-    expect(moves).toContain("h8");
+    expect(moves).toContain("g7"); // last empty square before the enemy king
+    expect(moves).not.toContain("h8"); // empower never captures
     // Straight (rook)
     expect(moves).toContain("d8");
     expect(moves).toContain("a4");

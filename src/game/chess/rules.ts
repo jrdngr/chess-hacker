@@ -649,6 +649,7 @@ function addJumpMoves(
   pos: Position,
   overlays: Overlays,
   deltas: ReadonlyArray<readonly [number, number]>,
+  allowCaptures: boolean = true,
 ): void {
   const { file, rank } = squareCoords(from);
   const size = pos.size;
@@ -660,6 +661,7 @@ function addJumpMoves(
     if (overlays.walls.has(to)) continue;
     const occ = pos.pieces.get(to);
     if (occ && occ.side === piece.side) continue;
+    if (occ && !allowCaptures) continue;
     out.push({
       from,
       to,
@@ -678,6 +680,7 @@ function addSlideMoves(
   pos: Position,
   overlays: Overlays,
   dirs: ReadonlyArray<readonly [number, number]>,
+  allowCaptures: boolean = true,
 ): void {
   const { file, rank } = squareCoords(from);
   const size = pos.size;
@@ -689,7 +692,7 @@ function addSlideMoves(
       if (overlays.walls.has(to)) break;
       const occ = pos.pieces.get(to);
       if (occ) {
-        if (occ.side !== piece.side) {
+        if (occ.side !== piece.side && allowCaptures) {
           out.push({
             from,
             to,
@@ -813,9 +816,14 @@ function addPawnMoves(
  * queen already has rook + bishop slides) so the move list stays
  * duplicate-free.
  *
+ * Empower-granted moves are NEVER capturing — pieces only capture using their
+ * native moveset. This applies to all empower sources (Patch cards, the
+ * pawn-flavored Side Channel / Lateral Movement cards, and the
+ * Polished Bishop / Cavalry Doctrine artifacts).
+ *
  * Empower-pawn ignores promotion, double-pushes, and en passant — those are
  * intrinsic to actual pawns. The empowered piece just gets a forward step
- * and diagonal-forward captures (in its side's forward direction).
+ * (no diagonal-forward captures, since empower never captures).
  */
 function addEmpowerMoves(
   out: RuleMove[],
@@ -828,22 +836,23 @@ function addEmpowerMoves(
   switch (pattern) {
     case "knight":
       if (piece.type === "knight") return;
-      addJumpMoves(out, from, piece, pos, overlays, KNIGHT_DELTAS);
+      addJumpMoves(out, from, piece, pos, overlays, KNIGHT_DELTAS, false);
       return;
     case "bishop":
       if (piece.type === "bishop" || piece.type === "queen") return;
-      addSlideMoves(out, from, piece, pos, overlays, BISHOP_DIRS);
+      addSlideMoves(out, from, piece, pos, overlays, BISHOP_DIRS, false);
       return;
     case "rook":
       if (piece.type === "rook" || piece.type === "queen") return;
-      addSlideMoves(out, from, piece, pos, overlays, ROOK_DIRS);
+      addSlideMoves(out, from, piece, pos, overlays, ROOK_DIRS, false);
       return;
     case "queen":
       if (piece.type === "queen") return;
       // Queen movement = bishop slides + rook slides. Skip whichever the
       // piece already has.
-      if (piece.type !== "bishop") addSlideMoves(out, from, piece, pos, overlays, BISHOP_DIRS);
-      if (piece.type !== "rook") addSlideMoves(out, from, piece, pos, overlays, ROOK_DIRS);
+      if (piece.type !== "bishop")
+        addSlideMoves(out, from, piece, pos, overlays, BISHOP_DIRS, false);
+      if (piece.type !== "rook") addSlideMoves(out, from, piece, pos, overlays, ROOK_DIRS, false);
       return;
     case "pawn":
       if (piece.type === "pawn") return;
@@ -853,10 +862,23 @@ function addEmpowerMoves(
       // King already has the king-step pattern natively. Skip to avoid
       // duplicate move entries.
       if (piece.type === "king") return;
-      addJumpMoves(out, from, piece, pos, overlays, KING_DIRS);
+      addJumpMoves(out, from, piece, pos, overlays, KING_DIRS, false);
+      return;
+    case "diagonal-step":
+      // One-square diagonal step in any of the four diagonals. No capture.
+      addJumpMoves(out, from, piece, pos, overlays, BISHOP_DIRS, false);
+      return;
+    case "horizontal-step":
+      // One-square horizontal step (left/right). No capture.
+      addJumpMoves(out, from, piece, pos, overlays, HORIZONTAL_DELTAS, false);
       return;
   }
 }
+
+const HORIZONTAL_DELTAS: ReadonlyArray<readonly [number, number]> = [
+  [1, 0],
+  [-1, 0],
+];
 
 function addEmpowerPawnMoves(
   out: RuleMove[],
@@ -865,6 +887,8 @@ function addEmpowerPawnMoves(
   pos: Position,
   overlays: Overlays,
 ): void {
+  // Forward step only — empower never captures, so the diagonal-forward
+  // capture branch a real pawn has is intentionally omitted here.
   const { file, rank } = squareCoords(from);
   const size = pos.size;
   const dir = piece.side === "player" ? 1 : -1;
@@ -873,24 +897,6 @@ function addEmpowerPawnMoves(
     const to = sqAt(file, fr1);
     if (!overlays.walls.has(to) && !pos.pieces.has(to)) {
       out.push({ from, to, isCapture: false, isDouble: false, isPromotion: false });
-    }
-  }
-  for (const df of [-1, 1] as const) {
-    const tf = file + df;
-    const tr = rank + dir;
-    if (!inBounds(size, tf, tr)) continue;
-    const to = sqAt(tf, tr);
-    if (overlays.walls.has(to)) continue;
-    const occ = pos.pieces.get(to);
-    if (occ && occ.side !== piece.side) {
-      out.push({
-        from,
-        to,
-        isCapture: true,
-        capturedPiece: occ,
-        isDouble: false,
-        isPromotion: false,
-      });
     }
   }
 }

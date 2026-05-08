@@ -66,8 +66,12 @@ export const CARD_EFFECT_FIELDS: Record<string, FieldSpec[]> = {
   "empower-piece": [
     { name: "pattern", type: "enum", enumValues: VALID_EMPOWER_PATTERNS },
     { name: "singleUse", type: "boolean", optional: true },
+    { name: "pieceTypeFilter", type: "enum", enumValues: VALID_PIECE_TYPES, optional: true },
   ],
-  "lightning-piece": [{ name: "actions", type: "number", min: 1 }],
+  "lightning-piece": [
+    { name: "actions", type: "number", min: 1 },
+    { name: "pieceTypeFilter", type: "enum", enumValues: VALID_PIECE_TYPES, optional: true },
+  ],
   "place-wall": [{ name: "durationTurns", type: "number", min: 1 }],
   "place-sanctuary": [{ name: "durationTurns", type: "number", min: 1 }],
   "place-trap": [
@@ -95,6 +99,7 @@ export const CARD_EFFECT_FIELDS: Record<string, FieldSpec[]> = {
   "boss-extra-move": [{ name: "count", type: "number", min: 1 }],
   "capture-random-own-minor": [],
   "apply-retain-to-hand-card": [],
+  "undo-last-enemy-move": [],
   // compound: see special-case renderer
 };
 

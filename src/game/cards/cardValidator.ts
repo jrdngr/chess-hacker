@@ -82,6 +82,7 @@ export const VALID_EFFECT_KINDS = [
   "apply-retain-to-hand-card",
   "pending-energy-next-turn",
   "play-power",
+  "undo-last-enemy-move",
   "compound",
 ] as const;
 export const VALID_POWER_KINDS = [
@@ -104,6 +105,8 @@ export const VALID_EMPOWER_PATTERNS: readonly EmpowerPattern[] = [
   "rook",
   "queen",
   "king-step",
+  "diagonal-step",
+  "horizontal-step",
 ];
 export const VALID_PIECE_TYPES: readonly PieceType[] = [
   "pawn",
@@ -254,12 +257,23 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
         );
         return null;
       }
+      const filter = raw.pieceTypeFilter;
+      if (
+        filter !== undefined &&
+        (typeof filter !== "string" || !(VALID_PIECE_TYPES as readonly string[]).includes(filter))
+      ) {
+        errors.push(
+          `'effect.pieceTypeFilter' must be one of ${VALID_PIECE_TYPES.join(", ")} if present for kind 'empower-piece'`,
+        );
+        return null;
+      }
       const out: CardEffect & { kind: "empower-piece" } = {
         kind: "empower-piece",
         pattern: p as EmpowerPattern,
       };
       if (singleUse === true) out.singleUse = true;
       if (typeof dt === "number") out.durationTurns = dt;
+      if (typeof filter === "string") out.pieceTypeFilter = filter as PieceType;
       return out;
     }
     case "lightning-piece": {
@@ -476,6 +490,8 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
     }
     case "capture-random-own-minor":
       return { kind: "capture-random-own-minor" };
+    case "undo-last-enemy-move":
+      return { kind: "undo-last-enemy-move" };
     case "apply-retain-to-hand-card":
       return { kind: "apply-retain-to-hand-card" };
     case "pending-energy-next-turn": {
@@ -629,6 +645,7 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
     case "capture-random-own-minor":
     case "pending-energy-next-turn":
     case "play-power":
+    case "undo-last-enemy-move":
       return tk === "none" ? null : `'${effect.kind}' effect requires target.kind 'none'`;
     case "apply-retain-to-hand-card":
       return tk === "hand-card"

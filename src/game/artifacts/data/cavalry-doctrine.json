@@ -2,7 +2,7 @@
   "id": "cavalry-doctrine",
   "name": "Cavalry Doctrine",
   "rarity": "uncommon",
-  "description": "Your knights may also step 1 square in any direction in addition to the L-shape.",
+  "description": "Your knights may also step 1 square in any direction (no capture) in addition to the L-shape.",
   "emoji": "🐎",
   "effects": [
     {

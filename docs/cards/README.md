@@ -32,6 +32,7 @@ Per-card reference for choss. The mechanics doc is [`docs/design/cards.md`](../d
 | [chroot](disruption.md#tangled-roots) | Disruption | 1 | Common | Root enemy piece. |
 | [Read-Only](disruption.md#fumble) | Disruption | 1 | Common | Disarm enemy piece. |
 | [Phishing](disruption.md#provoke) | Disruption | 2 | Uncommon | Compel enemy piece. |
+| [Rollback](disruption.md#rollback) | Disruption | 2 | Uncommon | Reverse the opponent's most recent move. |
 | [Firewall](spatial.md#barricade) | Spatial | 1 | Common | Wall on square, 3 turns. |
 | [Trusted Zone](spatial.md#hallowed-ground) | Spatial | 2 | Uncommon | Sanctuary on square, 3 turns. |
 | [Logic Bomb](spatial.md#spike-pit) | Spatial | 2 | Uncommon | Trap (capture), 4 turns. |
@@ -51,6 +52,8 @@ Per-card reference for choss. The mechanics doc is [`docs/design/cards.md`](../d
 | [Sprint](movement-extension.md#sprint) | Movement-extension | 1 | Common | Give Haste to a friendly piece (move twice; first move can't capture). |
 | [Vanguard](movement-extension.md#vanguard) | Movement-extension | 1 | Common | Pawn-only Overclock: pawn takes 2 actions this turn. |
 | [Blitz](movement-extension.md#blitz) | Movement-extension | 3 | Uncommon | All your pawns gain Haste for 3 turns. |
+| [Side Channel](movement-extension.md#side-channel) | Movement-extension | 1 | Common | **Consume.** Empower own pawn w/ 1-sq diagonal step (no capture, this turn). |
+| [Lateral Movement](movement-extension.md#lateral-movement) | Movement-extension | 1 | Common | **Consume.** Empower own pawn w/ 1-sq horizontal step (no capture, this turn). |
 | [Reinforce](summon.md#reinforce) | Summon | 4 | Rare | Summon a pawn on any empty square in your half. |
 | [Switch Files](swap.md#switch-files) | Swap/Displace | 2 | Uncommon | Swap two of your own pieces. |
 | [Remote Access](swap.md#marionette) | Swap/Displace | 3 | Rare | **Consume.** Move an enemy piece by its legal moves. |
@@ -61,6 +64,6 @@ Per-card reference for choss. The mechanics doc is [`docs/design/cards.md`](../d
 
 ## Counts
 
-- **By Consume:** 10 cards have Consume; the rest cycle through the discard pile.
-- **By type:** Resource 6, Disruption 4, Spatial 6, Tempo 1, Movement-extension 8, Defensive 1, Burst 2, Sacrifice 1, Summon 1, Swap 3, Power 2.
-- **By cost (0–4):** 1× 0-cost (Stack Trace), 12× 1-cost, 7× 2-cost, 5× 3-cost, 5× 4-cost.
+- **By Consume:** 12 cards have Consume; the rest cycle through the discard pile.
+- **By type:** Resource 6, Disruption 5, Spatial 6, Tempo 1, Movement-extension 10, Defensive 1, Burst 2, Sacrifice 1, Summon 1, Swap 3, Power 2.
+- **By cost (0–4):** 1× 0-cost (Stack Trace), 14× 1-cost, 8× 2-cost, 5× 3-cost, 5× 4-cost.

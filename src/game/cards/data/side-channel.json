@@ -1,0 +1,16 @@
+{
+  "id": "side-channel",
+  "name": "Side Channel",
+  "cost": 1,
+  "rarity": "common",
+  "archetype": "movement",
+  "consume": true,
+  "description": "Target friendly pawn may step 1 square diagonally this turn (no capture). Lost if you move another piece first.",
+  "target": { "kind": "own-piece" },
+  "effect": {
+    "kind": "empower-piece",
+    "pattern": "diagonal-step",
+    "singleUse": true,
+    "pieceTypeFilter": "pawn"
+  }
+}

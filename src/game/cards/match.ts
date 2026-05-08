@@ -532,7 +532,9 @@ export type CardSideEffect =
   | { kind: "add-card-to-draw"; card: Card }
   | { kind: "revive-prompt" }
   /** Bit Rot (Boss C): destroy a random own minor piece. */
-  | { kind: "remove-random-own-minor" };
+  | { kind: "remove-random-own-minor" }
+  /** Rollback: reverse the opponent's most recent chess move. */
+  | { kind: "undo-last-enemy-move" };
 
 export type PlayCardResult =
   | { ok: true; state: MatchCardState; sideEffects: CardSideEffect[] }
@@ -706,6 +708,13 @@ function validateTarget(
       }
       if (
         card.effect.kind === "lightning-piece" &&
+        card.effect.pieceTypeFilter !== undefined &&
+        card.effect.pieceTypeFilter !== p.type
+      ) {
+        return "target-piece-type-mismatch";
+      }
+      if (
+        card.effect.kind === "empower-piece" &&
         card.effect.pieceTypeFilter !== undefined &&
         card.effect.pieceTypeFilter !== p.type
       ) {

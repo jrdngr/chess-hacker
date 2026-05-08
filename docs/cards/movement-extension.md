@@ -23,8 +23,8 @@ This is the primary way Patches enter your deck — none of them appear in the s
 - **Cost:** 1
 - **Rarity:** Common
 - **Target:** own piece
-- **Effect:** Target own piece: **Empower** with pawn movement (one square forward in your direction, plus diagonal-forward captures) **this turn**. Lost if you move a different piece first.
-- **Design note:** the cheap Patch. Most niche on pieces that already cover those squares (kings, queens) but useful on a knight or rook that needs a quiet step or a melee capture without giving up its line. No double-push, no en passant, no promotion — those stay pawn-only.
+- **Effect:** Target own piece: **Empower** with pawn movement (one square forward in your direction) **this turn**. Lost if you move a different piece first.
+- **Design note:** the cheap Patch. Most niche on pieces that already cover that square (kings, queens, rooks) but useful on a knight that needs a quiet step. No diagonal-forward captures (Empower never captures — see [`keywords.md`](keywords.md)), no double-push, no en passant, no promotion — those stay pawn-only.
 
 ## Knight Patch
 
@@ -81,3 +81,19 @@ This is the primary way Patches enter your deck — none of them appear in the s
 - **Target:** none
 - **Effect:** All your pawns gain Haste for 3 turns.
 - **Design note:** Multi-turn pawn-swarm payoff. The Haste status applied here lasts longer than Sprint's single-turn application; combos with Pawn Storm artifact, Promotion Engine, and the Pawn Storm Power for a sustained pawn assault.
+
+## Side Channel
+
+- **Cost:** 1
+- **Rarity:** Common
+- **Target:** own piece (must be a pawn)
+- **Effect:** Target own pawn: **Empower** with a 1-square diagonal step (any of the four diagonals) **this turn**, no capture. Lost if you move a different piece first.
+- **Design note:** named for the security term — a non-standard path that bypasses the normal access route. Lets a pawn slip onto a colour it would never otherwise reach: round walls, sidestep an opposing pawn structure, or jink onto a key square. Empower never captures (see [`keywords.md`](keywords.md)), so the diagonal step is movement-only — the pawn still relies on its native diagonal-forward capture for taking pieces.
+
+## Lateral Movement
+
+- **Cost:** 1
+- **Rarity:** Common
+- **Target:** own piece (must be a pawn)
+- **Effect:** Target own pawn: **Empower** with a 1-square horizontal step (left or right) **this turn**, no capture. Lost if you move a different piece first.
+- **Design note:** also a security term — an attacker pivoting sideways through a network. Lets a pawn change file once without first capturing, then resume its forward push the next turn. Combos with Promotion Engine (slip onto a clearer file) and with Pawn Storm tempo (re-align the wave). Movement-only; native captures are unaffected.

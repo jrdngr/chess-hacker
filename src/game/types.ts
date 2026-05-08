@@ -98,8 +98,21 @@ export type CardTarget =
 /** Trap variant — picked per-card when the trap is placed. */
 export type TrapEffect = "capture" | "freeze" | "push";
 
-/** Empower pattern — extra movement granted to a piece. */
-export type EmpowerPattern = "pawn" | "knight" | "bishop" | "rook" | "queen" | "king-step";
+/**
+ * Empower pattern — extra movement granted to a piece. Empower patterns
+ * are NEVER capturing: a piece may only capture using its native moveset.
+ * This applies whether the empower comes from a card (Patch / Side Channel /
+ * Lateral Movement) or an artifact (Polished Bishop, Cavalry Doctrine).
+ */
+export type EmpowerPattern =
+  | "pawn"
+  | "knight"
+  | "bishop"
+  | "rook"
+  | "queen"
+  | "king-step"
+  | "diagonal-step"
+  | "horizontal-step";
 
 /**
  * Effect descriptor — interpreted by the resolver in `game/cards/match.ts`.
@@ -125,6 +138,12 @@ export type CardEffect =
        */
       singleUse?: boolean;
       durationTurns?: number;
+      /**
+       * Optional: only target pieces of this type. Used by pawn-flavored
+       * empower cards (Side Channel / Lateral Movement) that grant a small
+       * mobility tweak only to pawns.
+       */
+      pieceTypeFilter?: PieceType;
     }
   | {
       kind: "lightning-piece";
@@ -199,6 +218,14 @@ export type CardEffect =
    * start-of-turn calculation (energy, hand size, extra chess moves).
    */
   | { kind: "play-power"; effect: PowerEffect }
+  /**
+   * Rollback. Reverses the opponent's most recent chess move: the moved piece
+   * returns to its origin square and any captured player piece is restored.
+   * Resolves through a `undo-last-enemy-move` side effect on the engine. No
+   * effect (and the card still consumes energy) if the opponent has not yet
+   * moved this match — UI gates this against the engine's history.
+   */
+  | { kind: "undo-last-enemy-move" }
   | { kind: "compound"; effects: CardEffect[] };
 
 /**

@@ -326,6 +326,12 @@ export function applyEffect(
       // that Match resolves with full board access.
       return { state, sideEffects: [{ kind: "remove-random-own-minor" }] };
     }
+    case "undo-last-enemy-move": {
+      // Rollback. The actual unwind happens against the engine in
+      // sideEffects.ts — playCard is pure and can't peek at the engine's
+      // history, so we just emit the side effect.
+      return { state, sideEffects: [{ kind: "undo-last-enemy-move" }] };
+    }
 
     // ---- Misc state flags --------------------------------------------------
     case "next-move-constraint": {

@@ -107,7 +107,8 @@ type CardSideEffect =
   | { kind: "add-card-to-hand"; card: Card }
   | { kind: "add-card-to-draw"; card: Card }
   | { kind: "revive-prompt" }
-  | { kind: "remove-random-own-minor" };
+  | { kind: "remove-random-own-minor" }
+  | { kind: "undo-last-enemy-move" };
 
 /**
  * Apply the side effects produced by the card resolver. Mutates the engine
@@ -146,6 +147,20 @@ export function applyCardSideEffects(
       next = shuffleIntoDraw(next, fx.card, rng);
     } else if (fx.kind === "revive-prompt") {
       onRevivePrompt();
+    } else if (fx.kind === "undo-last-enemy-move") {
+      // Rollback. Pop the engine's most recent move and put the moved piece
+      // (and any piece it captured) back. We only act if the last move was
+      // by the opponent — Rollback isn't meant to retract the player's own
+      // moves. Per-piece statuses on `to` follow the moved piece back to
+      // `from`; statuses tied to a captured player piece (re-spawned on `to`)
+      // were cleared when it was taken and stay cleared.
+      const last = engine.lastMoveBy();
+      if (last === "opponent") {
+        const undone = engine.undoLastMove();
+        if (undone) {
+          next = relocateStatuses(next, undone.to, undone.from);
+        }
+      }
     } else if (fx.kind === "remove-random-own-minor") {
       // Bit Rot (Boss C). Pick uniformly at random from the player's
       // knights and bishops. No-op if the player has none — the curse still

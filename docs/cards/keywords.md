@@ -57,7 +57,9 @@ A hasted piece **may move a second time on the same turn**. The **first move can
 
 ### Empower
 
-An empowered piece **gains an additional movement pattern**, defined per card (e.g., "knight L-shape", "diagonal slide", "pawn forward step + diagonal capture"). The piece keeps its normal moveset *and* the granted pattern; it picks one to use. Patterns stack — multiple Empower effects on the same piece coexist.
+An empowered piece **gains an additional movement pattern**, defined per card (e.g., "knight L-shape", "diagonal slide", "pawn forward step"). The piece keeps its normal moveset *and* the granted pattern; it picks one to use. Patterns stack — multiple Empower effects on the same piece coexist.
+
+**Empower-granted patterns are never capturing.** A piece may only capture using its native moveset; the granted pattern is movement-only. This rule applies to every Empower source — Patch cards, the pawn-flavored Side Channel / Lateral Movement cards, and the Polished Bishop / Cavalry Doctrine artifacts. A rook with a Knight Patch can use the L-shape to reposition to an empty square, but it cannot use the L-shape to take an enemy piece; the rook still captures normally along files and ranks.
 
 - **Duration:** card-specified. The **Patch** family (Pawn / Knight / Bishop / Rook / Queen Patch) is **single-use this turn**: the status lasts the current turn AND drops immediately if the player moves a different piece first. Either way, the status drops if the empowered piece is captured or sacrificed.
 - **Patterns currently in the prototype:**
@@ -65,9 +67,11 @@ An empowered piece **gains an additional movement pattern**, defined per card (e
   - **bishop** — diagonal slide (blocked normally).
   - **rook** — straight slide along files and ranks (blocked normally).
   - **queen** — both straight and diagonal slides (= bishop + rook).
-  - **pawn** — one square forward in your direction, plus diagonal-forward captures. No double-push, no en passant, no promotion — those are intrinsic to actual pawns.
+  - **pawn** — one square forward in your direction. (Native pawns also have diagonal-forward captures and double-push; those are intrinsic to actual pawns and are not granted by Empower.)
   - **king-step** — one square in any direction (the king's native move). Used by the Polished Bishop and Cavalry Doctrine artifacts to give bishops and knights a 1-square ortho-step option.
-- **Edge cases:** the granted pattern follows the same blocking rules as a real piece of that move-type. Granting a pattern the piece already covers is a no-op (e.g. Bishop Patch on a queen).
+  - **diagonal-step** — one square in any of the four diagonal directions. Used by Side Channel.
+  - **horizontal-step** — one square left or right. Used by Lateral Movement.
+- **Edge cases:** the granted pattern follows the same blocking rules as a real piece of that move-type. Granting a pattern the piece already covers is a no-op (e.g. Bishop Patch on a queen). Because Empower never captures, occupied destinations are simply not legal under the granted pattern, even if the same square would be a legal capture under the piece's native moveset.
 
 ## Square / board effects
 

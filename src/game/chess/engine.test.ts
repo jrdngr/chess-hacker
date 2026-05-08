@@ -141,6 +141,63 @@ describe("square helpers", () => {
   });
 });
 
+describe("undoLastMove", () => {
+  it("returns null when there is no history", () => {
+    const e = new ChoseEngine();
+    expect(e.undoLastMove()).toBeNull();
+    expect(e.lastMoveBy()).toBeNull();
+  });
+
+  it("reverts a quiet move and restores the side-to-move", () => {
+    const e = new ChoseEngine();
+    e.move({ from: "e2", to: "e4" });
+    expect(e.turn()).toBe("opponent");
+    expect(e.lastMoveBy()).toBe("player");
+    const undone = e.undoLastMove();
+    expect(undone).toEqual({
+      from: "e2",
+      to: "e4",
+      by: "player",
+      captured: null,
+    });
+    expect(e.turn()).toBe("player");
+    expect(e.pieceAt("e4")).toBeNull();
+    expect(e.pieceAt("e2")?.type).toBe("pawn");
+    expect(e.lastMove()).toBeNull();
+  });
+
+  it("revives a captured piece on the destination square", () => {
+    const e = new ChoseEngine("4k3/8/8/8/3p4/4P3/8/4K3 w - - 0 1");
+    e.move({ from: "e3", to: "d4" }); // pawn takes pawn
+    expect(e.pieceAt("d4")?.side).toBe("player");
+    const undone = e.undoLastMove();
+    expect(undone?.captured).toEqual({ type: "pawn", side: "opponent" });
+    expect(e.pieceAt("d4")?.side).toBe("opponent");
+    expect(e.pieceAt("e3")?.side).toBe("player");
+  });
+
+  it("reverses promotion: the promoted queen reverts to a pawn on the origin square", () => {
+    const e = new ChoseEngine("8/P7/8/8/8/8/8/4k2K w - - 0 1");
+    e.move({ from: "a7", to: "a8" });
+    expect(e.pieceAt("a8")?.type).toBe("queen");
+    e.undoLastMove();
+    expect(e.pieceAt("a8")).toBeNull();
+    expect(e.pieceAt("a7")).toEqual({ type: "pawn", side: "player" });
+  });
+
+  it("reverses castling: king and rook return to their starting squares", () => {
+    const e = new ChoseEngine("4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1");
+    e.move({ from: "e1", to: "g1" });
+    expect(e.pieceAt("g1")?.type).toBe("king");
+    expect(e.pieceAt("f1")?.type).toBe("rook");
+    e.undoLastMove();
+    expect(e.pieceAt("e1")?.type).toBe("king");
+    expect(e.pieceAt("h1")?.type).toBe("rook");
+    expect(e.pieceAt("g1")).toBeNull();
+    expect(e.pieceAt("f1")).toBeNull();
+  });
+});
+
 describe("snapshot / restore", () => {
   it("rolls back position and history", () => {
     const e = new ChoseEngine();

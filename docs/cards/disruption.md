@@ -35,3 +35,11 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 - **Target:** enemy piece
 - **Effect:** Target enemy piece: **Compel** on its next turn.
 - **Design note:** compels the piece into a forced move. Combos with Trap squares and Connection Reset zones — Compel a piece adjacent to a Logic Bomb and (if a capture isn't legal) it must walk into the trap. If a capture *is* legal, the piece is forced to take it: useful when you've baited an exposed pawn.
+
+## Rollback
+
+- **Cost:** 2
+- **Rarity:** Uncommon
+- **Target:** none
+- **Effect:** Reverse the opponent's most recent chess move: their piece returns to where it came from, and any captured player piece is restored.
+- **Design note:** named for the database / VCS term. Distinct from the dev-panel **Undo** button: Undo rewinds an entire player turn (cards + chess move), while Rollback only walks back the *opponent's* last action. No effect on turn 1 (no opponent move yet); the energy is still spent. Statuses that were sitting on the moved piece follow it back to the origin square. Promotions, captures, and castling are all reversed cleanly because the engine restores the full prior position rather than reconstructing it move-by-move.

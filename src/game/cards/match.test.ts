@@ -464,6 +464,72 @@ describe("playCard — sacrifice / summon / swap / marionette", () => {
     expect(r.state.consumedPile.some((c) => c.id === "knight-patch")).toBe(true);
   });
 
+  it("Side Channel: empowers a pawn with the diagonal-step pattern; rejects non-pawn targets", () => {
+    const rng = makeRng(72);
+    const sideChannel = getCardById("side-channel");
+    let st = startPlayerTurn(createMatchCardState([sideChannel], rng), rng);
+    st = { ...st, energy: 10 };
+    const idx = st.hand.findIndex((s) => s.card.id === "side-channel");
+    const ctx = withPieces({
+      e2: { type: "pawn", side: "player" },
+      a1: { type: "rook", side: "player" },
+    });
+
+    const rRook = playCard(st, idx, { kind: "square", square: "a1" }, ctx, rng);
+    expect(rRook.ok).toBe(false);
+    if (!rRook.ok) expect(rRook.reason).toBe("target-piece-type-mismatch");
+
+    const r = playCard(st, idx, { kind: "square", square: "e2" }, ctx, rng);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const status = empowerAt(r.state, "e2");
+    expect(status?.pattern).toBe("diagonal-step");
+    expect(status?.singleUse).toBe(true);
+    expect(r.state.consumedPile.some((c) => c.id === "side-channel")).toBe(true);
+  });
+
+  it("Lateral Movement: empowers a pawn with the horizontal-step pattern; rejects non-pawn targets", () => {
+    const rng = makeRng(73);
+    const lateral = getCardById("lateral-movement");
+    let st = startPlayerTurn(createMatchCardState([lateral], rng), rng);
+    st = { ...st, energy: 10 };
+    const idx = st.hand.findIndex((s) => s.card.id === "lateral-movement");
+    const ctx = withPieces({
+      e2: { type: "pawn", side: "player" },
+      b1: { type: "knight", side: "player" },
+    });
+
+    const rKnight = playCard(st, idx, { kind: "square", square: "b1" }, ctx, rng);
+    expect(rKnight.ok).toBe(false);
+    if (!rKnight.ok) expect(rKnight.reason).toBe("target-piece-type-mismatch");
+
+    const r = playCard(st, idx, { kind: "square", square: "e2" }, ctx, rng);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const status = empowerAt(r.state, "e2");
+    expect(status?.pattern).toBe("horizontal-step");
+    expect(status?.singleUse).toBe(true);
+    expect(r.state.consumedPile.some((c) => c.id === "lateral-movement")).toBe(true);
+  });
+
+  it("Rollback: emits an undo-last-enemy-move side effect and consumes 2 energy", () => {
+    const rng = makeRng(74);
+    const rollback = getCardById("rollback");
+    let st = startPlayerTurn(createMatchCardState([rollback], rng), rng);
+    st = { ...st, energy: 5 };
+    const idx = st.hand.findIndex((s) => s.card.id === "rollback");
+    const ctx = withPieces({});
+
+    const r = playCard(st, idx, { kind: "none" }, ctx, rng);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.sideEffects).toEqual([{ kind: "undo-last-enemy-move" }]);
+    expect(r.state.energy).toBe(5 - 2);
+    // Rollback is not Consume by default; it should land in the discard pile
+    // so future cycles can replay it.
+    expect(r.state.discardPile.some((c) => c.id === "rollback")).toBe(true);
+  });
+
   it("Patch empowers expire at the start of the next player turn", () => {
     const rng = makeRng(71);
     let st = startPlayerTurn(createMatchCardState([KNIGHT_PATCH], rng), rng);

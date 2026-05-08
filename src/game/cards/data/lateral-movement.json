@@ -1,0 +1,16 @@
+{
+  "id": "lateral-movement",
+  "name": "Lateral Movement",
+  "cost": 1,
+  "rarity": "common",
+  "archetype": "movement",
+  "consume": true,
+  "description": "Target friendly pawn may step 1 square horizontally this turn (no capture). Lost if you move another piece first.",
+  "target": { "kind": "own-piece" },
+  "effect": {
+    "kind": "empower-piece",
+    "pattern": "horizontal-step",
+    "singleUse": true,
+    "pieceTypeFilter": "pawn"
+  }
+}

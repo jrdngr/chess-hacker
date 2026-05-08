@@ -103,7 +103,7 @@ The prototype's artifact pool sits at 12 entries — under the target above; thi
 **Common (5)**
 - *Bug Bounty:* When you capture an enemy piece, gain 1 energy this turn.
 - *Keylogger:* When you capture an enemy piece, draw 1 card.
-- *Polished Bishop* (default starting artifact for Standard mode): Your bishops may also step 1 square in any direction (king-step) in addition to their diagonal slides.
+- *Polished Bishop* (default starting artifact for Standard mode): Your bishops may also step 1 square in any direction (king-step) in addition to their diagonal slides. The granted ortho-step is non-capturing — bishops still capture only on their diagonal slides.
 - *Pawn Storm:* Your pawns may double-push from any rank, not just the start rank.
 - *Drill Sergeant:* Your pawns may move 1 square backward (no capture).
 
@@ -111,7 +111,7 @@ The prototype's artifact pool sits at 12 entries — under the target above; thi
 - *Threat Detector:* When you put the opponent in check, draw 1 card.
 - *Foothold:* Hand size +1 while you have a friendly piece on a center square (d4 / e4 / d5 / e5 on 8×8; the central 2×2 on even-sized boards, the single middle square on odd).
 - *Map Editor:* Spatial cards cost 1 less (minimum 0).
-- *Cavalry Doctrine:* Your knights may also step 1 square in any direction in addition to the L-shape.
+- *Cavalry Doctrine:* Your knights may also step 1 square in any direction in addition to the L-shape. The granted king-step is non-capturing — knights still capture only on the L-shape.
 - *Promotion Engine:* Your pawns promote at rank 7 instead of rank 8.
 
 **Rare (2)**
