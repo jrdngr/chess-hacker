@@ -40,7 +40,7 @@ Alternatives considered: chessops or other libs (rejected for the same reason �
 
 - Strong chess AI with adjustable depth/time controls. Tunable strength.
 - Runs entirely client-side (a worker thread).
-- Specifically: the `fairy-stockfish-nnue.wasm` npm package (GPL-3.0). Fairy-Stockfish is a Stockfish fork with native chess-variant support, including custom board dimensions defined in a `variants.ini`. Standard mode uses 4×6 → 7×8 boards across the run; without variant support we'd be back to a homegrown toy AI on small boards.
+- Specifically: the `fairy-stockfish-nnue.wasm` npm package (GPL-3.0). Fairy-Stockfish is a Stockfish fork with native chess-variant support, including custom board dimensions defined in a `variants.ini`. Standard mode uses 6×6 and 7×7 boards (plus stock 8×8) across the run; without variant support we'd be back to a homegrown toy AI on small boards.
 - **Cross-origin isolation required.** Fairy-Stockfish uses pthreads + SharedArrayBuffer, so the document must be served with `Cross-Origin-Embedder-Policy: require-corp` and `Cross-Origin-Opener-Policy: same-origin`. `vite.config.ts` adds these headers via middleware for the dev and preview servers; production deployments must configure the same headers at the host level. We accept this constraint to gain native non-8×8 support.
 - Doesn't know about our cards / walls / curses. We use a **layered AI** — Fairy-Stockfish proposes moves under our wall-/freeze-aware `searchmoves` filter, and a custom layer decides curse-card insertion timing on the boss's behalf. See `ai.md`.
 

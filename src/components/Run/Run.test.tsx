@@ -17,7 +17,7 @@ describe("Run — Standard boss preview", () => {
     expect(screen.getByText(/the firewall/i)).toBeInTheDocument();
     expect(screen.getByText(/cannot place walls/i)).toBeInTheDocument();
     // Hazard squares + Throttled curse description appear in the spec list.
-    expect(screen.getByText(/c3, c4/)).toBeInTheDocument();
+    expect(screen.getByText(/c3, d4/)).toBeInTheDocument();
     expect(screen.getByText(/Throttled/)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /continue/i }));

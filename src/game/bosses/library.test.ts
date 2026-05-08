@@ -14,9 +14,9 @@ describe("boss library", () => {
     expect(a.modifier.kind).toBe("no-player-walls");
   });
 
-  it("Boss A places permanent c3/c4 wall hazards on the 5x6 board", () => {
+  it("Boss A places permanent c3/d4 wall hazards on the 6x6 board", () => {
     const a = getBossById("the-firewall");
-    expect(a.hazardWalls.sort()).toEqual(["c3", "c4"]);
+    expect(a.hazardWalls.sort()).toEqual(["c3", "d4"]);
   });
 
   it("Boss A schedules a Throttled curse on player check", () => {

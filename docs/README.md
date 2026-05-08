@@ -57,14 +57,14 @@ docs/
 ## At a glance — the locked-in design
 
 - **Genre:** chess + deckbuilder + roguelite, single-player web app.
-- **Modes:** **Standard** (default — variable board 4×6 → 8×8 over seven distinct sizes, with a points-budget piece curve and Chess960 starts). Royal and Skirmish are spec'd but disabled while Standard is the focus.
+- **Modes:** **Standard** (default — three square boards across the run, one per act: Act 1 = 6×6, Act 2 = 7×7, Act 3 = 8×8; the board only grows after each act-end boss, with a points-budget piece curve and Chess960 starts). Royal and Skirmish are spec'd but disabled while Standard is the focus.
 - **Run shape:** 3 acts × 3 matches = 9 matches; each act ends in a hand-crafted boss (act 3 boss = finale). Linear path; no branching map.
 - **No HP system:** lose a match, lose the run.
 - **Cards:** hand of 5, draw to refill, energy 3/turn (no banking — unspent energy is wiped at end-of-turn), costs 0–4. Every played card is consumed for the rest of the match; multiples in the deck enable repeats. Capturing an enemy piece grants the matching Patch card into your draw pile.
 - **Pieces (Skirmish):** 1-of-3 draft after each match; tiered by piece value; soft caps per piece type; player-placed before each match.
 - **Shop:** Balatro-style after every match. Buys: single cards + booster packs + artifacts. Services: reroll (scaling per shop), card removal (scaling per use). Currency: gold only. Skip rewards for gold. Balatro-style interest.
 - **Artifacts:** sources = shop + boss rewards. 3 rarity tiers (C/U/R). Cap of 5 slots. Effects span cards, pieces, resources, conditional triggers.
-- **Board:** 8×8 maximum. Standard mode scales 4×6 → 8×8 across the run (seven distinct sizes, growing one file or one rank per match); the dev sandbox supports any size from 3×3 to 8×8. Card-spawned square effects, zone-control buffs, walls/blocks. No portals.
+- **Board:** 8×8 maximum. Standard mode uses three square sizes — one per act (6×6, 7×7, 8×8) — and only grows the board after each act-end boss; the dev sandbox supports any size from 3×3 to 8×8. Card-spawned square effects, zone-control buffs, walls/blocks. No portals.
 - **Bosses:** 3 hand-crafted, visible at act start. Combine match-modifier rules + fixed board hazards + curse cards forced into the player's hand.
 - **Win conditions:** standard chess — checkmate, stalemate, draws all enforced. Draws count as run-loss. No clock.
 - **Meta-progression:** content unlocks only (no power buffs); Ascension/heat ladder for replay; single character.

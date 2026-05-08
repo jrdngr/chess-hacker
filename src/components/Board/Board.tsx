@@ -1,5 +1,5 @@
-// Variable-size board. Standard mode walks 4×6 → 8×8 across a run (seven
-// distinct sizes); the dev sandbox supports any size from 3×3 to 8×8 on each
+// Variable-size board. Standard mode uses three square sizes — one per act
+// (6×6, 7×7, 8×8); the dev sandbox supports any size from 3×3 to 8×8 on each
 // axis. The grid layout derives ranks / files from the engine, and squares
 // scale to fill the same visible area regardless of dimensions.
 //

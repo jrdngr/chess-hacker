@@ -1,8 +1,11 @@
 // Standard-mode per-match config: board size + piece-set spec per match.
 //
-// Standard is the default mode. Both sides start each match with a small
-// piece set on a small board and grow on a fixed curve to a full 16-piece
-// army on 8x8 across the 9-match run. There's no piece drafting in Standard.
+// Standard is the default mode. The 9-match run uses three square boards,
+// one per act: Act 1 = 6×6, Act 2 = 7×7, Act 3 = 8×8. The board only grows
+// after an act-end boss, so all three matches in an act share a size and
+// the boss is played on the act's board. Within an act the piece curve
+// climbs match-to-match up to a full 16-piece army by the finale. There's
+// no piece drafting in Standard.
 //
 // Composition is "points-budget driven" for non-boss matches: each match
 // names a non-pawn points budget plus a pool of allowed piece types, and we
@@ -95,18 +98,19 @@ const MINORS_AND_ROOK: PieceType[] = ["knight", "bishop", "rook"];
 const MINORS_ROOK_QUEEN: PieceType[] = ["knight", "bishop", "rook", "queen"];
 
 /**
- * The Standard run: 9 matches, seven distinct board sizes (4×6 → 8×8),
- * three boss matches (3, 6, 9). The piece curve grows monotonically.
+ * The Standard run: 9 matches across three acts. One square board per act
+ * (6×6, 7×7, 8×8); the board only grows after each act-end boss (matches
+ * 3, 6, 9). The piece curve grows monotonically.
  */
 export const STANDARD_MATCHES: ReadonlyArray<StandardMatchConfig> = [
-  M(1, 4, 6, random(MINORS_AND_ROOK, 6), false, 8),
-  M(2, 4, 6, random(MINORS_AND_ROOK, 9), false, 11),
-  M(3, 5, 6, explicit(["king", "knight", "bishop", "rook"]), true, 14),
-  M(4, 5, 7, random(MINORS_AND_ROOK, 14), false, 18),
-  M(5, 6, 7, random(MINORS_AND_ROOK, 17), false, 22),
+  M(1, 6, 6, random(MINORS_AND_ROOK, 6), false, 10),
+  M(2, 6, 6, random(MINORS_AND_ROOK, 11), false, 13),
+  M(3, 6, 6, explicit(["king", "knight", "bishop", "rook"]), true, 16),
+  M(4, 7, 7, random(MINORS_AND_ROOK, 11), false, 18),
+  M(5, 7, 7, random(MINORS_AND_ROOK, 16), false, 22),
   M(6, 7, 7, explicit(["king", "knight", "knight", "bishop", "bishop", "rook", "rook"]), true, 28),
-  M(7, 7, 8, random(MINORS_ROOK_QUEEN, 22), false, 35),
-  M(8, 8, 8, random(MINORS_ROOK_QUEEN, 25), false, 42),
+  M(7, 8, 8, random(MINORS_ROOK_QUEEN, 19), false, 35),
+  M(8, 8, 8, random(MINORS_ROOK_QUEEN, 22), false, 42),
   M(
     9,
     8,

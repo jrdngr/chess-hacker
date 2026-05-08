@@ -5,7 +5,7 @@
 // every JSON at startup, validates it, and exposes the typed result.
 //
 // All three bosses are wired end-to-end through Match.tsx:
-//   Boss A (5×6) — modifier: no-player-walls; hazards: c3/c4 walls;
+//   Boss A (6×6) — modifier: no-player-walls; hazards: c3/d4 walls;
 //                  curse: Throttled on player check.
 //   Boss B (7×7) — modifier: captures grant the captured side +1 energy;
 //                  hazards: pre-placed +1 energy/turn buff anchored at d1;

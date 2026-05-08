@@ -2,7 +2,7 @@
 
 The opponent AI has two responsibilities:
 
-1. **Make legal chess moves.** Every board size — 4×6 through 8×8 — uses **Fairy-Stockfish.wasm** via a single wrapper at `src/ai/stockfish.ts`. Fairy-Stockfish is a Stockfish fork with native chess-variant support, including custom board dimensions defined in a `variants.ini`.
+1. **Make legal chess moves.** Every board size — 6×6, 7×7, and 8×8 — uses **Fairy-Stockfish.wasm** via a single wrapper at `src/ai/stockfish.ts`. Fairy-Stockfish is a Stockfish fork with native chess-variant support, including custom board dimensions defined in a `variants.ini`.
 2. **Schedule and inject curse cards** (boss matches only). Handled by a small **custom curse-AI layer**.
 
 Fairy-Stockfish is a black-box chess engine; it knows about board geometry (via the variant config) but not about our cards, walls, or curses. The curse-AI layer is a deterministic scheduler that fires on triggers from the game state.
@@ -25,8 +25,8 @@ Fairy-Stockfish is a black-box chess engine; it knows about board geometry (via 
 `public/fairy-stockfish/variants.ini` declares one variant per non-8×8 size we use, each inheriting from the built-in `chess`:
 
 ```ini
-[choss4x6:chess]
-maxFile = 4
+[choss6x6:chess]
+maxFile = 6
 maxRank = 6
 ```
 

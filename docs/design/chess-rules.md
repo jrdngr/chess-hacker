@@ -36,7 +36,7 @@ Standard chess castling rules apply on 8x8 boards:
 - King is not in check.
 - King does not pass through or end on a square attacked by an enemy piece.
 
-**Castling is disabled on boards smaller than 8 files.** Standard mode runs across seven board sizes (4×6 → 8×8) — only the final two matches reach 8 files, so castling is unavailable for most of a Standard run. The engine's move generator skips the castling branch when `size.files < 8`. The "king to g-file / rook to f-file" landing-square rule from Chess960 doesn't generalize cleanly to a smaller board, and small-board piece sets often don't have two rooks anyway.
+**Castling is disabled on boards smaller than 8 files.** Standard mode runs three square boards across the run (6×6 in Act 1, 7×7 in Act 2, 8×8 in Act 3) — castling is only available in Act 3, when the board reaches 8 files. The engine's move generator skips the castling branch when `size.files < 8`. The "king to g-file / rook to f-file" landing-square rule from Chess960 doesn't generalize cleanly to a smaller board, and small-board piece sets often don't have two rooks anyway.
 
 In **Royal**, castling is straightforward (pieces start on standard squares). When Royal is re-enabled with Chess960 starts, the back-rank generator places the king between the rooks specifically so castling rights are unambiguous.
 

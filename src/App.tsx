@@ -29,7 +29,8 @@ const MODE_OPTIONS: ReadonlyArray<ModeOption> = [
   {
     id: "standard",
     label: "Standard",
-    description: "Variable board (4×6 → 8×8) with a points-budget piece curve. Default mode.",
+    description:
+      "Three square boards (6×6 → 7×7 → 8×8, one per act) with a points-budget piece curve. Default mode.",
     enabled: true,
   },
   {

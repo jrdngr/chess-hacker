@@ -72,17 +72,17 @@ A boss's mechanics should:
 
 ## The three bosses (Standard mode)
 
-Coordinates are given for the active default mode (Standard). Standard places Boss A on a 5×6 board, Boss B on 7×7, and Boss C on 8×8 — see `progression.md` and the per-match table in `modes.md`. Royal would place all three on 8×8 if/when re-enabled; the original 8×8 sketches for A and B are kept at the bottom of this file as a record.
+Coordinates are given for the active default mode (Standard). Each boss is played on its act's board size — Boss A on 6×6, Boss B on 7×7, and Boss C on 8×8 — see `progression.md` and the per-match table in `modes.md`. Royal would place all three on 8×8 if/when re-enabled; the original 8×8 sketches for A and B are kept at the bottom of this file as a record.
 
-### Boss A — "The Firewall" (Act 1, match 3, 5×6, K + 5P + N + B + R per side)
+### Boss A — "The Firewall" (Act 1, match 3, 6×6, K + 6P + N + B + R per side)
 
 - **Modifier:** Walls cannot be placed by the player.
-- **Hazards:** Two indestructible wall-pillars on **c3 and c4** (a vertical center-file pillar that splits the 5-file board down the middle — same intent as the d4/e5 pillars on 8×8: split the board, force play around the pillars).
+- **Hazards:** Two indestructible wall-pillars on **c3 and d4** (a diagonal pillar through the middle of the 6×6 board — same intent as the d4/e5 pillars on 8×8: split the board, force play around the pillars).
 - **Curses:** Whenever the player checks the boss, draws a *Throttled* curse: "Your next move must be a non-checking move."
 
 Teaches: bosses break your assumptions; play around fixed hazards; sometimes cards are disabled.
 
-Note: with only 9 pieces per side and the two central walls, mate paths get tight. Rebalance check during playtest — if Boss A becomes unwinnable, drop to a single wall pillar (c3 only).
+Note: with only 10 pieces per side and the two central walls, mate paths get tight. Rebalance check during playtest — if Boss A becomes unwinnable, drop to a single wall pillar.
 
 ### Boss B — "The Whale" (Act 2, match 6, 7×7, K + 7P + 2 N + 2 B + 2 R per side)
 

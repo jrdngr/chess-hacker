@@ -39,7 +39,7 @@ describe("rollPieceSet", () => {
   });
 
   it("never exceeds the non-pawn budget", () => {
-    const budgets = [6, 9, 14, 17, 22, 25];
+    const budgets = [6, 11, 16, 19, 22];
     for (const budget of budgets) {
       for (let seed = 1; seed < 50; seed++) {
         const rolled = rollPieceSet(
@@ -85,18 +85,18 @@ describe("rollPieceSet", () => {
     }
   });
 
-  it("on M1 spec (budget 6, pool {N,B,R}) yields 9- or 10-point armies (incl. 4 pawns)", () => {
+  it("on M1 spec (budget 6, pool {N,B,R}, 6×6) yields 11- or 12-point armies (incl. 6 pawns)", () => {
     const seen = new Set<string>();
     for (let seed = 1; seed < 80; seed++) {
       const rolled = rollPieceSet(
         { kind: "random", allowedPieces: NBR, nonPawnPointsBudget: 6 },
-        4,
-        4,
+        6,
+        6,
         makeRng(seed),
       );
       const nonPawn = valueOf(rolled.backRank);
       const total = nonPawn + rolled.pawns;
-      expect([9, 10]).toContain(total);
+      expect([11, 12]).toContain(total);
       const counts = countBy(rolled.backRank);
       seen.add(
         `K${counts.get("king") ?? 0}N${counts.get("knight") ?? 0}B${counts.get("bishop") ?? 0}R${counts.get("rook") ?? 0}`,
@@ -150,8 +150,8 @@ describe("STANDARD_MATCHES curve", () => {
     expect(STANDARD_MATCHES.filter((m) => m.isBoss)).toHaveLength(3);
   });
 
-  it("starts at 4×6 and ends at 8×8", () => {
-    expect(STANDARD_MATCHES[0].size).toEqual({ files: 4, ranks: 6 });
+  it("starts at 6×6 and ends at 8×8", () => {
+    expect(STANDARD_MATCHES[0].size).toEqual({ files: 6, ranks: 6 });
     expect(STANDARD_MATCHES[8].size).toEqual({ files: 8, ranks: 8 });
   });
 
@@ -161,6 +161,18 @@ describe("STANDARD_MATCHES curve", () => {
       const cur = STANDARD_MATCHES[i].size;
       expect(cur.files).toBeGreaterThanOrEqual(prev.files);
       expect(cur.ranks).toBeGreaterThanOrEqual(prev.ranks);
+    }
+  });
+
+  it("uses one square board per act (Act 1 = 6×6, Act 2 = 7×7, Act 3 = 8×8)", () => {
+    for (const m of STANDARD_MATCHES.slice(0, 3)) {
+      expect(m.size).toEqual({ files: 6, ranks: 6 });
+    }
+    for (const m of STANDARD_MATCHES.slice(3, 6)) {
+      expect(m.size).toEqual({ files: 7, ranks: 7 });
+    }
+    for (const m of STANDARD_MATCHES.slice(6, 9)) {
+      expect(m.size).toEqual({ files: 8, ranks: 8 });
     }
   });
 

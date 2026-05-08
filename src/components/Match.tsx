@@ -141,8 +141,9 @@ type Props = {
   initialFen?: string;
   /**
    * Board dimensions. Defaults to 8×8 for back-compat. Standard-mode matches
-   * pass per-match sizes (4×6 → 8×8 across the curve in `standard.ts`); the
-   * dev sandbox passes whatever the user picked from the size dropdowns.
+   * pass per-match sizes (6×6 / 7×7 / 8×8, one square size per act in
+   * `standard.ts`); the dev sandbox passes whatever the user picked from the
+   * size dropdowns.
    */
   initialBoardSize?: BoardSize;
   /** Hook to swap the AI engine in tests. */

@@ -170,7 +170,7 @@ describe("nextMatchSetup (Standard mode)", () => {
     expect([...sortedTypes].sort()).toEqual([...expected].sort());
   };
 
-  it("Boss A (match 3) places exactly K + N + B + R on a 5×6 board", () => {
+  it("Boss A (match 3) places exactly K + N + B + R on a 6×6 board", () => {
     explicitBackRank(3, ["king", "knight", "bishop", "rook"]);
   });
 

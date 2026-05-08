@@ -2,17 +2,18 @@
 //
 // We use Fairy-Stockfish (a Stockfish fork with native chess-variant support)
 // instead of vanilla Stockfish so the engine knows about non-8x8 boards
-// directly. Standard mode uses 4x6 → 7x8 boards across the run; without
-// variant support we'd be back to a homegrown toy AI on small boards or
-// playing tricks like embedding the small board into an 8x8 with searchmoves
-// (which breaks promotion semantics and biases NNUE eval).
+// directly. Standard mode uses 6x6, 7x7, and 8x8 boards across the run;
+// without variant support we'd be back to a homegrown toy AI on small
+// boards or playing tricks like embedding the small board into an 8x8 with
+// searchmoves (which breaks promotion semantics and biases NNUE eval).
 //
 // Layout: a UCI proxy worker at /fairy-stockfish/uci.worker.js loads the
 // engine factory (stockfish.js) inside a Web Worker and pipes UCI lines
 // both ways. The variants the engine knows about are declared in
 // /fairy-stockfish/variants.ini; we point the engine at that file via the
 // `VariantPath` option as part of the init handshake. The choss-side code
-// then calls `setVariant("choss4x6")` etc. before each match.
+// then calls `setVariant("choss6x6")` / `setVariant("choss7x7")` /
+// `setVariant("chess")` (for 8x8) before each match.
 //
 // Pthreads + SharedArrayBuffer requirement: Fairy-Stockfish.wasm uses
 // shared memory, so the document must be cross-origin isolated. Vite is
@@ -24,7 +25,7 @@
 //
 //   const sf = new StockfishEngine();
 //   await sf.ready();
-//   sf.setVariant("choss5x7");
+//   sf.setVariant("choss6x6");
 //   sf.setPosition(fen);
 //   const uci = await sf.getBestMove({ depth: 6 });   // e.g. "e7e5", "e7e8q"
 //   sf.destroy();

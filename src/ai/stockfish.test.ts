@@ -108,8 +108,8 @@ describe("StockfishEngine", () => {
   it("setVariant forwards a UCI_Variant setoption", () => {
     const sf = new StockfishEngine({ workerUrl: "/fake.js" });
     const w = FakeWorker.instances[0]!;
-    sf.setVariant("choss5x7");
-    expect(w.posted.at(-1)).toBe("setoption name UCI_Variant value choss5x7");
+    sf.setVariant("choss6x6");
+    expect(w.posted.at(-1)).toBe("setoption name UCI_Variant value choss6x6");
   });
 
   it("setPosition forwards a position fen command", () => {
@@ -218,9 +218,8 @@ describe("variantFor", () => {
   });
 
   it("returns chossNxM for non-standard sizes", () => {
-    expect(variantFor({ files: 4, ranks: 6 })).toBe("choss4x6");
-    expect(variantFor({ files: 5, ranks: 7 })).toBe("choss5x7");
-    expect(variantFor({ files: 7, ranks: 8 })).toBe("choss7x8");
+    expect(variantFor({ files: 6, ranks: 6 })).toBe("choss6x6");
+    expect(variantFor({ files: 7, ranks: 7 })).toBe("choss7x7");
   });
 });
 

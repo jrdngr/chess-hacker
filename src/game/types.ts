@@ -2,9 +2,9 @@
 // Keep this file free of React/DOM imports — see docs/technical/architecture.md.
 
 // Indexes are wide `number`s now that boards can be 3..8 on each axis. Standard
-// mode walks the board from 4×6 → 8×8 across a run (seven distinct sizes); the
-// dev sandbox supports any combination from 3×3 to 8×8. Compile-time coordinate
-// safety is traded for runtime board-size flexibility.
+// mode uses three square sizes — one per act (6×6, 7×7, 8×8); the dev sandbox
+// supports any combination from 3×3 to 8×8. Compile-time coordinate safety is
+// traded for runtime board-size flexibility.
 export type FileIndex = number;
 export type RankIndex = number;
 
@@ -12,9 +12,9 @@ export type Square = { file: FileIndex; rank: RankIndex };
 
 /**
  * Board dimensions. `files` is the number of columns (a..h), `ranks` is the
- * number of rows. Standard chess is 8×8; Standard mode walks across seven
- * distinct sizes from 4×6 to 8×8. The sandbox editor supports any size from
- * 3×3 to 8×8 on each axis.
+ * number of rows. Standard chess is 8×8; Standard mode uses three square
+ * sizes — one per act (6×6, 7×7, 8×8). The sandbox editor supports any size
+ * from 3×3 to 8×8 on each axis.
  */
 export type BoardSize = { files: number; ranks: number };
 
@@ -356,8 +356,9 @@ export type Trap = {
 // === Run state (M5) ===
 //
 // Three modes are scoped:
-//   - "standard": the active default. Variable board size + points-budget piece
-//     curve from K + 4P on 4×6 → full armies on 8×8 across a 9-match run.
+//   - "standard": the active default. Three square boards across a 9-match run
+//     (6×6 in act 1, 7×7 in act 2, 8×8 in act 3) with a points-budget piece
+//     curve from K + 6P + ~2 minors on 6×6 up to a full 16-piece army on 8×8.
 //     Starting positions are Chess960-generalized to whatever board / piece
 //     set the current match uses.
 //   - "royal":   classic chess armies on 8x8. Spec'd post-prototype to default
