@@ -1,0 +1,17 @@
+{
+  "name": "Architect",
+  "description": "Spatial + zone control. Turn squares into structure: walls, traps, sanctuaries, garrison.",
+  "artifactId": "map-editor",
+  "cards": [
+    { "id": "firewall", "count": 1 },
+    { "id": "honeypot", "count": 1 },
+    { "id": "reinforced-wall", "count": 1 },
+    { "id": "cache-warmup", "count": 1 },
+    { "id": "encrypted", "count": 1 },
+    { "id": "stack-trace", "count": 1 },
+    { "id": "power-node", "count": 1 },
+    { "id": "logic-bomb", "count": 1 },
+    { "id": "trusted-zone", "count": 1 },
+    { "id": "garrison-mode", "count": 1 }
+  ]
+}

@@ -39,6 +39,7 @@ import type {
   BossArtifactOffer,
   BossPickOffer,
   BossPickOption,
+  Card,
   MatchCardState,
   RunMatchOutcome,
   RunMode,
@@ -54,6 +55,19 @@ type Props = {
   onExit: () => void;
   /** Optional seed for deterministic runs (tests). */
   rngSeed?: number;
+  /**
+   * Override the run's starting deck. Used by the pre-game draft flow to
+   * hand a pre-made or freshly-drafted deck to the run shell. When omitted,
+   * `createRun` falls back to `makeStarterDeck()`.
+   */
+  startingDeck?: Card[];
+  /**
+   * Override the run's starting artifact ids. Used by the pre-game draft
+   * flow to bundle a themed artifact with a pre-made deck or hand a drafted
+   * artifact to the run shell. When omitted, `createRun` uses the per-mode
+   * default (Polished Bishop in standard mode).
+   */
+  startingArtifactIds?: string[];
   /** App-level palette state — surfaced inside Match's ticker. */
   palette?: import("../../state/palette").PaletteId;
   onPaletteChange?: (p: import("../../state/palette").PaletteId) => void;
@@ -135,6 +149,8 @@ export function Run({
   mode,
   onExit,
   rngSeed,
+  startingDeck,
+  startingArtifactIds,
   palette,
   onPaletteChange,
   vision,
@@ -142,7 +158,9 @@ export function Run({
   threats,
   onToggleThreats,
 }: Props) {
-  const [run, setRun] = useState<RunState>(() => createRun({ mode, rngSeed }));
+  const [run, setRun] = useState<RunState>(() =>
+    createRun({ mode, rngSeed, startingDeck, startingArtifacts: startingArtifactIds }),
+  );
   const [extras, setExtras] = useState<PhaseExtras>({
     shop: null,
     lastInterest: 0,

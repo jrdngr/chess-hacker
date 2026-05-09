@@ -1,45 +1,80 @@
-# Starter Deck
+# Starter Decks & Pre-Game Draft
 
-The 12 cards every fresh run begins with. The deck is intentionally small and focused — solid disruption + tempo cards plus two "fun" flagship cards that show the player what high-impact plays can feel like. With the dev panel's deck editor available for testing, the starter no longer has to expose the full library; everything else is acquired through the shop between matches.
+Every run starts with a 10-card deck plus one starting artifact. The player chooses how to assemble that deck on the **Draft** screen at the top of the run:
 
-## Composition
+1. Pick one of three **pre-made themed decks** (each 10 cards: 6 commons, 3 uncommons, 1 rare, plus a bundled artifact); or
+2. **Draft from scratch** — pick 1 of 3 cards over 10 rounds (6 common rounds, then 3 uncommon rounds, then 1 rare round), then pick 1 of 3 uncommon artifacts.
 
-| Count | Card | Type | Effect |
+Each pre-made deck has a "view cards" button so players can inspect contents before committing. The dev sandbox still loads a separate 12-card starter for free-play; that's the legacy starter and is unrelated to the pre-game flow.
+
+## Pre-made decks
+
+### Sysadmin — disruption + control
+Lock down enemy tempo, deny the opponent's plans, sweep with a clean exploit at the end. **Bundled artifact:** Sysadmin Token (uncommon — disruption cards cost 1 less).
+
+| Count | Card | Rarity | Notes |
 |---|---|---|---|
-| 1 | [Encrypted](defensive.md#iron-guard) | Defensive | Shield own piece. |
-| 1 | [Read-Only](disruption.md#fumble) | Disruption | Disarm enemy piece. |
-| 1 | [chroot](disruption.md#tangled-roots) | Disruption | Root enemy piece. |
-| 1 | [Firewall](spatial.md#barricade) | Spatial | Place wall, 3 turns. |
-| 1 | [Honeypot](spatial.md#snare) | Spatial | Trap (freeze), 3 turns. |
-| 1 | [Sprint](movement-extension.md#sprint) | Movement-extension | Give Haste to a friendly piece. |
-| 2 | [Freeze Process](disruption.md#frostbite) | Disruption | Freeze enemy piece. |
-| 1 | [Phishing](disruption.md#provoke) | Disruption | Compel enemy piece. |
-| 1 | [Overclock](tempo.md#quickstep) | Tempo · **fun** | Own piece takes 2 actions this turn. |
-| 1 | [Exploit](burst.md#cheap-destroy) | Burst | **Consume.** Destroy enemy non-King piece your forces are attacking. |
-| 1 | [Remote Access](swap.md#marionette) | Swap · **fun** | **Consume.** Move an enemy piece using one of its legal moves. |
+| 1 | chroot | Common | Sandbox an enemy piece. |
+| 1 | Read-Only | Common | Set enemy to move-only. |
+| 1 | Freeze Process | Common | Skip enemy's next move. |
+| 1 | Encrypted | Common | Captures illegal until next turn. |
+| 1 | Port Scan | Common | Draw 2 cards. |
+| 1 | Stack Trace | Common | Scry top 3 of deck. |
+| 1 | Phishing | Uncommon | Compel enemy piece to move. |
+| 1 | Rollback | Uncommon | Undo opponent's last move. |
+| 1 | Bookmark | Uncommon | Apply Retain to a hand card. |
+| 1 | Exploit | Rare | Destroy an attacked enemy non-King. |
 
-**Total: 12 cards. Max card cost: 3. 2 of them have Consume.**
+### Hackathon — mobility + pawns
+Move twice, sprint forward, ship the pawn rush before the opponent can react. **Bundled artifact:** Build Pipeline (uncommon — movement cards cost 1 less).
 
-## Cost curve
+| Count | Card | Rarity | Notes |
+|---|---|---|---|
+| 1 | Sprint | Common | Give a friendly piece Haste. |
+| 1 | Vanguard | Common | Pawn takes 2 actions this turn. |
+| 1 | Pawn Patch | Common | Empower a piece with pawn behavior. |
+| 1 | Side Channel | Common | Pawn steps 1 sq diagonally (no capture). |
+| 1 | Lateral Movement | Common | Pawn steps 1 sq horizontally. |
+| 1 | Overclock | Common | Own piece takes 2 actions this turn. |
+| 1 | Blitz | Uncommon | All your pawns gain Haste for 3 turns. |
+| 1 | Switch Files | Uncommon | Swap two of your own pieces. |
+| 1 | kill -9 | Uncommon | Sacrifice a piece for draw + energy. |
+| 1 | Pawn Storm | Rare | Power: pawns gain Haste each turn. |
 
-| Cost | Count | Cards |
-|---|---|---|
-| 1 | 6 | Encrypted, Read-Only, chroot, Firewall, Honeypot, Sprint |
-| 2 | 4 | 2× Freeze Process, Phishing, Overclock |
-| 3 | 2 | Exploit, Remote Access |
+### Architect — spatial + zone control
+Turn squares into structure: walls, traps, sanctuaries, garrison. **Bundled artifact:** Map Editor (uncommon — spatial cards cost 1 less).
 
-Average cost: ~1.67. Energy is 3/turn (no banking), so the 3-cost cards each consume a full turn's budget — they are committal plays.
+| Count | Card | Rarity | Notes |
+|---|---|---|---|
+| 1 | Firewall | Common | Wall on empty square (3 turns). |
+| 1 | Honeypot | Common | Freeze trap (3 turns). |
+| 1 | Reinforced Wall | Common | Wall on empty square (5 turns). |
+| 1 | Cache Warmup | Common | +2 energy on the next turn. |
+| 1 | Encrypted | Common | Captures illegal until next turn. |
+| 1 | Stack Trace | Common | Scry top 3 of deck. |
+| 1 | Power Node | Uncommon | Zone-buff: +1 energy/turn while controlled. |
+| 1 | Logic Bomb | Uncommon | Capture trap (4 turns). |
+| 1 | Trusted Zone | Uncommon | Sanctuary square — pieces can't be captured. |
+| 1 | Garrison Mode | Rare | Power: rank-1 pieces gain Shield each turn. |
+
+## Drafting from scratch
+
+If the player picks **Draft new deck**, they build a deck via repeated 1-of-3 picks:
+
+- Rounds 1–6: 3 random distinct **common** cards. Pick 1.
+- Rounds 7–9: 3 random distinct **uncommon** cards. Pick 1.
+- Round 10: 3 random distinct **rare** cards. Pick 1.
+- Final pick: 3 random distinct **uncommon** artifacts. Pick 1.
+
+Cards already drafted may show up again in later rounds — multiples in the deck enable repeats per `../design/cards.md`. The animation language matches the in-match Hand: cards deal in fanned (staggered) and the picked card rises to fade away while rejects glide off-screen.
 
 ## Rationale
 
-- **Disruption-heavy core.** 5 of the 12 cards are status disablers (Read-Only, chroot, 2× Freeze Process, Phishing). Multiples on Freeze Process keep the workhorse disruption reliably available even after end-of-turn discards.
-- **Spatial tools without bloat.** One Firewall (wall) and one Honeypot (trap) cover the basic spatial vocabulary. Trusted Zone, additional Firewalls, and Power Node are shop pickups.
-- **One destroy haymaker, attacked-only.** Exploit (cost 3) is the sole removal card; the bigger Format C: (cost 4) is over the cap and lives in the shop pool. Players who want unconditional destroy buy Format C: later.
-- **Two flagship "fun" cards.** Overclock (cost 2 — own piece takes 2 actions this turn) and Remote Access (cost 3 Consume — puppet an enemy piece) are the marquee picks. Both produce dramatic single-turn swings and showcase the card-system's design space.
-- **One opener, one defensive.** Sprint (1-cost Haste on a friendly piece) gives the player something proactive to do on turn 1; Encrypted (1-cost shield) keeps the deck reactive when the AI threatens an exchange.
-- **No Cache Warmup, no Bookmark.** Cache Warmup (the +2-energy-next-turn card) is intentionally a shop pickup so the player feels the friction of a true 3-energy ceiling first. Bookmark (Retain) is similarly a shop pickup so the player runs into discard-pile pressure before the cycling-deck banking tool arrives.
-- **Patches come from captures, not the starter.** Capture-grants-Patch keeps the deck fresh organically.
+- **Identity at run-start.** Every run begins with a clear strategic shape (control, tempo, structure) instead of the same 12-card grab-bag. The pre-made decks teach the archetypes; the draft path lets a confident player roll their own.
+- **Power floor.** Both paths come with a starting artifact, so the run never opens artifact-empty. Pre-made decks ship a thematically aligned uncommon; the draft path ends in an uncommon-artifact pick from the full pool.
+- **No Cache Warmup or Bookmark in the curated decks (mostly).** Cache Warmup ships only with Architect (where +2-energy-next-turn buys a Garrison Mode setup turn) and Bookmark only with Sysadmin (banking Exploit across turns). The other decks are deliberately a touch pinched on tempo/banking so the shop's first purchase still matters.
+- **Patches come from captures, not the deck.** Capture-grants-Patch keeps every starting deck refreshing organically during play.
 
 ## Future shape
 
-The starter is now at the lower end of the design target. As more cards land in the catalog, candidates for swap-in include additional 1-cost openers, alternative cost-2 disruption, and small flavor variants. The shop / booster-pack pool is where the rest of the library lives.
+The current pool is small enough that drafting can repeat options across rounds. As the card library grows, this is fine — it's the same trade-off as Slay the Spire's starting decks (some redundancy, lots of variety). Adding more rares is the highest-leverage expansion next, since round 10 currently picks from a 10-card pool.

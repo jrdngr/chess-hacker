@@ -1,0 +1,390 @@
+/* Pre-game draft UI (deck-select → card draft → artifact draft).
+   Visual language mirrors the in-match Hand cards (amber frame, double inset
+   stripe) so the dealing/picking gestures feel of-a-piece with playing
+   cards in a match. */
+
+.flow {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: stretch;
+  justify-content: center;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 22px;
+  height: 100%;
+  min-height: 0;
+}
+
+/* ---- Deck-select screen --------------------------------------------------- */
+
+.title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--p-primary);
+  text-align: center;
+}
+
+.subtitle {
+  margin: -8px 0 0;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--p-dim2);
+  text-align: center;
+}
+
+.deckList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.deckRow {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  width: 100%;
+}
+
+.deckButton {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 14px 18px;
+  background: var(--p-bg);
+  border: 1px solid var(--p-primary);
+  border-radius: 0;
+  color: var(--p-primary);
+  box-shadow:
+    inset 0 0 0 1px var(--p-bg),
+    inset 0 0 0 3px rgba(var(--p-primary-rgb) / 0.35);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.deckButton:hover:not(:disabled) {
+  background: rgba(var(--p-primary-rgb) / 0.08);
+  box-shadow:
+    inset 0 0 0 1px var(--p-bg),
+    inset 0 0 0 3px rgba(var(--p-primary-rgb) / 0.55),
+    0 0 8px rgba(var(--p-primary-rgb) / 0.4);
+}
+
+.deckLabel {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--p-primary);
+}
+
+.deckDesc {
+  font-size: 11px;
+  color: var(--p-dim2);
+  line-height: 1.4;
+}
+
+.deckMeta {
+  font-size: 10px;
+  color: var(--p-dim);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.viewButton {
+  align-self: stretch;
+  padding: 0 14px;
+  min-width: 96px;
+  background: var(--p-bg);
+  border: 1px solid var(--p-dim);
+  border-radius: 0;
+  color: var(--p-primary);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.viewButton:hover {
+  background: rgba(var(--p-primary-rgb) / 0.08);
+  border-color: var(--p-primary);
+  box-shadow: 0 0 6px rgba(var(--p-primary-rgb) / 0.3);
+}
+
+/* The fourth row (Draft new deck) gets a subtly different accent so it
+   reads as an action rather than a deck preset. */
+.draftButton {
+  border-color: var(--p-both, var(--p-primary));
+  box-shadow:
+    inset 0 0 0 1px var(--p-bg),
+    inset 0 0 0 3px rgba(var(--p-both-rgb, var(--p-primary-rgb)) / 0.35);
+}
+
+.draftButton:hover:not(:disabled) {
+  box-shadow:
+    inset 0 0 0 1px var(--p-bg),
+    inset 0 0 0 3px rgba(var(--p-both-rgb, var(--p-primary-rgb)) / 0.55),
+    0 0 8px rgba(var(--p-both-rgb, var(--p-primary-rgb)) / 0.4);
+}
+
+/* ---- Card / Artifact picker shared layout --------------------------------- */
+
+.pickerArea {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+}
+
+.pickerHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--p-dim);
+}
+
+.pickerHeaderLeft {
+  color: var(--p-primary);
+}
+
+.pickerStage {
+  position: relative;
+  flex: 1;
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pickerRow {
+  display: flex;
+  gap: 18px;
+  align-items: stretch;
+}
+
+/* Card frame in the picker — copies Hand's `.card` look so the dealing
+   gesture matches what the player will see in a match. */
+.card {
+  position: relative;
+  width: 132px;
+  height: 184px;
+  padding: 26px 8px 8px;
+  background: var(--p-bg);
+  border: 1px solid var(--p-primary);
+  border-radius: 0;
+  box-shadow:
+    inset 0 0 0 1px var(--p-bg),
+    inset 0 0 0 3px rgba(var(--p-primary-rgb) / 0.35),
+    0 0 6px rgba(var(--p-primary-rgb) / 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform 80ms ease-out,
+    border-color 80ms ease-out,
+    box-shadow 120ms ease;
+  font: inherit;
+  color: var(--p-primary);
+  overflow: hidden;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.card:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow:
+    inset 0 0 0 1px var(--p-bg),
+    inset 0 0 0 3px rgba(var(--p-primary-rgb) / 0.55),
+    0 0 12px rgba(var(--p-primary-rgb) / 0.4);
+}
+
+.card.disabled {
+  cursor: default;
+  pointer-events: none;
+}
+
+.cost {
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--p-primary);
+  text-shadow: 0 0 4px rgba(var(--p-primary-rgb) / 0.45);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.cost::after {
+  content: "E";
+  font-size: 8px;
+  margin-left: 1px;
+  color: var(--p-dim);
+  text-shadow: none;
+  letter-spacing: 0.05em;
+  vertical-align: top;
+}
+
+.archetype {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 8px;
+  color: var(--p-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  line-height: 1.2;
+  text-align: right;
+}
+
+.name {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--p-primary);
+  line-height: 1.1;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 3px rgba(var(--p-primary-rgb) / 0.35);
+  padding-bottom: 4px;
+  border-bottom: 1px dashed rgba(var(--p-dim-rgb) / 0.6);
+  margin-bottom: 2px;
+}
+
+.description {
+  font-size: 10px;
+  line-height: 1.35;
+  color: var(--p-dim2);
+  flex: 1;
+  min-height: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.rarity {
+  font-size: 8px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--p-dim);
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+/* Artifact card variant — emoji glyph above name, no cost row. */
+.artifactCard {
+  align-items: center;
+  text-align: center;
+  padding-top: 12px;
+}
+
+.artifactEmoji {
+  font-size: 30px;
+  line-height: 1;
+  margin: 4px 0 6px;
+}
+
+.artifactName {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--p-primary);
+  letter-spacing: 0.08em;
+  padding-bottom: 4px;
+  border-bottom: 1px dashed rgba(var(--p-dim-rgb) / 0.6);
+  margin-bottom: 4px;
+  text-align: center;
+  width: 100%;
+}
+
+/* Animation primitives — mirrors Hand.module.css exit ghosts. */
+.ghostLayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.card.ghost {
+  position: absolute;
+  cursor: default;
+  will-change: transform, opacity;
+  transition:
+    transform 400ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 400ms ease-out;
+}
+
+/* Pick ghost — selected card rises and fades. Slower so the player can see
+   the choice register before the next round deals. */
+.card.pickGhost {
+  transition:
+    transform 600ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    opacity 600ms ease-out;
+}
+
+.card.ghost.ghostMoving {
+  opacity: 0;
+}
+
+.draftedCount {
+  align-self: center;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--p-dim);
+}
+
+.cancel {
+  align-self: center;
+  margin-top: 4px;
+  padding: 6px 18px;
+  background: transparent;
+  color: var(--p-dim);
+  border: 1px solid var(--p-dim);
+  border-radius: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease;
+}
+
+.cancel:hover {
+  color: var(--p-primary);
+  border-color: var(--p-primary);
+}

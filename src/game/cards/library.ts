@@ -40,6 +40,7 @@ export {
 type DeckJson = {
   name?: unknown;
   description?: unknown;
+  artifactId?: unknown;
   cards?: unknown;
 };
 
@@ -227,7 +228,16 @@ const NAMED_DECK_MODULES = import.meta.glob<unknown>("./decks/named/*.json", {
   import: "default",
 });
 
-export type NamedDeck = { name: string; cards: Card[] };
+export type NamedDeck = {
+  name: string;
+  description?: string;
+  cards: Card[];
+  /** Optional id of an artifact to bundle with this deck (e.g. on the
+   *  pre-game deck-select screen). The id is not validated against the
+   *  artifact library here to keep this module's import graph small —
+   *  callers that care should look it up via `ARTIFACT_LIBRARY`. */
+  artifactId?: string;
+};
 
 export function getNamedDecks(): NamedDeck[] {
   const out: NamedDeck[] = [];
@@ -236,11 +246,20 @@ export function getNamedDecks(): NamedDeck[] {
     const raw = NAMED_DECK_MODULES[path];
     try {
       const cards = expandDeck(path, raw as DeckJson, CARD_LIBRARY);
+      const json = raw as DeckJson;
       const name =
-        typeof (raw as DeckJson).name === "string" && ((raw as DeckJson).name as string).length > 0
-          ? ((raw as DeckJson).name as string)
+        typeof json.name === "string" && (json.name as string).length > 0
+          ? (json.name as string)
           : basenameNoExt(path);
-      out.push({ name, cards });
+      const description =
+        typeof json.description === "string" && (json.description as string).length > 0
+          ? (json.description as string)
+          : undefined;
+      const artifactId =
+        typeof json.artifactId === "string" && (json.artifactId as string).length > 0
+          ? (json.artifactId as string)
+          : undefined;
+      out.push({ name, description, cards, artifactId });
     } catch (err) {
       // Don't crash the game on a malformed named deck; surface a console
       // warning instead. The deck simply won't appear in the dev panel.

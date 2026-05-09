@@ -1,12 +1,17 @@
-// Top-level shell. Opens on the Draft Deck screen; picking a deck hands off
-// to <Run>. The Draft Deck screen is a placeholder for the real card-draft
-// flow — for now it offers a single "Standard Deck" button that starts a
-// standard run with the default starter deck.
+// Top-level shell. Opens on the Draft Deck flow; once the player commits
+// to a deck (either by picking a pre-made theme deck or by drafting one),
+// the chosen deck and starting artifact ids are handed off to <Run>.
+//
+// The draft flow lives in <DraftFlow> (`src/components/Draft/`). It owns
+// the deck-select + card-draft + artifact-draft state machine and only
+// fires `onComplete` once with the finished deck and artifact list.
 
 import { useEffect, useState } from "react";
 
+import { DraftFlow } from "./components/Draft/DraftFlow";
 import { Run } from "./components/Run/Run";
 import { Ticker } from "./components/Ticker/Ticker";
+import type { Card } from "./game/types";
 import {
   loadPalette,
   loadThreats,
@@ -26,6 +31,11 @@ export function App() {
   const [palette, setPalette] = useState<PaletteId>(() => loadPalette());
   const [vision, setVision] = useState<boolean>(() => loadVision());
   const [threats, setThreats] = useState<boolean>(() => loadThreats());
+  // Captured by <DraftFlow> on commit; consumed by <Run> on the next route.
+  // Kept at the top level so the route flip doesn't lose them, and so a
+  // future "play again with same deck" affordance has them on hand.
+  const [startingDeck, setStartingDeck] = useState<Card[] | null>(null);
+  const [startingArtifactIds, setStartingArtifactIds] = useState<string[] | null>(null);
 
   // Apply the active palette to <html data-palette="..."> so every CSS
   // variable swap cascades through the app for free.
@@ -70,11 +80,21 @@ export function App() {
         />
       )}
       <main className={styles.main}>
-        {route === "draft" && <DraftDeckScreen onPickStandard={() => setRoute("standard")} />}
+        {route === "draft" && (
+          <DraftFlow
+            onComplete={(deck, artifactIds) => {
+              setStartingDeck(deck);
+              setStartingArtifactIds(artifactIds);
+              setRoute("standard");
+            }}
+          />
+        )}
         {route === "standard" && (
           <Run
             mode="standard"
             onExit={() => setRoute("draft")}
+            startingDeck={startingDeck ?? undefined}
+            startingArtifactIds={startingArtifactIds ?? undefined}
             palette={palette}
             onPaletteChange={onPaletteChange}
             vision={vision}
@@ -84,19 +104,6 @@ export function App() {
           />
         )}
       </main>
-    </div>
-  );
-}
-
-function DraftDeckScreen({ onPickStandard }: { onPickStandard: () => void }) {
-  return (
-    <div className={styles.menu}>
-      <h2 className={styles.menuTitle}>Draft Deck</h2>
-      <div className={styles.menuList}>
-        <button type="button" className={styles.menuButton} onClick={onPickStandard}>
-          <span className={styles.menuButtonLabel}>Standard Deck</span>
-        </button>
-      </div>
     </div>
   );
 }

@@ -6,7 +6,7 @@ The card system is the central self-expression mechanic. Cards augment chess; th
 
 - **Hand size:** 5 cards.
 - **Draw timing:** at the **start of each player turn**, discard every non-retained hand card into the discard pile, then draw until your hand is at 5. (A card played during a turn does not get refilled until the next turn unless an effect explicitly says so.)
-- **Run-start deck:** 20 cards — multiples of cheap utilities. See [`../cards/starter-deck.md`](../cards/starter-deck.md) for the composition and rationale.
+- **Run-start deck:** 10 cards. The pre-game draft flow lets the player either pick one of three pre-made themed decks (Sysadmin, Hackathon, Architect — each 6 commons / 3 uncommons / 1 rare with a bundled artifact) or build a deck from scratch by drafting 1-of-3 ten times (also 6 commons / 3 uncommons / 1 rare) followed by an uncommon-artifact pick. See [`../cards/starter-deck.md`](../cards/starter-deck.md) for the composition of each pre-made deck and the rationale.
 - **Adding to your deck:** the shop is the only source of new cards between matches — single-card offers and booster packs (open the pack, pick 1 from its contents). Capturing an enemy piece during a match grants the matching Patch card directly into your draw pile (see "Card economy" below). There is no post-match card draft.
 - **Removing from your deck:** shop card-removal service (scaling per use).
 

@@ -1,0 +1,8 @@
+{
+  "id": "sysadmin-token",
+  "name": "Sysadmin Token",
+  "rarity": "uncommon",
+  "description": "Disruption cards cost 1 less (minimum 0).",
+  "emoji": "🔑",
+  "effects": [{ "kind": "card-cost-discount", "archetype": "disruption", "amount": 1 }]
+}
