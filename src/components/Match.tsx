@@ -37,10 +37,20 @@ import { materialAdvantage } from "./Board/material";
 import { PromotionModal } from "./Board/PromotionModal";
 import { DevPanel } from "./Match/DevPanel";
 import { StatusEffectsList } from "./Match/StatusEffectsList";
+import { ArtifactsPanel } from "./Match/sidebars/ArtifactsPanel";
+import { MoveLogPanel } from "./Match/sidebars/MoveLogPanel";
+import { PilesPanel } from "./Match/sidebars/PilesPanel";
+import { RunPathPanel } from "./Match/sidebars/RunPathPanel";
+import { SessionPanel } from "./Match/sidebars/SessionPanel";
+import { ThreatPanel } from "./Match/sidebars/ThreatPanel";
+import { Ticker } from "./Ticker/Ticker";
 import { Hand } from "./Hand/Hand";
 import { ReviveModal } from "./Hand/ReviveModal";
 import { PileInspector } from "./Hand/PileInspector";
 import { ScryModal } from "./Hand/ScryModal";
+import { totalMatches } from "../game/progression/run";
+import type { RunState } from "../game/types";
+import type { PaletteId } from "../state/palette";
 import {
   buildExtraOverlays,
   deriveControllableSides,
@@ -244,6 +254,33 @@ type Props = {
    * keeps its own local log for the in-match History modal.
    */
   onAppendHistory?: (event: HistoryEvent) => void;
+  /**
+   * Run mode: full RunState passed through so the new sidebar panels
+   * (RunPath, Session) can render run-level data (act/match number, gold).
+   * Absent in prototype / sandbox — those panels collapse cleanly.
+   */
+  runState?: RunState;
+  /** Last interest awarded by the most recent shop visit. */
+  lastInterest?: number;
+  /**
+   * Active palette id. Threaded down so the Ticker rendered inside Match can
+   * surface the swatch row. Defaults to "amber" when omitted (e.g. tests).
+   */
+  palette?: PaletteId;
+  /** Update the active palette. */
+  onPaletteChange?: (p: PaletteId) => void;
+  /**
+   * Board-vision toggle. Controlled — Run/App owns the boolean so the ticker
+   * can flip it. When omitted Match falls back to internal state so existing
+   * standalone tests keep working.
+   */
+  vision?: boolean;
+  /** Toggle handler paired with `vision`. */
+  onToggleVision?: () => void;
+  /** Open the Run-history modal (run-level log, not the per-match one). */
+  onShowRunLog?: () => void;
+  /** Run-level history entry count — surfaced in the ticker LOG button. */
+  runLogCount?: number;
 };
 
 const DEFAULT_AI_MIN_THINK_MS = 500;
@@ -297,11 +334,20 @@ export function Match({
   onCaptureFinalSnapshot,
   onRevertMatchEnd,
   onAppendHistory,
+  runState,
+  lastInterest,
+  palette = "amber",
+  onPaletteChange,
+  vision: visionProp,
+  onToggleVision,
+  onShowRunLog,
+  runLogCount,
 }: Props = {}) {
   // Dev mode forces the card system on (mode = "vs-ai"); the per-match
-  // vs-AI / Local-PvP toggle is hidden in the side panel. The AI itself is
-  // gated separately by `devAiOn` below.
-  const [mode, setMode] = useState<MatchMode>(runMode === "dev" ? "vs-ai" : initialMode);
+  // vs-AI / Local-PvP toggle is hidden in the side panel (its UI was removed
+  // when sandbox mode left the menu). Mode now stays stable for the lifetime
+  // of the Match. The AI itself is gated separately by `devAiOn` below.
+  const mode: MatchMode = runMode === "dev" ? "vs-ai" : initialMode;
   const [difficulty, setDifficulty] = useState<Difficulty>(initialDifficulty);
   const [engine, setEngine] = useState(() => {
     const e = new ChoseEngine(initialFen, initialBoardSize);
@@ -359,9 +405,15 @@ export function Match({
   /**
    * "Board vision" — when on, every square attacked by either side gets a
    * coloured tint: blue for player-only, red for opponent-only, purple for
-   * both. Useful for spotting threats and overworked defenders at a glance.
+   * both. App owns the toggle now (so the ticker can drive it); the local
+   * fallback keeps standalone Match mounts (tests) working.
    */
-  const [boardVision, setBoardVision] = useState(false);
+  const [internalVision, setInternalVision] = useState(false);
+  const boardVision = visionProp ?? internalVision;
+  const toggleBoardVision = useCallback(() => {
+    if (onToggleVision) onToggleVision();
+    else setInternalVision((v) => !v);
+  }, [onToggleVision]);
   /**
    * "Highlight threats" — when on, any piece attacked by the opposing side
    * gets a coloured tint using the board-vision palette: black pieces
@@ -1126,83 +1178,6 @@ export function Match({
     rootedSet,
   });
 
-  // ---- Game lifecycle -------------------------------------------------------
-
-  const resetGame = useCallback(() => {
-    cancelInFlightAi();
-    const freshEngine = new ChoseEngine(initialFen, initialBoardSize);
-    setEngine(freshEngine);
-    setSelected(null);
-    setVersion(0);
-    resetCardPlay();
-    undoRedo.reset();
-    replaceHistory([]);
-    resetDevEditor();
-    if (mode === "vs-ai") {
-      setCardState(
-        startPlayerTurn(
-          createMatchCardState(initialDeck ?? makeStarterDeck(), rng, artifacts),
-          rng,
-          zoneBoardContextOf(freshEngine),
-        ),
-      );
-    } else {
-      setCardState(createMatchCardState([], rng, artifacts));
-    }
-  }, [
-    initialFen,
-    initialBoardSize,
-    initialDeck,
-    mode,
-    rng,
-    undoRedo,
-    replaceHistory,
-    artifacts,
-    cancelInFlightAi,
-    resetCardPlay,
-    resetDevEditor,
-  ]);
-
-  const onModeChange = useCallback(
-    (next: MatchMode) => {
-      if (next === mode) return;
-      cancelInFlightAi();
-      setMode(next);
-      const freshEngine = new ChoseEngine(initialFen, initialBoardSize);
-      setEngine(freshEngine);
-      setSelected(null);
-      setVersion(0);
-      resetCardPlay();
-      undoRedo.reset();
-      replaceHistory([]);
-      resetDevEditor();
-      if (next === "vs-ai") {
-        setCardState(
-          startPlayerTurn(
-            createMatchCardState(initialDeck ?? makeStarterDeck(), rng, artifacts),
-            rng,
-            zoneBoardContextOf(freshEngine),
-          ),
-        );
-      } else {
-        setCardState(createMatchCardState([], rng, artifacts));
-      }
-    },
-    [
-      mode,
-      initialFen,
-      initialBoardSize,
-      initialDeck,
-      rng,
-      undoRedo,
-      replaceHistory,
-      artifacts,
-      cancelInFlightAi,
-      resetCardPlay,
-      resetDevEditor,
-    ],
-  );
-
   /**
    * Undo / redo are unlimited and rewind across the AI's preceding move —
    * a snapshot represents the start of a player turn (or the start of a
@@ -1270,280 +1245,227 @@ export function Match({
   const opponentMaterial = materialAdvantage(captured.byOpponent);
   const playerLead = playerMaterial - opponentMaterial;
 
+  const tickerRun = runState
+    ? {
+        act: runState.act,
+        matchNumber: runState.matchNumber,
+        totalMatches: totalMatches(runState),
+        bossName: activeBoss?.name ?? null,
+      }
+    : undefined;
+  // Match info renders in the ticker even when cards are disabled (e.g.
+  // local-pvp mode), so the "Side to move" chip is always available.
+  const tickerMatch = {
+    turn: cardState.turn,
+    toMove: turn as "player" | "opponent",
+    aiThinking,
+    inCheck,
+    matchOver,
+  };
+
   return (
     <div className={styles.match}>
-      <aside className={styles.sidePanel}>
-        {endOfRunPanel ? (
-          endOfRunPanel
-        ) : (
-          <>
-            {onExit && (
-              <button type="button" onClick={onExit} className={styles.backButton}>
-                ← Back to menu
-              </button>
-            )}
-            {runMode === "prototype" && (
-              <div className={styles.statusBlock}>
-                <div className={styles.label}>Mode</div>
-                <div className={styles.modeRow} role="radiogroup" aria-label="Match mode">
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={mode === "vs-ai"}
-                    className={`${styles.modeButton} ${mode === "vs-ai" ? styles.modeActive : ""}`}
-                    onClick={() => onModeChange("vs-ai")}
-                  >
-                    vs AI
-                  </button>
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={mode === "local-pvp"}
-                    className={`${styles.modeButton} ${mode === "local-pvp" ? styles.modeActive : ""}`}
-                    onClick={() => onModeChange("local-pvp")}
-                  >
-                    Local PvP
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {mode === "vs-ai" && (
-              <div className={styles.statusBlock}>
-                <label className={styles.label} htmlFor="difficulty">
-                  Difficulty
-                </label>
-                <select
-                  id="difficulty"
-                  className={styles.select}
-                  value={difficulty}
-                  onChange={(e) => setDifficulty(e.target.value as Difficulty)}
-                >
-                  <option value="easy">Easy (depth 2)</option>
-                  <option value="normal">Normal (depth 6)</option>
-                  <option value="hard">Hard (depth 10)</option>
-                </select>
-              </div>
-            )}
-
-            <div className={styles.statusBlock}>
-              <div className={styles.label}>To move</div>
-              <div
-                className={`${styles.value} ${turn === "player" ? styles.player : styles.opponent}`}
-                aria-label={`Side to move: ${turn === "player" ? "White" : "Black"}`}
-              >
-                {turn === "player" ? "White" : "Black"}
-                {inCheck && !matchOver && <span className={styles.check}>· in check</span>}
-                {aiThinking && !matchOver && <span className={styles.thinking}>· thinking…</span>}
-              </div>
-            </div>
-            <div className={styles.statusBlock}>
-              <div className={styles.label}>Move</div>
-              <div className={styles.value}>{Math.floor(version / 2) + 1}</div>
-            </div>
-
-            <div className={styles.statusBlock}>
-              <label className={styles.toggleRow}>
-                <input
-                  type="checkbox"
-                  checked={boardVision}
-                  onChange={(e) => setBoardVision(e.target.checked)}
+      <Ticker
+        palette={palette}
+        onPaletteChange={onPaletteChange ?? (() => {})}
+        vision={boardVision}
+        onToggleVision={toggleBoardVision}
+        run={tickerRun}
+        match={tickerMatch}
+        onQuit={onExit}
+        onShowRunLog={onShowRunLog}
+        runLogCount={runLogCount}
+      />
+      <div className={styles.matchBody}>
+        <aside className={styles.sidePanel}>
+          {endOfRunPanel ? (
+            endOfRunPanel
+          ) : (
+            <>
+              {cardsEnabled && (
+                <SessionPanel
+                  cardState={cardState}
+                  artifacts={artifacts}
+                  toMove={turn}
+                  aiThinking={aiThinking}
+                  boss={activeBoss ?? null}
+                  gold={runState?.gold}
+                  interest={lastInterest}
+                  zoneCtx={zoneBoardContextOf(engine)}
                 />
-                <span>Board vision</span>
-              </label>
+              )}
+              {cardsEnabled && (
+                <PilesPanel
+                  drawPile={drawPileInAcquisitionOrder(cardState)}
+                  discardPile={cardState.discardPile}
+                  consumedPile={cardState.consumedPile}
+                  onOpenFull={(kind) => setPileInspector(kind)}
+                />
+              )}
+              {cardsEnabled && (
+                <StatusEffectsList
+                  cardState={cardState}
+                  zoneBuffs={cardState.zoneBuffs ?? []}
+                  activeBuffs={zoneBuffOverlay.activeBuffs}
+                />
+              )}
               <label className={styles.toggleRow}>
                 <input
                   type="checkbox"
                   checked={highlightThreats}
                   onChange={(e) => setHighlightThreats(e.target.checked)}
                 />
-                <span>Highlight threats</span>
+                <span>HIGHLIGHT THREATS</span>
               </label>
-            </div>
+              {cardsEnabled && (
+                <MoveLogPanel events={history} onExport={() => setHistoryOpen(true)} />
+              )}
 
-            {cardsEnabled && (
-              <div className={styles.statusBlock}>
-                <div className={styles.label}>Energy</div>
-                <div className={styles.energy} aria-label={`Energy: ${cardState.energy}`}>
-                  <span className={styles.energyValue}>{cardState.energy}</span>
+              {aiError && (
+                <div className={styles.aiError} role="alert">
+                  AI ERROR: {aiError}
                 </div>
-              </div>
-            )}
-            {cardsEnabled && <StatusEffectsList cardState={cardState} />}
-            {cardsEnabled && (cardState.zoneBuffs?.length ?? 0) > 0 && (
-              <div className={styles.statusBlock}>
-                <div className={styles.label}>Zone buffs</div>
-                <ul className={styles.zoneBuffList} aria-label="Active zone buffs">
-                  {cardState.zoneBuffs.map((b, i) => {
-                    const active = zoneBuffOverlay.activeBuffs.includes(b);
-                    const remaining =
-                      b.expiresOnTurn === undefined
-                        ? null
-                        : Math.max(0, b.expiresOnTurn - cardState.turn);
-                    return (
-                      <li
-                        key={`${b.sourceLabel}:${i}`}
-                        className={`${styles.zoneBuffItem} ${active ? styles.zoneBuffActive : styles.zoneBuffInactive}`}
-                      >
-                        <span className={styles.zoneBuffName}>{b.sourceLabel}</span>
-                        <span className={styles.zoneBuffEffect}>
-                          {b.effect.kind === "energy-per-turn"
-                            ? `+${b.effect.amount} energy/turn`
-                            : `+${b.effect.amount} hand size`}
-                          {remaining !== null &&
-                            ` · ${remaining} turn${remaining === 1 ? "" : "s"}`}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            )}
+              )}
+              {matchOver && (
+                <div className={styles.outcome} role="status" aria-live="polite">
+                  <div className={styles.outcomeHeadline}>{outcomeHeadline(outcome)}</div>
+                  <div className={styles.outcomeDetail}>{outcomeDetail(outcome)}</div>
+                  {runMode === "dev" && (
+                    <button type="button" onClick={randomStart} className={styles.newGame}>
+                      New game
+                    </button>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </aside>
 
-            {aiError && (
-              <div className={styles.aiError} role="alert">
-                AI error: {aiError}
-              </div>
-            )}
+        <div className={styles.boardArea}>
+          {!displayOnly && (
+            <CapturedPieces
+              pieces={captured.byOpponent}
+              advantage={playerLead < 0 ? -playerLead : undefined}
+            />
+          )}
+          <Board
+            engine={engine}
+            selected={selected}
+            legalMovesFromSelected={legalFromSelected}
+            controllableSides={controllableSides}
+            walledSquares={walledSet}
+            frozenSquares={frozenSet}
+            sanctuarySquares={sanctuarySet}
+            trapSquares={trapSet}
+            zoneBuffActiveSquares={zoneBuffOverlay.active}
+            zoneBuffInactiveSquares={zoneBuffOverlay.inactive}
+            zoneBuffAnchorSquares={zoneBuffOverlay.anchors}
+            pieceBadges={pieceBadges}
+            squareEffects={squareEffectsMap}
+            attackedByPlayer={attackedByPlayer}
+            attackedByOpponent={attackedByOpponent}
+            mode={boardMode}
+            onSquareClick={onSquareClick}
+            onSquareDragStart={onSquareDragStart}
+            onSquareDrop={onSquareDrop}
+            onDragCancel={onDragCancel}
+            locked={boardLocked}
+            acceptAnyDrop={paletteDragActive || (devPanelEnabled && editMode)}
+            editMode={devPanelEnabled && editMode}
+            invalidSquares={invalidSquares}
+            invalidBoard={validation !== null && !validation.ok}
+          />
+          {!displayOnly && (
+            <CapturedPieces
+              pieces={captured.byPlayer}
+              advantage={playerLead > 0 ? playerLead : undefined}
+            />
+          )}
+          {cardsEnabled && !displayOnly && (
+            <Hand
+              hand={cardState.hand}
+              energy={cardState.energy}
+              targetingIndex={targetingIndex}
+              enabled={!aiThinking && !matchOver && turn === HUMAN_SIDE && !libraryFreePlayActive}
+              forbiddenIndexes={forbiddenHandIndexes}
+              onCardClick={onCardClick}
+              onCardDragStart={onCardDragStart}
+              onCardDragEnd={onCardDragEnd}
+            />
+          )}
+        </div>
 
-            {matchOver && (
-              <div className={styles.outcome} role="status" aria-live="polite">
-                <div className={styles.outcomeHeadline}>{outcomeHeadline(outcome)}</div>
-                <div className={styles.outcomeDetail}>{outcomeDetail(outcome)}</div>
-                {runMode !== "run" && (
-                  <button
-                    type="button"
-                    onClick={runMode === "dev" ? randomStart : resetGame}
-                    className={styles.newGame}
-                  >
-                    New game
-                  </button>
-                )}
-              </div>
-            )}
-            {!matchOver && runMode !== "run" && (
-              <button type="button" onClick={resetGame} className={styles.resetButton}>
-                Reset
-              </button>
-            )}
-          </>
+        {!endOfRunPanel && cardsEnabled && (
+          <aside className={styles.rightPanel}>
+            <ArtifactsPanel artifacts={artifacts} />
+            {runState && <RunPathPanel run={runState} />}
+            <ThreatPanel
+              boss={activeBoss ?? null}
+              difficulty={difficulty}
+              onDifficultyChange={setDifficulty}
+            />
+          </aside>
         )}
-      </aside>
-
-      <div className={styles.boardArea}>
-        {!displayOnly && (
-          <CapturedPieces
-            pieces={captured.byOpponent}
-            advantage={playerLead < 0 ? -playerLead : undefined}
+        {devPanelEnabled && (
+          <DevPanel
+            heading={runMode === "dev" ? "Sandbox" : "Dev"}
+            onClose={runMode === "run" ? () => setDevPanelOpen(false) : undefined}
+            editorPiece={editorPiece}
+            onPickEditorPiece={setEditorPiece}
+            onPaletteDragStart={onPaletteDragStart}
+            onPaletteDragEnd={onPaletteDragEnd}
+            editMode={editMode}
+            onToggleEditMode={onToggleEditMode}
+            onErasePieceDrop={eraseDraggedPiece}
+            sideToMove={turn}
+            onSetSideToMove={setSideToMove}
+            onClearBoard={clearBoard}
+            onStandardStart={standardStart}
+            onRandomStart={randomStart}
+            boardSize={engine.size()}
+            onResizeBoard={resizeBoard}
+            validationMessages={validationMessages}
+            devAiOn={devAiOn}
+            onToggleDevAi={() => setDevAiOn((v) => !v)}
+            aiSingleMoveDisabled={devAiOn || aiThinking || matchOver || turn !== AI_SIDE}
+            onTriggerAiSingleMove={triggerAiSingleMove}
+            libraryDisabled={
+              turn !== HUMAN_SIDE || aiThinking || matchOver || libraryFreePlayActive
+            }
+            onPlayLibraryCard={playLibraryCard}
+            onLibraryCardDragStart={dragStartLibraryCard}
+            onLibraryCardDragEnd={dragEndLibraryCard}
+            drawPile={cardState.drawPile}
+            discardPile={cardState.discardPile}
+            consumedPile={cardState.consumedPile}
+            onSaveDeck={saveDeck}
+            namedDecks={namedDecks}
+            onLoadDeck={loadDeck}
+            artifacts={artifacts}
+            onSaveArtifacts={saveArtifacts}
+            onBumpEnergy={() => bumpEnergy(1)}
+            onSkipMatchAndWin={runMode === "run" ? skipMatchAndWin : undefined}
+            skipMatchDisabled={matchOver}
+            canUndo={canUndo}
+            canRedo={canRedo}
+            onUndo={undo}
+            onRedo={redo}
+            historyCount={history.length}
+            onShowHistory={() => setHistoryOpen(true)}
           />
         )}
-        <Board
-          engine={engine}
-          selected={selected}
-          legalMovesFromSelected={legalFromSelected}
-          controllableSides={controllableSides}
-          walledSquares={walledSet}
-          frozenSquares={frozenSet}
-          sanctuarySquares={sanctuarySet}
-          trapSquares={trapSet}
-          zoneBuffActiveSquares={zoneBuffOverlay.active}
-          zoneBuffInactiveSquares={zoneBuffOverlay.inactive}
-          zoneBuffAnchorSquares={zoneBuffOverlay.anchors}
-          pieceBadges={pieceBadges}
-          squareEffects={squareEffectsMap}
-          attackedByPlayer={attackedByPlayer}
-          attackedByOpponent={attackedByOpponent}
-          mode={boardMode}
-          onSquareClick={onSquareClick}
-          onSquareDragStart={onSquareDragStart}
-          onSquareDrop={onSquareDrop}
-          onDragCancel={onDragCancel}
-          locked={boardLocked}
-          acceptAnyDrop={paletteDragActive || (devPanelEnabled && editMode)}
-          editMode={devPanelEnabled && editMode}
-          invalidSquares={invalidSquares}
-          invalidBoard={validation !== null && !validation.ok}
-        />
-        {!displayOnly && (
-          <CapturedPieces
-            pieces={captured.byPlayer}
-            advantage={playerLead > 0 ? playerLead : undefined}
-          />
-        )}
-        {cardsEnabled && !displayOnly && (
-          <Hand
-            hand={cardState.hand}
-            energy={cardState.energy}
-            targetingIndex={targetingIndex}
-            enabled={!aiThinking && !matchOver && turn === HUMAN_SIDE && !libraryFreePlayActive}
-            drawPileCount={cardState.drawPile.length}
-            discardPileCount={cardState.discardPile.length}
-            forbiddenIndexes={forbiddenHandIndexes}
-            onCardClick={onCardClick}
-            onCardDragStart={onCardDragStart}
-            onCardDragEnd={onCardDragEnd}
-            onDrawPileClick={() => setPileInspector("draw")}
-            onDiscardPileClick={() => setPileInspector("discard")}
-          />
+        {runMode === "run" && !devPanelOpen && !displayOnly && (
+          <button
+            type="button"
+            className={styles.devToggle}
+            onClick={() => setDevPanelOpen(true)}
+            aria-label="Show dev panel"
+            title="Show dev panel"
+          >
+            Dev
+          </button>
         )}
       </div>
-      {devPanelEnabled && (
-        <DevPanel
-          heading={runMode === "dev" ? "Sandbox" : "Dev"}
-          onClose={runMode === "run" ? () => setDevPanelOpen(false) : undefined}
-          editorPiece={editorPiece}
-          onPickEditorPiece={setEditorPiece}
-          onPaletteDragStart={onPaletteDragStart}
-          onPaletteDragEnd={onPaletteDragEnd}
-          editMode={editMode}
-          onToggleEditMode={onToggleEditMode}
-          onErasePieceDrop={eraseDraggedPiece}
-          sideToMove={turn}
-          onSetSideToMove={setSideToMove}
-          onClearBoard={clearBoard}
-          onStandardStart={standardStart}
-          onRandomStart={randomStart}
-          boardSize={engine.size()}
-          onResizeBoard={resizeBoard}
-          validationMessages={validationMessages}
-          devAiOn={devAiOn}
-          onToggleDevAi={() => setDevAiOn((v) => !v)}
-          aiSingleMoveDisabled={devAiOn || aiThinking || matchOver || turn !== AI_SIDE}
-          onTriggerAiSingleMove={triggerAiSingleMove}
-          libraryDisabled={turn !== HUMAN_SIDE || aiThinking || matchOver || libraryFreePlayActive}
-          onPlayLibraryCard={playLibraryCard}
-          onLibraryCardDragStart={dragStartLibraryCard}
-          onLibraryCardDragEnd={dragEndLibraryCard}
-          drawPile={cardState.drawPile}
-          discardPile={cardState.discardPile}
-          consumedPile={cardState.consumedPile}
-          onSaveDeck={saveDeck}
-          namedDecks={namedDecks}
-          onLoadDeck={loadDeck}
-          artifacts={artifacts}
-          onSaveArtifacts={saveArtifacts}
-          onBumpEnergy={() => bumpEnergy(1)}
-          onSkipMatchAndWin={runMode === "run" ? skipMatchAndWin : undefined}
-          skipMatchDisabled={matchOver}
-          canUndo={canUndo}
-          canRedo={canRedo}
-          onUndo={undo}
-          onRedo={redo}
-          historyCount={history.length}
-          onShowHistory={() => setHistoryOpen(true)}
-        />
-      )}
-      {runMode === "run" && !devPanelOpen && !displayOnly && (
-        <button
-          type="button"
-          className={styles.devToggle}
-          onClick={() => setDevPanelOpen(true)}
-          aria-label="Show dev panel"
-          title="Show dev panel"
-        >
-          Dev
-        </button>
-      )}
       {scryPending && (
         <ScryModal
           cards={scryPending.cards}

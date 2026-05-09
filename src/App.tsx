@@ -1,22 +1,21 @@
 // Top-level shell. Picks a top-level run mode, then hands off to the
 // matching shell.
 //
-//   menu  → sandbox        → Match (runMode="dev")
 //   menu  → standard       → Run (mode="standard") — the active default
 //   menu  → royal          → disabled (post-prototype)
 //   menu  → skirmish       → disabled (M10)
 //
-// The Run shell owns gold / deck / artifacts and routes between match,
-// reward, and shop phases. Persistence (M9) will attach at the Run boundary.
+// Sandbox has been removed — the dev panel inside a run covers its use cases.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { Match } from "./components/Match";
 import { Run } from "./components/Run/Run";
+import { Ticker } from "./components/Ticker/Ticker";
+import { loadPalette, loadVision, savePalette, saveVision, type PaletteId } from "./state/palette";
 
 import styles from "./App.module.css";
 
-type Route = "menu" | "sandbox" | "standard" | "royal" | "skirmish";
+type Route = "menu" | "standard" | "royal" | "skirmish";
 
 type ModeOption = {
   id: Exclude<Route, "menu">;
@@ -45,41 +44,57 @@ const MODE_OPTIONS: ReadonlyArray<ModeOption> = [
     description: "Roguelite army-builder. Coming in M10.",
     enabled: false,
   },
-  {
-    id: "sandbox",
-    label: "Sandbox",
-    description: "Board editor (3x3–8x8), free card library, optional AI.",
-    enabled: true,
-  },
 ];
 
 export function App() {
   const [route, setRoute] = useState<Route>("menu");
+  const [palette, setPalette] = useState<PaletteId>(() => loadPalette());
+  const [vision, setVision] = useState<boolean>(() => loadVision());
+
+  // Apply the active palette to <html data-palette="..."> so every CSS
+  // variable swap cascades through the app for free.
+  useEffect(() => {
+    document.documentElement.setAttribute("data-palette", palette);
+  }, [palette]);
+
+  const onPaletteChange = (p: PaletteId) => {
+    setPalette(p);
+    savePalette(p);
+  };
+
+  const onToggleVision = () => {
+    setVision((v) => {
+      const next = !v;
+      saveVision(next);
+      return next;
+    });
+  };
 
   return (
     <div className={styles.app}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>CHOSS//AMBER_TT</h1>
-        <span className={styles.titleSep}>│</span>
-        <span className={styles.tag}>CARDS · M5 PROTOTYPE</span>
-      </header>
+      {/* On the menu route the Ticker shows project name + palette + vision
+          only. Inside a run, Run renders its own Ticker with run + match
+          status, so we omit ours here to avoid stacking two strips. */}
+      {route === "menu" && (
+        <Ticker
+          palette={palette}
+          onPaletteChange={onPaletteChange}
+          vision={vision}
+          onToggleVision={onToggleVision}
+        />
+      )}
       <main className={styles.main}>
         {route === "menu" && <ModeMenu onPick={setRoute} />}
-        {route === "sandbox" && (
-          <div className={styles.sandbox}>
-            <div className={styles.sandboxBanner}>
-              <span className={styles.sandboxBannerSegment}>
-                <span className={styles.sandboxBannerLabel}>Mode</span>
-                <span className={styles.sandboxBannerValue}>Sandbox</span>
-              </span>
-              <button type="button" onClick={() => setRoute("menu")} className={styles.sandboxQuit}>
-                Quit sandbox
-              </button>
-            </div>
-            <Match runMode="dev" />
-          </div>
+        {route === "standard" && (
+          <Run
+            mode="standard"
+            onExit={() => setRoute("menu")}
+            palette={palette}
+            onPaletteChange={onPaletteChange}
+            vision={vision}
+            onToggleVision={onToggleVision}
+          />
         )}
-        {route === "standard" && <Run mode="standard" onExit={() => setRoute("menu")} />}
       </main>
     </div>
   );

@@ -1,0 +1,50 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dot {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--node-color, var(--p-primary));
+  background: transparent;
+  color: var(--p-bg);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0;
+  transition:
+    background 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.normal {
+  --node-color: var(--p-primary);
+}
+
+.boss {
+  --node-color: var(--p-opp);
+}
+
+.done {
+  background: color-mix(in srgb, var(--node-color, var(--p-primary)) 35%, transparent);
+}
+
+.here {
+  background: color-mix(in srgb, var(--node-color, var(--p-primary)) 60%, transparent);
+  box-shadow: 0 0 8px var(--node-color, var(--p-primary));
+}
+
+.line {
+  flex: 1;
+  height: 1px;
+  background: rgba(var(--p-primary-rgb) / 0.3);
+}
+
+.lineDone {
+  background: rgba(var(--p-primary-rgb) / 0.6);
+}

@@ -1,49 +1,38 @@
-/* AMBER_TT theme — vintage amber CRT.
-   Palette comes from chess-game/project/mockups/shared.jsx (window.PALETTES.amber). */
+/* Base layout, typography, scanlines, scrollbars.
+   Palette tokens live in `palettes.css` (loaded below) and switch via the
+   `data-palette` attribute on <html>. */
 
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap");
+@import "./palettes.css";
 
 :root {
-  /* ── Amber palette ────────────────────────────────────────────────── */
-  --amber-bg: #120a02;
-  --amber-bg2: #1c1206;
-  --amber-bg3: #3d2706;
-  --amber-primary: #ffb627;
-  --amber-dim: #7d5410;
-  --amber-dim2: #e6932c;
-  --amber-opp: #ff4d3a;
-  --amber-opp-dim: #7a2316;
-  --amber-both: #9bd96b;
+  /* Tokens consumed by the rest of the app — kept stable in name so existing
+     CSS modules pick up the active palette automatically. */
+  --bg: var(--p-bg);
+  --fg: var(--p-primary);
+  --muted: var(--p-dim);
 
-  /* ── Tokens consumed by the rest of the app (kept stable in name so
-        existing CSS modules pick up the amber palette automatically). ── */
-  --bg: var(--amber-bg);
-  --fg: var(--amber-primary);
-  --muted: var(--amber-dim);
+  --player: var(--p-primary);
+  --player-soft: rgba(var(--p-primary-rgb) / 0.2);
+  --opponent: var(--p-opp);
+  --opponent-soft: rgba(var(--p-opp-rgb) / 0.2);
 
-  /* "Player" maps to amber, "opponent" to red — matches mine/opp in shared.jsx. */
-  --player: var(--amber-primary);
-  --player-soft: rgba(255, 182, 39, 0.2);
-  --opponent: var(--amber-opp);
-  --opponent-soft: rgba(255, 77, 58, 0.2);
+  --square-light: color-mix(in srgb, var(--p-bg) 88%, var(--p-primary) 12%);
+  --square-dark: var(--p-bg);
+  --square-grid: rgba(var(--p-dim-rgb) / 0.4);
+  --square-selected: var(--p-primary);
+  --square-last-move: rgba(var(--p-primary-rgb) / 0.2);
+  --square-target: rgba(var(--p-both-rgb) / 0.35);
+  --square-capture: rgba(var(--p-opp-rgb) / 0.4);
+  --square-check: rgba(var(--p-opp-rgb) / 0.65);
 
-  /* Board palette — Sq() uses #241606 / #180d03 with a 1px amber/33% grid. */
-  --square-light: #241606;
-  --square-dark: #180d03;
-  --square-grid: rgba(125, 84, 16, 0.4);
-  --square-selected: #ffb627;
-  --square-last-move: rgba(255, 182, 39, 0.2);
-  --square-target: rgba(155, 217, 107, 0.35);
-  --square-capture: rgba(255, 77, 58, 0.4);
-  --square-check: rgba(255, 77, 58, 0.65);
+  --panel: var(--p-bg);
+  --panel-bg2: var(--p-bg2);
+  --panel-border: var(--p-primary);
+  --panel-border-dim: rgba(var(--p-dim-rgb) / 0.6);
 
-  --panel: var(--amber-bg);
-  --panel-bg2: var(--amber-bg2);
-  --panel-border: var(--amber-primary);
-  --panel-border-dim: rgba(125, 84, 16, 0.6);
-
-  --text-muted: var(--amber-dim);
-  --text: var(--amber-primary);
+  --text-muted: var(--p-dim);
+  --text: var(--p-primary);
 
   font-family:
     "IBM Plex Mono", "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
@@ -70,12 +59,11 @@ body,
 
 body {
   overflow: hidden;
-  background: var(--amber-bg);
-  color: var(--amber-primary);
+  background: var(--p-bg);
+  color: var(--p-primary);
 }
 
-/* CRT scanlines — repeating 1px dark band every 3px, multiply-blended over
-   the whole viewport. Pulled from amber-page.jsx's first overlay. */
+/* CRT scanlines — 1px dark band every 3px, multiply-blended over the viewport. */
 body::before {
   content: "";
   position: fixed;
@@ -102,9 +90,9 @@ body::after {
 
 button {
   font: inherit;
-  color: var(--amber-primary);
-  background: var(--amber-bg);
-  border: 1px solid var(--amber-primary);
+  color: var(--p-primary);
+  background: var(--p-bg);
+  border: 1px solid var(--p-primary);
   border-radius: 0;
   padding: 6px 14px;
   cursor: pointer;
@@ -119,36 +107,36 @@ button {
 }
 
 button:hover:not(:disabled) {
-  border-color: var(--amber-primary);
-  background: rgba(255, 182, 39, 0.1);
-  box-shadow: 0 0 6px rgba(255, 182, 39, 0.35);
+  border-color: var(--p-primary);
+  background: rgba(var(--p-primary-rgb) / 0.1);
+  box-shadow: 0 0 6px rgba(var(--p-primary-rgb) / 0.35);
 }
 
 button:disabled {
   opacity: 0.45;
-  border-color: var(--amber-dim);
-  color: var(--amber-dim);
+  border-color: var(--p-dim);
+  color: var(--p-dim);
   cursor: not-allowed;
 }
 
 input[type="checkbox"] {
-  accent-color: var(--amber-primary);
+  accent-color: var(--p-primary);
 }
 
 select,
 input[type="text"],
 input[type="number"] {
   font: inherit;
-  color: var(--amber-primary);
-  background: var(--amber-bg2);
-  border: 1px solid var(--amber-dim);
+  color: var(--p-primary);
+  background: var(--p-bg2);
+  border: 1px solid var(--p-dim);
   border-radius: 0;
   padding: 4px 8px;
 }
 
 ::selection {
-  background: rgba(255, 182, 39, 0.35);
-  color: var(--amber-bg);
+  background: rgba(var(--p-primary-rgb) / 0.35);
+  color: var(--p-bg);
 }
 
 ::-webkit-scrollbar {
@@ -156,12 +144,12 @@ input[type="number"] {
   height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--amber-bg);
+  background: var(--p-bg);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--amber-dim);
-  border: 2px solid var(--amber-bg);
+  background: var(--p-dim);
+  border: 2px solid var(--p-bg);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--amber-dim2);
+  background: var(--p-dim2);
 }

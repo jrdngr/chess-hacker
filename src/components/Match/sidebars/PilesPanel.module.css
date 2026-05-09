@@ -1,0 +1,173 @@
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+}
+
+.pile {
+  all: unset;
+  position: relative;
+  cursor: pointer;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 1px;
+  width: 100%;
+  height: 64px;
+  padding: 6px 8px;
+  background: var(--p-bg2);
+  border: 1px solid color-mix(in srgb, var(--pile-color, var(--p-primary)) 60%, transparent);
+  box-shadow:
+    inset 0 0 0 1px var(--p-bg2),
+    inset 0 0 0 3px color-mix(in srgb, var(--pile-color, var(--p-primary)) 30%, transparent);
+  font: inherit;
+  color: var(--pile-color, var(--p-primary));
+  text-transform: uppercase;
+  transition:
+    background 120ms ease,
+    box-shadow 120ms ease,
+    border-color 120ms ease;
+}
+
+.pile:hover:not(:disabled),
+.selected {
+  border-color: var(--pile-color, var(--p-primary));
+  background: color-mix(in srgb, var(--pile-color, var(--p-primary)) 12%, var(--p-bg2));
+  box-shadow:
+    inset 0 0 0 1px var(--p-bg2),
+    inset 0 0 0 3px color-mix(in srgb, var(--pile-color, var(--p-primary)) 60%, transparent),
+    0 0 10px color-mix(in srgb, var(--pile-color, var(--p-primary)) 50%, transparent);
+}
+
+.draw {
+  --pile-color: var(--p-primary);
+}
+
+.discard {
+  --pile-color: var(--p-dim2);
+}
+
+.consumed {
+  --pile-color: var(--p-opp);
+}
+
+.pileLabel {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: color-mix(in srgb, var(--pile-color, var(--p-primary)) 85%, transparent);
+}
+
+.pileCount {
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.04em;
+  color: var(--pile-color, var(--p-primary));
+  text-shadow: 0 0 6px color-mix(in srgb, var(--pile-color, var(--p-primary)) 55%, transparent);
+  font-variant-numeric: tabular-nums;
+  align-self: center;
+}
+
+.pileHint {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-align: right;
+  color: color-mix(in srgb, var(--pile-color, var(--p-primary)) 70%, transparent);
+}
+
+/* Inline popover hung off the panel's bottom edge. */
+.popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  background: var(--p-bg);
+  border: 1px solid var(--popover-color, var(--p-primary));
+  color: var(--popover-color, var(--p-primary));
+  box-shadow:
+    inset 0 0 0 1px var(--p-bg),
+    inset 0 0 0 3px color-mix(in srgb, var(--popover-color, var(--p-primary)) 55%, transparent),
+    0 0 18px color-mix(in srgb, var(--popover-color, var(--p-primary)) 45%, transparent);
+}
+
+.popover.draw {
+  --popover-color: var(--p-primary);
+}
+
+.popover.discard {
+  --popover-color: var(--p-dim2);
+}
+
+.popover.consumed {
+  --popover-color: var(--p-opp);
+}
+
+.popoverHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  border-bottom: 1px dashed
+    color-mix(in srgb, var(--popover-color, var(--p-primary)) 60%, transparent);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.popoverActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.expand,
+.close {
+  all: unset;
+  cursor: pointer;
+  padding: 0 5px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  border: 1px solid color-mix(in srgb, var(--popover-color, var(--p-primary)) 65%, transparent);
+  color: var(--popover-color, var(--p-primary));
+  text-transform: uppercase;
+}
+
+.expand:hover,
+.close:hover {
+  background: color-mix(in srgb, var(--popover-color, var(--p-primary)) 14%, transparent);
+}
+
+.popoverList {
+  padding: 4px 10px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.popoverEmpty {
+  color: var(--p-dim);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.popoverRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 2px 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  border-bottom: 1px dashed
+    color-mix(in srgb, var(--popover-color, var(--p-primary)) 25%, transparent);
+}
+
+.popoverRow:last-child {
+  border-bottom: 0;
+}
+
+.popoverCost {
+  opacity: 0.65;
+}

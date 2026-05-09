@@ -27,18 +27,19 @@ describe("Run — Standard boss preview", () => {
 });
 
 describe("Run — Royal mini-run", () => {
-  it("opens on match 1 with the run banner showing the deck size", async () => {
+  it("opens on match 1 and surfaces run progress in the ticker", async () => {
     render(<Run mode="royal" onExit={() => {}} rngSeed={1} />);
 
-    expect(screen.getByLabelText(/run progress/i)).toBeInTheDocument();
-    // Match 1 of 3.
-    expect(screen.getByText(/^1 \/ 3$/)).toBeInTheDocument();
-    // Starter deck is 12 cards (2× Freeze Process + 10 singletons) —
-    // see decks/starter.json.
-    expect(screen.getByText("12")).toBeInTheDocument();
+    // The new top ticker carries the project name + run progress.
+    expect(screen.getByRole("banner")).toBeInTheDocument();
+    // Act 1, match 1 of 3 — rendered as "ACT 1 M1/3" inside the ticker.
+    expect(screen.getByText(/M1\/3/)).toBeInTheDocument();
+    // Starter deck = 12 cards. After the initial draw of 5 the draw pile has
+    // 7 cards left — we render that count on the DRAW pile button.
+    expect(screen.getByLabelText(/draw pile, 7 cards/i)).toBeInTheDocument();
   });
 
-  it("Quit run button calls onExit", async () => {
+  it("Quit button in the ticker calls onExit", async () => {
     const user = userEvent.setup();
     let exited = false;
     render(<Run mode="royal" onExit={() => (exited = true)} rngSeed={1} />);

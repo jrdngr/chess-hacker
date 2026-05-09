@@ -1,0 +1,112 @@
+.panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel > :global(*) {
+  /* Panel.body is a flex column we want to grow; we can't add classes from
+     here, so the inline panel style sets flex via :global. */
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 11px;
+  line-height: 1.4;
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.empty {
+  color: var(--p-dim);
+  letter-spacing: 0.06em;
+  padding: 4px 0;
+}
+
+.row {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  padding: 1px 0;
+  border-bottom: 1px dashed rgba(var(--p-dim-rgb) / 0.35);
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.turnCell {
+  width: 36px;
+  flex-shrink: 0;
+  color: var(--p-dim);
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+
+.sideCell {
+  width: 32px;
+  flex-shrink: 0;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.textCell {
+  flex: 1;
+  min-width: 0;
+  color: var(--p-primary);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tagCell {
+  flex-shrink: 0;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.player {
+  color: var(--p-primary);
+}
+
+.opp {
+  color: var(--p-opp);
+}
+
+.primary {
+  color: var(--p-primary);
+}
+
+.dim {
+  color: var(--p-dim);
+}
+
+.exportBtn {
+  all: unset;
+  cursor: pointer;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--p-dim);
+  padding: 0 4px;
+  border: 1px solid transparent;
+  text-transform: uppercase;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease;
+}
+
+.exportBtn:hover {
+  color: var(--p-primary);
+  border-color: rgba(var(--p-primary-rgb) / 0.55);
+}

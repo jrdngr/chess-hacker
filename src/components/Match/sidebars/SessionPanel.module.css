@@ -1,0 +1,81 @@
+.stat {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 1px 0;
+  gap: 8px;
+}
+
+.statLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--p-dim);
+}
+
+.statValue {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--p-primary);
+  font-variant-numeric: tabular-nums;
+  text-transform: uppercase;
+}
+
+.player {
+  color: var(--p-primary);
+  text-shadow: 0 0 4px rgba(var(--p-primary-rgb) / 0.45);
+}
+
+.opp {
+  color: var(--p-opp);
+  text-shadow: 0 0 4px rgba(var(--p-opp-rgb) / 0.45);
+}
+
+.dim {
+  color: var(--p-dim2);
+  text-shadow: none;
+}
+
+.dash {
+  border: 0;
+  border-top: 1px dashed rgba(var(--p-dim-rgb) / 0.5);
+  margin: 6px 0 4px;
+  width: 100%;
+}
+
+.energyHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.energyValue {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--p-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.energyBar {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.energySeg {
+  flex: 1;
+  height: 14px;
+  border: 1px solid var(--p-primary);
+  background: transparent;
+  transition:
+    background 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.energyLit {
+  background: var(--p-primary);
+  box-shadow: 0 0 5px rgba(var(--p-primary-rgb) / 0.55);
+}

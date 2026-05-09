@@ -1,0 +1,140 @@
+/* Palette tokens.
+   Source: chess-game/project/mockups/shared.jsx → window.PALETTES.
+   Active palette is selected via the `data-palette` attribute on <html>;
+   App.tsx persists the user's choice to localStorage. */
+
+:root,
+:root[data-palette="amber"] {
+  --p-bg: #120a02;
+  --p-bg2: #1c1206;
+  --p-bg3: #3d2706;
+
+  --p-primary: #ffb627;
+  --p-dim: #7d5410;
+  --p-dim2: #e6932c;
+
+  --p-opp: #ff4d3a;
+  --p-opp-dim: #7a2316;
+
+  --p-both: #9bd96b;
+  --p-accent: #e6932c;
+
+  /* Player piece colour. Defaults to primary; some palettes (hexbloom)
+     deliberately diverge so the player's pieces read as a third hue. */
+  --p-mine: #ffb627;
+
+  /* RGB triplets (space-separated, slash-alpha syntax) so component CSS
+     can do `rgba(var(--p-primary-rgb) / 0.35)` and have the alpha tint
+     follow the active palette. */
+  --p-primary-rgb: 255 182 39;
+  --p-dim-rgb: 125 84 16;
+  --p-dim2-rgb: 230 147 44;
+  --p-opp-rgb: 255 77 58;
+  --p-both-rgb: 155 217 107;
+  --p-mine-rgb: 255 182 39;
+  --p-bg-rgb: 18 10 2;
+  --p-bg2-rgb: 28 18 6;
+}
+
+:root[data-palette="terminal"] {
+  --p-bg: #06120a;
+  --p-bg2: #0b1e10;
+  --p-bg3: #1d6d3b;
+
+  --p-primary: #7fffaa;
+  --p-dim: #1d6d3b;
+  --p-dim2: #34d27a;
+
+  --p-opp: #ff5d6c;
+  --p-opp-dim: #9a2230;
+
+  --p-both: #ffc857;
+  --p-accent: #34d27a;
+
+  --p-mine: #7fffaa;
+
+  --p-primary-rgb: 127 255 170;
+  --p-dim-rgb: 29 109 59;
+  --p-dim2-rgb: 52 210 122;
+  --p-opp-rgb: 255 93 108;
+  --p-both-rgb: 255 200 87;
+  --p-mine-rgb: 127 255 170;
+  --p-bg-rgb: 6 18 10;
+  --p-bg2-rgb: 11 30 16;
+}
+
+:root[data-palette="hexbloom"] {
+  --p-bg: #07060f;
+  --p-bg2: #0e0a1f;
+  --p-bg3: #15102e;
+
+  --p-primary: #e8e6ff;
+  --p-dim: #9d9bd0;
+  --p-dim2: #7c3aed;
+
+  --p-opp: #ff2bd6;
+  --p-opp-dim: #a91a8e;
+
+  --p-both: #c9ff3a;
+  --p-accent: #7c3aed;
+
+  /* hexbloom uses a distinct cyan for "mine" rather than the foreground. */
+  --p-mine: #1befff;
+
+  --p-primary-rgb: 232 230 255;
+  --p-dim-rgb: 157 155 208;
+  --p-dim2-rgb: 124 58 237;
+  --p-opp-rgb: 255 43 214;
+  --p-both-rgb: 201 255 58;
+  --p-mine-rgb: 27 239 255;
+  --p-bg-rgb: 7 6 15;
+  --p-bg2-rgb: 14 10 31;
+}
+
+:root[data-palette="blueprint"] {
+  --p-bg: #0a1f3d;
+  --p-bg2: #0d2950;
+  --p-bg3: #143b6e;
+
+  --p-primary: #f5f7ff;
+  --p-dim: #7e93b8;
+  --p-dim2: #3f7bc8;
+
+  --p-opp: #ff5d5d;
+  --p-opp-dim: #9a2a2a;
+
+  --p-both: #ffd166;
+  --p-accent: #4fd1c5;
+
+  --p-mine: #f5f7ff;
+
+  --p-primary-rgb: 245 247 255;
+  --p-dim-rgb: 126 147 184;
+  --p-dim2-rgb: 63 123 200;
+  --p-opp-rgb: 255 93 93;
+  --p-both-rgb: 255 209 102;
+  --p-mine-rgb: 245 247 255;
+  --p-bg-rgb: 10 31 61;
+  --p-bg2-rgb: 13 41 80;
+}
+
+/* Backward-compat aliases — the previous pass authored every CSS module
+   against `--amber-*`. These point at the active palette so swapping
+   `data-palette` re-skins the entire app without touching component CSS. */
+:root {
+  --amber-bg: var(--p-bg);
+  --amber-bg2: var(--p-bg2);
+  --amber-bg3: var(--p-bg3);
+  --amber-primary: var(--p-primary);
+  --amber-dim: var(--p-dim);
+  --amber-dim2: var(--p-dim2);
+  --amber-opp: var(--p-opp);
+  --amber-opp-dim: var(--p-opp-dim);
+  --amber-both: var(--p-both);
+
+  /* Piece tints. PieceGlyph reads these directly. */
+  --piece-mine: var(--p-mine);
+  --piece-opp: var(--p-opp);
+  --piece-mine-rgb: var(--p-mine-rgb);
+  --piece-opp-rgb: var(--p-opp-rgb);
+}

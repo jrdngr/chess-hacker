@@ -3,15 +3,15 @@
 // the play.
 //
 // The hand is dumb: it renders the cards passed in and reports clicks back.
-// All state (energy gating, targeting, draw pile) lives in the Match.
+// All state (energy gating, targeting, draw pile) lives in the Match. The
+// piles themselves now live in the side panel's PILES section — the Hand
+// only renders cards (plus a header strip for hotkey hints).
 //
-// Draw / discard animation: the Hand owns its own draw and discard motion.
-// Each HandCard reference is tagged with a stable slot id (a WeakMap with a
-// fallback for the retain-flag re-issue), so when the hand prop changes we
-// can tell which slots are *new* (animate from the draw pile into place) and
-// which are *gone* (render briefly as an absolutely-positioned "ghost" that
-// slides toward the discard pile, then unmount). Curses and Consume cards
-// vanish in place — no destination pile is rendered for the consumed cards.
+// Draw / discard animation: the Hand still owns the entry / exit motion of
+// each HandCard. Slots get a stable id via a WeakMap so we can tell new
+// slots (slide in from the side panel's draw pile if it's mounted, otherwise
+// from the screen edge) and removed slots (slide out toward the discard
+// pile if mounted, otherwise fade in place).
 
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 
@@ -73,8 +73,6 @@ type Props = {
   targetingIndex: number | null;
   /** Whether the player is allowed to interact with their hand right now. */
   enabled: boolean;
-  drawPileCount: number;
-  discardPileCount: number;
   /**
    * Hand indexes the active boss modifier forbids playing (e.g. Boss A's
    * "no walls" rule disables every place-wall card). Greys out the card and
@@ -85,10 +83,6 @@ type Props = {
   /** Drag a targeted card from the hand onto a board square to play it. */
   onCardDragStart?: (index: number) => void;
   onCardDragEnd?: () => void;
-  /** Open the draw-pile inspector modal. */
-  onDrawPileClick?: () => void;
-  /** Open the discard-pile inspector modal. */
-  onDiscardPileClick?: () => void;
 };
 
 export function Hand({
@@ -96,14 +90,10 @@ export function Hand({
   energy,
   targetingIndex,
   enabled,
-  drawPileCount,
-  discardPileCount,
   forbiddenIndexes,
   onCardClick,
   onCardDragStart,
   onCardDragEnd,
-  onDrawPileClick,
-  onDiscardPileClick,
 }: Props) {
   // When the active targeting card asks for a hand-card target (Bookmark),
   // every hand slot except the playing one becomes a click target. We
@@ -323,18 +313,14 @@ export function Hand({
 
   return (
     <div className={styles.handArea} ref={handAreaRef}>
-      <button
-        type="button"
-        ref={drawPileRef}
-        className={styles.pile}
-        aria-label="Draw pile"
-        onClick={onDrawPileClick}
-        disabled={!onDrawPileClick}
-      >
-        <span className={styles.pileLabel}>Draw</span>
-        <span className={styles.pileCount}>{drawPileCount}</span>
-      </button>
-
+      <div className={styles.handHeader}>
+        <span className={styles.handHeaderLeft}>
+          ▌HAND {hand.length}/5 E{energy} AVAIL
+        </span>
+        <span className={styles.handHeaderRight} aria-hidden>
+          ↵ TARGET · ESC CANCEL · SPC END_TURN
+        </span>
+      </div>
       <div className={styles.hand} role="list" aria-label="Hand">
         {hand.length === 0 ? (
           <div className={styles.emptyHand}>Hand is empty</div>
@@ -409,18 +395,6 @@ export function Hand({
           })
         )}
       </div>
-
-      <button
-        type="button"
-        ref={discardPileRef}
-        className={styles.pile}
-        aria-label="Discard pile"
-        onClick={onDiscardPileClick}
-        disabled={!onDiscardPileClick}
-      >
-        <span className={styles.pileLabel}>Discard</span>
-        <span className={styles.pileCount}>{discardPileCount}</span>
-      </button>
 
       {ghosts.length > 0 && (
         <div className={styles.ghostLayer} aria-hidden="true">

@@ -1,12 +1,41 @@
+/* AMBER_TT match layout — Ticker on top, three columns below
+   (sidePanel | boardArea | rightPanel + devPanel). */
+
 .match {
   display: flex;
-  gap: 18px;
-  align-items: stretch;
+  flex-direction: column;
   width: 100%;
-  max-width: 1480px;
   height: 100%;
-  margin: 0 auto;
   min-height: 0;
+}
+
+.matchBody {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(260px, 300px) 1fr minmax(240px, 280px) auto;
+  gap: 18px;
+  padding: 18px 22px 12px;
+  align-items: stretch;
+  background: var(--p-bg);
+}
+
+.sidePanel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  /* Sidebars are scrollable so a long move log / artifact list never pushes
+     the board out of frame. */
+  overflow-y: auto;
+}
+
+.rightPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .boardArea {
@@ -19,183 +48,46 @@
   gap: 6px;
 }
 
-/* AMBER_TT side panel — outer 1px amber frame + inset accent stripe.
-   Mirrors the Panel() component in amber-page.jsx. */
-.sidePanel {
+/* "Highlight threats" toggle — small inline checkbox + label, amber tone. */
+.toggleRow {
   display: flex;
-  flex-direction: column;
-  gap: 14px;
-  width: 240px;
-  padding: 14px 12px;
-  background: var(--amber-bg);
-  border: 1px solid var(--amber-primary);
-  border-radius: 0;
-  box-shadow:
-    inset 0 0 0 1px var(--amber-bg),
-    inset 0 0 0 3px rgba(255, 182, 39, 0.4);
-  position: relative;
-  overflow-y: auto;
-}
-
-.statusBlock {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding-bottom: 6px;
-  border-bottom: 1px dashed rgba(125, 84, 16, 0.45);
-}
-
-.statusBlock:last-child {
-  border-bottom: 0;
-}
-
-.label {
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
   font-size: 10px;
-  color: var(--amber-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.22em;
   font-weight: 700;
-}
-
-.value {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--amber-primary);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.player {
-  color: var(--amber-primary);
-  text-shadow: 0 0 4px rgba(255, 182, 39, 0.45);
-}
-
-.opponent {
-  color: var(--amber-opp);
-  text-shadow: 0 0 4px rgba(255, 77, 58, 0.45);
-}
-
-.check {
-  margin-left: 6px;
-  color: var(--amber-opp);
-  font-weight: 700;
-  font-size: 11px;
-  letter-spacing: 0.14em;
-}
-
-.thinking {
-  margin-left: 6px;
-  color: var(--amber-dim2);
-  font-weight: 500;
-  font-size: 11px;
-  font-style: italic;
-  letter-spacing: 0.06em;
-}
-
-.modeRow {
-  display: flex;
-  gap: 4px;
-}
-
-.modeButton {
-  flex: 1;
-  padding: 5px 6px;
-  font-size: 10px;
   letter-spacing: 0.18em;
-  background: var(--amber-bg);
-  color: var(--amber-dim2);
-  border: 1px solid var(--amber-dim);
+  color: var(--p-dim2);
   text-transform: uppercase;
+  padding: 4px 8px;
 }
 
-.modeButton:hover:not(:disabled) {
-  border-color: var(--amber-primary);
-  color: var(--amber-primary);
-  background: rgba(255, 182, 39, 0.08);
+.toggleRow:hover {
+  color: var(--p-primary);
 }
 
-.modeActive {
-  border-color: var(--amber-primary);
-  color: var(--amber-primary);
-  background: rgba(255, 182, 39, 0.16);
-  box-shadow:
-    inset 0 0 0 1px var(--amber-bg),
-    inset 0 0 0 2px rgba(255, 182, 39, 0.5);
-}
-
-.select {
-  font: inherit;
-  color: var(--amber-primary);
-  background: var(--amber-bg2);
-  border: 1px solid var(--amber-dim);
-  border-radius: 0;
-  padding: 4px 6px;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
+/* Inline error banner — amber/red panel inside the side column. */
 .aiError {
   padding: 8px 10px;
-  background: rgba(255, 77, 58, 0.12);
-  border: 1px solid var(--amber-opp);
+  background: rgba(var(--p-opp-rgb) / 0.12);
+  border: 1px solid var(--p-opp);
   color: #ffb0a3;
   font-size: 11px;
   line-height: 1.4;
-}
-
-.zoneBuffList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.zoneBuffItem {
-  display: flex;
-  flex-direction: column;
-  padding: 4px 6px;
-  border: 1px solid var(--amber-dim);
-  background: var(--amber-bg2);
-  font-size: 11px;
-  line-height: 1.3;
-}
-
-.zoneBuffActive {
-  border-color: var(--amber-both);
-  background: rgba(155, 217, 107, 0.08);
-  box-shadow: inset 0 0 0 1px rgba(155, 217, 107, 0.35);
-}
-
-.zoneBuffInactive {
-  opacity: 0.5;
-}
-
-.zoneBuffName {
-  font-weight: 700;
-  color: var(--amber-primary);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  font-size: 10px;
 }
 
-.zoneBuffEffect {
-  color: var(--amber-dim2);
-  font-size: 10px;
-}
-
-/* Outcome card — amber framed inset like Panel(). */
+/* Match-end card. Same framed-surface idiom as Panel(). */
 .outcome {
-  margin-top: 8px;
-  padding: 10px 10px 12px;
-  background: var(--amber-bg);
-  border: 1px solid var(--amber-primary);
+  margin-top: 4px;
+  padding: 10px 12px;
+  background: var(--p-bg);
+  border: 1px solid var(--p-primary);
   box-shadow:
-    inset 0 0 0 1px var(--amber-bg),
-    inset 0 0 0 3px rgba(255, 182, 39, 0.45),
-    0 0 12px rgba(255, 182, 39, 0.25);
+    inset 0 0 0 1px var(--p-bg),
+    inset 0 0 0 3px rgba(var(--p-primary-rgb) / 0.45),
+    0 0 12px rgba(var(--p-primary-rgb) / 0.25);
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -206,81 +98,19 @@
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--amber-primary);
-  text-shadow: 0 0 4px rgba(255, 182, 39, 0.4);
+  color: var(--p-primary);
+  text-shadow: 0 0 4px rgba(var(--p-primary-rgb) / 0.4);
 }
 
 .outcomeDetail {
   font-size: 11px;
-  color: var(--amber-dim2);
+  color: var(--p-dim2);
   line-height: 1.4;
 }
 
-.newGame,
-.resetButton {
+.newGame {
   margin-top: 6px;
   width: 100%;
-}
-
-.resetButton {
-  margin-top: auto;
-  align-self: stretch;
-}
-
-.toggleRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  color: var(--amber-dim2);
-  text-transform: uppercase;
-  font-weight: 700;
-}
-
-.toggleRow:hover {
-  color: var(--amber-primary);
-}
-
-/* Energy bar — N segmented boxes; lit segments glow amber, empty are
-   transparent inside an amber outline. Mirrors the SESSION energy bar. */
-.energy {
-  display: flex;
-  gap: 4px;
-  margin-top: 2px;
-}
-
-.energyValue {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--amber-primary);
-  letter-spacing: 0.08em;
-  text-shadow: 0 0 4px rgba(255, 182, 39, 0.45);
-}
-
-.energyMax {
-  font-size: 11px;
-  color: var(--amber-dim2);
-}
-
-.backButton {
-  align-self: stretch;
-  padding: 5px 8px;
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  color: var(--amber-dim2);
-  background: transparent;
-  border: 1px solid var(--amber-dim);
-  border-radius: 0;
-  cursor: pointer;
-  text-transform: uppercase;
-}
-
-.backButton:hover {
-  color: var(--amber-primary);
-  border-color: var(--amber-primary);
-  background: rgba(255, 182, 39, 0.08);
 }
 
 /* Right-edge dev toggle — vertical amber chip. */
@@ -292,16 +122,16 @@
   font-size: 10px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: var(--amber-dim2);
-  background: var(--amber-bg);
-  border: 1px solid var(--amber-dim);
+  color: var(--p-dim2);
+  background: var(--p-bg);
+  border: 1px solid var(--p-dim);
   border-radius: 0;
   cursor: pointer;
   writing-mode: vertical-rl;
 }
 
 .devToggle:hover {
-  color: var(--amber-primary);
-  border-color: var(--amber-primary);
-  background: rgba(255, 182, 39, 0.08);
+  color: var(--p-primary);
+  border-color: var(--p-primary);
+  background: rgba(var(--p-primary-rgb) / 0.08);
 }

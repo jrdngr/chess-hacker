@@ -18,7 +18,7 @@
   border-radius: 0;
   box-shadow:
     inset 0 0 0 1px var(--amber-bg),
-    inset 0 0 0 3px rgba(255, 182, 39, 0.35);
+    inset 0 0 0 3px rgba(var(--p-primary-rgb) / 0.35);
   flex-shrink: 0;
 }
 
@@ -49,8 +49,8 @@
   color: var(--amber-primary);
   font-weight: 700;
   letter-spacing: 0.08em;
-  background: rgba(255, 182, 39, 0.12);
-  border: 1px solid rgba(255, 182, 39, 0.45);
+  background: rgba(var(--p-primary-rgb) / 0.12);
+  border: 1px solid rgba(var(--p-primary-rgb) / 0.45);
   padding: 2px 8px;
   border-radius: 0;
 }
@@ -100,7 +100,7 @@
   border: 1px solid var(--amber-primary);
   box-shadow:
     inset 0 0 0 1px var(--amber-bg),
-    inset 0 0 0 2px rgba(255, 182, 39, 0.4),
+    inset 0 0 0 2px rgba(var(--p-primary-rgb) / 0.4),
     0 4px 12px rgba(0, 0, 0, 0.5);
   border-radius: 0;
   pointer-events: none;
@@ -133,7 +133,7 @@
   position: relative;
   padding: 2px 8px;
   border: 1px solid var(--amber-opp);
-  background: rgba(255, 77, 58, 0.1);
+  background: rgba(var(--p-opp-rgb) / 0.1);
   border-radius: 0;
   cursor: help;
 }
@@ -165,7 +165,7 @@
   border: 1px solid var(--amber-opp);
   box-shadow:
     inset 0 0 0 1px var(--amber-bg),
-    inset 0 0 0 2px rgba(255, 77, 58, 0.35),
+    inset 0 0 0 2px rgba(var(--p-opp-rgb) / 0.35),
     0 8px 20px rgba(0, 0, 0, 0.6);
   border-radius: 0;
   pointer-events: none;
@@ -186,7 +186,7 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--amber-opp);
-  text-shadow: 0 0 4px rgba(255, 77, 58, 0.45);
+  text-shadow: 0 0 4px rgba(var(--p-opp-rgb) / 0.45);
 }
 
 .bossTooltipFlavor {
@@ -228,7 +228,7 @@
   flex-direction: column;
   gap: 1px;
   padding: 5px 6px;
-  background: rgba(255, 182, 39, 0.04);
+  background: rgba(var(--p-primary-rgb) / 0.04);
   border: 1px solid var(--amber-dim);
   border-radius: 0;
 }
@@ -265,7 +265,7 @@
 
 .rare {
   border-color: var(--amber-primary);
-  box-shadow: inset 0 0 0 1px rgba(255, 182, 39, 0.4);
+  box-shadow: inset 0 0 0 1px rgba(var(--p-primary-rgb) / 0.4);
 }
 
 .quit,
@@ -285,13 +285,13 @@
 .log:hover {
   color: var(--amber-primary);
   border-color: var(--amber-primary);
-  background: rgba(255, 182, 39, 0.08);
+  background: rgba(var(--p-primary-rgb) / 0.08);
 }
 
 .quit:hover {
   color: var(--amber-opp);
   border-color: var(--amber-opp);
-  background: rgba(255, 77, 58, 0.08);
+  background: rgba(var(--p-opp-rgb) / 0.08);
 }
 
 .log + .quit {
@@ -316,7 +316,7 @@
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--amber-primary);
-  text-shadow: 0 0 6px rgba(255, 182, 39, 0.45);
+  text-shadow: 0 0 6px rgba(var(--p-primary-rgb) / 0.45);
 }
 
 .summaryReason {
@@ -345,16 +345,16 @@
   border: 1px solid var(--amber-primary);
   box-shadow:
     inset 0 0 0 1px var(--amber-bg),
-    inset 0 0 0 2px rgba(255, 182, 39, 0.4);
+    inset 0 0 0 2px rgba(var(--p-primary-rgb) / 0.4);
   border-radius: 0;
   cursor: pointer;
   text-transform: uppercase;
 }
 
 .summaryButton:hover {
-  background: rgba(255, 182, 39, 0.1);
+  background: rgba(var(--p-primary-rgb) / 0.1);
   box-shadow:
     inset 0 0 0 1px var(--amber-bg),
-    inset 0 0 0 2px rgba(255, 182, 39, 0.6),
-    0 0 8px rgba(255, 182, 39, 0.4);
+    inset 0 0 0 2px rgba(var(--p-primary-rgb) / 0.6),
+    0 0 8px rgba(var(--p-primary-rgb) / 0.4);
 }

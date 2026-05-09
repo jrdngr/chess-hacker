@@ -6,7 +6,7 @@
 // painful" — the M5 mini-run touches at most three siblings (Match, Reward,
 // Shop), all owned by this shell.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { BossPreview } from "./BossPreview";
 import { Match } from "../Match";
@@ -32,17 +32,14 @@ import {
   pickBossOption,
   previewBossFor,
   skipBossArtifact,
-  totalMatches,
 } from "../../game/progression/run";
 import { applyInterest, generateShop } from "../../game/shop/shop";
-import { artifactEmoji } from "../../game/artifacts/library";
 import { goldOnMatchStart } from "../../game/artifacts/effects";
 import type { EngineSnapshot } from "../../game/chess/engine";
 import type {
   Artifact,
   BoardSize,
   BossArtifactOffer,
-  BossDef,
   BossPickOffer,
   BossPickOption,
   MatchCardState,
@@ -50,9 +47,7 @@ import type {
   RunMode,
   RunState,
   Shop as ShopState,
-  StatusTrigger,
 } from "../../game/types";
-import { getStatusEffectById } from "../../game/status/library";
 
 import styles from "./Run.module.css";
 
@@ -62,6 +57,12 @@ type Props = {
   onExit: () => void;
   /** Optional seed for deterministic runs (tests). */
   rngSeed?: number;
+  /** App-level palette state — surfaced inside Match's ticker. */
+  palette?: import("../../state/palette").PaletteId;
+  onPaletteChange?: (p: import("../../state/palette").PaletteId) => void;
+  /** App-level vision state — drives the board-vision overlay. */
+  vision?: boolean;
+  onToggleVision?: () => void;
 };
 
 /**
@@ -130,7 +131,15 @@ type PhaseExtras = {
   } | null;
 };
 
-export function Run({ mode, onExit, rngSeed }: Props) {
+export function Run({
+  mode,
+  onExit,
+  rngSeed,
+  palette,
+  onPaletteChange,
+  vision,
+  onToggleVision,
+}: Props) {
   const [run, setRun] = useState<RunState>(() => createRun({ mode, rngSeed }));
   const [extras, setExtras] = useState<PhaseExtras>({
     shop: null,
@@ -535,134 +544,8 @@ export function Run({ mode, onExit, rngSeed }: Props) {
 
   // ---- Render -------------------------------------------------------------
 
-  const total = totalMatches(run);
-  const activeBoss = run.phase === "match" ? activeBossFor(run) : null;
-  const banner = useMemo(
-    () => (
-      <div className={styles.banner} aria-label="Run progress">
-        <span className={styles.bannerSegment}>
-          <span className={styles.bannerLabel}>Mode</span>
-          <span className={styles.bannerValue}>{titleCase(run.mode)}</span>
-        </span>
-        <span className={styles.bannerSegment}>
-          <span className={styles.bannerLabel}>Match</span>
-          <span className={styles.bannerValue}>
-            {run.matchNumber} / {total}
-          </span>
-        </span>
-        <span className={styles.bannerSegment}>
-          <span className={styles.bannerLabel}>Gold</span>
-          <span className={styles.bannerValue}>{run.gold}</span>
-        </span>
-        <span className={styles.bannerSegment}>
-          <span className={styles.bannerLabel}>Deck</span>
-          <span className={styles.bannerValue}>{run.deck.length}</span>
-        </span>
-        {activeBoss && (
-          <span
-            className={`${styles.bannerSegment} ${styles.bannerBoss}`}
-            tabIndex={0}
-            aria-label={bossAriaLabel(activeBoss)}
-          >
-            <span className={styles.bannerLabel}>Boss</span>
-            <span className={styles.bannerValue}>{activeBoss.name}</span>
-            <span className={styles.bossTooltip} role="tooltip">
-              <span className={styles.bossTooltipName}>{activeBoss.name}</span>
-              <span className={styles.bossTooltipFlavor}>{activeBoss.description}</span>
-              <span className={styles.bossTooltipSection}>
-                <span className={styles.bossTooltipHeading}>Modifier</span>
-                <span className={styles.bossTooltipText}>{activeBoss.modifierDescription}</span>
-              </span>
-              {(activeBoss.hazardWalls.length > 0 ||
-                (activeBoss.voidSquares && activeBoss.voidSquares.length > 0) ||
-                (activeBoss.zoneBuffs && activeBoss.zoneBuffs.length > 0)) && (
-                <span className={styles.bossTooltipSection}>
-                  <span className={styles.bossTooltipHeading}>Hazards</span>
-                  <span className={styles.bossTooltipText}>{describeHazards(activeBoss)}</span>
-                </span>
-              )}
-              <span className={styles.bossTooltipSection}>
-                <span className={styles.bossTooltipHeading}>Status effects</span>
-                {activeBoss.statusEffects.length === 0 ? (
-                  <span className={styles.bossTooltipText}>None.</span>
-                ) : (
-                  <ul className={styles.bossTooltipCurseList}>
-                    {activeBoss.statusEffects.map((id, i) => {
-                      const def = safeLookupStatus(id);
-                      return (
-                        <li key={`${id}-${i}`} className={styles.bossTooltipCurse}>
-                          <span className={styles.bossTooltipCurseTrigger}>
-                            {def ? describeTrigger(def.trigger) : ""}
-                          </span>
-                          <span className={styles.bossTooltipCurseName}>{def?.name ?? id}</span>
-                          {def && (
-                            <span className={styles.bossTooltipCurseDesc}>{def.description}</span>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </span>
-            </span>
-          </span>
-        )}
-        {run.artifacts.length > 0 && (
-          <span
-            className={styles.bannerArtifacts}
-            aria-label={`Artifacts (${run.artifacts.length})`}
-          >
-            {run.artifacts.map((a, i) => (
-              <span
-                key={`${a.id}-${i}`}
-                className={`${styles.artifactBadge} ${rarityClass(a.rarity)}`}
-                tabIndex={0}
-                aria-label={`${a.name}: ${a.description}`}
-              >
-                <span aria-hidden="true">{artifactEmoji(a.id)}</span>
-                <span className={styles.artifactTooltip} role="tooltip">
-                  <span className={styles.artifactTooltipName}>{a.name}</span>
-                  <span className={styles.artifactTooltipDesc}>{a.description}</span>
-                </span>
-              </span>
-            ))}
-          </span>
-        )}
-        {extras.lastInterest > 0 && run.phase === "match" && (
-          <span className={styles.bannerInterest}>+{extras.lastInterest} interest</span>
-        )}
-        <button
-          type="button"
-          onClick={() => setHistoryOpen(true)}
-          className={styles.log}
-          title="Show / export run log"
-          aria-label="Show run log"
-        >
-          Log ({runHistory.length})
-        </button>
-        <button type="button" onClick={onExit} className={styles.quit}>
-          Quit run
-        </button>
-      </div>
-    ),
-    [
-      run.mode,
-      run.matchNumber,
-      run.gold,
-      run.deck.length,
-      run.artifacts,
-      run.phase,
-      total,
-      activeBoss,
-      extras.lastInterest,
-      onExit,
-      runHistory.length,
-    ],
-  );
-
   return (
     <div className={styles.run}>
-      {banner}
       {(run.phase === "match" || run.phase === "lost" || run.phase === "won") &&
         extras.matchSetup && (
           <Match
@@ -680,6 +563,15 @@ export function Run({ mode, onExit, rngSeed }: Props) {
             onCaptureFinalSnapshot={onCaptureFinalSnapshot}
             onRevertMatchEnd={onRevertMatchEnd}
             onAppendHistory={onAppendHistory}
+            runState={run}
+            lastInterest={extras.lastInterest}
+            palette={palette}
+            onPaletteChange={onPaletteChange}
+            vision={vision}
+            onToggleVision={onToggleVision}
+            onShowRunLog={() => setHistoryOpen(true)}
+            runLogCount={runHistory.length}
+            onExit={onExit}
             endOfRunPanel={
               run.phase === "won" || run.phase === "lost" ? (
                 <RunSummary run={run} outcome={extras.finalOutcome?.outcome} onExit={onExit} />
@@ -735,88 +627,4 @@ export function Run({ mode, onExit, rngSeed }: Props) {
       {historyOpen && <RunHistoryModal events={runHistory} onClose={() => setHistoryOpen(false)} />}
     </div>
   );
-}
-
-function titleCase(s: string): string {
-  return s.length === 0 ? s : s[0].toUpperCase() + s.slice(1);
-}
-
-function rarityClass(rarity: Artifact["rarity"]): string {
-  if (rarity === "rare") return styles.rare;
-  if (rarity === "uncommon") return styles.uncommon;
-  return styles.common;
-}
-
-function describeHazards(boss: BossDef): string {
-  const parts: string[] = [];
-  if (boss.hazardWalls.length > 0) {
-    parts.push(`Indestructible walls on ${boss.hazardWalls.join(", ")}.`);
-  }
-  if (boss.voidSquares && boss.voidSquares.length > 0) {
-    parts.push(`Void at ${boss.voidSquares.join(", ")} (any piece ending there is destroyed).`);
-  }
-  if (boss.zoneBuffs && boss.zoneBuffs.length > 0) {
-    for (const b of boss.zoneBuffs) {
-      const where =
-        b.region.kind === "rank"
-          ? `rank ${b.region.rank}`
-          : b.region.kind === "center"
-            ? "the center"
-            : b.region.anchor;
-      const fx =
-        b.buff.kind === "energy-per-turn"
-          ? `+${b.buff.amount} energy/turn`
-          : `+${b.buff.amount} hand size`;
-      parts.push(`Boss-side zone-buff at ${where}: ${fx} while contested.`);
-    }
-  }
-  return parts.join(" ");
-}
-
-function describeTrigger(t: StatusTrigger): string {
-  switch (t.kind) {
-    case "turn-start":
-      return "Turn start";
-    case "every-n-turns":
-      return `Every ${t.n} turns`;
-    case "on-self-check":
-      return "When you check";
-    case "on-self-capture":
-      return "When you capture";
-    case "on-opponent-capture":
-      return "When the boss captures";
-    case "on-self-pawn-move":
-      return "When you move a pawn";
-  }
-}
-
-function safeLookupStatus(id: string) {
-  try {
-    return getStatusEffectById(id);
-  } catch {
-    return null;
-  }
-}
-
-function bossAriaLabel(boss: BossDef): string {
-  const parts: string[] = [`Boss: ${boss.name}`, boss.description];
-  parts.push(`Modifier: ${boss.modifierDescription}`);
-  const hazards = describeHazards(boss);
-  if (hazards.length > 0) {
-    parts.push(`Hazards: ${hazards}`);
-  }
-  if (boss.statusEffects.length === 0) {
-    parts.push("No status effects.");
-  } else {
-    const statusDescriptions = boss.statusEffects
-      .map((id) => {
-        const def = safeLookupStatus(id);
-        const name = def?.name ?? id;
-        const desc = def ? ` — ${def.description}` : "";
-        return `${def ? describeTrigger(def.trigger) : ""}: ${name}${desc}`;
-      })
-      .join("; ");
-    parts.push(`Status effects: ${statusDescriptions}`);
-  }
-  return parts.join(". ");
 }

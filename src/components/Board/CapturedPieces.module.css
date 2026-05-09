@@ -16,12 +16,11 @@
   justify-content: center;
 }
 
-/* Black SVGs are filled black with a black stroke. Stack four 1px drop-shadows
-   in the amber-opp red so they read on the dark amber background — matches
-   the red color the AMBER_TT design uses for the opponent's pieces. */
+/* Pieces are now masked-and-tinted in PieceGlyph itself, so the captured
+   trays no longer need a per-side filter. The amber/red tone follows the
+   active palette. The .darkPiece class still exists for the CapturedPieces
+   component but is now an inert opt-out hook (no extra styling). */
 .darkPiece {
-  filter: drop-shadow(1px 0 0 #ff4d3a) drop-shadow(-1px 0 0 #ff4d3a) drop-shadow(0 1px 0 #ff4d3a)
-    drop-shadow(0 -1px 0 #ff4d3a) drop-shadow(0 0 3px rgba(255, 77, 58, 0.55));
 }
 
 .cell + .cell {
@@ -30,7 +29,7 @@
 
 .advantage {
   margin-left: 8px;
-  color: var(--amber-dim2);
+  color: var(--p-dim2);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   font-size: 11px;

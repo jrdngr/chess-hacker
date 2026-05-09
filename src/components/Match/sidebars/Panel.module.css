@@ -1,0 +1,51 @@
+.panel {
+  position: relative;
+  background: var(--p-bg);
+  border: 1px solid var(--panel-accent, var(--p-primary));
+  border-radius: 0;
+  /* The amber design uses two inset rings to fake a depth-stripe. */
+  box-shadow:
+    inset 0 0 0 1px var(--p-bg),
+    inset 0 0 0 3px color-mix(in srgb, var(--panel-accent, var(--p-primary)) 55%, transparent);
+  padding: 10px;
+  min-height: 0;
+}
+
+.anchor {
+  /* PilesPanel et al. use this so an absolutely-positioned popover can
+     hang off the panel's bottom edge. */
+}
+
+.title,
+.ticker {
+  position: absolute;
+  top: -1px;
+  background: var(--p-bg);
+  padding: 0 8px;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  z-index: 1;
+}
+
+.title {
+  left: 12px;
+  color: var(--panel-accent, var(--p-primary));
+}
+
+.ticker {
+  right: 12px;
+  color: var(--p-dim);
+  letter-spacing: 0.18em;
+}
+
+.body {
+  padding-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}

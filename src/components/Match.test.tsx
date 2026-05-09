@@ -55,7 +55,7 @@ describe("Match (PvP same-screen)", () => {
   it("starts with white to move and renders 64 squares", () => {
     render(<Match initialMode="local-pvp" />);
     expect(screen.getAllByRole("gridcell")).toHaveLength(64);
-    expect(screen.getByText(/^white/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/side to move: white/i)).toBeInTheDocument();
   });
 
   it("clicking a player pawn highlights legal targets, then a target click moves it", async () => {
@@ -73,7 +73,7 @@ describe("Match (PvP same-screen)", () => {
     await user.click(e4!);
 
     // Side to move flipped to black.
-    expect(screen.getByText(/^black/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/side to move: black/i)).toBeInTheDocument();
 
     // e4 now contains a player pawn (aria-label includes the piece description).
     const e4After = squareCell("e4");
@@ -207,7 +207,7 @@ describe("Match (vs AI)", () => {
     });
 
     // Side to move is back to white.
-    expect(screen.getByText(/^white/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/side to move: white/i)).toBeInTheDocument();
   });
 
   it("ignores clicks on AI pieces in vs-AI mode", async () => {
@@ -260,7 +260,7 @@ describe("Match (vs AI)", () => {
     // move (a7-a6 from the alphabetical iteration order in our move
     // generator), so the side to move flips back to white.
     await waitFor(() => {
-      expect(screen.getByText(/^white/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/side to move: white/i)).toBeInTheDocument();
     });
 
     // The side panel surfaces the AI error so the player knows the engine
@@ -274,7 +274,7 @@ describe("Match (vs AI)", () => {
     const spy = vi.spyOn(ai, "getBestMove");
     render(<Match initialMode="vs-ai" createAi={() => ai} aiMinThinkMs={0} />);
 
-    await user.selectOptions(screen.getByLabelText(/difficulty/i), "hard");
+    await user.selectOptions(screen.getByLabelText(/stockfish depth/i), "hard");
 
     await user.click(squareCell("e2")!);
     await user.click(squareCell("e4")!);

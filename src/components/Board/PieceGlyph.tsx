@@ -1,6 +1,8 @@
-// Lichess-default chess piece glyphs (Cburnett SVG set).
+// Lichess-default chess piece glyphs (Cburnett SVG set), recoloured per
+// active palette via `mask-image`. The SVG's alpha defines the silhouette;
+// the underlying div fills with `--piece-mine` / `--piece-opp` so player
+// pieces are amber and opponent pieces are red, with a matching-tone glow.
 //
-// The SVGs are served as static files from /pieces/{w,b}{K,Q,R,B,N,P}.svg.
 // Source: https://github.com/lichess-org/lila/tree/master/public/piece/cburnett
 // (Cburnett, CC-BY-SA 3.0).
 
@@ -32,12 +34,17 @@ function pieceUrl(piece: Piece): string {
 
 export function PieceGlyph({ piece }: Props) {
   const sideClass = piece.side === "player" ? styles.player : styles.opponent;
+  const url = pieceUrl(piece);
   return (
-    <img
+    <span
       className={`${styles.glyph} ${sideClass}`}
-      src={pieceUrl(piece)}
-      alt={`${piece.side} ${piece.type}`}
-      draggable={false}
+      style={{
+        // Same URL feeds both webkit + standard mask properties.
+        WebkitMaskImage: `url(${url})`,
+        maskImage: `url(${url})`,
+      }}
+      role="img"
+      aria-label={`${piece.side} ${piece.type}`}
     />
   );
 }

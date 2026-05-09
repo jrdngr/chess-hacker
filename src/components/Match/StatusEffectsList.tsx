@@ -1,65 +1,116 @@
-// Sidebar list of active status effects (boss curses; future player buffs).
-//
-// Renders one badge per StatusEffect attached to MatchCardState. Each badge
-// shows the def's name, either its trigger description (when idle) or a
-// concrete "what it's doing right now" line plus an Active pill (when its
-// effect is currently constraining gameplay), an optional remaining-fires /
-// remaining-turns hint, and a tooltip with the full description. A short
-// glow plays the turn it fires; a persistent glow stays on while the effect
-// is active.
+// Sidebar list of active status effects (boss curses; future player buffs)
+// plus optional zone-buff overlays. Renders nothing when both lists are
+// empty. The panel takes a red accent when at least one curse is active so
+// the player notices the constraint at a glance.
 
-import type { CardEffect, MatchCardState, StatusEffect, StatusTrigger } from "../../game/types";
+import type {
+  CardEffect,
+  MatchCardState,
+  StatusEffect,
+  StatusTrigger,
+  ZoneBuff,
+} from "../../game/types";
 import { getStatusEffectById } from "../../game/status/library";
 
+import { Panel } from "./sidebars/Panel";
 import styles from "./StatusEffectsList.module.css";
 
 type Props = {
   cardState: MatchCardState;
+  /** Zone buffs to surface alongside status effects. Pass [] to omit. */
+  zoneBuffs?: ReadonlyArray<ZoneBuff>;
+  /** Subset of `zoneBuffs` that are currently active (controlled by the player). */
+  activeBuffs?: ReadonlyArray<ZoneBuff>;
 };
 
-export function StatusEffectsList({ cardState }: Props) {
+export function StatusEffectsList({ cardState, zoneBuffs, activeBuffs }: Props) {
   const { statusEffects, turn } = cardState;
-  if (statusEffects.length === 0) return null;
+  const buffs = zoneBuffs ?? [];
+  if (statusEffects.length === 0 && buffs.length === 0) return null;
+
+  // Panel accent: red if any curse is present, amber otherwise. Title varies
+  // to match — CURSE if a hostile status is active, STATUS for blessings/buffs.
+  const hasCurse = statusEffects.some((s) => safeLookup(s.defId)?.flavor !== "blessing");
+  const accentVar = hasCurse ? "--p-opp" : "--p-primary";
+  const title = hasCurse ? "CURSE" : "STATUS";
+
   return (
-    <div className={styles.statusBlock}>
-      <div className={styles.label}>Status effects</div>
-      <ul className={styles.list} aria-label="Active status effects">
-        {statusEffects.map((s, i) => {
-          const def = safeLookup(s.defId);
-          if (!def) return null;
-          const flavorClass = def.flavor === "blessing" ? styles.blessing : styles.curse;
-          const recentlyFired = s.lastFiredOnTurn === turn;
-          const active = isEffectActive(def.effect, cardState);
-          const stateLabel = active
-            ? describeActiveState(def.effect, cardState)
-            : describeStatusTrigger(def.trigger);
-          const lifetime = describeLifetime(s);
-          const meta = lifetime ? `${stateLabel} · ${lifetime}` : stateLabel;
-          const className = [
-            styles.item,
-            flavorClass,
-            active && styles.active,
-            recentlyFired && styles.recentlyFired,
-          ]
-            .filter(Boolean)
-            .join(" ");
-          return (
-            <li
-              key={`${s.defId}:${i}`}
-              className={className}
-              title={def.description}
-              aria-label={`${def.name}${active ? " — active" : ""}`}
-            >
-              <span className={styles.nameRow}>
-                <span className={styles.name}>{def.name}</span>
-                {active && <span className={styles.activeBadge}>Active</span>}
-              </span>
-              <span className={styles.meta}>{meta}</span>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
+    <Panel title={title} accentVar={accentVar}>
+      {statusEffects.length > 0 && (
+        <ul className={styles.list} aria-label="Active status effects">
+          {statusEffects.map((s, i) => {
+            const def = safeLookup(s.defId);
+            if (!def) return null;
+            const flavorClass = def.flavor === "blessing" ? styles.blessing : styles.curse;
+            const recentlyFired = s.lastFiredOnTurn === turn;
+            const active = isEffectActive(def.effect, cardState);
+            const stateLabel = active
+              ? describeActiveState(def.effect, cardState)
+              : describeStatusTrigger(def.trigger);
+            const lifetime = describeLifetime(s);
+            const meta = lifetime ? `${stateLabel} · ${lifetime}` : stateLabel;
+            const className = [
+              styles.item,
+              flavorClass,
+              active && styles.active,
+              recentlyFired && styles.recentlyFired,
+            ]
+              .filter(Boolean)
+              .join(" ");
+            return (
+              <li
+                key={`${s.defId}:${i}`}
+                className={className}
+                title={def.description}
+                aria-label={`${def.name}${active ? " — active" : ""}`}
+              >
+                <span className={styles.nameRow}>
+                  <span className={styles.name}>{def.name}</span>
+                  {active && <span className={styles.activeBadge}>Active</span>}
+                </span>
+                <span className={styles.meta}>{meta}</span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {buffs.length > 0 && (
+        <>
+          {statusEffects.length > 0 && <div className={styles.subheader}>BUFFS</div>}
+          <ul className={styles.list} aria-label="Active zone buffs">
+            {buffs.map((b, i) => {
+              const isActive = activeBuffs?.includes(b) ?? false;
+              const remaining =
+                b.expiresOnTurn === undefined
+                  ? null
+                  : Math.max(0, b.expiresOnTurn - cardState.turn);
+              const className = [styles.item, styles.buff, isActive && styles.active]
+                .filter(Boolean)
+                .join(" ");
+              const effect =
+                b.effect.kind === "energy-per-turn"
+                  ? `+${b.effect.amount} energy/turn`
+                  : `+${b.effect.amount} hand size`;
+              const meta = remaining !== null ? `${effect} · ${remaining}T` : effect;
+              return (
+                <li
+                  key={`${b.sourceLabel}:${i}`}
+                  className={className}
+                  aria-label={`${b.sourceLabel} — ${effect}`}
+                >
+                  <span className={styles.nameRow}>
+                    <span className={styles.name}>{b.sourceLabel}</span>
+                    {isActive && <span className={styles.activeBadge}>Active</span>}
+                  </span>
+                  <span className={styles.meta}>{meta}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
+    </Panel>
   );
 }
 
@@ -89,7 +140,7 @@ function isEffectActive(effect: CardEffect, state: MatchCardState): boolean {
 function describeActiveState(effect: CardEffect, state: MatchCardState): string {
   switch (effect.kind) {
     case "next-move-constraint":
-      return "Your next move must not deliver check";
+      return "Next move must not deliver check";
     case "pending-energy-loss-on-no-capture":
       return "Capture this turn or lose energy next turn";
     case "forbid-zero-cost-this-turn":

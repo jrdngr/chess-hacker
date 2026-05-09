@@ -21,9 +21,9 @@
   border-radius: 0;
   box-shadow:
     inset 0 0 0 1px var(--amber-bg),
-    inset 0 0 0 3px rgba(255, 182, 39, 0.35),
-    inset 0 0 30px rgba(255, 182, 39, 0.13),
-    0 0 24px rgba(255, 182, 39, 0.18);
+    inset 0 0 0 3px rgba(var(--p-primary-rgb) / 0.35),
+    inset 0 0 30px rgba(var(--p-primary-rgb) / 0.13),
+    0 0 24px rgba(var(--p-primary-rgb) / 0.18);
   padding: 4px;
   overflow: visible;
   width: min(100cqw, calc(100cqh * var(--board-aspect, 1)));
@@ -34,7 +34,7 @@
 .boardInvalid {
   outline: 3px solid var(--amber-opp);
   outline-offset: 2px;
-  box-shadow: 0 0 18px 2px rgba(255, 77, 58, 0.4);
+  box-shadow: 0 0 18px 2px rgba(var(--p-opp-rgb) / 0.4);
 }
 
 .row {
@@ -90,13 +90,13 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(255, 182, 39, 0.18);
+  background: rgba(var(--p-primary-rgb) / 0.18);
   pointer-events: none;
   z-index: 0;
 }
 
 .selected {
-  background: rgba(255, 182, 39, 0.35) !important;
+  background: rgba(var(--p-primary-rgb) / 0.35) !important;
   box-shadow: inset 0 0 0 2px var(--amber-primary);
 }
 
@@ -150,8 +150,8 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(255, 77, 58, 0.32);
-  box-shadow: inset 0 0 0 2px rgba(255, 77, 58, 0.85);
+  background: rgba(var(--p-opp-rgb) / 0.32);
+  box-shadow: inset 0 0 0 2px rgba(var(--p-opp-rgb) / 0.85);
   pointer-events: none;
   z-index: 2;
 }
@@ -200,7 +200,7 @@
   inset: 3px;
   border-radius: 0;
   border: 1px dashed var(--amber-primary);
-  background: rgba(255, 182, 39, 0.06);
+  background: rgba(var(--p-primary-rgb) / 0.06);
   pointer-events: none;
   z-index: 1;
 }
@@ -211,7 +211,7 @@
   inset: 3px;
   border-radius: 0;
   border: 1px dashed var(--amber-opp);
-  background: rgba(255, 77, 58, 0.08);
+  background: rgba(var(--p-opp-rgb) / 0.08);
   pointer-events: none;
   z-index: 1;
 }
@@ -223,9 +223,9 @@
   inset: 0;
   background: radial-gradient(
     circle at center,
-    rgba(155, 217, 107, 0.32) 0%,
-    rgba(155, 217, 107, 0.08) 65%,
-    rgba(155, 217, 107, 0) 100%
+    rgba(var(--p-both-rgb) / 0.32) 0%,
+    rgba(var(--p-both-rgb) / 0.08) 65%,
+    rgba(var(--p-both-rgb) / 0) 100%
   );
   pointer-events: none;
   z-index: 0;
@@ -237,9 +237,9 @@
   inset: 0;
   background: radial-gradient(
     circle at center,
-    rgba(125, 84, 16, 0.3) 0%,
-    rgba(125, 84, 16, 0.08) 65%,
-    rgba(125, 84, 16, 0) 100%
+    rgba(var(--p-dim-rgb) / 0.3) 0%,
+    rgba(var(--p-dim-rgb) / 0.08) 65%,
+    rgba(var(--p-dim-rgb) / 0) 100%
   );
   pointer-events: none;
   z-index: 0;
@@ -249,9 +249,9 @@
   position: absolute;
   inset: 24%;
   border-radius: 50%;
-  border: 2px solid rgba(155, 217, 107, 0.85);
+  border: 2px solid rgba(var(--p-both-rgb) / 0.85);
   box-shadow:
-    inset 0 0 4px rgba(155, 217, 107, 0.6),
+    inset 0 0 4px rgba(var(--p-both-rgb) / 0.6),
     0 0 0 1px rgba(0, 0, 0, 0.25);
   pointer-events: none;
   z-index: 1;
@@ -308,21 +308,21 @@
 }
 
 .cardHoverValid {
-  box-shadow: inset 0 0 0 9999px rgba(155, 217, 107, 0.5) !important;
-  outline: 3px solid rgba(155, 217, 107, 0.95);
+  box-shadow: inset 0 0 0 9999px rgba(var(--p-both-rgb) / 0.5) !important;
+  outline: 3px solid rgba(var(--p-both-rgb) / 0.95);
   outline-offset: -3px;
 }
 
 .cardHoverInvalid {
-  box-shadow: inset 0 0 0 9999px rgba(255, 77, 58, 0.5) !important;
-  outline: 3px solid rgba(255, 77, 58, 0.95);
+  box-shadow: inset 0 0 0 9999px rgba(var(--p-opp-rgb) / 0.5) !important;
+  outline: 3px solid rgba(var(--p-opp-rgb) / 0.95);
   outline-offset: -3px;
   cursor: not-allowed;
 }
 
 .boardDropAnywhere {
   position: relative;
-  outline: 3px solid rgba(155, 217, 107, 0.9);
+  outline: 3px solid rgba(var(--p-both-rgb) / 0.9);
   outline-offset: -3px;
 }
 
@@ -330,7 +330,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(155, 217, 107, 0.28);
+  background: rgba(var(--p-both-rgb) / 0.28);
   pointer-events: none;
   z-index: 4;
 }
@@ -346,7 +346,7 @@
   border: 1px solid var(--amber-primary);
   box-shadow:
     inset 0 0 0 1px var(--amber-bg),
-    inset 0 0 0 2px rgba(255, 182, 39, 0.45);
+    inset 0 0 0 2px rgba(var(--p-primary-rgb) / 0.45);
   border-radius: 0;
   color: var(--amber-primary);
   font-size: 11px;
@@ -368,7 +368,7 @@
   border: 1px solid var(--amber-primary);
   box-shadow:
     inset 0 0 0 1px var(--amber-bg),
-    inset 0 0 0 2px rgba(255, 182, 39, 0.4),
+    inset 0 0 0 2px rgba(var(--p-primary-rgb) / 0.4),
     0 4px 12px rgba(0, 0, 0, 0.4);
   border-radius: 0;
   color: var(--amber-primary);
@@ -380,7 +380,7 @@
 .tooltipSection + .tooltipSection {
   margin-top: 4px;
   padding-top: 4px;
-  border-top: 1px dashed rgba(125, 84, 16, 0.6);
+  border-top: 1px dashed rgba(var(--p-dim-rgb) / 0.6);
 }
 
 .tooltipHeader {
