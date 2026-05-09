@@ -294,6 +294,75 @@ describe("StockfishEngine", () => {
       }
     });
   });
+
+  describe("ready watchdog", () => {
+    it("rejects ready() if readyok never arrives within readyTimeoutMs", async () => {
+      vi.useFakeTimers();
+      try {
+        const sf = new StockfishEngine({ workerUrl: "/fake.js", readyTimeoutMs: 100 });
+        const settled = sf.ready().then(
+          () => "resolved",
+          (e: Error) => `rejected:${e.message}`,
+        );
+        await vi.advanceTimersByTimeAsync(100);
+        expect(await settled).toMatch(/^rejected:.*ready timed out/);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("does not fire if uciok+readyok arrive before readyTimeoutMs", async () => {
+      vi.useFakeTimers();
+      try {
+        const sf = new StockfishEngine({ workerUrl: "/fake.js", readyTimeoutMs: 200 });
+        const w = FakeWorker.instances[0]!;
+        const p = sf.ready();
+        await vi.advanceTimersByTimeAsync(50);
+        w.emit("uciok");
+        w.emit("readyok");
+        await expect(p).resolves.toBeUndefined();
+
+        // Advance past the would-be ready watchdog — must NOT have fired.
+        await vi.advanceTimersByTimeAsync(500);
+        // No reject path can have run; a second await should still resolve.
+        await expect(sf.ready()).resolves.toBeUndefined();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("destroy() rejects a pending ready() so awaiters don't dangle", async () => {
+      const sf = new StockfishEngine({ workerUrl: "/fake.js" });
+      const settled = sf.ready().then(
+        () => "resolved",
+        (e: Error) => `rejected:${e.message}`,
+      );
+      sf.destroy();
+      expect(await settled).toMatch(/^rejected:.*destroyed/);
+    });
+
+    it("readyTimeoutMs=0 disables the watchdog", async () => {
+      vi.useFakeTimers();
+      try {
+        const sf = new StockfishEngine({ workerUrl: "/fake.js", readyTimeoutMs: 0 });
+        const w = FakeWorker.instances[0]!;
+        let settled = false;
+        sf.ready().then(
+          () => (settled = true),
+          () => (settled = true),
+        );
+        await vi.advanceTimersByTimeAsync(60_000);
+        expect(settled).toBe(false);
+        // Engine eventually completes the handshake.
+        w.emit("uciok");
+        w.emit("readyok");
+        await vi.advanceTimersByTimeAsync(0);
+        expect(settled).toBe(true);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
 });
 
 describe("variantFor", () => {

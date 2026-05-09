@@ -27,6 +27,10 @@ const AI_SIDE: Side = "opponent";
  * well under a second; 15s is generous and only fires when something has
  * genuinely gone wrong with the engine. On timeout we fall back to a random
  * legal move (see `doAiMove`) so the game doesn't lock up.
+ *
+ * Note: this only protects the search step. The uci/readyok handshake has
+ * its own watchdog inside `StockfishEngine` so a silent init failure can't
+ * pin `await ai.ready()` indefinitely.
  */
 const AI_WATCHDOG_MS = 15_000;
 

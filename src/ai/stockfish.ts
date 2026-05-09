@@ -73,10 +73,21 @@ export type StockfishOptions = {
    * the proxy's `FS.writeFile` call. Override for tests.
    */
   variantPath?: string;
+  /**
+   * Watchdog (ms) for the uci/readyok handshake. If the engine doesn't
+   * reach `readyok` within this window, `ready()` rejects so callers
+   * surface an error instead of waiting forever. A silent init failure
+   * (wasm 404, missing SharedArrayBuffer, variants.ini fetch failing)
+   * would otherwise hang `await ai.ready()` indefinitely — this is the
+   * only thing protecting that path; `getBestMove`'s `watchdogMs`
+   * doesn't apply until after ready resolves. Default: 20s.
+   */
+  readyTimeoutMs?: number;
 };
 
 export const DEFAULT_WORKER_URL = "/fairy-stockfish/uci.worker.js";
 export const DEFAULT_VARIANT_PATH = "/variants.ini";
+export const DEFAULT_READY_TIMEOUT_MS = 20_000;
 
 /**
  * Parse a UCI bestmove string ("e2e4", "e7e8q", or castling like "e1g1") into
@@ -117,7 +128,9 @@ export class StockfishEngine {
   private worker: Worker;
   private variantPath: string;
   private readyResolve: (() => void) | null = null;
+  private readyReject: ((err: Error) => void) | null = null;
   private readyPromise: Promise<void>;
+  private readyTimer: ReturnType<typeof setTimeout> | null = null;
   private uciOk = false;
   private bestMoveResolve: ((uci: string) => void) | null = null;
   private bestMoveReject: ((err: Error) => void) | null = null;
@@ -141,9 +154,34 @@ export class StockfishEngine {
       this.bestMoveResolve = null;
     };
 
-    this.readyPromise = new Promise((resolve) => {
+    this.readyPromise = new Promise((resolve, reject) => {
       this.readyResolve = resolve;
+      this.readyReject = reject;
     });
+    // Suppress the unhandled-rejection that fires when ready() is rejected
+    // before any caller awaits it (e.g. the constructor's readyTimer fires
+    // and no one has called ready() yet). Real callers attach their own
+    // handlers and still see the rejection.
+    this.readyPromise.catch(() => {});
+
+    // Init handshake watchdog: if `readyok` doesn't arrive in time, reject
+    // ready() so callers don't block forever on a silent init failure
+    // (worker URL 404, missing COEP/COOP, variants.ini fetch fail, etc.).
+    const readyMs = opts.readyTimeoutMs ?? DEFAULT_READY_TIMEOUT_MS;
+    if (readyMs > 0) {
+      this.readyTimer = setTimeout(() => {
+        this.readyTimer = null;
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[stockfish] ready watchdog: no readyok after ${readyMs}ms. Recent UCI lines:\n` +
+            this.recentLines.map((l) => `  ${l}`).join("\n"),
+        );
+        const rej = this.readyReject;
+        this.readyResolve = null;
+        this.readyReject = null;
+        rej?.(new Error(`stockfish ready timed out after ${readyMs}ms`));
+      }, readyMs);
+    }
 
     // Init sequence: `uci` first, then on `uciok` we point the engine at
     // our variants.ini and send `isready`. `ready()` resolves on `readyok`.
@@ -229,6 +267,7 @@ export class StockfishEngine {
   destroy(): void {
     if (this.destroyed) return;
     this.clearWatchdog();
+    this.clearReadyTimer();
     try {
       // Bypass `send`'s destroyed-guard so the engine gets a clean shutdown.
       this.worker.postMessage("quit");
@@ -242,6 +281,14 @@ export class StockfishEngine {
       this.bestMoveReject = null;
       this.bestMoveResolve = null;
     }
+    // If destroy() races the handshake (e.g. StrictMode mount/unmount before
+    // readyok arrives), reject ready() so awaiters don't dangle forever.
+    if (this.readyReject) {
+      const rej = this.readyReject;
+      this.readyResolve = null;
+      this.readyReject = null;
+      rej(new Error("stockfish destroyed"));
+    }
   }
 
   private clearWatchdog(): void {
@@ -252,6 +299,13 @@ export class StockfishEngine {
     if (this.watchdogStopTimer !== null) {
       clearTimeout(this.watchdogStopTimer);
       this.watchdogStopTimer = null;
+    }
+  }
+
+  private clearReadyTimer(): void {
+    if (this.readyTimer !== null) {
+      clearTimeout(this.readyTimer);
+      this.readyTimer = null;
     }
   }
 
@@ -287,8 +341,11 @@ export class StockfishEngine {
     if (line === "readyok") {
       // The first readyok after uciok flips the engine to ready.
       if (this.uciOk && this.readyResolve) {
-        this.readyResolve();
+        this.clearReadyTimer();
+        const resolve = this.readyResolve;
         this.readyResolve = null;
+        this.readyReject = null;
+        resolve();
       }
       return;
     }
