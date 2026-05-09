@@ -8,8 +8,14 @@
 // Each row's controls vary — Scry has up/down arrows, Revive has a Pick
 // button, Inspector has none. The `renderControls` prop lets callers slot in
 // row-level affordances without re-implementing the surrounding chrome.
+//
+// Hover / keyboard-focus on a row reveals a portal-based tooltip with the
+// card's archetype + description. The tooltip portals to document.body so it
+// escapes `.cardList`'s `overflow-y: auto` (which would otherwise clip an
+// in-flow tooltip).
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 import type { Card } from "../../game/types";
 import { CardKeywords } from "./CardKeywords";
@@ -36,6 +42,16 @@ type Props = {
   footer?: ReactNode;
 };
 
+type TooltipState = {
+  card: Card;
+  // Viewport-relative anchor rect of the hovered row. The portal renders
+  // `position: fixed`, so these coordinates are direct.
+  anchorTop: number;
+  anchorLeft: number;
+  anchorRight: number;
+  anchorHeight: number;
+};
+
 export function CardListModal({
   title,
   hint,
@@ -44,6 +60,19 @@ export function CardListModal({
   emptyMessage = "(empty)",
   footer,
 }: Props) {
+  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+
+  const showTooltipFor = (card: Card, el: HTMLElement) => {
+    const rect = el.getBoundingClientRect();
+    setTooltip({
+      card,
+      anchorTop: rect.top,
+      anchorLeft: rect.left,
+      anchorRight: rect.right,
+      anchorHeight: rect.height,
+    });
+  };
+
   return (
     <div className={styles.backdrop} role="dialog" aria-label={title}>
       <div className={styles.dialog}>
@@ -54,7 +83,15 @@ export function CardListModal({
         ) : (
           <ul className={styles.cardList}>
             {cards.map((card, i) => (
-              <li key={`${card.id}-${i}`} className={styles.cardRow}>
+              <li
+                key={`${card.id}-${i}`}
+                className={styles.cardRow}
+                tabIndex={0}
+                onMouseEnter={(e) => showTooltipFor(card, e.currentTarget)}
+                onMouseLeave={() => setTooltip(null)}
+                onFocus={(e) => showTooltipFor(card, e.currentTarget)}
+                onBlur={() => setTooltip(null)}
+              >
                 <span className={styles.position}>{i + 1}.</span>
                 <span className={styles.cardName}>
                   <span className={styles.cost}>{card.cost}</span>
@@ -70,6 +107,46 @@ export function CardListModal({
         )}
         {footer && <div className={styles.actions}>{footer}</div>}
       </div>
+      {tooltip && <CardTooltip {...tooltip} />}
     </div>
+  );
+}
+
+function CardTooltip({ card, anchorTop, anchorLeft, anchorRight, anchorHeight }: TooltipState) {
+  // Portal target — falls back to a no-op render if document is not
+  // available (e.g. SSR / test environments without jsdom body).
+  if (typeof document === "undefined") return null;
+
+  // Default to the right of the row, vertically centred. If that would
+  // overflow the viewport's right edge, swing to the left of the row.
+  const TOOLTIP_WIDTH = 260;
+  const VIEWPORT_PAD = 12;
+  const GAP = 8;
+  const wouldOverflowRight = anchorRight + GAP + TOOLTIP_WIDTH > window.innerWidth - VIEWPORT_PAD;
+  const style: React.CSSProperties = wouldOverflowRight
+    ? {
+        position: "fixed",
+        top: anchorTop + anchorHeight / 2,
+        left: anchorLeft - GAP - TOOLTIP_WIDTH,
+        width: TOOLTIP_WIDTH,
+        transform: "translateY(-50%)",
+      }
+    : {
+        position: "fixed",
+        top: anchorTop + anchorHeight / 2,
+        left: anchorRight + GAP,
+        width: TOOLTIP_WIDTH,
+        transform: "translateY(-50%)",
+      };
+
+  return createPortal(
+    <div className={styles.tooltip} style={style} role="tooltip">
+      <div className={styles.tooltipName}>{card.name}</div>
+      <div className={styles.tooltipMeta}>
+        Cost {card.cost} · {card.archetype} · {card.rarity}
+      </div>
+      <div className={styles.tooltipDescription}>{card.description}</div>
+    </div>,
+    document.body,
   );
 }
