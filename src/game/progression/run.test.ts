@@ -5,7 +5,6 @@ import {
   applyMatchOutcome,
   consumeRng,
   createRun,
-  dismissBossPreview,
   enterShop,
   generateBossArtifactOffer,
   isBossMatch,
@@ -184,12 +183,10 @@ describe("nextMatchSetup (Standard mode)", () => {
 });
 
 describe("Standard boss flow (M8)", () => {
-  it("a Standard run starts in `boss-preview` so the player sees Boss A", () => {
+  it("a Standard run starts in `match` and exposes Boss A on match 3", () => {
     const run = createRun({ mode: "standard", rngSeed: 1 });
-    expect(run.phase).toBe("boss-preview");
+    expect(run.phase).toBe("match");
     expect(activeBossFor({ ...run, matchNumber: 3 })?.id).toBe("the-firewall");
-    const dismissed = dismissBossPreview(run);
-    expect(dismissed.phase).toBe("match");
   });
 
   it("isBossMatch is true on Standard match 3, false elsewhere in act 1", () => {

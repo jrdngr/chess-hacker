@@ -8,7 +8,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { BossPreview } from "./BossPreview";
 import { Match } from "../Match";
 import { MatchWonPanel } from "./MatchWonPanel";
 import { Reward } from "./Reward";
@@ -22,7 +21,6 @@ import {
   applyMatchOutcome,
   consumeBossDeleteCharge,
   createRun,
-  dismissBossPreview,
   enterShop,
   generateBossArtifactOffer,
   generateBossPickOffer,
@@ -30,7 +28,6 @@ import {
   nextMatchSetup,
   pickBossArtifact,
   pickBossOption,
-  previewBossFor,
   skipBossArtifact,
 } from "../../game/progression/run";
 import { applyInterest, generateShop } from "../../game/shop/shop";
@@ -228,10 +225,7 @@ export function Run({
     // Drop the previous match's setup once we've left the match — the next
     // "match" entry will regenerate a fresh starting position. We keep it
     // alive through "lost"/"won" so Match can stay mounted there.
-    if (
-      (run.phase === "reward" || run.phase === "shop" || run.phase === "boss-preview") &&
-      extras.matchSetup !== null
-    ) {
+    if ((run.phase === "reward" || run.phase === "shop") && extras.matchSetup !== null) {
       setExtras((e) => ({ ...e, matchSetup: null }));
       return;
     }
@@ -369,7 +363,7 @@ export function Run({
     setExtras((e) => ({ ...e, finalOutcome: outcome }));
     // Keep matchSetup populated here so Match stays mounted through "lost" —
     // the player sees the final board with the run summary alongside. The
-    // setup is cleared when the run advances into reward/shop/boss-preview.
+    // setup is cleared when the run advances into reward/shop.
   };
 
   const onCaptureFinalSnapshot = (snap: {
@@ -447,17 +441,6 @@ export function Run({
       }
       return next ?? r;
     });
-  };
-
-  // ---- Boss preview --------------------------------------------------------
-
-  const onDismissBossPreview = () => {
-    pushRunEvent({
-      kind: "boss-preview-dismissed",
-      act: run.act,
-      bossId: previewBossFor(run)?.id ?? null,
-    });
-    setRun((r) => dismissBossPreview(r));
   };
 
   // ---- Shop phase ---------------------------------------------------------
@@ -588,9 +571,6 @@ export function Run({
             }
           />
         )}
-      {run.phase === "boss-preview" && previewBossFor(run) && (
-        <BossPreview boss={previewBossFor(run)!} onContinue={onDismissBossPreview} />
-      )}
       {run.phase === "reward" && (
         <Reward
           run={run}

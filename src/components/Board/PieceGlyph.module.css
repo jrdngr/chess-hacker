@@ -4,38 +4,40 @@
   pointer-events: none;
   user-select: none;
   -webkit-user-drag: none;
-  display: inline-block;
-  background-color: currentColor;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  mask-position: center;
-  -webkit-mask-size: contain;
-  mask-size: contain;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* AMBER_TT: white pieces solid amber, black pieces solid red. Stacked
-   drop-shadows build a strong outer halo on top of the piece's own colour so
-   the silhouette reads even on busy squares. The first two shadows are
-   repeated at full opacity to crank the saturation past what a single CSS
-   drop-shadow can produce; the wider/softer trailing shadows fan the glow
-   out across neighbouring squares. */
+.glyph svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+/* AMBER_TT: white pieces solid amber, black pieces solid red. Inner outlines
+   are a slightly darker shade of the same hue (color-mix vs. black) so the
+   detail reads without darkening the silhouette. The drop-shadow stack builds
+   a strong outer halo so the silhouette pops on busy squares. */
 .player {
-  color: var(--piece-mine);
-  filter: drop-shadow(0 0 2px rgba(var(--piece-mine-rgb) / 1))
-    drop-shadow(0 0 2px rgba(var(--piece-mine-rgb) / 1))
-    drop-shadow(0 0 6px rgba(var(--piece-mine-rgb) / 0.9))
-    drop-shadow(0 0 12px rgba(var(--piece-mine-rgb) / 0.7))
-    drop-shadow(0 0 22px rgba(var(--piece-mine-rgb) / 0.45))
+  --piece-fill: var(--piece-mine);
+  --piece-outline: color-mix(in srgb, var(--piece-mine) 65%, black);
+  filter: drop-shadow(0 0 2px rgba(var(--piece-mine-rgb) / 0.5))
+    drop-shadow(0 0 2px rgba(var(--piece-mine-rgb) / 0.5))
+    drop-shadow(0 0 6px rgba(var(--piece-mine-rgb) / 0.45))
+    drop-shadow(0 0 12px rgba(var(--piece-mine-rgb) / 0.35))
+    drop-shadow(0 0 22px rgba(var(--piece-mine-rgb) / 0.225))
     drop-shadow(0 1px 1px rgba(0, 0, 0, 0.55));
 }
 
 .opponent {
-  color: var(--piece-opp);
-  filter: drop-shadow(0 0 2px rgba(var(--piece-opp-rgb) / 1))
-    drop-shadow(0 0 2px rgba(var(--piece-opp-rgb) / 1))
-    drop-shadow(0 0 6px rgba(var(--piece-opp-rgb) / 0.9))
-    drop-shadow(0 0 12px rgba(var(--piece-opp-rgb) / 0.7))
-    drop-shadow(0 0 22px rgba(var(--piece-opp-rgb) / 0.45))
+  --piece-fill: var(--piece-opp);
+  --piece-outline: var(--p-opp-dim);
+  filter: drop-shadow(0 0 2px rgba(var(--piece-opp-rgb) / 0.5))
+    drop-shadow(0 0 2px rgba(var(--piece-opp-rgb) / 0.5))
+    drop-shadow(0 0 6px rgba(var(--piece-opp-rgb) / 0.45))
+    drop-shadow(0 0 12px rgba(var(--piece-opp-rgb) / 0.35))
+    drop-shadow(0 0 22px rgba(var(--piece-opp-rgb) / 0.225))
     drop-shadow(0 1px 1px rgba(0, 0, 0, 0.55));
 }

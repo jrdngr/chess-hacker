@@ -64,11 +64,6 @@ export type RunHistoryEvent =
       matchNumber: number;
     }
   | {
-      kind: "boss-preview-dismissed";
-      act: 1 | 2 | 3;
-      bossId: string | null;
-    }
-  | {
       kind: "boss-pick";
       matchNumber: number;
       option: BossPickOption;
@@ -224,8 +219,6 @@ export function describeRunEvent(ev: RunHistoryEvent): string {
       return `Match ${ev.matchNumber} win confirmed (Continue)`;
     case "revert-match-end":
       return `Match ${ev.matchNumber} end reverted via dev panel undo`;
-    case "boss-preview-dismissed":
-      return `Boss preview dismissed (act ${ev.act}, ${ev.bossId ?? "—"})`;
     case "boss-pick":
       return `Boss pick — ${describeBossOption(ev.option)}`;
     case "boss-delete-card":

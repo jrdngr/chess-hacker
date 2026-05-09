@@ -367,10 +367,9 @@ export type Trap = {
 //   - "skirmish": roguelite army-builder (M10). Currently disabled.
 export type RunMode = "standard" | "royal" | "skirmish";
 /**
- * Phases a run cycles through. M5 implements `match | reward | shop | won |
- * lost`; `boss-preview` lands in M8 once bosses arrive.
+ * Phases a run cycles through.
  */
-export type RunPhase = "match" | "reward" | "shop" | "boss-preview" | "won" | "lost";
+export type RunPhase = "match" | "reward" | "shop" | "won" | "lost";
 
 /**
  * How many matches each act contains. Real Royal runs are 3 acts × 3 matches;

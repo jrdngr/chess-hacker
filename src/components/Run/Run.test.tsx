@@ -7,25 +7,6 @@ import userEvent from "@testing-library/user-event";
 
 import { Run } from "./Run";
 
-describe("Run — Standard boss preview", () => {
-  it("opens on the boss-preview screen and dismisses to match on Continue", async () => {
-    const user = userEvent.setup();
-    render(<Run mode="standard" onExit={() => {}} rngSeed={1} />);
-
-    // The preview panel announces itself with its `aria-label`.
-    expect(screen.getByLabelText(/boss preview/i)).toBeInTheDocument();
-    expect(screen.getByText(/the firewall/i)).toBeInTheDocument();
-    expect(screen.getByText(/cannot place walls/i)).toBeInTheDocument();
-    // Hazard squares + Throttled curse description appear in the spec list.
-    expect(screen.getByText(/c3, d4/)).toBeInTheDocument();
-    expect(screen.getByText(/Throttled/)).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: /continue/i }));
-    // Match phase rendered the dev-toggle (run-mode side button).
-    expect(screen.queryByLabelText(/boss preview/i)).not.toBeInTheDocument();
-  });
-});
-
 describe("Run — Royal mini-run", () => {
   it("opens on match 1 and surfaces run progress in the ticker", async () => {
     render(<Run mode="royal" onExit={() => {}} rngSeed={1} />);

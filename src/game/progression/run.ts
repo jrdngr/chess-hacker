@@ -75,11 +75,6 @@ const DEFAULT_STARTING_ARTIFACTS: Record<RunMode, string[]> = {
 
 export function createRun(opts: CreateRunOptions): RunState {
   const config = opts.config ?? (opts.mode === "standard" ? STANDARD_RUN_CONFIG : MINI_RUN_CONFIG);
-  // If act 1 ends in a boss, start the run with the boss preview so the
-  // player can see the act's challenge before the very first match.
-  const initialPhase = bossForActStart(opts.mode === "standard" ? 1 : null)
-    ? "boss-preview"
-    : "match";
   const startingIds = opts.startingArtifacts ?? DEFAULT_STARTING_ARTIFACTS[opts.mode];
   const artifacts: Artifact[] = [];
   for (const id of startingIds) {
@@ -101,7 +96,7 @@ export function createRun(opts: CreateRunOptions): RunState {
     rngSeed: opts.rngSeed ?? Math.floor(Math.random() * 0xffffffff),
     rngCursor: 0,
     removalsUsed: 0,
-    phase: initialPhase,
+    phase: "match",
   };
 }
 
@@ -163,26 +158,6 @@ export function isBossMatch(state: RunState): boolean {
 export function activeBossFor(state: RunState): BossDef | null {
   if (state.mode !== "standard") return null;
   return bossForMatch(state.matchNumber);
-}
-
-/**
- * Boss for the act starting at this point in the run. Used by the run
- * shell to decide whether to insert a `boss-preview` phase. Pass null for
- * non-Standard modes (no bosses).
- */
-function bossForActStart(act: 1 | 2 | 3 | null): BossDef | null {
-  if (act === null) return null;
-  return bossForMatch(act * 3);
-}
-
-/**
- * The boss whose preview should be shown right now (Run shell uses this on
- * the `boss-preview` phase). Returns the boss for the *current* act's last
- * match, regardless of which match within the act the player is on.
- */
-export function previewBossFor(state: RunState): BossDef | null {
-  if (state.mode !== "standard") return null;
-  return bossForActStart(state.act);
 }
 
 // ---- Match → reward transition ---------------------------------------------
@@ -388,10 +363,6 @@ export function enterShop(state: RunState): RunState {
  * Leave the shop and either advance to the next match or end the run as a
  * win if all matches have been played. Caller should apply the interest
  * tally first via `applyInterest`.
- *
- * If the next match begins a new act AND that act ends in a defined boss,
- * we route through `boss-preview` first so the player sees the boss before
- * their first match of the act.
  */
 export function leaveShop(state: RunState): RunState {
   const total = state.config.actCount * state.config.matchesPerAct;
@@ -404,21 +375,13 @@ export function leaveShop(state: RunState): RunState {
     matchInAct = 1;
     act = (act + 1) as 1 | 2 | 3;
   }
-  const startsNewAct = matchInAct === 1;
-  const showPreview = startsNewAct && state.mode === "standard" && bossForActStart(act) !== null;
   return {
     ...state,
     act,
     matchInAct: matchInAct as 1 | 2 | 3,
     matchNumber: state.matchNumber + 1,
-    phase: showPreview ? "boss-preview" : "match",
+    phase: "match",
   };
-}
-
-/** Dismiss the boss-preview screen and start the next match. */
-export function dismissBossPreview(state: RunState): RunState {
-  if (state.phase !== "boss-preview") return state;
-  return { ...state, phase: "match" };
 }
 
 // ---- Helpers ---------------------------------------------------------------
