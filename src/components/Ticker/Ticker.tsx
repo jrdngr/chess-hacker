@@ -38,6 +38,9 @@ type Props = {
   onPaletteChange: (p: PaletteId) => void;
   vision: boolean;
   onToggleVision: () => void;
+  /** Highlight-threats toggle. Omit on routes where threats don't apply. */
+  threats?: boolean;
+  onToggleThreats?: () => void;
   /** Run-level status. Omitted on the menu. */
   run?: RunInfo;
   /** Match-level status. Omitted between phases (reward, shop). */
@@ -83,6 +86,8 @@ export function Ticker({
   onPaletteChange,
   vision,
   onToggleVision,
+  threats,
+  onToggleThreats,
   run,
   match,
   onQuit,
@@ -92,7 +97,7 @@ export function Ticker({
   const opponentLabel = run?.bossName ?? (run ? "STOCKFISH" : null);
   return (
     <header className={styles.ticker} role="banner">
-      <span className={styles.brand}>CHOSS//AMBER_TT</span>
+      <span className={styles.brand}>CHESS HACKER</span>
       {run && (
         <>
           <span className={styles.sep}>│</span>
@@ -164,6 +169,21 @@ export function Ticker({
         </span>
         VISION:{vision ? "ON" : "OFF"}
       </button>
+
+      {onToggleThreats && (
+        <button
+          type="button"
+          className={`${styles.visionToggle} ${threats ? styles.visionOn : styles.visionOff}`}
+          onClick={onToggleThreats}
+          aria-pressed={!!threats}
+          aria-label={`Highlight threats ${threats ? "on" : "off"}`}
+        >
+          <span className={styles.visionTrack}>
+            <span className={styles.visionKnob} />
+          </span>
+          THREATS:{threats ? "ON" : "OFF"}
+        </button>
+      )}
 
       {onShowRunLog && (
         <>

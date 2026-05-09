@@ -11,7 +11,15 @@ import { useEffect, useState } from "react";
 
 import { Run } from "./components/Run/Run";
 import { Ticker } from "./components/Ticker/Ticker";
-import { loadPalette, loadVision, savePalette, saveVision, type PaletteId } from "./state/palette";
+import {
+  loadPalette,
+  loadThreats,
+  loadVision,
+  savePalette,
+  saveThreats,
+  saveVision,
+  type PaletteId,
+} from "./state/palette";
 
 import styles from "./App.module.css";
 
@@ -50,6 +58,7 @@ export function App() {
   const [route, setRoute] = useState<Route>("menu");
   const [palette, setPalette] = useState<PaletteId>(() => loadPalette());
   const [vision, setVision] = useState<boolean>(() => loadVision());
+  const [threats, setThreats] = useState<boolean>(() => loadThreats());
 
   // Apply the active palette to <html data-palette="..."> so every CSS
   // variable swap cascades through the app for free.
@@ -70,6 +79,14 @@ export function App() {
     });
   };
 
+  const onToggleThreats = () => {
+    setThreats((t) => {
+      const next = !t;
+      saveThreats(next);
+      return next;
+    });
+  };
+
   return (
     <div className={styles.app}>
       {/* On the menu route the Ticker shows project name + palette + vision
@@ -81,6 +98,8 @@ export function App() {
           onPaletteChange={onPaletteChange}
           vision={vision}
           onToggleVision={onToggleVision}
+          threats={threats}
+          onToggleThreats={onToggleThreats}
         />
       )}
       <main className={styles.main}>
@@ -93,6 +112,8 @@ export function App() {
             onPaletteChange={onPaletteChange}
             vision={vision}
             onToggleVision={onToggleVision}
+            threats={threats}
+            onToggleThreats={onToggleThreats}
           />
         )}
       </main>

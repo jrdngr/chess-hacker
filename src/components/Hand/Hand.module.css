@@ -29,10 +29,6 @@
   color: var(--amber-primary);
 }
 
-.handHeaderRight {
-  color: var(--amber-dim);
-}
-
 /* Layer that holds exit-ghost cards (cards that left the hand and are
    animating to the discard / consumed pile). Sits above the hand row so the
    ghost glides over neighbouring cards while they slide together. */

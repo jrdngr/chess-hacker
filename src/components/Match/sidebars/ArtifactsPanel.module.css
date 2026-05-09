@@ -40,12 +40,6 @@
   gap: 6px;
 }
 
-.emoji {
-  font-size: 13px;
-  line-height: 1;
-  filter: saturate(0.8);
-}
-
 .tooltip {
   position: absolute;
   top: calc(100% + 4px);

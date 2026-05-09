@@ -277,6 +277,14 @@ type Props = {
   vision?: boolean;
   /** Toggle handler paired with `vision`. */
   onToggleVision?: () => void;
+  /**
+   * Highlight-threats toggle. Controlled — App owns the boolean so the ticker
+   * can flip it. When omitted Match falls back to internal state so existing
+   * standalone tests keep working.
+   */
+  threats?: boolean;
+  /** Toggle handler paired with `threats`. */
+  onToggleThreats?: () => void;
   /** Open the Run-history modal (run-level log, not the per-match one). */
   onShowRunLog?: () => void;
   /** Run-level history entry count — surfaced in the ticker LOG button. */
@@ -340,6 +348,8 @@ export function Match({
   onPaletteChange,
   vision: visionProp,
   onToggleVision,
+  threats: threatsProp,
+  onToggleThreats,
   onShowRunLog,
   runLogCount,
 }: Props = {}) {
@@ -417,9 +427,11 @@ export function Match({
   /**
    * "Highlight threats" — when on, any piece attacked by the opposing side
    * gets a coloured tint using the board-vision palette: black pieces
-   * attacked by white go blue, white pieces attacked by black go red.
+   * attacked by white go blue, white pieces attacked by black go red. App
+   * owns the toggle now (so the ticker can drive it); the local fallback
+   * keeps standalone Match mounts (tests) defaulting to off.
    */
-  const [highlightThreats, setHighlightThreats] = useState(false);
+  const highlightThreats = threatsProp ?? false;
 
   // ---- Card-system state (vs-ai only) --------------------------------------
 
@@ -504,7 +516,7 @@ export function Match({
     return out;
   }, [cardState.hand, matchRules]);
   /** Which pile inspector is open, if any. */
-  const [pileInspector, setPileInspector] = useState<"draw" | "discard" | null>(null);
+  const [pileInspector, setPileInspector] = useState<"draw" | "discard" | "consumed" | null>(null);
 
   // Undo / redo stack — one snapshot per turn rollover (prototype) plus one
   // per dev-mode action (editor edit, energy bump, library card play).
@@ -1270,6 +1282,8 @@ export function Match({
         onPaletteChange={onPaletteChange ?? (() => {})}
         vision={boardVision}
         onToggleVision={toggleBoardVision}
+        threats={highlightThreats}
+        onToggleThreats={onToggleThreats}
         run={tickerRun}
         match={tickerMatch}
         onQuit={onExit}
@@ -1309,14 +1323,6 @@ export function Match({
                   activeBuffs={zoneBuffOverlay.activeBuffs}
                 />
               )}
-              <label className={styles.toggleRow}>
-                <input
-                  type="checkbox"
-                  checked={highlightThreats}
-                  onChange={(e) => setHighlightThreats(e.target.checked)}
-                />
-                <span>HIGHLIGHT THREATS</span>
-              </label>
               {cardsEnabled && (
                 <MoveLogPanel events={history} onExport={() => setHistoryOpen(true)} />
               )}
@@ -1512,6 +1518,14 @@ export function Match({
           title="Discard pile"
           hint="Cards waiting to cycle back. They reshuffle into your draw pile when it empties."
           cards={cardState.discardPile}
+          onClose={() => setPileInspector(null)}
+        />
+      )}
+      {pileInspector === "consumed" && (
+        <PileInspector
+          title="Consumed pile"
+          hint="Cards spent for the rest of this match. They will not return to your deck."
+          cards={cardState.consumedPile}
           onClose={() => setPileInspector(null)}
         />
       )}

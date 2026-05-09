@@ -32,10 +32,7 @@ export function ArtifactsPanel({ artifacts }: Props) {
             tabIndex={0}
             aria-label={`${a.name} — ${a.description}`}
           >
-            <span className={styles.name}>
-              {a.emoji ? <span className={styles.emoji}>{a.emoji}</span> : null}
-              {a.name.toUpperCase()}
-            </span>
+            <span className={styles.name}>{a.name.toUpperCase()}</span>
             <span className={styles.tooltip} role="tooltip">
               <span className={styles.tooltipName}>{a.name}</span>
               <span className={styles.tooltipDesc}>{a.description}</span>

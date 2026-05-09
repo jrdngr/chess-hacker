@@ -48,24 +48,6 @@
   gap: 6px;
 }
 
-/* "Highlight threats" toggle — small inline checkbox + label, amber tone. */
-.toggleRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  color: var(--p-dim2);
-  text-transform: uppercase;
-  padding: 4px 8px;
-}
-
-.toggleRow:hover {
-  color: var(--p-primary);
-}
-
 /* Inline error banner — amber/red panel inside the side column. */
 .aiError {
   padding: 8px 10px;

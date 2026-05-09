@@ -63,6 +63,9 @@ type Props = {
   /** App-level vision state — drives the board-vision overlay. */
   vision?: boolean;
   onToggleVision?: () => void;
+  /** App-level threat-highlight state — drives the piece-threat overlay. */
+  threats?: boolean;
+  onToggleThreats?: () => void;
 };
 
 /**
@@ -139,6 +142,8 @@ export function Run({
   onPaletteChange,
   vision,
   onToggleVision,
+  threats,
+  onToggleThreats,
 }: Props) {
   const [run, setRun] = useState<RunState>(() => createRun({ mode, rngSeed }));
   const [extras, setExtras] = useState<PhaseExtras>({
@@ -569,6 +574,8 @@ export function Run({
             onPaletteChange={onPaletteChange}
             vision={vision}
             onToggleVision={onToggleVision}
+            threats={threats}
+            onToggleThreats={onToggleThreats}
             onShowRunLog={() => setHistoryOpen(true)}
             runLogCount={runHistory.length}
             onExit={onExit}

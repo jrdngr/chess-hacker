@@ -43,6 +43,7 @@ export const DEFAULT_PALETTE: PaletteId = "amber";
 
 const PALETTE_KEY = "choss:palette";
 const VISION_KEY = "choss:vision";
+const THREATS_KEY = "choss:threats";
 
 export function loadPalette(): PaletteId {
   try {
@@ -73,6 +74,22 @@ export function loadVision(): boolean {
 export function saveVision(on: boolean): void {
   try {
     window.localStorage.setItem(VISION_KEY, on ? "true" : "false");
+  } catch {
+    // Ignore.
+  }
+}
+
+export function loadThreats(): boolean {
+  try {
+    return window.localStorage.getItem(THREATS_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+export function saveThreats(on: boolean): void {
+  try {
+    window.localStorage.setItem(THREATS_KEY, on ? "true" : "false");
   } catch {
     // Ignore.
   }

@@ -1,7 +1,7 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.65);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -9,17 +9,24 @@
 }
 
 .dialog {
-  background: #1f1f24;
-  color: #f4f4f4;
-  padding: 20px;
-  border-radius: 8px;
-  width: 640px;
+  position: relative;
+  background: var(--p-bg);
+  color: var(--p-primary);
+  padding: 18px 20px 16px;
+  border: 1px solid var(--p-primary);
+  border-radius: 0;
+  box-shadow:
+    inset 0 0 0 1px var(--p-bg),
+    inset 0 0 0 3px rgba(var(--p-primary-rgb) / 0.45),
+    0 0 24px rgba(var(--p-primary-rgb) / 0.25),
+    0 8px 32px rgba(0, 0, 0, 0.6);
+  width: 720px;
   max-width: 90vw;
   max-height: 80vh;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  font-family: inherit;
 }
 
 .header {
@@ -31,30 +38,44 @@
 
 .title {
   margin: 0;
-  font-size: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--p-primary);
+  text-shadow: 0 0 4px rgba(var(--p-primary-rgb) / 0.4);
 }
 
 .closeButton {
-  background: transparent;
-  color: #b8b8be;
-  border: 1px solid #4a4a50;
-  border-radius: 4px;
-  width: 28px;
-  height: 28px;
-  font-size: 18px;
+  background: var(--p-bg);
+  color: var(--p-dim2);
+  border: 1px solid var(--p-dim);
+  border-radius: 0;
+  width: 26px;
+  height: 26px;
+  font-size: 16px;
+  font-weight: 700;
   line-height: 1;
   cursor: pointer;
+  font-family: inherit;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease,
+    color 120ms ease;
 }
 
 .closeButton:hover {
-  color: #f4f4f4;
-  background: #2a2a30;
+  color: var(--p-primary);
+  border-color: var(--p-primary);
+  background: rgba(var(--p-primary-rgb) / 0.1);
 }
 
 .hint {
   margin: 0;
-  font-size: 12px;
-  color: #b8b8be;
+  font-size: 11px;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  color: var(--p-dim2);
 }
 
 .actions {
@@ -64,27 +85,43 @@
 
 .exportButton,
 .toggleButton {
-  padding: 6px 12px;
-  border-radius: 4px;
-  border: 1px solid #4a4a50;
-  background: #2a2a30;
-  color: #f4f4f4;
-  font-size: 13px;
+  padding: 4px 14px;
+  border-radius: 0;
+  border: 1px solid var(--p-dim);
+  background: var(--p-bg);
+  color: var(--p-primary);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
   cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease,
+    box-shadow 120ms ease;
 }
 
 .exportButton:hover,
 .toggleButton:hover {
-  background: #3a3a40;
+  border-color: var(--p-primary);
+  background: rgba(var(--p-primary-rgb) / 0.12);
+  box-shadow: 0 0 6px rgba(var(--p-primary-rgb) / 0.35);
 }
 
 .exportButton {
-  background: #6c7df0;
-  border-color: #6c7df0;
+  border-color: var(--p-primary);
+  box-shadow:
+    inset 0 0 0 1px var(--p-bg),
+    inset 0 0 0 2px rgba(var(--p-primary-rgb) / 0.4);
 }
 
 .exportButton:hover {
-  background: #8090ff;
+  background: rgba(var(--p-primary-rgb) / 0.18);
+  box-shadow:
+    inset 0 0 0 1px var(--p-bg),
+    inset 0 0 0 2px rgba(var(--p-primary-rgb) / 0.6),
+    0 0 8px rgba(var(--p-primary-rgb) / 0.4);
 }
 
 .textarea {
@@ -92,12 +129,15 @@
   min-height: 140px;
   max-height: 240px;
   padding: 8px;
-  background: #14141a;
-  color: #cfd0d6;
-  border: 1px solid #2a2a30;
-  border-radius: 4px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
+  background: var(--p-bg2);
+  color: var(--p-dim2);
+  border: 1px solid var(--p-dim);
+  border-radius: 0;
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.4;
+  letter-spacing: 0;
+  text-transform: none;
   resize: vertical;
 }
 
@@ -108,17 +148,18 @@
   overflow-y: auto;
   flex: 1;
   min-height: 80px;
-  background: #14141a;
-  border: 1px solid #2a2a30;
-  border-radius: 4px;
+  background: var(--p-bg2);
+  border: 1px solid rgba(var(--p-dim-rgb) / 0.6);
+  border-radius: 0;
 }
 
 .eventRow {
   display: flex;
-  gap: 8px;
-  padding: 6px 10px;
-  border-bottom: 1px solid #2a2a30;
-  font-size: 13px;
+  gap: 10px;
+  padding: 6px 12px;
+  border-bottom: 1px dashed rgba(var(--p-dim-rgb) / 0.4);
+  font-size: 11px;
+  letter-spacing: 0.02em;
 }
 
 .eventRow:last-child {
@@ -126,19 +167,24 @@
 }
 
 .eventIndex {
-  color: #6c7df0;
-  font-weight: 600;
-  min-width: 36px;
+  color: var(--p-dim2);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  min-width: 44px;
+  font-variant-numeric: tabular-nums;
 }
 
 .eventText {
   flex: 1;
-  color: #e0e0e6;
+  color: var(--p-primary);
+  line-height: 1.45;
 }
 
 .empty {
   padding: 16px;
-  color: #b8b8be;
+  color: var(--p-dim);
   text-align: center;
   font-style: italic;
+  font-size: 11px;
+  letter-spacing: 0.08em;
 }
