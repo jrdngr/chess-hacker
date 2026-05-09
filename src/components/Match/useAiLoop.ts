@@ -16,7 +16,7 @@ import {
   variantFor,
 } from "../../ai/stockfish";
 import type { ChoseEngine } from "../../game/chess/engine";
-import type { BossDef, MatchCardState, Piece, Side } from "../../game/types";
+import type { AlgebraicSquare, BossDef, MatchCardState, Piece, Side } from "../../game/types";
 import { clearStatusesOn } from "../../game/cards/match";
 import { resolveTrapForMove } from "./sideEffects";
 import type { HistoryEvent } from "./history";
@@ -62,6 +62,8 @@ type Params = {
     state: MatchCardState,
     event: import("../../game/status/dispatch").StatusEvent,
   ) => MatchCardState;
+  /** Fire the move-slide animation. AI moves always animate. */
+  triggerAnimation: (from: AlgebraicSquare, to: AlgebraicSquare) => void;
 };
 
 type Result = {
@@ -91,6 +93,7 @@ export function useAiLoop({
   pushHistory,
   applyTurnRollover,
   applyStatusEffects,
+  triggerAnimation,
 }: Params): Result {
   const [aiThinking, setAiThinking] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -205,6 +208,7 @@ export function useAiLoop({
         }
       }
       bumpVersion();
+      if (applied) triggerAnimation(applied.from, applied.to);
       if (applied && mover) {
         pushHistory({
           kind: "move",
@@ -299,6 +303,7 @@ export function useAiLoop({
       activeBoss,
       bumpVersion,
       setCardState,
+      triggerAnimation,
     ],
   );
 

@@ -13,6 +13,7 @@ import { useCallback } from "react";
 import type { ChoseEngine, LegalMove } from "../../game/chess/engine";
 import type { AlgebraicSquare, Card, PieceType, Side } from "../../game/types";
 
+import type { PromotionChoice } from "../Board/PromotionModal";
 import type { EditorPiece } from "./DevPanel";
 
 type Params = {
@@ -32,7 +33,12 @@ type Params = {
   marionetteMoves: LegalMove[];
   setPartialTarget: (sq: AlgebraicSquare | null) => void;
   setMarionetteMoves: (moves: LegalMove[]) => void;
-  tryPlay: (from: AlgebraicSquare, to: AlgebraicSquare) => boolean;
+  tryPlay: (
+    from: AlgebraicSquare,
+    to: AlgebraicSquare,
+    promotion?: PromotionChoice,
+    source?: "click" | "drag",
+  ) => boolean;
   tryResolveCard: (
     index: number,
     target:
@@ -323,7 +329,9 @@ export function useBoardInteraction({
         return;
       }
       if (selected && selected !== sq) {
-        if (tryPlay(selected, sq)) return;
+        // Drag-drop bypasses the slide animation: the user already moved the
+        // piece visually with their cursor.
+        if (tryPlay(selected, sq, undefined, "drag")) return;
       }
       // Drop on an invalid target leaves the piece where it was; clear selection.
       setSelected(null);

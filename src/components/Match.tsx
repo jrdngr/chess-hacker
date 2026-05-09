@@ -370,6 +370,35 @@ export function Match({
   const bumpVersion = useCallback(() => setVersion((v) => v + 1), []);
   const resetVersion = useCallback(() => setVersion(0), []);
 
+  // Move animation: piece on `to` slides in from `from`'s visual position over
+  // 500ms. Set after every animated move (all opponent moves; player click
+  // moves but not drag-drops). The key forces a remount so the CSS animation
+  // restarts on each new move; the timeout clears the state so the elevated
+  // z-index doesn't linger past the animation.
+  const [animatingMove, setAnimatingMove] = useState<{
+    from: AlgebraicSquare;
+    to: AlgebraicSquare;
+    key: number;
+  } | null>(null);
+  const animKeyRef = useRef(0);
+  const animClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const triggerAnimation = useCallback((from: AlgebraicSquare, to: AlgebraicSquare) => {
+    if (from === to) return;
+    animKeyRef.current += 1;
+    const key = animKeyRef.current;
+    setAnimatingMove({ from, to, key });
+    if (animClearTimeoutRef.current) clearTimeout(animClearTimeoutRef.current);
+    animClearTimeoutRef.current = setTimeout(() => {
+      setAnimatingMove((curr) => (curr?.key === key ? null : curr));
+      animClearTimeoutRef.current = null;
+    }, 500);
+  }, []);
+  useEffect(() => {
+    return () => {
+      if (animClearTimeoutRef.current) clearTimeout(animClearTimeoutRef.current);
+    };
+  }, []);
+
   // ---- Dev-mode state ------------------------------------------------------
   /**
    * Whether the dev panel is visible. Always shown in sandbox; in real runs
@@ -872,6 +901,7 @@ export function Match({
     pushHistory,
     applyTurnRollover,
     applyStatusEffects,
+    triggerAnimation,
   });
 
   // ---- Player input handlers -----------------------------------------------
@@ -912,6 +942,7 @@ export function Match({
     setSelected,
     artifacts,
     activeBoss,
+    triggerAnimation,
   });
   const {
     targetingIndex,
@@ -1357,6 +1388,7 @@ export function Match({
           <Board
             engine={engine}
             selected={selected}
+            animatingMove={animatingMove}
             legalMovesFromSelected={legalFromSelected}
             controllableSides={controllableSides}
             walledSquares={walledSet}

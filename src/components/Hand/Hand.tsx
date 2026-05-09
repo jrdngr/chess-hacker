@@ -314,9 +314,7 @@ export function Hand({
   return (
     <div className={styles.handArea} ref={handAreaRef}>
       <div className={styles.handHeader}>
-        <span className={styles.handHeaderLeft}>
-          ▌HAND {hand.length}/5 E{energy} AVAIL
-        </span>
+        <span className={styles.handHeaderLeft}>▌HAND {hand.length}/5</span>
       </div>
       <div className={styles.hand} role="list" aria-label="Hand">
         {hand.length === 0 ? (

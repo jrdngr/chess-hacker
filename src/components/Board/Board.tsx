@@ -58,6 +58,12 @@ export type BoardMode =
 type Props = {
   engine: ChoseEngine;
   selected: AlgebraicSquare | null;
+  /**
+   * If set, the piece on `to` slides in from `from`'s visual position over
+   * 500ms. The `key` forces a CSS-animation restart on each new move so the
+   * same destination square animating twice in a row replays cleanly.
+   */
+  animatingMove?: { from: AlgebraicSquare; to: AlgebraicSquare; key: number } | null;
   legalMovesFromSelected: LegalMove[];
   /** Side(s) the human is allowed to move. Drag/click only enables for these sides. */
   controllableSides: ReadonlySet<Side>;
@@ -137,6 +143,7 @@ const EMPTY_EFFECTS: ReadonlyMap<AlgebraicSquare, SquareEffects> = new Map();
 export function Board({
   engine,
   selected,
+  animatingMove = null,
   legalMovesFromSelected,
   controllableSides,
   walledSquares = EMPTY_SET,
@@ -386,7 +393,7 @@ export function Board({
                 >
                   {file === 0 && <span className={styles.rankLabel}>{rank + 1}</span>}
                   {rank === 0 && <span className={styles.fileLabel}>{"abcdefgh"[file]}</span>}
-                  {piece && <PieceGlyph piece={piece} />}
+                  {piece && renderPiece(piece, sq, animatingMove)}
                   {!targeting && target && !piece && (
                     <span className={styles.targetDot} aria-hidden />
                   )}
@@ -466,6 +473,32 @@ function renderTooltip(
         </div>
       )}
     </div>
+  );
+}
+
+function renderPiece(
+  piece: Piece,
+  sq: AlgebraicSquare,
+  animatingMove: { from: AlgebraicSquare; to: AlgebraicSquare; key: number } | null,
+) {
+  if (!animatingMove || animatingMove.to !== sq) {
+    return <PieceGlyph piece={piece} />;
+  }
+  // The piece is rendered on `to`; offset it by the visual delta back to
+  // `from` so the keyframe animation slides it forward into place. Translate
+  // units are 100% of the square (the wrapper fills the square exactly).
+  const fromCoords = squareCoords(animatingMove.from);
+  const toCoords = squareCoords(animatingMove.to);
+  const dxPct = (fromCoords.file - toCoords.file) * 100;
+  const dyPct = (toCoords.rank - fromCoords.rank) * 100;
+  const animStyle = {
+    "--anim-dx": `${dxPct}%`,
+    "--anim-dy": `${dyPct}%`,
+  } as CSSProperties;
+  return (
+    <span key={animatingMove.key} className={styles.pieceAnimating} style={animStyle} aria-hidden>
+      <PieceGlyph piece={piece} />
+    </span>
   );
 }
 

@@ -403,6 +403,35 @@
   white-space: nowrap;
 }
 
+/* Move-slide animation: the piece on `to` slides in from `from`'s visual
+   position. The wrapper fills the square so translate-percent units equal
+   one square; the timing splits 90% accelerate / 10% decelerate so the
+   piece eases into rest at the end of the slide. */
+.pieceAnimating {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 4;
+  animation: pieceSlide 500ms both;
+}
+
+@keyframes pieceSlide {
+  0% {
+    transform: translate(var(--anim-dx, 0), var(--anim-dy, 0));
+    animation-timing-function: ease-in;
+  }
+  90% {
+    transform: translate(calc(var(--anim-dx, 0) * 0.1), calc(var(--anim-dy, 0) * 0.1));
+    animation-timing-function: ease-out;
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
 .rankLabel,
 .fileLabel {
   position: absolute;

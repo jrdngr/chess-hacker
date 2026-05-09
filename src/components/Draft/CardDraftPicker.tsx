@@ -109,7 +109,6 @@ export function CardDraftPicker({ onComplete, onCancel }: Props) {
       const slotCy = slotRect.top + slotRect.height / 2 - stageRect.top;
       el.style.transition = "none";
       el.style.transform = `translate(${drawCx - slotCx}px, ${drawCy - slotCy}px) scale(0.35)`;
-      el.style.opacity = "0.4";
       els.push({ el, delayMs: i * ENTER_STAGGER_MS });
     }
 
@@ -117,10 +116,9 @@ export function CardDraftPicker({ onComplete, onCancel }: Props) {
     const r1 = requestAnimationFrame(() => {
       r2 = requestAnimationFrame(() => {
         for (const { el, delayMs } of els) {
-          el.style.transition = `transform ${ENTER_DURATION_MS}ms ${ENTER_EASING}, opacity ${ENTER_DURATION_MS}ms ease-out`;
-          el.style.transitionDelay = `${delayMs}ms, ${delayMs}ms`;
+          el.style.transition = `transform ${ENTER_DURATION_MS}ms ${ENTER_EASING}`;
+          el.style.transitionDelay = `${delayMs}ms`;
           el.style.transform = "";
-          el.style.opacity = "";
         }
       });
     });

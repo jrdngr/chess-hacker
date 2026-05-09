@@ -230,6 +230,7 @@
 .card.disabled {
   cursor: default;
   pointer-events: none;
+  opacity: 1;
 }
 
 .cost {

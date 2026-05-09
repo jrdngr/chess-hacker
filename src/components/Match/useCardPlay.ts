@@ -75,6 +75,12 @@ type Params = {
   setSelected: (sq: AlgebraicSquare | null) => void;
   artifacts: ReadonlyArray<Artifact>;
   activeBoss: BossDef | null | undefined;
+  /**
+   * Fire the move-slide animation. Called from `tryPlay` whenever a move is
+   * applied through a click (drag-drops bypass the animation since the user
+   * already moved the piece visually with their cursor).
+   */
+  triggerAnimation: (from: AlgebraicSquare, to: AlgebraicSquare) => void;
 };
 
 type Result = {
@@ -95,7 +101,12 @@ type Result = {
   ) => void;
   libraryFreePlayActive: boolean;
   // Callbacks
-  tryPlay: (from: AlgebraicSquare, to: AlgebraicSquare, promotion?: PromotionChoice) => boolean;
+  tryPlay: (
+    from: AlgebraicSquare,
+    to: AlgebraicSquare,
+    promotion?: PromotionChoice,
+    source?: "click" | "drag",
+  ) => boolean;
   tryResolveCard: (index: number, target: PlayTarget) => boolean;
   cancelTargeting: () => void;
   onCardClick: (index: number) => void;
@@ -141,6 +152,7 @@ export function useCardPlay({
   setSelected,
   artifacts,
   activeBoss,
+  triggerAnimation,
 }: Params): Result {
   const [targetingIndex, setTargetingIndex] = useState<number | null>(null);
   const [partialTarget, setPartialTarget] = useState<AlgebraicSquare | null>(null);
@@ -170,7 +182,12 @@ export function useCardPlay({
    * still reports the player as on-move.
    */
   const tryPlay = useCallback(
-    (from: AlgebraicSquare, to: AlgebraicSquare, promotion?: PromotionChoice): boolean => {
+    (
+      from: AlgebraicSquare,
+      to: AlgebraicSquare,
+      promotion?: PromotionChoice,
+      source: "click" | "drag" = "click",
+    ): boolean => {
       let candidates = engine.legalMoves(from).filter((m) => m.to === to);
       if (cardState.mustNotCheckNextMove) {
         candidates = candidates.filter((m) => !engine.wouldDeliverCheck(m));
@@ -195,6 +212,8 @@ export function useCardPlay({
       const captured = engine.pieceAt(to);
       const applied = engine.move({ from, to, promotion: legal.promotion });
       if (!applied) return false;
+      // Drag-drops have already visually moved the piece; only animate clicks.
+      if (source !== "drag") triggerAnimation(applied.from, applied.to);
 
       // Single-use empowers (Patch cards) on any *other* piece die the moment
       // the player commits a chess move with someone else.
@@ -393,6 +412,7 @@ export function useCardPlay({
       bumpVersion,
       setCardState,
       setSelected,
+      triggerAnimation,
     ],
   );
 
