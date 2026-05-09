@@ -60,7 +60,7 @@ type Props = {
   selected: AlgebraicSquare | null;
   /**
    * If set, the piece on `to` slides in from `from`'s visual position over
-   * 500ms. The `key` forces a CSS-animation restart on each new move so the
+   * 200ms. The `key` forces a CSS-animation restart on each new move so the
    * same destination square animating twice in a row replays cleanly.
    */
   animatingMove?: { from: AlgebraicSquare; to: AlgebraicSquare; key: number } | null;

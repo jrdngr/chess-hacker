@@ -337,9 +337,14 @@ export function Hand({
             // onto the board.
             const draggable = playable && !NON_DRAGGABLE_TARGETS.has(card.target.kind);
             const retained = slot.retained || card.retain === true;
+            // Visually dim only for intrinsic, card-specific reasons (cost or
+            // a boss/forbid rule). Turn-state reasons (AI thinking, AI's turn,
+            // match over) leave the card looking normal — clicks/drag are
+            // still blocked via the button's disabled attribute.
+            const visuallyDisabled = !affordable || forbidden;
             const cls = [
               styles.card,
-              !clickable && styles.disabled,
+              visuallyDisabled && styles.disabled,
               isTargeting && styles.targeting,
               isBookmarkTarget && styles.stashTarget,
               retained && styles.retained,

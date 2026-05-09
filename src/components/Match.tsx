@@ -371,7 +371,7 @@ export function Match({
   const resetVersion = useCallback(() => setVersion(0), []);
 
   // Move animation: piece on `to` slides in from `from`'s visual position over
-  // 500ms. Set after every animated move (all opponent moves; player click
+  // 200ms. Set after every animated move (all opponent moves; player click
   // moves but not drag-drops). The key forces a remount so the CSS animation
   // restarts on each new move; the timeout clears the state so the elevated
   // z-index doesn't linger past the animation.
@@ -391,7 +391,7 @@ export function Match({
     animClearTimeoutRef.current = setTimeout(() => {
       setAnimatingMove((curr) => (curr?.key === key ? null : curr));
       animClearTimeoutRef.current = null;
-    }, 500);
+    }, 200);
   }, []);
   useEffect(() => {
     return () => {
