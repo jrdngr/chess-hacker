@@ -182,7 +182,7 @@ export class ChoseEngine {
 
   /**
    * Every square attacked by `side` under the current overlays. Used by the
-   * "chess vision" UI overlay to colour squares the player or opponent
+   * "board vision" UI overlay to colour squares the player or opponent
    * threatens. Walls block sliding attacks; frozen pieces don't attack —
    * same as the rule used for check evaluation.
    */

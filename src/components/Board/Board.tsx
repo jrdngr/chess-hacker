@@ -84,9 +84,11 @@ type Props = {
    */
   squareEffects?: ReadonlyMap<AlgebraicSquare, SquareEffects>;
   /**
-   * "Chess vision" overlays: squares attacked by each side. When both sets
+   * "Board vision" overlays: squares attacked by each side. When both sets
    * contain a square, it renders purple; player-only is blue, opponent-only
-   * is red. Pass empty sets (or omit) to disable the overlay.
+   * is red. Pass empty sets (or omit) to disable the overlay. Also reused
+   * by the "Highlight threats" toggle, which feeds in only the squares of
+   * pieces under attack from the opposite side.
    */
   attackedByPlayer?: ReadonlySet<AlgebraicSquare>;
   attackedByOpponent?: ReadonlySet<AlgebraicSquare>;

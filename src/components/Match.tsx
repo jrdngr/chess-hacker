@@ -357,11 +357,17 @@ export function Match({
    */
   const [devAiOn, setDevAiOn] = useState(initialDevAiOn ?? true);
   /**
-   * "Chess vision" — when on, every square attacked by either side gets a
+   * "Board vision" — when on, every square attacked by either side gets a
    * coloured tint: blue for player-only, red for opponent-only, purple for
    * both. Useful for spotting threats and overworked defenders at a glance.
    */
-  const [chessVision, setChessVision] = useState(false);
+  const [boardVision, setBoardVision] = useState(false);
+  /**
+   * "Highlight threats" — when on, any piece attacked by the opposing side
+   * gets a coloured tint using the board-vision palette: black pieces
+   * attacked by white go blue, white pieces attacked by black go red.
+   */
+  const [highlightThreats, setHighlightThreats] = useState(false);
 
   // ---- Card-system state (vs-ai only) --------------------------------------
 
@@ -525,20 +531,41 @@ export function Match({
   );
   engine.setOverlays(walledSet, frozenSet, extraOverlays);
 
-  // Chess-vision overlays. Computed only when the toggle is on. Recomputed
-  // whenever the position or overlays change (version bumps after every
-  // chess move; walledSet/frozenSet/extraOverlays change after card plays).
-  const attackedByPlayer = useMemo<ReadonlySet<AlgebraicSquare>>(
-    () => (chessVision ? engine.attackedSquares("player") : new Set()),
+  // Board-vision + threat overlays. Computed only when at least one of the
+  // toggles is on. Recomputed whenever the position or overlays change
+  // (version bumps after every chess move; walledSet/frozenSet/extraOverlays
+  // change after card plays). The two sets are merged before being handed to
+  // the Board: board-vision contributes every attacked square, while
+  // highlight-threats contributes only enemy-occupied squares the opposite
+  // side attacks (so a black piece attacked by white lands in the player set
+  // → blue, and vice versa).
+  const attackedByPlayer = useMemo<ReadonlySet<AlgebraicSquare>>(() => {
+    if (!boardVision && !highlightThreats) return new Set();
+    const out = new Set<AlgebraicSquare>();
+    if (boardVision) for (const sq of engine.attackedSquares("player")) out.add(sq);
+    if (highlightThreats) {
+      for (const { square, piece } of engine.pieces()) {
+        if (piece.side === "opponent" && engine.isSquareAttackedBy(square, "player"))
+          out.add(square);
+      }
+    }
+    return out;
     // engine is mutable; deps below force recompute on relevant changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [chessVision, version, walledSet, frozenSet, extraOverlays],
-  );
-  const attackedByOpponent = useMemo<ReadonlySet<AlgebraicSquare>>(
-    () => (chessVision ? engine.attackedSquares("opponent") : new Set()),
+  }, [boardVision, highlightThreats, version, walledSet, frozenSet, extraOverlays]);
+  const attackedByOpponent = useMemo<ReadonlySet<AlgebraicSquare>>(() => {
+    if (!boardVision && !highlightThreats) return new Set();
+    const out = new Set<AlgebraicSquare>();
+    if (boardVision) for (const sq of engine.attackedSquares("opponent")) out.add(sq);
+    if (highlightThreats) {
+      for (const { square, piece } of engine.pieces()) {
+        if (piece.side === "player" && engine.isSquareAttackedBy(square, "opponent"))
+          out.add(square);
+      }
+    }
+    return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [chessVision, version, walledSet, frozenSet, extraOverlays],
-  );
+  }, [boardVision, highlightThreats, version, walledSet, frozenSet, extraOverlays]);
 
   const pieceBadges = useMemo(() => derivePieceBadges(cardState), [cardState]);
   const squareEffectsMap = useMemo(() => {
@@ -1319,10 +1346,18 @@ export function Match({
               <label className={styles.toggleRow}>
                 <input
                   type="checkbox"
-                  checked={chessVision}
-                  onChange={(e) => setChessVision(e.target.checked)}
+                  checked={boardVision}
+                  onChange={(e) => setBoardVision(e.target.checked)}
                 />
-                <span>Chess vision</span>
+                <span>Board vision</span>
+              </label>
+              <label className={styles.toggleRow}>
+                <input
+                  type="checkbox"
+                  checked={highlightThreats}
+                  onChange={(e) => setHighlightThreats(e.target.checked)}
+                />
+                <span>Highlight threats</span>
               </label>
             </div>
 

@@ -250,7 +250,7 @@
   z-index: 3;
 }
 
-/* Chess-vision overlays (attacked-square highlights). `inset` box-shadow
+/* Board-vision overlays (attacked-square highlights). `inset` box-shadow
    paints between the square's background and its contents, so pieces and
    overlay marks remain on top without needing explicit z-index. */
 .visionPlayer {
