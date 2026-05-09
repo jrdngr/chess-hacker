@@ -59,8 +59,9 @@ export function App() {
   return (
     <div className={styles.app}>
       <header className={styles.header}>
-        <h1 className={styles.title}>choss</h1>
-        <span className={styles.tag}>cards · M5 prototype</span>
+        <h1 className={styles.title}>CHOSS//AMBER_TT</h1>
+        <span className={styles.titleSep}>│</span>
+        <span className={styles.tag}>CARDS · M5 PROTOTYPE</span>
       </header>
       <main className={styles.main}>
         {route === "menu" && <ModeMenu onPick={setRoute} />}

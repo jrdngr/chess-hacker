@@ -3,8 +3,8 @@
   align-items: center;
   gap: 1px;
   min-height: 28px;
-  padding: 2px 4px;
-  font-size: 13px;
+  padding: 2px 6px;
+  font-size: 12px;
   flex-wrap: wrap;
 }
 
@@ -14,24 +14,25 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  /* The Lichess-default SVGs already have outlines; we just shrink them. */
 }
 
-/* Black pieces are filled black with a black stroke, so they vanish on the
-   app's dark background. Stack four 1px drop-shadows to fake a white halo. */
+/* Black SVGs are filled black with a black stroke. Stack four 1px drop-shadows
+   in the amber-opp red so they read on the dark amber background — matches
+   the red color the AMBER_TT design uses for the opponent's pieces. */
 .darkPiece {
-  filter: drop-shadow(1px 0 0 #fff) drop-shadow(-1px 0 0 #fff) drop-shadow(0 1px 0 #fff)
-    drop-shadow(0 -1px 0 #fff);
+  filter: drop-shadow(1px 0 0 #ff4d3a) drop-shadow(-1px 0 0 #ff4d3a) drop-shadow(0 1px 0 #ff4d3a)
+    drop-shadow(0 -1px 0 #ff4d3a) drop-shadow(0 0 3px rgba(255, 77, 58, 0.55));
 }
 
 .cell + .cell {
-  /* Slight overlap to mimic Lichess's stacked feel. */
   margin-left: -6px;
 }
 
 .advantage {
   margin-left: 8px;
-  color: var(--muted);
-  font-weight: 500;
+  color: var(--amber-dim2);
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  letter-spacing: 0.08em;
 }

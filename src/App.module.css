@@ -4,30 +4,45 @@
   height: 100vh;
   width: 100vw;
   overflow: hidden;
+  background: var(--amber-bg);
 }
 
+/* Top "ticker" — the AMBER_TT design's horizontal status strip with the
+   project name on the left and a faint amber-stripe gradient down from the
+   top edge. */
 .header {
   display: flex;
-  align-items: baseline;
-  gap: 16px;
-  padding: 12px 24px;
-  border-bottom: 1px solid var(--panel-border);
+  align-items: center;
+  gap: 12px;
+  height: 40px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--amber-dim);
   flex-shrink: 0;
+  background: linear-gradient(180deg, rgba(61, 39, 6, 0.55), transparent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  white-space: nowrap;
+  position: relative;
+  z-index: 4;
+  text-transform: uppercase;
 }
 
 .title {
   margin: 0;
-  font-size: 20px;
-  letter-spacing: 0.04em;
-  font-weight: 600;
-  color: var(--player);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--amber-primary);
 }
 
 .tag {
-  font-size: 12px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  color: var(--amber-dim2);
+  letter-spacing: 0.18em;
+}
+
+.titleSep {
+  color: var(--amber-dim);
 }
 
 .main {
@@ -36,7 +51,7 @@
   display: flex;
   align-items: stretch;
   justify-content: center;
-  padding: 12px 16px;
+  padding: 18px 22px 12px;
   overflow: hidden;
 }
 
@@ -44,63 +59,81 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
   width: 100%;
-  max-width: 480px;
+  max-width: 520px;
   margin: 0 auto;
 }
 
 .menuTitle {
   margin: 0;
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--amber-primary);
+  text-align: center;
 }
 
 .menuList {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
 }
 
+/* Amber framed button — 1px amber border + double inset stripe, the same
+   pattern Panel() in amber-page.jsx uses for surfaces. */
 .menuButton {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 4px;
+  gap: 6px;
   padding: 14px 18px;
-  background: var(--panel);
-  border: 1px solid var(--panel-border);
-  border-radius: 8px;
-  color: inherit;
+  background: var(--amber-bg);
+  border: 1px solid var(--amber-primary);
+  border-radius: 0;
+  color: var(--amber-primary);
+  box-shadow:
+    inset 0 0 0 1px var(--amber-bg),
+    inset 0 0 0 3px rgba(255, 182, 39, 0.35);
   font: inherit;
   cursor: pointer;
   text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
   transition:
     background 120ms ease,
-    border-color 120ms ease;
+    border-color 120ms ease,
+    box-shadow 120ms ease;
 }
 
 .menuButton:hover:not(:disabled) {
-  background: rgba(244, 162, 60, 0.08);
-  border-color: var(--player);
+  background: rgba(255, 182, 39, 0.08);
+  box-shadow:
+    inset 0 0 0 1px var(--amber-bg),
+    inset 0 0 0 3px rgba(255, 182, 39, 0.55),
+    0 0 8px rgba(255, 182, 39, 0.4);
 }
 
 .menuButton:disabled {
   cursor: not-allowed;
-  opacity: 0.45;
+  opacity: 0.4;
 }
 
 .menuButtonLabel {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--amber-primary);
 }
 
 .menuButtonDesc {
-  font-size: 12px;
-  color: var(--muted);
+  font-size: 11px;
+  color: var(--amber-dim2);
+  line-height: 1.4;
 }
 
 .sandbox {
@@ -116,44 +149,52 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 8px 14px;
-  background: var(--panel);
-  border: 1px solid var(--panel-border);
-  border-radius: 8px;
+  padding: 6px 12px;
+  background: var(--amber-bg);
+  border: 1px solid var(--amber-primary);
+  box-shadow:
+    inset 0 0 0 1px var(--amber-bg),
+    inset 0 0 0 3px rgba(255, 182, 39, 0.35);
   flex-shrink: 0;
 }
 
 .sandboxBannerSegment {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: baseline;
+  gap: 8px;
 }
 
 .sandboxBannerLabel {
   font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
+  letter-spacing: 0.18em;
+  color: var(--amber-dim);
+  font-weight: 700;
 }
 
 .sandboxBannerValue {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--fg);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--amber-primary);
 }
 
 .sandboxQuit {
   margin-left: auto;
-  padding: 6px 10px;
-  font-size: 12px;
-  color: var(--muted);
+  padding: 4px 10px;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--amber-dim2);
   background: transparent;
-  border: 1px solid var(--panel-border);
-  border-radius: 6px;
+  border: 1px solid var(--amber-dim);
+  border-radius: 0;
   cursor: pointer;
+  text-transform: uppercase;
 }
 
 .sandboxQuit:hover {
-  color: var(--fg);
-  border-color: var(--square-check);
+  color: var(--amber-primary);
+  border-color: var(--amber-primary);
+  background: rgba(255, 182, 39, 0.08);
 }

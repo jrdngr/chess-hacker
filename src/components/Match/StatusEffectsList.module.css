@@ -1,14 +1,15 @@
 .statusBlock {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .label {
-  font-size: 11px;
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted, #888);
+  letter-spacing: 0.22em;
+  color: var(--amber-dim);
+  font-weight: 700;
 }
 
 .list {
@@ -20,16 +21,20 @@
   gap: 4px;
 }
 
+/* Status effect card — amber framed, with curse/blessing color cast.
+   Mirrors the CURSE panel in amber-page.jsx (red border, persist tag). */
 .item {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 4px 8px;
-  border-radius: 6px;
-  background: rgba(176, 74, 74, 0.06);
-  border: 1px solid rgba(176, 74, 74, 0.45);
-  font-size: 12px;
-  opacity: 0.7;
+  padding: 6px 8px;
+  background: var(--amber-bg);
+  border: 1px solid rgba(255, 77, 58, 0.55);
+  box-shadow:
+    inset 0 0 0 1px var(--amber-bg),
+    inset 0 0 0 2px rgba(255, 77, 58, 0.25);
+  font-size: 11px;
+  opacity: 0.85;
   transition:
     opacity 200ms ease,
     box-shadow 200ms ease,
@@ -38,97 +43,123 @@
 }
 
 .curse {
-  background: linear-gradient(180deg, rgba(176, 74, 74, 0.12), rgba(176, 74, 74, 0.04));
+  border-color: rgba(255, 77, 58, 0.65);
 }
 
 .blessing {
-  background: linear-gradient(180deg, rgba(74, 176, 110, 0.12), rgba(74, 176, 110, 0.04));
-  border-color: rgba(74, 176, 110, 0.45);
+  background: var(--amber-bg);
+  border-color: rgba(155, 217, 107, 0.6);
+  box-shadow:
+    inset 0 0 0 1px var(--amber-bg),
+    inset 0 0 0 2px rgba(155, 217, 107, 0.28);
 }
 
 .nameRow {
   display: flex;
-  align-items: center;
+  align-items: baseline;
+  justify-content: space-between;
   gap: 6px;
 }
 
 .name {
-  font-weight: 500;
-  color: var(--text, #ddd);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--amber-primary);
 }
 
 .curse .name {
-  color: #d97a7a;
+  color: var(--amber-opp);
+  text-shadow: 0 0 4px rgba(255, 77, 58, 0.5);
+}
+
+.curse .name::before {
+  content: "! ";
+  color: var(--amber-opp);
 }
 
 .blessing .name {
-  color: #7ad99a;
+  color: var(--amber-both);
+  text-shadow: 0 0 4px rgba(155, 217, 107, 0.5);
 }
 
 .meta {
   font-size: 10px;
-  opacity: 0.8;
+  color: #ffb0a3;
+  letter-spacing: 0.04em;
+  line-height: 1.35;
+  text-transform: none;
+  opacity: 0.9;
 }
 
-/* Active: the effect is currently constraining gameplay (e.g., Throttled has
-   set must-not-check on the next move). Stays on until the flag clears. */
+.blessing .meta {
+  color: var(--amber-dim2);
+}
+
 .active {
   opacity: 1;
 }
 
 .curse.active {
-  background: linear-gradient(180deg, rgba(217, 122, 122, 0.32), rgba(217, 122, 122, 0.14));
-  border-color: rgba(232, 150, 150, 0.95);
+  border-color: var(--amber-opp);
   box-shadow:
-    0 0 0 1px rgba(232, 150, 150, 0.5),
-    0 0 14px rgba(217, 122, 122, 0.45);
+    inset 0 0 0 1px var(--amber-bg),
+    inset 0 0 0 2px rgba(255, 77, 58, 0.55),
+    0 0 14px rgba(255, 77, 58, 0.4);
   animation: status-active-pulse-curse 1.8s ease-in-out infinite;
 }
 
 .blessing.active {
-  background: linear-gradient(180deg, rgba(122, 217, 154, 0.32), rgba(122, 217, 154, 0.14));
-  border-color: rgba(160, 232, 184, 0.95);
+  border-color: var(--amber-both);
   box-shadow:
-    0 0 0 1px rgba(160, 232, 184, 0.5),
-    0 0 14px rgba(122, 217, 154, 0.45);
+    inset 0 0 0 1px var(--amber-bg),
+    inset 0 0 0 2px rgba(155, 217, 107, 0.55),
+    0 0 14px rgba(155, 217, 107, 0.4);
   animation: status-active-pulse-blessing 1.8s ease-in-out infinite;
 }
 
 .active .meta {
   opacity: 1;
-  font-weight: 500;
 }
 
 .activeBadge {
-  font-size: 9px;
+  font-size: 8px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 1px 6px;
-  border-radius: 999px;
-  font-weight: 600;
-  color: #fff;
+  letter-spacing: 0.18em;
+  padding: 1px 5px;
+  border: 1px solid currentColor;
+  font-weight: 700;
+  color: var(--amber-primary);
+  background: transparent;
+  border-radius: 0;
 }
 
 .curse .activeBadge {
-  background: rgba(217, 95, 95, 0.85);
+  color: var(--amber-opp);
+  background: rgba(255, 77, 58, 0.16);
 }
 
 .blessing .activeBadge {
-  background: rgba(74, 176, 110, 0.85);
+  color: var(--amber-both);
+  background: rgba(155, 217, 107, 0.16);
 }
 
-/* Brief flash on the turn the trigger fires (separate from .active, which
-   persists while the effect's flag is set). */
 .recentlyFired {
   animation: status-glow 600ms ease-out;
 }
 
 @keyframes status-glow {
   0% {
-    box-shadow: 0 0 0 2px rgba(176, 74, 74, 0.6);
+    box-shadow:
+      inset 0 0 0 1px var(--amber-bg),
+      inset 0 0 0 2px rgba(255, 77, 58, 0.7),
+      0 0 18px rgba(255, 77, 58, 0.7);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(176, 74, 74, 0);
+    box-shadow:
+      inset 0 0 0 1px var(--amber-bg),
+      inset 0 0 0 2px rgba(255, 77, 58, 0.25);
   }
 }
 
@@ -136,13 +167,15 @@
   0%,
   100% {
     box-shadow:
-      0 0 0 1px rgba(232, 150, 150, 0.5),
-      0 0 8px rgba(217, 122, 122, 0.3);
+      inset 0 0 0 1px var(--amber-bg),
+      inset 0 0 0 2px rgba(255, 77, 58, 0.45),
+      0 0 8px rgba(255, 77, 58, 0.25);
   }
   50% {
     box-shadow:
-      0 0 0 1px rgba(232, 150, 150, 0.95),
-      0 0 18px rgba(217, 122, 122, 0.6);
+      inset 0 0 0 1px var(--amber-bg),
+      inset 0 0 0 2px rgba(255, 77, 58, 0.7),
+      0 0 18px rgba(255, 77, 58, 0.55);
   }
 }
 
@@ -150,12 +183,14 @@
   0%,
   100% {
     box-shadow:
-      0 0 0 1px rgba(160, 232, 184, 0.5),
-      0 0 8px rgba(122, 217, 154, 0.3);
+      inset 0 0 0 1px var(--amber-bg),
+      inset 0 0 0 2px rgba(155, 217, 107, 0.45),
+      0 0 8px rgba(155, 217, 107, 0.25);
   }
   50% {
     box-shadow:
-      0 0 0 1px rgba(160, 232, 184, 0.95),
-      0 0 18px rgba(122, 217, 154, 0.6);
+      inset 0 0 0 1px var(--amber-bg),
+      inset 0 0 0 2px rgba(155, 217, 107, 0.7),
+      0 0 18px rgba(155, 217, 107, 0.55);
   }
 }

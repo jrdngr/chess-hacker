@@ -1,6 +1,6 @@
 .match {
   display: flex;
-  gap: 20px;
+  gap: 18px;
   align-items: stretch;
   width: 100%;
   max-width: 1480px;
@@ -16,94 +16,131 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
+/* AMBER_TT side panel — outer 1px amber frame + inset accent stripe.
+   Mirrors the Panel() component in amber-page.jsx. */
 .sidePanel {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  width: 220px;
-  padding: 16px;
-  background: var(--panel);
-  border: 1px solid var(--panel-border);
-  border-radius: 8px;
+  gap: 14px;
+  width: 240px;
+  padding: 14px 12px;
+  background: var(--amber-bg);
+  border: 1px solid var(--amber-primary);
+  border-radius: 0;
+  box-shadow:
+    inset 0 0 0 1px var(--amber-bg),
+    inset 0 0 0 3px rgba(255, 182, 39, 0.4);
+  position: relative;
+  overflow-y: auto;
 }
 
 .statusBlock {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed rgba(125, 84, 16, 0.45);
+}
+
+.statusBlock:last-child {
+  border-bottom: 0;
 }
 
 .label {
-  font-size: 11px;
-  color: var(--muted);
+  font-size: 10px;
+  color: var(--amber-dim);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.22em;
+  font-weight: 700;
 }
 
 .value {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--amber-primary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .player {
-  color: var(--player);
+  color: var(--amber-primary);
+  text-shadow: 0 0 4px rgba(255, 182, 39, 0.45);
 }
 
 .opponent {
-  color: var(--opponent);
+  color: var(--amber-opp);
+  text-shadow: 0 0 4px rgba(255, 77, 58, 0.45);
 }
 
 .check {
   margin-left: 6px;
-  color: var(--square-check);
-  font-weight: 500;
-  font-size: 13px;
+  color: var(--amber-opp);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.14em;
 }
 
 .thinking {
   margin-left: 6px;
-  color: var(--muted);
+  color: var(--amber-dim2);
   font-weight: 500;
-  font-size: 13px;
+  font-size: 11px;
   font-style: italic;
+  letter-spacing: 0.06em;
 }
 
 .modeRow {
   display: flex;
-  gap: 6px;
+  gap: 4px;
 }
 
 .modeButton {
   flex: 1;
-  padding: 6px 8px;
-  font-size: 13px;
+  padding: 5px 6px;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  background: var(--amber-bg);
+  color: var(--amber-dim2);
+  border: 1px solid var(--amber-dim);
+  text-transform: uppercase;
+}
+
+.modeButton:hover:not(:disabled) {
+  border-color: var(--amber-primary);
+  color: var(--amber-primary);
+  background: rgba(255, 182, 39, 0.08);
 }
 
 .modeActive {
-  border-color: var(--player);
-  color: var(--fg);
-  background: rgba(244, 162, 60, 0.12);
+  border-color: var(--amber-primary);
+  color: var(--amber-primary);
+  background: rgba(255, 182, 39, 0.16);
+  box-shadow:
+    inset 0 0 0 1px var(--amber-bg),
+    inset 0 0 0 2px rgba(255, 182, 39, 0.5);
 }
 
 .select {
   font: inherit;
-  color: inherit;
-  background: var(--panel);
-  border: 1px solid var(--panel-border);
-  border-radius: 6px;
-  padding: 6px 8px;
+  color: var(--amber-primary);
+  background: var(--amber-bg2);
+  border: 1px solid var(--amber-dim);
+  border-radius: 0;
+  padding: 4px 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .aiError {
-  padding: 8px;
-  border-radius: 6px;
-  background: rgba(214, 91, 91, 0.18);
-  border: 1px solid var(--square-check);
-  color: var(--fg);
-  font-size: 12px;
+  padding: 8px 10px;
+  background: rgba(255, 77, 58, 0.12);
+  border: 1px solid var(--amber-opp);
+  color: #ffb0a3;
+  font-size: 11px;
   line-height: 1.4;
 }
 
@@ -120,56 +157,68 @@
   display: flex;
   flex-direction: column;
   padding: 4px 6px;
-  border-radius: 4px;
-  border: 1px solid var(--panel-border);
-  background: var(--panel);
-  font-size: 12px;
+  border: 1px solid var(--amber-dim);
+  background: var(--amber-bg2);
+  font-size: 11px;
   line-height: 1.3;
 }
 
 .zoneBuffActive {
-  border-color: rgba(120, 220, 200, 0.6);
-  background: rgba(120, 220, 200, 0.1);
+  border-color: var(--amber-both);
+  background: rgba(155, 217, 107, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(155, 217, 107, 0.35);
 }
 
 .zoneBuffInactive {
-  opacity: 0.65;
+  opacity: 0.5;
 }
 
 .zoneBuffName {
-  font-weight: 600;
-  color: var(--fg);
+  font-weight: 700;
+  color: var(--amber-primary);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 10px;
 }
 
 .zoneBuffEffect {
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--amber-dim2);
+  font-size: 10px;
 }
 
+/* Outcome card — amber framed inset like Panel(). */
 .outcome {
   margin-top: 8px;
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--panel-border);
-  border-radius: 6px;
+  padding: 10px 10px 12px;
+  background: var(--amber-bg);
+  border: 1px solid var(--amber-primary);
+  box-shadow:
+    inset 0 0 0 1px var(--amber-bg),
+    inset 0 0 0 3px rgba(255, 182, 39, 0.45),
+    0 0 12px rgba(255, 182, 39, 0.25);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .outcomeHeadline {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--amber-primary);
+  text-shadow: 0 0 4px rgba(255, 182, 39, 0.4);
 }
 
 .outcomeDetail {
-  font-size: 13px;
-  color: var(--muted);
+  font-size: 11px;
+  color: var(--amber-dim2);
+  line-height: 1.4;
 }
 
 .newGame,
 .resetButton {
-  margin-top: 8px;
+  margin-top: 6px;
   width: 100%;
 }
 
@@ -183,65 +232,76 @@
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--amber-dim2);
+  text-transform: uppercase;
+  font-weight: 700;
 }
 
+.toggleRow:hover {
+  color: var(--amber-primary);
+}
+
+/* Energy bar — N segmented boxes; lit segments glow amber, empty are
+   transparent inside an amber outline. Mirrors the SESSION energy bar. */
 .energy {
   display: flex;
-  align-items: baseline;
   gap: 4px;
+  margin-top: 2px;
 }
 
 .energyValue {
-  font-size: 24px;
+  font-size: 14px;
   font-weight: 700;
-  color: var(--player);
+  color: var(--amber-primary);
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 4px rgba(255, 182, 39, 0.45);
 }
 
 .energyMax {
-  font-size: 13px;
-  color: var(--muted);
+  font-size: 11px;
+  color: var(--amber-dim2);
 }
 
 .backButton {
   align-self: stretch;
-  padding: 6px 8px;
-  font-size: 12px;
-  color: var(--muted);
+  padding: 5px 8px;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--amber-dim2);
   background: transparent;
-  border: 1px solid var(--panel-border);
-  border-radius: 6px;
+  border: 1px solid var(--amber-dim);
+  border-radius: 0;
   cursor: pointer;
+  text-transform: uppercase;
 }
 
 .backButton:hover {
-  color: var(--fg);
-  border-color: var(--player);
+  color: var(--amber-primary);
+  border-color: var(--amber-primary);
+  background: rgba(255, 182, 39, 0.08);
 }
 
-/*
- * Collapsed-state toggle for the Royal-mode dev panel. Sits as a thin
- * right-edge column so the board area shifts predictably when the panel is
- * opened. When the panel is open the button is unmounted entirely (the
- * panel's own header has the close button).
- */
+/* Right-edge dev toggle — vertical amber chip. */
 .devToggle {
   align-self: stretch;
   width: 32px;
   flex-shrink: 0;
   padding: 12px 0;
-  font-size: 11px;
-  letter-spacing: 0.12em;
+  font-size: 10px;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: var(--muted);
-  background: var(--panel);
-  border: 1px solid var(--panel-border);
-  border-radius: 8px;
+  color: var(--amber-dim2);
+  background: var(--amber-bg);
+  border: 1px solid var(--amber-dim);
+  border-radius: 0;
   cursor: pointer;
   writing-mode: vertical-rl;
 }
 
 .devToggle:hover {
-  color: var(--fg);
-  border-color: var(--player);
+  color: var(--amber-primary);
+  border-color: var(--amber-primary);
+  background: rgba(255, 182, 39, 0.08);
 }

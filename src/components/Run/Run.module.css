@@ -7,14 +7,18 @@
   min-height: 0;
 }
 
+/* Run banner — same amber strip framing as the sandbox banner. */
 .banner {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 8px 14px;
-  background: var(--panel);
-  border: 1px solid var(--panel-border);
-  border-radius: 8px;
+  gap: 14px;
+  padding: 6px 12px;
+  background: var(--amber-bg);
+  border: 1px solid var(--amber-primary);
+  border-radius: 0;
+  box-shadow:
+    inset 0 0 0 1px var(--amber-bg),
+    inset 0 0 0 3px rgba(255, 182, 39, 0.35);
   flex-shrink: 0;
 }
 
@@ -25,25 +29,30 @@
 }
 
 .bannerLabel {
-  font-size: 10px;
+  font-size: 9px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
+  letter-spacing: 0.22em;
+  color: var(--amber-dim);
+  font-weight: 700;
 }
 
 .bannerValue {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--fg);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber-primary);
 }
 
 .bannerInterest {
-  font-size: 12px;
-  color: var(--player);
-  font-weight: 600;
-  background: rgba(244, 162, 60, 0.12);
+  font-size: 11px;
+  color: var(--amber-primary);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  background: rgba(255, 182, 39, 0.12);
+  border: 1px solid rgba(255, 182, 39, 0.45);
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: 0;
 }
 
 .bannerArtifacts {
@@ -52,7 +61,7 @@
   align-items: center;
   gap: 4px;
   padding-left: 8px;
-  border-left: 1px solid var(--panel-border);
+  border-left: 1px solid var(--amber-dim);
   min-width: 0;
 }
 
@@ -63,11 +72,12 @@
   justify-content: center;
   width: 26px;
   height: 26px;
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1;
-  border-radius: 6px;
-  border: 1px solid var(--panel-border);
-  background: rgba(255, 255, 255, 0.04);
+  border-radius: 0;
+  border: 1px solid var(--amber-dim);
+  background: var(--amber-bg2);
+  color: var(--amber-primary);
   cursor: help;
   user-select: none;
 }
@@ -79,17 +89,20 @@
   transform: translateX(-50%);
   display: none;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   width: max-content;
   max-width: 240px;
   padding: 6px 8px;
   font-size: 11px;
-  line-height: 1.3;
-  color: var(--fg);
-  background: var(--panel);
-  border: 1px solid var(--panel-border);
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  line-height: 1.4;
+  color: var(--amber-primary);
+  background: var(--amber-bg);
+  border: 1px solid var(--amber-primary);
+  box-shadow:
+    inset 0 0 0 1px var(--amber-bg),
+    inset 0 0 0 2px rgba(255, 182, 39, 0.4),
+    0 4px 12px rgba(0, 0, 0, 0.5);
+  border-radius: 0;
   pointer-events: none;
   z-index: 100;
   text-align: left;
@@ -102,31 +115,35 @@
 }
 
 .artifactTooltipName {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--fg);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--amber-primary);
 }
 
 .artifactTooltipDesc {
   font-size: 11px;
-  color: var(--muted);
+  color: var(--amber-dim2);
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .bannerBoss {
   position: relative;
   padding: 2px 8px;
-  border: 1px solid var(--square-check, var(--player));
-  border-radius: 6px;
-  background: rgba(220, 80, 80, 0.1);
+  border: 1px solid var(--amber-opp);
+  background: rgba(255, 77, 58, 0.1);
+  border-radius: 0;
   cursor: help;
 }
 
 .bannerBoss .bannerLabel {
-  color: var(--square-check, var(--player));
+  color: var(--amber-opp);
 }
 
 .bannerBoss:focus-visible {
-  outline: 2px solid var(--player);
+  outline: 2px solid var(--amber-primary);
   outline-offset: 2px;
 }
 
@@ -142,12 +159,15 @@
   max-width: 320px;
   padding: 10px 12px;
   font-size: 11px;
-  line-height: 1.35;
-  color: var(--fg);
-  background: var(--panel);
-  border: 1px solid var(--panel-border);
-  border-radius: 8px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  line-height: 1.4;
+  color: var(--amber-primary);
+  background: var(--amber-bg);
+  border: 1px solid var(--amber-opp);
+  box-shadow:
+    inset 0 0 0 1px var(--amber-bg),
+    inset 0 0 0 2px rgba(255, 77, 58, 0.35),
+    0 8px 20px rgba(0, 0, 0, 0.6);
+  border-radius: 0;
   pointer-events: none;
   z-index: 100;
   text-align: left;
@@ -163,13 +183,16 @@
 .bossTooltipName {
   font-size: 13px;
   font-weight: 700;
-  color: var(--square-check, var(--player));
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--amber-opp);
+  text-shadow: 0 0 4px rgba(255, 77, 58, 0.45);
 }
 
 .bossTooltipFlavor {
   font-size: 11px;
   font-style: italic;
-  color: var(--muted);
+  color: var(--amber-dim2);
 }
 
 .bossTooltipSection {
@@ -181,14 +204,14 @@
 .bossTooltipHeading {
   font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--amber-dim);
+  font-weight: 700;
 }
 
 .bossTooltipText {
   font-size: 11px;
-  color: var(--fg);
+  color: var(--amber-primary);
 }
 
 .bossTooltipCurseList {
@@ -205,73 +228,70 @@
   flex-direction: column;
   gap: 1px;
   padding: 5px 6px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--panel-border);
-  border-radius: 4px;
+  background: rgba(255, 182, 39, 0.04);
+  border: 1px solid var(--amber-dim);
+  border-radius: 0;
 }
 
 .bossTooltipCurseTrigger {
-  font-size: 10px;
+  font-size: 9px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--amber-dim);
+  font-weight: 700;
 }
 
 .bossTooltipCurseName {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--fg);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--amber-primary);
 }
 
 .bossTooltipCurseDesc {
   font-size: 11px;
-  color: var(--muted);
-  line-height: 1.3;
+  color: var(--amber-dim2);
+  line-height: 1.35;
 }
 
 .common {
-  border-color: var(--panel-border);
+  border-color: var(--amber-dim);
 }
 
 .uncommon {
-  border-color: rgba(120, 180, 255, 0.55);
+  border-color: var(--amber-dim2);
 }
 
 .rare {
-  border-color: var(--player);
+  border-color: var(--amber-primary);
+  box-shadow: inset 0 0 0 1px rgba(255, 182, 39, 0.4);
 }
 
-.quit {
-  margin-left: auto;
-  padding: 6px 10px;
-  font-size: 12px;
-  color: var(--muted);
-  background: transparent;
-  border: 1px solid var(--panel-border);
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.quit:hover {
-  color: var(--fg);
-  border-color: var(--square-check);
-}
-
+.quit,
 .log {
   margin-left: auto;
-  padding: 6px 10px;
-  font-size: 12px;
-  color: var(--muted);
+  padding: 4px 10px;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--amber-dim2);
   background: transparent;
-  border: 1px solid var(--panel-border);
-  border-radius: 6px;
+  border: 1px solid var(--amber-dim);
+  border-radius: 0;
   cursor: pointer;
+  text-transform: uppercase;
 }
 
 .log:hover {
-  color: var(--fg);
-  border-color: var(--player);
+  color: var(--amber-primary);
+  border-color: var(--amber-primary);
+  background: rgba(255, 182, 39, 0.08);
+}
+
+.quit:hover {
+  color: var(--amber-opp);
+  border-color: var(--amber-opp);
+  background: rgba(255, 77, 58, 0.08);
 }
 
 .log + .quit {
@@ -284,42 +304,57 @@
   align-items: center;
   justify-content: center;
   flex: 1;
-  gap: 12px;
+  gap: 10px;
   padding: 0;
   text-align: center;
 }
 
 .summaryTitle {
   margin: 0;
-  font-size: 28px;
-  font-weight: 600;
-  color: var(--player);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--amber-primary);
+  text-shadow: 0 0 6px rgba(255, 182, 39, 0.45);
 }
 
 .summaryReason {
   margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--fg);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber-primary);
 }
 
 .summaryDetail {
   margin: 0;
-  font-size: 14px;
-  color: var(--muted);
+  font-size: 12px;
+  color: var(--amber-dim2);
+  letter-spacing: 0.04em;
 }
 
 .summaryButton {
-  margin-top: 16px;
-  padding: 10px 24px;
-  font-size: 14px;
-  background: var(--panel);
-  color: var(--fg);
-  border: 1px solid var(--player);
-  border-radius: 6px;
+  margin-top: 14px;
+  padding: 8px 20px;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  background: var(--amber-bg);
+  color: var(--amber-primary);
+  border: 1px solid var(--amber-primary);
+  box-shadow:
+    inset 0 0 0 1px var(--amber-bg),
+    inset 0 0 0 2px rgba(255, 182, 39, 0.4);
+  border-radius: 0;
   cursor: pointer;
+  text-transform: uppercase;
 }
 
 .summaryButton:hover {
-  background: rgba(244, 162, 60, 0.08);
+  background: rgba(255, 182, 39, 0.1);
+  box-shadow:
+    inset 0 0 0 1px var(--amber-bg),
+    inset 0 0 0 2px rgba(255, 182, 39, 0.6),
+    0 0 8px rgba(255, 182, 39, 0.4);
 }

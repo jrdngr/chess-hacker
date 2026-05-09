@@ -10,33 +10,42 @@
   container-type: size;
 }
 
+/* AMBER_TT board frame — 1px amber outer ring, double inset stripe + soft
+   bloom. Mirrors the board container in amber-page.jsx. */
 .board {
   position: relative;
   display: flex;
   flex-direction: column;
-  border: 2px solid var(--panel-border);
-  border-radius: 4px;
-  /* overflow stays visible so the hover tooltip can extend past the
-     board edges. The 4px border-radius is small enough that square-
-     corner bleed is barely perceptible. */
+  background: var(--amber-bg2);
+  border: 1px solid var(--amber-primary);
+  border-radius: 0;
+  box-shadow:
+    inset 0 0 0 1px var(--amber-bg),
+    inset 0 0 0 3px rgba(255, 182, 39, 0.35),
+    inset 0 0 30px rgba(255, 182, 39, 0.13),
+    0 0 24px rgba(255, 182, 39, 0.18);
+  padding: 4px;
   overflow: visible;
-  /* Largest rectangle that fits both axes of the wrapper while honoring
-     the per-instance aspect-ratio. Board.tsx sets --board-aspect inline
-     (files / ranks) so non-square boards like 6x8 render correctly. */
   width: min(100cqw, calc(100cqh * var(--board-aspect, 1)));
   aspect-ratio: var(--board-aspect, 1);
   user-select: none;
 }
 
 .boardInvalid {
-  outline: 3px solid #d93444;
+  outline: 3px solid var(--amber-opp);
   outline-offset: 2px;
-  box-shadow: 0 0 18px 2px rgba(217, 52, 68, 0.4);
+  box-shadow: 0 0 18px 2px rgba(255, 77, 58, 0.4);
 }
 
 .row {
   display: flex;
   flex: 1;
+  /* Faint amber grid line between rows. */
+  border-bottom: 1px solid var(--square-grid);
+}
+
+.row:last-child {
+  border-bottom: 0;
 }
 
 .square {
@@ -46,6 +55,7 @@
   align-items: center;
   justify-content: center;
   border: 0;
+  border-right: 1px solid var(--square-grid);
   padding: 0;
   margin: 0;
   cursor: pointer;
@@ -54,8 +64,12 @@
   border-radius: 0;
 }
 
+.square:last-child {
+  border-right: 0;
+}
+
 .square:hover:not(:disabled) {
-  filter: brightness(1.08);
+  filter: brightness(1.2);
 }
 
 .light {
@@ -66,17 +80,24 @@
   background: var(--square-dark);
 }
 
+/* Last-move highlight — soft amber inset frame, the design's exact treatment. */
 .lastMove {
-  background: var(--square-last-move) !important;
+  background: var(--square-light) !important;
+  box-shadow: inset 0 0 0 1px var(--amber-primary);
+}
+
+.lastMove::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 182, 39, 0.18);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .selected {
-  background: var(--square-selected) !important;
-}
-
-.target::after,
-.targetDot {
-  /* dot drawn in the center of empty target squares */
+  background: rgba(255, 182, 39, 0.35) !important;
+  box-shadow: inset 0 0 0 2px var(--amber-primary);
 }
 
 .targetDot {
@@ -86,23 +107,25 @@
   border-radius: 50%;
   background: var(--square-target);
   pointer-events: none;
+  z-index: 2;
 }
 
 .target {
-  /* solid color hint also shown via the dot */
 }
 
 .capture {
   background: var(--square-capture) !important;
+  box-shadow: inset 0 0 0 1px var(--amber-opp);
 }
 
 .check {
   background: var(--square-check) !important;
+  box-shadow: inset 0 0 0 2px var(--amber-opp);
 }
 
 .dragOver {
-  outline: 3px solid var(--square-selected);
-  outline-offset: -3px;
+  outline: 2px solid var(--amber-primary);
+  outline-offset: -2px;
 }
 
 .locked {
@@ -117,17 +140,18 @@
   cursor: grabbing;
 }
 
+/* Wall — diagonal amber stripe pattern + amber border. From the Wall()
+   helper in amber-page.jsx. */
 .walled {
-  background: linear-gradient(135deg, #2a2620 0%, #1a1612 100%) !important;
-  box-shadow: inset 0 0 0 2px #4d3d28;
+  background: var(--square-dark) !important;
 }
 
 .invalidPiece::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(217, 52, 68, 0.32);
-  box-shadow: inset 0 0 0 2px rgba(217, 52, 68, 0.85);
+  background: rgba(255, 77, 58, 0.32);
+  box-shadow: inset 0 0 0 2px rgba(255, 77, 58, 0.85);
   pointer-events: none;
   z-index: 2;
 }
@@ -136,75 +160,72 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(108, 125, 240, 0.18);
+  background: rgba(70, 130, 220, 0.22);
   pointer-events: none;
   z-index: 1;
 }
 
 .wallMark {
   position: absolute;
-  inset: 8%;
-  background: repeating-linear-gradient(
+  inset: 4px;
+  background-image: repeating-linear-gradient(
     45deg,
-    rgba(0, 0, 0, 0.55) 0,
-    rgba(0, 0, 0, 0.55) 6px,
-    rgba(80, 60, 40, 0.85) 6px,
-    rgba(80, 60, 40, 0.85) 12px
+    rgba(230, 147, 44, 0.55) 0 4px,
+    transparent 4px 8px
   );
-  border: 1px solid rgba(0, 0, 0, 0.7);
-  border-radius: 2px;
+  border: 1px solid var(--amber-dim2);
+  border-radius: 0;
   pointer-events: none;
+  z-index: 1;
 }
 
 .frostMark {
   position: absolute;
   bottom: 4px;
   right: 4px;
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  background: rgba(108, 125, 240, 0.85);
+  background: rgba(70, 130, 220, 0.9);
   box-shadow:
-    0 0 0 2px rgba(108, 125, 240, 0.25),
-    inset 0 0 4px rgba(255, 255, 255, 0.5);
+    0 0 0 1px rgba(70, 130, 220, 0.45),
+    inset 0 0 4px rgba(255, 255, 255, 0.4);
   pointer-events: none;
   z-index: 2;
 }
 
+/* Sanctuary — dashed amber outline. */
 .sanctuaryMark {
   position: absolute;
-  inset: 12%;
-  border-radius: 50%;
-  border: 2px solid rgba(220, 200, 110, 0.8);
-  background: radial-gradient(circle, rgba(255, 240, 180, 0.25) 0%, rgba(255, 240, 180, 0) 70%);
+  inset: 3px;
+  border-radius: 0;
+  border: 1px dashed var(--amber-primary);
+  background: rgba(255, 182, 39, 0.06);
   pointer-events: none;
   z-index: 1;
 }
 
+/* Trap — dashed red outline. */
 .trapMark {
   position: absolute;
-  inset: 18%;
-  border-radius: 4px;
-  border: 2px dashed rgba(220, 80, 80, 0.85);
-  background: rgba(220, 80, 80, 0.12);
+  inset: 3px;
+  border-radius: 0;
+  border: 1px dashed var(--amber-opp);
+  background: rgba(255, 77, 58, 0.08);
   pointer-events: none;
   z-index: 1;
 }
 
-/* Zone-buff aura — every square inside an active buff's region gets a soft
-   teal tint. Inactive buffs (uncontrolled) get a paler grey-teal so the
-   player can see where the aura *would* be without thinking it's currently
-   granting its bonus. The anchor square gets an extra ring (zoneAnchorMark
-   below) so the source of the buff is identifiable at a glance. */
+/* Zone-buff aura — green tint for active, dim grey-amber for inactive. */
 .zoneActive::before {
   content: "";
   position: absolute;
   inset: 0;
   background: radial-gradient(
     circle at center,
-    rgba(120, 220, 200, 0.32) 0%,
-    rgba(120, 220, 200, 0.08) 65%,
-    rgba(120, 220, 200, 0) 100%
+    rgba(155, 217, 107, 0.32) 0%,
+    rgba(155, 217, 107, 0.08) 65%,
+    rgba(155, 217, 107, 0) 100%
   );
   pointer-events: none;
   z-index: 0;
@@ -216,9 +237,9 @@
   inset: 0;
   background: radial-gradient(
     circle at center,
-    rgba(160, 170, 175, 0.22) 0%,
-    rgba(160, 170, 175, 0.05) 65%,
-    rgba(160, 170, 175, 0) 100%
+    rgba(125, 84, 16, 0.3) 0%,
+    rgba(125, 84, 16, 0.08) 65%,
+    rgba(125, 84, 16, 0) 100%
   );
   pointer-events: none;
   z-index: 0;
@@ -228,9 +249,9 @@
   position: absolute;
   inset: 24%;
   border-radius: 50%;
-  border: 2px solid rgba(120, 220, 200, 0.85);
+  border: 2px solid rgba(155, 217, 107, 0.85);
   box-shadow:
-    inset 0 0 4px rgba(120, 220, 200, 0.6),
+    inset 0 0 4px rgba(155, 217, 107, 0.6),
     0 0 0 1px rgba(0, 0, 0, 0.25);
   pointer-events: none;
   z-index: 1;
@@ -240,33 +261,35 @@
   position: absolute;
   top: 2px;
   right: 2px;
-  font-size: 12px;
+  font-size: 10px;
   line-height: 1;
   padding: 1px 3px;
-  border-radius: 3px;
-  background: rgba(0, 0, 0, 0.6);
-  color: #fff;
+  border-radius: 0;
+  background: var(--amber-bg);
+  color: var(--amber-primary);
+  border: 1px solid var(--amber-dim);
+  font-weight: 700;
+  letter-spacing: 0.06em;
   pointer-events: none;
   z-index: 3;
 }
 
-/* Board-vision overlays (attacked-square highlights). `inset` box-shadow
-   paints between the square's background and its contents, so pieces and
-   overlay marks remain on top without needing explicit z-index. */
+/* Vision colors — fixed (independent of palette), matching VISION_COLORS in
+   shared.jsx: blue / red / purple. */
 .visionPlayer {
-  box-shadow: inset 0 0 0 9999px rgba(70, 130, 220, 0.45);
+  box-shadow: inset 0 0 0 9999px rgba(59, 130, 246, 0.3);
 }
 
 .visionOpponent {
-  box-shadow: inset 0 0 0 9999px rgba(220, 70, 70, 0.45);
+  box-shadow: inset 0 0 0 9999px rgba(239, 68, 68, 0.3);
 }
 
 .visionBoth {
-  box-shadow: inset 0 0 0 9999px rgba(160, 80, 200, 0.5);
+  box-shadow: inset 0 0 0 9999px rgba(168, 85, 247, 0.34);
 }
 
 .cardTarget {
-  outline: 2px solid var(--player);
+  outline: 2px solid var(--amber-primary);
   outline-offset: -3px;
   cursor: pointer !important;
 }
@@ -279,32 +302,27 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(0, 0, 0, 0.45);
   pointer-events: none;
   z-index: 3;
 }
 
-/* Cursor-hover feedback during card targeting. Painted as a tint behind the
-   piece so the entire square reads green/red, not just an outline. The
-   inset box-shadow trick (cf. .visionPlayer) keeps it under the piece SVG. */
 .cardHoverValid {
-  box-shadow: inset 0 0 0 9999px rgba(80, 200, 100, 0.55) !important;
-  outline: 3px solid rgba(60, 180, 90, 0.95);
+  box-shadow: inset 0 0 0 9999px rgba(155, 217, 107, 0.5) !important;
+  outline: 3px solid rgba(155, 217, 107, 0.95);
   outline-offset: -3px;
 }
 
 .cardHoverInvalid {
-  box-shadow: inset 0 0 0 9999px rgba(220, 70, 70, 0.55) !important;
-  outline: 3px solid rgba(200, 50, 50, 0.95);
+  box-shadow: inset 0 0 0 9999px rgba(255, 77, 58, 0.5) !important;
+  outline: 3px solid rgba(255, 77, 58, 0.95);
   outline-offset: -3px;
   cursor: not-allowed;
 }
 
-/* No-target cards: every square is a valid drop, so paint the whole board
-   green via an overlay on the board container instead of 64 outlines. */
 .boardDropAnywhere {
   position: relative;
-  outline: 3px solid rgba(60, 180, 90, 0.95);
+  outline: 3px solid rgba(155, 217, 107, 0.9);
   outline-offset: -3px;
 }
 
@@ -312,7 +330,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(80, 200, 100, 0.32);
+  background: rgba(155, 217, 107, 0.28);
   pointer-events: none;
   z-index: 4;
 }
@@ -323,12 +341,18 @@
   left: 50%;
   transform: translateX(-50%);
   max-width: calc(100% - 12px);
-  padding: 6px 14px;
-  background: var(--panel);
-  border: 1px solid var(--player);
-  border-radius: 6px;
-  color: var(--fg);
-  font-size: 13px;
+  padding: 5px 12px;
+  background: var(--amber-bg);
+  border: 1px solid var(--amber-primary);
+  box-shadow:
+    inset 0 0 0 1px var(--amber-bg),
+    inset 0 0 0 2px rgba(255, 182, 39, 0.45);
+  border-radius: 0;
+  color: var(--amber-primary);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 700;
   text-align: center;
   overflow-wrap: break-word;
   z-index: 5;
@@ -340,27 +364,31 @@
   min-width: 140px;
   max-width: 220px;
   padding: 6px 8px;
-  background: var(--panel);
-  border: 1px solid var(--panel-border);
-  border-radius: 6px;
-  color: var(--fg);
-  font-size: 12px;
-  line-height: 1.35;
+  background: var(--amber-bg);
+  border: 1px solid var(--amber-primary);
+  box-shadow:
+    inset 0 0 0 1px var(--amber-bg),
+    inset 0 0 0 2px rgba(255, 182, 39, 0.4),
+    0 4px 12px rgba(0, 0, 0, 0.4);
+  border-radius: 0;
+  color: var(--amber-primary);
+  font-size: 11px;
+  line-height: 1.4;
   pointer-events: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
 }
 
 .tooltipSection + .tooltipSection {
   margin-top: 4px;
   padding-top: 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px dashed rgba(125, 84, 16, 0.6);
 }
 
 .tooltipHeader {
-  font-size: 10px;
+  font-size: 9px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted);
+  letter-spacing: 0.16em;
+  color: var(--amber-dim);
+  font-weight: 700;
   margin-bottom: 2px;
 }
 
@@ -371,17 +399,18 @@
 }
 
 .tooltipDuration {
-  color: var(--muted);
+  color: var(--amber-dim);
   white-space: nowrap;
 }
 
 .rankLabel,
 .fileLabel {
   position: absolute;
-  font-size: 10px;
-  color: var(--muted);
+  font-size: 9px;
+  color: var(--amber-dim);
   pointer-events: none;
-  font-weight: 500;
+  font-weight: 700;
+  letter-spacing: 0.06em;
 }
 
 .rankLabel {

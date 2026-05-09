@@ -31,9 +31,10 @@ function pieceUrl(piece: Piece): string {
 }
 
 export function PieceGlyph({ piece }: Props) {
+  const sideClass = piece.side === "player" ? styles.player : styles.opponent;
   return (
     <img
-      className={styles.glyph}
+      className={`${styles.glyph} ${sideClass}`}
       src={pieceUrl(piece)}
       alt={`${piece.side} ${piece.type}`}
       draggable={false}
