@@ -5,7 +5,7 @@
   "rarity": "rare",
   "archetype": "movement",
   "consume": true,
-  "description": "Patch a piece with rook behavior. Lost if you move another piece first.",
+  "description": "Empower with straight slide. Lost if another piece moves first.",
   "target": { "kind": "own-piece" },
   "effect": { "kind": "empower-piece", "pattern": "rook", "singleUse": true }
 }

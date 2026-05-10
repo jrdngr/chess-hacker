@@ -5,7 +5,7 @@
   "rarity": "rare",
   "archetype": "power",
   "consume": true,
-  "description": "Power. At the start of each of your turns, your pawns gain Haste until end of turn.",
+  "description": "Each turn-start, your pawns gain Haste until end of turn.",
   "target": { "kind": "none" },
   "effect": {
     "kind": "play-power",

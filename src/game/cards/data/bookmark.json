@@ -4,7 +4,7 @@
   "cost": 1,
   "rarity": "uncommon",
   "archetype": "resource",
-  "description": "Choose a card in your hand. It gains Retain (stays in your hand at end-of-turn discards until played).",
+  "description": "Apply Retain to a card in your hand.",
   "target": { "kind": "hand-card" },
   "effect": { "kind": "apply-retain-to-hand-card" }
 }

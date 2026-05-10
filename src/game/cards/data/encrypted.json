@@ -4,7 +4,7 @@
   "cost": 1,
   "rarity": "common",
   "archetype": "defensive",
-  "description": "Encrypt own piece: captures of it are illegal until your next turn.",
+  "description": "Shield own piece until your next turn.",
   "target": { "kind": "own-piece" },
   "effect": { "kind": "shield-piece" }
 }

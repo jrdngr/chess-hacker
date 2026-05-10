@@ -641,6 +641,12 @@ function validateTarget(
   switch (card.target.kind) {
     case "none":
       return null;
+    case "square": {
+      if (target.kind !== "square") return "missing-target";
+      // Walls block buff placement (no overlay surface), but pieces are fine.
+      if (ctx.hasWall(target.square)) return "target-not-empty";
+      return null;
+    }
     case "empty-square": {
       if (target.kind !== "square") return "missing-target";
       if (ctx.pieceAt(target.square) !== null || ctx.hasWall(target.square))

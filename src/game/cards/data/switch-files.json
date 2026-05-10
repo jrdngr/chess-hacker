@@ -4,7 +4,7 @@
   "cost": 2,
   "rarity": "uncommon",
   "archetype": "swap",
-  "description": "Swap the positions of two of your own pieces.",
+  "description": "Swap two of your own pieces.",
   "target": { "kind": "two-own-pieces" },
   "effect": { "kind": "swap-own-pieces" }
 }

@@ -4,7 +4,7 @@
   "cost": 1,
   "rarity": "common",
   "archetype": "spatial",
-  "description": "Place a Trap. The first enemy piece to enter is pushed back 1 square. Lasts 3 turns.",
+  "description": "First enemy to enter is pushed back 1 square. 3 turns.",
   "target": { "kind": "empty-square" },
   "effect": { "kind": "place-trap", "trapEffect": "push", "durationTurns": 3 }
 }

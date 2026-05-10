@@ -36,6 +36,7 @@ export const VALID_ARCHETYPES: readonly CardArchetype[] = [
 export const VALID_COSTS: readonly CardCost[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 export const VALID_TARGET_KINDS = [
   "none",
+  "square",
   "empty-square",
   "empty-square-own-half",
   "enemy-piece",
@@ -599,12 +600,16 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
     case "haste-all-of-type":
       return tk === "none" ? null : "'haste-all-of-type' effect requires target.kind 'none'";
     case "place-wall":
-    case "place-sanctuary":
     case "place-trap":
-    case "place-zone-buff":
       return tk === "empty-square"
         ? null
         : `'${effect.kind}' effect requires target.kind 'empty-square'`;
+    case "place-sanctuary":
+    case "place-zone-buff":
+      // Buff overlays legitimately apply on top of an occupied square.
+      return tk === "square" || tk === "empty-square"
+        ? null
+        : `'${effect.kind}' effect requires target.kind 'square' or 'empty-square'`;
     case "summon-piece":
       return tk === "empty-square" || tk === "empty-square-own-half"
         ? null

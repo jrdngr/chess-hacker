@@ -4,7 +4,7 @@
   "cost": 1,
   "rarity": "common",
   "archetype": "disruption",
-  "description": "Sandbox an enemy piece: next turn it can only capture an adjacent piece.",
+  "description": "Root enemy piece (only adjacent captures next turn).",
   "target": { "kind": "enemy-piece" },
   "effect": { "kind": "root-piece" }
 }

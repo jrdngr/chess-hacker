@@ -118,7 +118,7 @@ A card JSON has the shape:
   "cost": 2,
   "rarity": "common",
   "archetype": "disruption",
-  "description": "Halt an enemy process. It can't be moved on the opponent's next turn.",
+  "description": "Freeze enemy piece (no move next turn).",
   "target": { "kind": "enemy-piece" },
   "effect": { "kind": "freeze-piece" }
 }

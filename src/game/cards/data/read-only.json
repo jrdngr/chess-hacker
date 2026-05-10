@@ -4,7 +4,7 @@
   "cost": 1,
   "rarity": "common",
   "archetype": "disruption",
-  "description": "Set an enemy piece to read-only: next turn it may move but may not capture.",
+  "description": "Disarm enemy piece (may move, no capture next turn).",
   "target": { "kind": "enemy-piece" },
   "effect": { "kind": "disarm-piece" }
 }

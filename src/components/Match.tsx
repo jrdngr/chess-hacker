@@ -1028,13 +1028,18 @@ export function Match({
       }
       return out;
     }
-    if (targetKind === "empty-square" || targetKind === "empty-square-own-half") {
+    if (
+      targetKind === "square" ||
+      targetKind === "empty-square" ||
+      targetKind === "empty-square-own-half"
+    ) {
+      const allowOccupied = targetKind === "square";
       const ownHalfOnly = targetKind === "empty-square-own-half";
       const { files, ranks } = engine.size();
       for (let r = 1; r <= ranks; r++) {
         for (let f = 0; f < files; f++) {
           const sq = "abcdefgh"[f] + r;
-          if (engine.pieceAt(sq)) continue;
+          if (!allowOccupied && engine.pieceAt(sq)) continue;
           if (walledSet.has(sq)) continue;
           if (ownHalfOnly && !isInPlayerHalf(sq, ranks)) continue;
           out.add(sq);
@@ -1108,7 +1113,8 @@ export function Match({
       };
     }
     let hint = "";
-    if (k === "empty-square") hint = `Pick an empty square for ${targetingCard.name}`;
+    if (k === "square") hint = `Pick a square for ${targetingCard.name}`;
+    else if (k === "empty-square") hint = `Pick an empty square for ${targetingCard.name}`;
     else if (k === "empty-square-own-half")
       hint = `Pick an empty square in your half (ranks 1–4) for ${targetingCard.name}`;
     else if (k === "enemy-piece") hint = `Pick an enemy piece for ${targetingCard.name}`;

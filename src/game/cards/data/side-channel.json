@@ -5,7 +5,7 @@
   "rarity": "common",
   "archetype": "movement",
   "consume": true,
-  "description": "Target friendly pawn may step 1 square diagonally this turn (no capture). Lost if you move another piece first.",
+  "description": "Empower a pawn: 1-sq diagonal step. Lost if another piece moves first.",
   "target": { "kind": "own-piece" },
   "effect": {
     "kind": "empower-piece",

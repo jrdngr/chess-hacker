@@ -4,7 +4,7 @@
   "cost": 1,
   "rarity": "common",
   "archetype": "spatial",
-  "description": "Place a wall on an empty square. Lasts 5 turns.",
+  "description": "Wall on a square. 5 turns.",
   "target": { "kind": "empty-square" },
   "effect": { "kind": "place-wall", "durationTurns": 5 }
 }

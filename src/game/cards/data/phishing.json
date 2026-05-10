@@ -4,7 +4,7 @@
   "cost": 2,
   "rarity": "uncommon",
   "archetype": "disruption",
-  "description": "Compel an enemy piece: it must move next turn (must capture if able).",
+  "description": "Compel enemy piece (must move next turn; capture if able).",
   "target": { "kind": "enemy-piece" },
   "effect": { "kind": "compel-piece" }
 }

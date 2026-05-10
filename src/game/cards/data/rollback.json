@@ -4,7 +4,7 @@
   "cost": 2,
   "rarity": "uncommon",
   "archetype": "disruption",
-  "description": "Reverse the opponent's most recent move: their piece returns to where it came from, and any captured piece is restored.",
+  "description": "Undo opponent's last move; restore any captured piece.",
   "target": { "kind": "none" },
   "effect": { "kind": "undo-last-enemy-move" }
 }

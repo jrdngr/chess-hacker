@@ -69,6 +69,10 @@ export type CardArchetype =
  * See `docs/cards/` for the per-card target.
  *
  *  - "none":                       no target; resolve immediately on click.
+ *  - "square":                     any unwalled square — pieces are allowed
+ *                                    (used by buff overlays like Sanctuary
+ *                                    and zone-buffs that legitimately apply
+ *                                    on top of an occupied square).
  *  - "empty-square":               any empty, unwalled square on the board.
  *  - "empty-square-own-half":      empty square in the player's half (ranks 1–4).
  *  - "enemy-piece":                a square holding an opponent piece.
@@ -83,6 +87,7 @@ export type CardArchetype =
  */
 export type CardTarget =
   | { kind: "none" }
+  | { kind: "square" }
   | { kind: "empty-square" }
   | { kind: "empty-square-own-half" }
   | { kind: "enemy-piece" }

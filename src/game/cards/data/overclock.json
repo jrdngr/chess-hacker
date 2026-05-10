@@ -4,7 +4,7 @@
   "cost": 2,
   "rarity": "common",
   "archetype": "tempo",
-  "description": "Target own piece may take 2 actions this turn (moves and captures).",
+  "description": "Own piece takes 2 actions this turn.",
   "target": { "kind": "own-piece" },
   "effect": { "kind": "lightning-piece", "actions": 2 }
 }
