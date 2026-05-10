@@ -83,8 +83,8 @@ We will **JSON-serialize** the entire run/meta state. See `persistence.md` for t
 ## Project bootstrap (historical, for reference)
 
 ```
-npm create vite@latest choss -- --template react-ts
-cd choss
+npm create vite@latest chess-hacker -- --template react-ts
+cd chess-hacker
 npm install fairy-stockfish-nnue.wasm zustand
 npm install -D vitest @testing-library/react @testing-library/jest-dom
 ```

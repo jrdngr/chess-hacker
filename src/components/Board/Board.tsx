@@ -132,7 +132,7 @@ type Props = {
   invalidBoard?: boolean;
 };
 
-const DRAG_MIME = "application/x-choss-from";
+const DRAG_MIME = "application/x-chess-hacker-from";
 
 const EMPTY_SET: ReadonlySet<AlgebraicSquare> = new Set();
 

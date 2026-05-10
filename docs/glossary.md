@@ -1,6 +1,6 @@
 # Glossary
 
-Terms used across the choss design and technical docs.
+Terms used across the Chess Hacker design and technical docs.
 
 | Term                | Meaning                                                                                  |
 |---------------------|------------------------------------------------------------------------------------------|
@@ -10,7 +10,7 @@ Terms used across the choss design and technical docs.
 | **Booster pack**    | Shop item: open and pick 1+ cards from its randomized contents. Balatro-style.          |
 | **Boss**            | A hand-crafted match at the end of each act. 3 bosses per run (one per act).            |
 | **Card**            | An effect played from hand. Costs energy. By default a played card lands in the discard pile and cycles back into the draw pile when it empties; the Consume keyword removes it from the match instead. |
-| **choss**           | Chess + Roguelite. Working name of the project.                                         |
+| **Chess Hacker**    | Chess + Roguelite. Working name of the project.                                         |
 | **Compel**          | Status keyword: enemy piece is forced to move on its next turn (must capture if able).  |
 | **Status effect**   | A persistent passive on a side of a match. Fires automatically when its trigger condition (turn-start, every-N-turns, on-check, on-capture, etc.) is met. Used by bosses today; future cards may apply status effects to the enemy. See `design/status-effects.md`. |
 | **Deck**            | The persistent card collection of a run. Grows by drafting / shopping; shrinks by removal. |

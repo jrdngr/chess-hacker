@@ -133,7 +133,7 @@ export type RunMode = "prototype" | "dev" | "run";
  * inside a real run. Persists across matches and runs so toggling once
  * sticks.
  */
-const DEV_PANEL_OPEN_KEY = "choss:devPanelOpen";
+const DEV_PANEL_OPEN_KEY = "chess-hacker:devPanelOpen";
 
 type Props = {
   /** Top-level run mode. Defaults to "prototype" so existing tests keep working. */

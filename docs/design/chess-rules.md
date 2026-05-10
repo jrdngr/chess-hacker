@@ -1,6 +1,6 @@
 # Chess Rules
 
-choss uses **standard chess** as its rule baseline. Where this doc says "standard", we mean the FIDE laws of chess as commonly implemented (the rule layer in `src/game/chess/rules.ts` enforces them). Cards, artifacts, and bosses can override these rules in specific ways; this doc covers the **defaults**, and `cards.md` / `artifacts.md` / `bosses.md` cover the override mechanisms.
+Chess Hacker uses **standard chess** as its rule baseline. Where this doc says "standard", we mean the FIDE laws of chess as commonly implemented (the rule layer in `src/game/chess/rules.ts` enforces them). Cards, artifacts, and bosses can override these rules in specific ways; this doc covers the **defaults**, and `cards.md` / `artifacts.md` / `bosses.md` cover the override mechanisms.
 
 ## Win, loss, draw
 

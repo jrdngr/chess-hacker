@@ -32,7 +32,7 @@ export function App() {
           borderBottom: "1px solid #2a2d33",
         }}
       >
-        <strong style={{ marginRight: 12 }}>choss · Content Designer</strong>
+        <strong style={{ marginRight: 12 }}>Chess Hacker · Content Designer</strong>
         <nav style={{ display: "flex", gap: 4 }}>
           {TABS.map((t) => (
             <button

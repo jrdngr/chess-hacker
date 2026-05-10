@@ -1,6 +1,6 @@
-# choss — Docs
+# Chess Hacker — Docs
 
-Welcome. This folder is the design and technical reference for **choss**: a single-player chess + cards + roguelite + deckbuilder.
+Welcome. This folder is the design and technical reference for **Chess Hacker**: a single-player chess + cards + roguelite + deckbuilder.
 
 ## Reading order for newcomers
 

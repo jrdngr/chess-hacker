@@ -41,9 +41,9 @@ export const PALETTES: ReadonlyArray<{
 
 export const DEFAULT_PALETTE: PaletteId = "amber";
 
-const PALETTE_KEY = "choss:palette";
-const VISION_KEY = "choss:vision";
-const THREATS_KEY = "choss:threats";
+const PALETTE_KEY = "chess-hacker:palette";
+const VISION_KEY = "chess-hacker:vision";
+const THREATS_KEY = "chess-hacker:threats";
 
 export function loadPalette(): PaletteId {
   try {

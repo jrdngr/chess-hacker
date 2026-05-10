@@ -9,7 +9,7 @@ export function TopBar() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const onExportFull = () => {
-    downloadJson("choss-content-state.json", exportFullState(state));
+    downloadJson("chess-hacker-content-state.json", exportFullState(state));
   };
 
   const onImportFull = () => {

@@ -12,7 +12,7 @@ import { decksWriter } from "./src/designer/vite-decks-plugin";
 // dev URL lands on the designer directly.
 
 const serveDesignerAtRoot: Plugin = {
-  name: "choss-designer-root-rewrite",
+  name: "chess-hacker-designer-root-rewrite",
   configureServer(server) {
     server.middlewares.use((req, _res, next) => {
       if (req.url === "/" || req.url === "") {

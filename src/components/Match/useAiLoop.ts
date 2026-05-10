@@ -108,7 +108,7 @@ export function useAiLoop({
 
   // Spin up the Fairy-Stockfish worker for every vs-ai match. The engine
   // supports custom board sizes via the variant config (variantFor maps our
-  // BoardSize to the matching `chossNxM` variant declared in
+  // BoardSize to the matching `chess-hackerNxM` variant declared in
   // public/fairy-stockfish/variants.ini, falling back to standard `chess`
   // for 8x8). Walls, freezes, etc. still ride the searchmoves filter in
   // doAiMove since they're not part of the engine's variant geometry.

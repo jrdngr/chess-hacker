@@ -16,7 +16,7 @@ Fairy-Stockfish is a black-box chess engine; it knows about board geometry (via 
   - `stockfish.js` — engine factory
   - `stockfish.wasm` — wasm binary
   - `stockfish.worker.js` — pthread worker template (loaded by the engine internally)
-  - `uci.worker.js` — choss-side UCI proxy
+  - `uci.worker.js` — Chess Hacker-side UCI proxy
   - `variants.ini` — custom variant declarations (one per non-8×8 size used by Standard mode)
 - **Cross-origin isolation is required.** Fairy-Stockfish.wasm uses pthreads + SharedArrayBuffer, so the document must be served with `Cross-Origin-Embedder-Policy: require-corp` and `Cross-Origin-Opener-Policy: same-origin`. `vite.config.ts` adds these headers via middleware for both the dev server and the preview server. Production deployments must configure the same headers at the host level.
 
@@ -25,12 +25,12 @@ Fairy-Stockfish is a black-box chess engine; it knows about board geometry (via 
 `public/fairy-stockfish/variants.ini` declares one variant per non-8×8 size we use, each inheriting from the built-in `chess`:
 
 ```ini
-[choss6x6:chess]
+[chess-hacker6x6:chess]
 maxFile = 6
 maxRank = 6
 ```
 
-The wrapper sends `setoption name VariantPath value /fairy-stockfish/variants.ini` during init so the engine loads the file. Match then calls `setVariant(variantFor(boardSize))` before each match — the helper maps `BoardSize` to either `"chess"` (for 8×8) or `"chossNxM"`. Castling is automatically inert on these boards because our FEN never sets `KQkq` for non-8-file positions (`castlingAvailable` in `src/game/chess/rules.ts`).
+The wrapper sends `setoption name VariantPath value /fairy-stockfish/variants.ini` during init so the engine loads the file. Match then calls `setVariant(variantFor(boardSize))` before each match — the helper maps `BoardSize` to either `"chess"` (for 8×8) or `"chess-hackerNxM"`. Castling is automatically inert on these boards because our FEN never sets `KQkq` for non-8-file positions (`castlingAvailable` in `src/game/chess/rules.ts`).
 
 We always feed positions via `position fen <our serializeFen>` after `setVariant`, so the per-variant `startFen` is unused.
 

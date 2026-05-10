@@ -4,7 +4,7 @@ import { freshDesignerState, reseedLibrary } from "./seed";
 import type { DesignerState, DesignerStatusEffectEntry, DesignerBossEntry } from "./types";
 import { STATUS_EFFECT_DEFS } from "../../game/status/library";
 
-const STORAGE_KEY = "choss:content-designer:v1";
+const STORAGE_KEY = "chess-hacker:content-designer:v1";
 
 /**
  * Read+migrate the persisted designer state. We bumped the schema from v1 to

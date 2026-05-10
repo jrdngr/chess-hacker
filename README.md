@@ -1,4 +1,4 @@
-# choss
+# Chess Hacker
 
 A single-player chess + cards + roguelite + deckbuilder. Web prototype.
 

@@ -1,6 +1,6 @@
 # Cards reference
 
-Per-card reference for choss. The mechanics doc is [`docs/design/cards.md`](../design/cards.md); the keyword definitions are [`keywords.md`](keywords.md); this folder is the per-card breakdown grouped by type.
+Per-card reference for Chess Hacker. The mechanics doc is [`docs/design/cards.md`](../design/cards.md); the keyword definitions are [`keywords.md`](keywords.md); this folder is the per-card breakdown grouped by type.
 
 ## Layout
 

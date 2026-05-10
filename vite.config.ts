@@ -7,7 +7,7 @@ import react from "@vitejs/plugin-react";
 // spawn pthread workers and share memory. Production deployments need the
 // same headers configured at the host level (see docs/technical/ai.md).
 const crossOriginIsolation: Plugin = {
-  name: "choss-cross-origin-isolation",
+  name: "chess-hacker-cross-origin-isolation",
   configureServer(server) {
     server.middlewares.use(setIsolationHeaders);
   },

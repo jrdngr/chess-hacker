@@ -11,8 +11,8 @@
 // engine factory (stockfish.js) inside a Web Worker and pipes UCI lines
 // both ways. The variants the engine knows about are declared in
 // /fairy-stockfish/variants.ini; we point the engine at that file via the
-// `VariantPath` option as part of the init handshake. The choss-side code
-// then calls `setVariant("choss6x6")` / `setVariant("choss7x7")` /
+// `VariantPath` option as part of the init handshake. The Chess Hacker-side
+// code then calls `setVariant("chess-hacker6x6")` / `setVariant("chess-hacker7x7")` /
 // `setVariant("chess")` (for 8x8) before each match.
 //
 // Pthreads + SharedArrayBuffer requirement: Fairy-Stockfish.wasm uses
@@ -25,7 +25,7 @@
 //
 //   const sf = new StockfishEngine();
 //   await sf.ready();
-//   sf.setVariant("choss6x6");
+//   sf.setVariant("chess-hacker6x6");
 //   sf.setPosition(fen);
 //   const uci = await sf.getBestMove({ depth: 6 });   // e.g. "e7e5", "e7e8q"
 //   sf.destroy();
@@ -47,7 +47,7 @@ export type GoOptions = (
    * moves at the root. We pass our wall-/freeze-/sanctuary-/etc.-aware
    * legal-move set so the engine never picks a move that violates an
    * overlay (the engine itself only knows about board geometry from the
-   * variant config; overlays are choss-side).
+   * variant config; overlays are Chess Hacker-side).
    */
   searchMoves?: ReadonlyArray<string>;
   /**
@@ -114,7 +114,7 @@ export function legalMoveToUci(m: LegalMove): string {
  */
 export function variantFor(size: BoardSize): string {
   if (size.files === 8 && size.ranks === 8) return "chess";
-  return `choss${size.files}x${size.ranks}`;
+  return `chess-hacker${size.files}x${size.ranks}`;
 }
 
 /**
@@ -195,7 +195,7 @@ export class StockfishEngine {
   /**
    * Select which variant to play. Must be called after `ready()` and
    * before `setPosition()`. 8x8 should use "chess"; smaller boards use the
-   * `chossNxM` names defined in variants.ini (see `variantFor`).
+   * `chess-hackerNxM` names defined in variants.ini (see `variantFor`).
    */
   setVariant(name: string): void {
     this.send(`setoption name UCI_Variant value ${name}`);

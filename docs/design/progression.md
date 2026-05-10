@@ -55,7 +55,7 @@ This rhythm should feel snappy and not bloated. UI choices that minimize between
 
 ## Meta-progression
 
-Meta-progression in choss is **content-unlocks only**. There are **no persistent power buffs** that make subsequent runs easier.
+Meta-progression in Chess Hacker is **content-unlocks only**. There are **no persistent power buffs** that make subsequent runs easier.
 
 ### What unlocks
 

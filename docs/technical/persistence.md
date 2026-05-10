@@ -8,7 +8,7 @@ Two categories:
 
 ### 1. Meta state (across runs)
 
-Persisted under key `choss:meta`. Survives all runs.
+Persisted under key `chess-hacker:meta`. Survives all runs.
 
 ```ts
 type MetaState = {
@@ -33,7 +33,7 @@ type MetaState = {
 
 ### 2. Active run (in-progress save)
 
-Persisted under key `choss:run`. Cleared when the run ends (win or loss).
+Persisted under key `chess-hacker:run`. Cleared when the run ends (win or loss).
 
 ```ts
 type SavedRun = {
@@ -84,8 +84,8 @@ If saves become a perf concern, debounce them (e.g., save only every N seconds),
 
 On app boot:
 
-1. Load `choss:meta` (or initialize empty).
-2. Load `choss:run` (if present, offer "resume" UI; otherwise show new-run UI).
+1. Load `chess-hacker:meta` (or initialize empty).
+2. Load `chess-hacker:run` (if present, offer "resume" UI; otherwise show new-run UI).
 3. If schema version mismatch, run migration or invalidate (see below).
 
 ## Schema versioning and migrations
@@ -95,7 +95,7 @@ Both keys store a `version: number`. Bump the version any time the schema change
 Migration policy:
 
 - **Forward migrations:** small schema tweaks should ideally come with a migration function. Test with synthetic save data.
-- **No migration available:** drop the saved run with an in-app warning ("Your save was from an older version and could not be migrated. Starting fresh.") — preserve `choss:meta` (unlocks).
+- **No migration available:** drop the saved run with an in-app warning ("Your save was from an older version and could not be migrated. Starting fresh.") — preserve `chess-hacker:meta` (unlocks).
 - **Meta migrations:** for unlocks, prefer to never lose progress. Forward-migrate whenever possible.
 
 ## Card / artifact / boss data

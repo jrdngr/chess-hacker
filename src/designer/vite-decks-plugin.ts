@@ -19,7 +19,7 @@ import type { Plugin } from "vite";
  */
 export function decksWriter(): Plugin {
   return {
-    name: "choss-designer-decks-writer",
+    name: "chess-hacker-designer-decks-writer",
     configureServer(server) {
       server.middlewares.use("/__designer/decks", async (req, res, next) => {
         if (req.method !== "POST") {

@@ -1,6 +1,6 @@
 # Overview
 
-**choss** is a single-player roguelite deckbuilder built on a foundation of chess. Each run is a sequence of chess matches in which both sides play standard chess pieces with mostly-standard rules; the player additionally has a deck of cards that bend, break, or extend the rules of chess in their favor. Between matches the player drafts new cards (and, in Skirmish mode, new pieces) and visits a shop, building toward a unique deck and roster that can defeat the act-end bosses.
+**Chess Hacker** is a single-player roguelite deckbuilder built on a foundation of chess. Each run is a sequence of chess matches in which both sides play standard chess pieces with mostly-standard rules; the player additionally has a deck of cards that bend, break, or extend the rules of chess in their favor. Between matches the player drafts new cards (and, in Skirmish mode, new pieces) and visits a shop, building toward a unique deck and roster that can defeat the act-end bosses.
 
 ## Design pillars
 

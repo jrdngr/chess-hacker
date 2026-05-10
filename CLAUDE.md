@@ -2,7 +2,7 @@
 
 Guidance for AI agents working in this repository.
 
-## Project: choss
+## Project: Chess Hacker
 
 A single-player chess + cards + roguelite + deckbuilder. Inspirations: Slay the Spire, Balatro, classical chess. Web prototype, single-player only.
 

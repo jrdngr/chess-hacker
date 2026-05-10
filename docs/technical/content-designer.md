@@ -19,9 +19,9 @@ The game stays on port 5173 (`just run` / `npm run dev`); the designer lives on 
 
 ## State
 
-Persisted to `localStorage["choss:content-designer:v1"]`. Top-bar actions:
+Persisted to `localStorage["chess-hacker:content-designer:v1"]`. Top-bar actions:
 
-- **Export full state** — downloads `choss-content-state.json` containing every card, artifact, boss, and deck the designer knows about.
+- **Export full state** — downloads `chess-hacker-content-state.json` containing every card, artifact, boss, and deck the designer knows about.
 - **Import full state** — restore the workspace from a previously exported file.
 - **Reset library snapshot** — re-pull library entries from the running source tree (preserves user-created items and decks). Useful after editing the game's source JSON outside the designer.
 
