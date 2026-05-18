@@ -6,5 +6,9 @@
   "archetype": "spatial",
   "description": "Wall on a square. 5 turns.",
   "target": { "kind": "empty-square" },
-  "effect": { "kind": "place-wall", "durationTurns": 5 }
+  "effect": { "kind": "place-wall", "durationTurns": 5 },
+  "upgrade": {
+    "description": "Wall on a square. 7 turns.",
+    "effect": { "kind": "place-wall", "durationTurns": 7 }
+  }
 }

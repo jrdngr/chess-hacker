@@ -6,5 +6,9 @@
   "archetype": "spatial",
   "description": "Sanctuary: pieces on it can't be captured. 3 turns.",
   "target": { "kind": "square" },
-  "effect": { "kind": "place-sanctuary", "durationTurns": 3 }
+  "effect": { "kind": "place-sanctuary", "durationTurns": 3 },
+  "upgrade": {
+    "description": "Sanctuary: pieces on it can't be captured. 5 turns.",
+    "effect": { "kind": "place-sanctuary", "durationTurns": 5 }
+  }
 }

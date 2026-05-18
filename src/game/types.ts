@@ -127,11 +127,11 @@ export type CardEffect =
   | { kind: "gain-energy"; amount: number }
   | { kind: "draw"; count: number }
   | { kind: "scry"; count: number }
-  | { kind: "freeze-piece" }
+  | { kind: "freeze-piece"; durationTurns?: number }
   | { kind: "root-piece"; durationTurns?: number }
-  | { kind: "disarm-piece" }
+  | { kind: "disarm-piece"; durationTurns?: number }
   | { kind: "compel-piece" }
-  | { kind: "shield-piece" }
+  | { kind: "shield-piece"; durationTurns?: number }
   | { kind: "haste-piece"; durationTurns?: number }
   | { kind: "haste-all-of-type"; pieceType: PieceType; durationTurns?: number }
   | {
@@ -280,6 +280,31 @@ export type Card = {
   description: string;
   target: CardTarget;
   effect: CardEffect;
+  /**
+   * Author-time upgrade delta. Present on every base card; expanded by
+   * `library.ts` into a sibling `<id>+` Card at startup. Only the fields
+   * listed change relative to the base; everything else is inherited.
+   * Field-level full replacement — overriding `effect` replaces the whole
+   * effect block (the discriminated union makes partial merges intractable).
+   * `id`, `name`, and `archetype` are NOT author-overridable; they're
+   * derived as `<id>+`, `<name>+`, and same-archetype respectively.
+   * Absent on upgraded variants (`<id>+` cards).
+   */
+  upgrade?: CardUpgradeDelta;
+};
+
+/**
+ * Author-time partial override block on a base card's JSON. Expanded into a
+ * full upgraded Card at library load. See `Card.upgrade`.
+ */
+export type CardUpgradeDelta = {
+  cost?: CardCost;
+  rarity?: CardRarity;
+  description?: string;
+  consume?: boolean;
+  retain?: boolean;
+  target?: CardTarget;
+  effect?: CardEffect;
 };
 
 /**
@@ -421,6 +446,12 @@ export type RunState = {
    * run costs `BASE + STEP * N` (see shop economy doc).
    */
   removalsUsed: number;
+  /**
+   * Number of Smith (card upgrade) uses across the run. The Nth upgrade
+   * costs `SMITH_COST_BASE + SMITH_COST_STEP * N`. Sibling counter to
+   * `removalsUsed`; scales independently.
+   */
+  smithUsed: number;
   /**
    * Free deck-deletion charges held over from a boss-reward "delete 2 cards"
    * pick. Decremented when the player completes a deletion in the reward UI;
@@ -587,6 +618,8 @@ export type Shop = {
   rerollsUsed: number;
   /** Gold cost of the next card-removal — scales across the run. */
   removalCost: number;
+  /** Gold cost of the next card-upgrade (Smith service) — scales across the run. */
+  smithCost: number;
 };
 
 // === Bosses (M8 + M9) ===

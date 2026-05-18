@@ -10,5 +10,8 @@
   "effect": {
     "kind": "play-power",
     "effect": { "kind": "shield-back-rank-per-turn", "amount": 1 }
+  },
+  "upgrade": {
+    "cost": 3
   }
 }

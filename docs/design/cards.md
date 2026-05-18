@@ -89,9 +89,50 @@ The prototype does not need a final card list; it needs enough cards to populate
 
 ## Card upgrades
 
-Cards do **not** have upgraded versions in the prototype. Card upgrade as a shop service was considered and explicitly cut to keep the design tight. (Card removal is the only deck-shaping shop service.)
+Cards **do** have a single canonical upgraded version, Slay-the-Spire style.
+Upgrades are obtained exclusively through the **shop Smith service** — there is
+no draft, boss-reward, or event-room route in the prototype. See
+[`economy.md`](./economy.md) for Smith pricing.
 
-Reconsider this decision only after the basic loop is working — adding upgrade is a meaningful design and UI undertaking. See `roadmap/open-questions.md`.
+- **One tier:** every card has exactly one `+` variant. No further upgrades —
+  Searing-Blow-style infinite scaling is out of scope.
+- **Per-slot, not per-card:** upgrading a card swaps the chosen deck slot to
+  its `+` variant. Other copies of the same base card in the deck are
+  unaffected. If you have two copies of Freeze Process and upgrade one, the
+  other stays a base card.
+- **Single-source:** `+` variants never appear in shop card offers, booster
+  packs, or Patch grants — they enter the deck only via the Smith service.
+
+### Authoring
+
+The upgrade for each card is authored inline in the card's JSON as an
+optional `upgrade` block listing **only the fields that change** relative to
+the base:
+
+```json
+{
+  "id": "freeze-process",
+  "name": "Freeze Process",
+  "cost": 2,
+  "description": "Freeze enemy piece (no move next turn).",
+  "target": { "kind": "enemy-piece" },
+  "effect": { "kind": "freeze-piece" },
+  "upgrade": {
+    "description": "Freeze enemy piece for 2 turns.",
+    "effect": { "kind": "freeze-piece", "durationTurns": 2 }
+  }
+}
+```
+
+At startup, the library expansion in `src/game/cards/library.ts` produces a
+full `freeze-process+` card from this block and registers it. Override
+semantics are **field-level full replacement** — overriding `effect`
+replaces the whole effect block (the discriminated union makes partial
+merges intractable). `id`, `name`, and `archetype` are NOT author-overridable
+— the system derives them as `<id>+`, `<name>+`, and same-archetype.
+
+Every base card MUST define an `upgrade` block; missing entries fail card
+library loading at startup. See `cards/README.md` for a quick visual key.
 
 ## Boss disruption (status effects, not cards)
 
@@ -141,5 +182,5 @@ and `effect.kind` values for the prototype.
 | Cards-per-turn cap           | None beyond energy/hand                              |
 | Disposal                     | Discard pile cycles into draw on empty; Consume removes for the match; Retain skips end-of-turn discard |
 | Reactions on opponent turn   | None (may revisit)                                   |
-| Card upgrades                | Not in prototype                                     |
+| Card upgrades                | Shop Smith service; one `+` tier per card. See `economy.md`. |
 | Capture-grants-Patch          | Player captures of non-King enemies grant matching Patch (Patches have Consume) |

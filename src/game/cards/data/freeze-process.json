@@ -6,5 +6,9 @@
   "archetype": "disruption",
   "description": "Freeze enemy piece (no move next turn).",
   "target": { "kind": "enemy-piece" },
-  "effect": { "kind": "freeze-piece" }
+  "effect": { "kind": "freeze-piece" },
+  "upgrade": {
+    "description": "Freeze enemy piece for 2 turns.",
+    "effect": { "kind": "freeze-piece", "durationTurns": 2 }
+  }
 }

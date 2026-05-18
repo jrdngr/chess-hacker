@@ -131,3 +131,13 @@ Played cards without Consume go to the **discard pile**. End-of-turn dumps every
 ### Revive
 
 A card whose effect returns one card from your **discard pile** to your hand. Restore Point picks at random; Restore from Backup prompts you to choose. Revivers cannot reach into the consumed pile — Consume cards are gone for the match.
+
+### "+" (Upgraded)
+
+A card whose name ends in **+** is the upgraded variant of its base card —
+stronger numbers, lower cost, an added keyword, or some combination thereof.
+Every base card has exactly one `+` form. The `+` variant is never offered in
+shops, packs, or Patch grants; the only way to acquire one is to use the
+shop's **Smith** service on an existing deck card. Upgrade is single-tier —
+there are no `++` cards. See [`../design/cards.md`](../design/cards.md) for
+authoring and [`../design/economy.md`](../design/economy.md) for pricing.

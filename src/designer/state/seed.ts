@@ -19,6 +19,10 @@ import type {
 export function freshDesignerState(): DesignerState {
   const cards: Record<string, DesignerCardEntry> = {};
   for (const card of Object.values(CARD_LIBRARY)) {
+    // Upgraded variants (`<id>+`) are auto-generated from their base card's
+    // `upgrade` block at startup — they aren't authored and shouldn't appear
+    // as separate entries to edit.
+    if (card.id.endsWith("+")) continue;
     cards[card.id] = {
       data: clone(card),
       source: "library",

@@ -12,10 +12,14 @@ import {
   removeCard,
   rerollCostFor,
   rerollShop,
+  smithCostFor,
+  upgradeDeckCard,
   REROLL_COST_BASE,
   REROLL_COST_STEP,
   REMOVAL_COST_BASE,
   REMOVAL_COST_STEP,
+  SMITH_COST_BASE,
+  SMITH_COST_STEP,
   SHOP_ARTIFACTS,
   SHOP_CARDS,
   SHOP_PACKS,
@@ -24,8 +28,9 @@ import {
 } from "./shop";
 import { allArtifacts, getArtifactById } from "../artifacts/library";
 import { ARTIFACT_SLOT_CAP } from "../types";
-import { createRun } from "../progression/run";
-import { FREEZE_PROCESS } from "../cards/library";
+import { createRun, pickRandomCards } from "../progression/run";
+import { CARD_LIBRARY, FREEZE_PROCESS } from "../cards/library";
+import { makeRng } from "../cards/match";
 
 describe("pricing helpers", () => {
   it("rerollCostFor scales linearly per shop visit", () => {
@@ -37,6 +42,12 @@ describe("pricing helpers", () => {
   it("removalCostFor scales linearly per use", () => {
     expect(removalCostFor(0)).toBe(REMOVAL_COST_BASE);
     expect(removalCostFor(2)).toBe(REMOVAL_COST_BASE + REMOVAL_COST_STEP * 2);
+  });
+
+  it("smithCostFor scales linearly per use", () => {
+    expect(smithCostFor(0)).toBe(SMITH_COST_BASE);
+    expect(smithCostFor(1)).toBe(SMITH_COST_BASE + SMITH_COST_STEP);
+    expect(smithCostFor(3)).toBe(SMITH_COST_BASE + SMITH_COST_STEP * 3);
   });
 });
 
@@ -266,5 +277,78 @@ describe("booster packs", () => {
         for (const card of offer.pack.contents) expect(card.rarity).toBe("common");
       }
     }
+  });
+
+  it("never offers upgraded `+` variants in card slots or pack contents", () => {
+    for (let seed = 1; seed < 30; seed++) {
+      const run = createRun({ mode: "royal", rngSeed: seed });
+      const gen = generateShop(run);
+      for (const offer of gen.shop.offers) {
+        if (offer.kind === "card") expect(offer.card.id.endsWith("+")).toBe(false);
+        if (offer.kind === "booster") {
+          for (const card of offer.pack.contents) {
+            expect(card.id.endsWith("+")).toBe(false);
+          }
+        }
+      }
+    }
+  });
+
+  it("pickRandomCards never returns an upgraded variant across many trials", () => {
+    const rng = makeRng(42);
+    for (let trial = 0; trial < 200; trial++) {
+      const picks = pickRandomCards(8, rng);
+      for (const card of picks) {
+        expect(card.id.endsWith("+")).toBe(false);
+      }
+    }
+  });
+});
+
+describe("upgradeDeckCard (Smith service)", () => {
+  it("swaps only the targeted deck slot when the deck has duplicate copies", () => {
+    const base = CARD_LIBRARY["freeze-process"];
+    const upgraded = CARD_LIBRARY["freeze-process+"];
+    const baseRun = createRun({ mode: "royal", rngSeed: 1 });
+    const run = { ...baseRun, gold: 200, deck: [base, base, base] };
+    const gen = generateShop(run);
+    const result = upgradeDeckCard(gen.next, gen.shop, 1)!;
+    expect(result.state.deck[0]).toBe(base);
+    expect(result.state.deck[1]).toBe(upgraded);
+    expect(result.state.deck[2]).toBe(base);
+  });
+
+  it("charges gold, bumps smithUsed, and bumps the shop's smithCost", () => {
+    const base = CARD_LIBRARY["freeze-process"];
+    const baseRun = createRun({ mode: "royal", rngSeed: 1 });
+    const run = { ...baseRun, gold: 200, deck: [base] };
+    const gen = generateShop(run);
+    expect(gen.shop.smithCost).toBe(smithCostFor(0));
+    const result = upgradeDeckCard(gen.next, gen.shop, 0)!;
+    expect(result.state.smithUsed).toBe(1);
+    expect(result.state.gold).toBe(200 - gen.shop.smithCost);
+    expect(result.shop.smithCost).toBe(smithCostFor(1));
+  });
+
+  it("returns null when out of gold, OOB, or the card is already upgraded", () => {
+    const base = CARD_LIBRARY["freeze-process"];
+    const upgraded = CARD_LIBRARY["freeze-process+"];
+    const baseRun = createRun({ mode: "royal", rngSeed: 1 });
+    const noGold = { ...baseRun, gold: 0, deck: [base] };
+    const noGoldGen = generateShop(noGold);
+    expect(upgradeDeckCard(noGoldGen.next, noGoldGen.shop, 0)).toBeNull();
+    const richRun = { ...baseRun, gold: 200, deck: [base, upgraded] };
+    const richGen = generateShop(richRun);
+    expect(upgradeDeckCard(richGen.next, richGen.shop, -1)).toBeNull();
+    expect(upgradeDeckCard(richGen.next, richGen.shop, 50)).toBeNull();
+    // Already-upgraded slot
+    expect(upgradeDeckCard(richGen.next, richGen.shop, 1)).toBeNull();
+  });
+
+  it("smithCost on a freshly-generated shop reflects the run's smithUsed", () => {
+    const baseRun = createRun({ mode: "royal", rngSeed: 1 });
+    const run = { ...baseRun, smithUsed: 2 };
+    const gen = generateShop(run);
+    expect(gen.shop.smithCost).toBe(smithCostFor(2));
   });
 });

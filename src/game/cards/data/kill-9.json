@@ -7,5 +7,9 @@
   "consume": true,
   "description": "Destroy own non-King piece; draw 2, +1 energy.",
   "target": { "kind": "own-non-king-piece" },
-  "effect": { "kind": "sacrifice-piece", "drawCount": 2, "energyGain": 1 }
+  "effect": { "kind": "sacrifice-piece", "drawCount": 2, "energyGain": 1 },
+  "upgrade": {
+    "description": "Destroy own non-King piece; draw 3, +1 energy.",
+    "effect": { "kind": "sacrifice-piece", "drawCount": 3, "energyGain": 1 }
+  }
 }

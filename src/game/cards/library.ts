@@ -49,6 +49,9 @@ function basenameNoExt(path: string): string {
   return file.replace(/\.json$/, "");
 }
 
+/** Suffix appended to a base card's id/name when its upgraded variant is registered. */
+export const UPGRADE_SUFFIX = "+";
+
 function loadCardLibrary(): Record<CardId, Card> {
   const modules = import.meta.glob<unknown>("./data/*.json", {
     eager: true,
@@ -57,6 +60,8 @@ function loadCardLibrary(): Record<CardId, Card> {
 
   const library: Record<CardId, Card> = {};
   const allErrors: string[] = [];
+
+  // ---- Pass 1: load + validate base cards from JSON files ------------------
 
   for (const [path, raw] of Object.entries(modules)) {
     const { card, errors } = validateCard(raw);
@@ -70,6 +75,12 @@ function loadCardLibrary(): Record<CardId, Card> {
     if (card.id !== expectedId) {
       allErrors.push(
         `${path}: filename '${expectedId}.json' does not match card id '${card.id}'. Rename the file or the id so they agree.`,
+      );
+      continue;
+    }
+    if (card.id.endsWith(UPGRADE_SUFFIX)) {
+      allErrors.push(
+        `${path}: card id '${card.id}' must not end in '${UPGRADE_SUFFIX}' — that suffix is reserved for auto-generated upgraded variants.`,
       );
       continue;
     }
@@ -88,10 +99,98 @@ function loadCardLibrary(): Record<CardId, Card> {
     );
   }
 
+  // ---- Pass 2: every base card must define an `upgrade` block --------------
+
+  const missingUpgrades: CardId[] = [];
+  for (const card of Object.values(library)) {
+    if (!card.upgrade) missingUpgrades.push(card.id);
+  }
+  if (missingUpgrades.length > 0) {
+    throw new Error(
+      `Card library: ${missingUpgrades.length} card(s) missing required 'upgrade' block:\n  - ${missingUpgrades.join("\n  - ")}\n\nEvery base card must define an inline upgrade delta (see docs/design/cards.md).`,
+    );
+  }
+
+  // ---- Pass 3: expand each base into an upgraded variant -------------------
+
+  const expansionErrors: string[] = [];
+  for (const base of Object.values(library)) {
+    const upgradedId = base.id + UPGRADE_SUFFIX;
+    if (library[upgradedId]) {
+      expansionErrors.push(
+        `upgrade for '${base.id}': '${upgradedId}' is already registered (was the same id loaded from a JSON file?).`,
+      );
+      continue;
+    }
+    const { card: upgraded, errors } = validateCard(buildUpgradedRaw(base));
+    if (errors.length > 0) {
+      expansionErrors.push(`upgrade for '${base.id}':\n  - ${errors.join("\n  - ")}`);
+      continue;
+    }
+    if (upgraded) library[upgradedId] = upgraded;
+  }
+  if (expansionErrors.length > 0) {
+    throw new Error(`Failed to expand card upgrades:\n\n${expansionErrors.join("\n\n")}`);
+  }
+
   return library;
 }
 
+/**
+ * Synthesize the raw-JSON shape for an upgraded variant from a base card.
+ * Used by the library's pass-3 expansion: feed this into `validateCard` so
+ * the upgraded card runs through the same per-field and cross-field
+ * (`target ↔ effect`) checks as a base card. The upgraded variant has no
+ * further `upgrade` field — single-tier only.
+ */
+function buildUpgradedRaw(base: Card): Record<string, unknown> {
+  const u = base.upgrade ?? {};
+  const raw: Record<string, unknown> = {
+    id: base.id + UPGRADE_SUFFIX,
+    name: base.name + UPGRADE_SUFFIX,
+    cost: u.cost ?? base.cost,
+    rarity: u.rarity ?? base.rarity,
+    archetype: base.archetype,
+    description: u.description ?? base.description,
+    target: u.target ?? base.target,
+    effect: u.effect ?? base.effect,
+  };
+  // Tristate keyword inheritance: upgrade may set to false to remove the
+  // keyword, or omit to inherit.
+  const consume = u.consume !== undefined ? u.consume : base.consume;
+  const retain = u.retain !== undefined ? u.retain : base.retain;
+  if (typeof consume === "boolean") raw.consume = consume;
+  if (typeof retain === "boolean") raw.retain = retain;
+  return raw;
+}
+
 export const CARD_LIBRARY: Record<CardId, Card> = loadCardLibrary();
+
+/**
+ * Return the upgraded variant of a base card, or `null` if `card` is already
+ * upgraded. Looks up `<card.id>+` in the library — every base card has a
+ * registered upgrade, so a non-null return value is guaranteed for any
+ * library card whose id does not already end in `+`.
+ */
+export function getUpgradedCard(card: Card): Card | null {
+  if (isUpgraded(card)) return null;
+  return CARD_LIBRARY[card.id + UPGRADE_SUFFIX] ?? null;
+}
+
+/** True iff `card.id` ends in the upgrade suffix (`+`). */
+export function isUpgraded(card: Card): boolean {
+  return card.id.endsWith(UPGRADE_SUFFIX);
+}
+
+/**
+ * Library cards that are NOT upgraded variants. Use this anywhere shop offers,
+ * booster packs, drafts, or other "random card from the pool" generators draw
+ * from CARD_LIBRARY — upgraded variants are obtained only through the Smith
+ * service, never offered directly.
+ */
+export function baseLibraryCards(): Card[] {
+  return Object.values(CARD_LIBRARY).filter((c) => !isUpgraded(c));
+}
 
 // Convenience named exports for tests and call-sites that want a specific card
 // by name. These are checked at module load: if a card disappears from the
@@ -120,9 +219,13 @@ export function getCardById(id: CardId): Card {
   return card;
 }
 
-/** All cards in the library matching `rarity`. */
+/**
+ * All BASE cards in the library matching `rarity`. Upgraded variants (`<id>+`)
+ * are filtered out — they are only obtainable through the shop Smith service,
+ * never offered in drafts, packs, or other random pools.
+ */
 export function getCardsByRarity(rarity: CardRarity): Card[] {
-  return Object.values(CARD_LIBRARY).filter((c) => c.rarity === rarity);
+  return baseLibraryCards().filter((c) => c.rarity === rarity);
 }
 
 /**

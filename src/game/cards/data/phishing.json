@@ -6,5 +6,8 @@
   "archetype": "disruption",
   "description": "Compel enemy piece (must move next turn; capture if able).",
   "target": { "kind": "enemy-piece" },
-  "effect": { "kind": "compel-piece" }
+  "effect": { "kind": "compel-piece" },
+  "upgrade": {
+    "cost": 1
+  }
 }

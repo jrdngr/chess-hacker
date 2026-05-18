@@ -12,6 +12,7 @@ import type {
   CardId,
   CardRarity,
   CardTarget,
+  CardUpgradeDelta,
   EmpowerPattern,
   PieceType,
   TrapEffect,
@@ -193,8 +194,13 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
       }
       return { kind: "scry", count: raw.count };
     }
-    case "freeze-piece":
-      return { kind: "freeze-piece" };
+    case "freeze-piece": {
+      const dt = validateDurationTurns(raw.durationTurns, "freeze-piece", errors);
+      if (dt === null) return null;
+      const out: CardEffect & { kind: "freeze-piece" } = { kind: "freeze-piece" };
+      if (typeof dt === "number") out.durationTurns = dt;
+      return out;
+    }
     case "root-piece": {
       const dt = raw.durationTurns;
       if (dt !== undefined && (typeof dt !== "number" || !Number.isInteger(dt) || dt < 1)) {
@@ -207,12 +213,22 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
       if (typeof dt === "number") (out as { durationTurns?: number }).durationTurns = dt;
       return out;
     }
-    case "disarm-piece":
-      return { kind: "disarm-piece" };
+    case "disarm-piece": {
+      const dt = validateDurationTurns(raw.durationTurns, "disarm-piece", errors);
+      if (dt === null) return null;
+      const out: CardEffect & { kind: "disarm-piece" } = { kind: "disarm-piece" };
+      if (typeof dt === "number") out.durationTurns = dt;
+      return out;
+    }
     case "compel-piece":
       return { kind: "compel-piece" };
-    case "shield-piece":
-      return { kind: "shield-piece" };
+    case "shield-piece": {
+      const dt = validateDurationTurns(raw.durationTurns, "shield-piece", errors);
+      if (dt === null) return null;
+      const out: CardEffect & { kind: "shield-piece" } = { kind: "shield-piece" };
+      if (typeof dt === "number") out.durationTurns = dt;
+      return out;
+    }
     case "haste-piece": {
       const dt = validateDurationTurns(raw.durationTurns, "haste-piece", errors);
       if (dt === null) return null;
@@ -666,6 +682,109 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
   }
 }
 
+// ---- Upgrade block validation ----------------------------------------------
+
+/** Fields the author may set inside `upgrade`. Anything else is a typo. */
+const VALID_UPGRADE_KEYS: ReadonlySet<string> = new Set([
+  "cost",
+  "rarity",
+  "description",
+  "consume",
+  "retain",
+  "target",
+  "effect",
+]);
+
+/**
+ * Validate the optional `upgrade` block on a card. Per-field rules mirror the
+ * top-level card validation. Cross-checks (target ↔ effect) are NOT performed
+ * here — they run on the fully-merged upgraded card in `library.ts` after
+ * expansion, since either field may have been overridden.
+ *
+ * Returns `null` if the block was provided but invalid (errors pushed onto
+ * `errors`); returns `undefined` if no `upgrade` was provided (acceptable —
+ * the library-level check enforces presence on base cards).
+ */
+function validateUpgrade(
+  raw: unknown,
+  errors: string[],
+): { delta: CardUpgradeDelta | null; absent: boolean } {
+  if (raw === undefined) return { delta: null, absent: true };
+  if (!isPlainObject(raw)) {
+    errors.push("'upgrade' must be an object if present");
+    return { delta: null, absent: false };
+  }
+
+  // Catch typos and reject the system-controlled fields up front.
+  for (const key of Object.keys(raw)) {
+    if (key === "id" || key === "name" || key === "archetype") {
+      errors.push(
+        `'upgrade.${key}' is system-controlled and cannot be overridden — drop this field`,
+      );
+      return { delta: null, absent: false };
+    }
+    if (!VALID_UPGRADE_KEYS.has(key)) {
+      errors.push(
+        `unknown 'upgrade.${key}' (allowed: ${Array.from(VALID_UPGRADE_KEYS).join(", ")})`,
+      );
+      return { delta: null, absent: false };
+    }
+  }
+
+  const delta: CardUpgradeDelta = {};
+
+  if (raw.cost !== undefined) {
+    if (typeof raw.cost !== "number" || !(VALID_COSTS as readonly number[]).includes(raw.cost)) {
+      errors.push(`'upgrade.cost' must be one of ${VALID_COSTS.join(", ")}`);
+      return { delta: null, absent: false };
+    }
+    delta.cost = raw.cost as CardCost;
+  }
+  if (raw.rarity !== undefined) {
+    if (
+      typeof raw.rarity !== "string" ||
+      !(VALID_RARITIES as readonly string[]).includes(raw.rarity)
+    ) {
+      errors.push(`'upgrade.rarity' must be one of ${VALID_RARITIES.join(", ")}`);
+      return { delta: null, absent: false };
+    }
+    delta.rarity = raw.rarity as CardRarity;
+  }
+  if (raw.description !== undefined) {
+    if (typeof raw.description !== "string" || raw.description.length === 0) {
+      errors.push("'upgrade.description' must be a non-empty string");
+      return { delta: null, absent: false };
+    }
+    delta.description = raw.description;
+  }
+  if (raw.consume !== undefined) {
+    if (typeof raw.consume !== "boolean") {
+      errors.push("'upgrade.consume' must be a boolean");
+      return { delta: null, absent: false };
+    }
+    delta.consume = raw.consume;
+  }
+  if (raw.retain !== undefined) {
+    if (typeof raw.retain !== "boolean") {
+      errors.push("'upgrade.retain' must be a boolean");
+      return { delta: null, absent: false };
+    }
+    delta.retain = raw.retain;
+  }
+  if (raw.target !== undefined) {
+    const target = validateTarget(raw.target, errors);
+    if (!target) return { delta: null, absent: false };
+    delta.target = target;
+  }
+  if (raw.effect !== undefined) {
+    const effect = validateEffect(raw.effect, errors);
+    if (!effect) return { delta: null, absent: false };
+    delta.effect = effect;
+  }
+
+  return { delta, absent: false };
+}
+
 // ---- Top-level card validation ---------------------------------------------
 
 export function validateCard(raw: unknown): { card: Card | null; errors: string[] } {
@@ -708,6 +827,7 @@ export function validateCard(raw: unknown): { card: Card | null; errors: string[
 
   const target = validateTarget(raw.target, errors);
   const effect = validateEffect(raw.effect, errors);
+  const upgradeResult = validateUpgrade(raw.upgrade, errors);
 
   if (errors.length > 0 || !target || !effect) {
     return { card: null, errors };
@@ -731,6 +851,7 @@ export function validateCard(raw: unknown): { card: Card | null; errors: string[
   };
   if (typeof raw.consume === "boolean") card.consume = raw.consume;
   if (typeof raw.retain === "boolean") card.retain = raw.retain;
+  if (upgradeResult.delta) card.upgrade = upgradeResult.delta;
 
   return { card, errors: [] };
 }

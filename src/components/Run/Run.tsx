@@ -290,6 +290,7 @@ export function Run({
           offers: shop.offers.map(summarizeOffer),
           rerollCost: shop.rerollCost,
           removalCost: shop.removalCost,
+          smithCost: shop.smithCost,
         });
       }
       return;
@@ -527,6 +528,17 @@ export function Run({
           matchNumber: matchNumberRef.current,
           deckIndex: action.deckIndex,
           cardId: action.card.id,
+          pricePaid: action.pricePaid,
+          goldAfter: run.gold - action.pricePaid,
+        });
+        return;
+      case "smith-card":
+        pushRunEvent({
+          kind: "shop-smith-card",
+          matchNumber: matchNumberRef.current,
+          deckIndex: action.deckIndex,
+          fromCardId: action.fromCard.id,
+          toCardId: action.toCard.id,
           pricePaid: action.pricePaid,
           goldAfter: run.gold - action.pricePaid,
         });

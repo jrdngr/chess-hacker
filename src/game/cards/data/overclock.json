@@ -6,5 +6,8 @@
   "archetype": "tempo",
   "description": "Own piece takes 2 actions this turn.",
   "target": { "kind": "own-piece" },
-  "effect": { "kind": "lightning-piece", "actions": 2 }
+  "effect": { "kind": "lightning-piece", "actions": 2 },
+  "upgrade": {
+    "cost": 1
+  }
 }

@@ -96,6 +96,7 @@ export function createRun(opts: CreateRunOptions): RunState {
     rngSeed: opts.rngSeed ?? Math.floor(Math.random() * 0xffffffff),
     rngCursor: 0,
     removalsUsed: 0,
+    smithUsed: 0,
     phase: "match",
   };
 }
@@ -187,11 +188,12 @@ export function applyMatchOutcome(state: RunState, outcome: RunMatchOutcome): Ru
 
 // ---- Card pools ------------------------------------------------------------
 
-/** Cards eligible to appear in shops and drafts — excludes Patches and Shivs. */
+/** Cards eligible to appear in shops and drafts — excludes Patches, Shivs, and upgraded variants. */
 function rewardEligibleCards(): Card[] {
   return Object.values(CARD_LIBRARY).filter((c) => {
     if (c.id.endsWith("-patch")) return false; // Patches are earned via captures.
     if (c.id.startsWith("shiv-")) return false; // Shivs only spawn from Trick Bag.
+    if (c.id.endsWith("+")) return false; // Upgraded variants only via Smith service.
     return true;
   });
 }

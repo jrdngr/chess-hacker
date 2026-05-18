@@ -6,5 +6,8 @@
   "archetype": "resource",
   "description": "Apply Retain to a card in your hand.",
   "target": { "kind": "hand-card" },
-  "effect": { "kind": "apply-retain-to-hand-card" }
+  "effect": { "kind": "apply-retain-to-hand-card" },
+  "upgrade": {
+    "cost": 0
+  }
 }

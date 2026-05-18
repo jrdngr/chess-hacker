@@ -12,5 +12,15 @@
     "buff": { "kind": "energy-per-turn", "amount": 1 },
     "durationTurns": 4,
     "sourceLabel": "Power Node"
+  },
+  "upgrade": {
+    "description": "+1 energy/turn while a friendly piece is on or adjacent. 6 turns.",
+    "effect": {
+      "kind": "place-zone-buff",
+      "pattern": "square-orthogonal-1",
+      "buff": { "kind": "energy-per-turn", "amount": 1 },
+      "durationTurns": 6,
+      "sourceLabel": "Power Node"
+    }
   }
 }

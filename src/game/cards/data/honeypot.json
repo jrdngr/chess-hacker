@@ -6,5 +6,9 @@
   "archetype": "spatial",
   "description": "First enemy to enter is frozen 1 turn. 3 turns.",
   "target": { "kind": "empty-square" },
-  "effect": { "kind": "place-trap", "trapEffect": "freeze", "durationTurns": 3 }
+  "effect": { "kind": "place-trap", "trapEffect": "freeze", "durationTurns": 3 },
+  "upgrade": {
+    "description": "First enemy to enter is frozen 1 turn. 5 turns.",
+    "effect": { "kind": "place-trap", "trapEffect": "freeze", "durationTurns": 5 }
+  }
 }

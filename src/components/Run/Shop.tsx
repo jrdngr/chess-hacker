@@ -15,7 +15,9 @@ import {
   openBoosterOffer,
   removeCard,
   rerollShop,
+  upgradeDeckCard,
 } from "../../game/shop/shop";
+import { getUpgradedCard, isUpgraded } from "../../game/cards/library";
 import { ARTIFACT_SLOT_CAP } from "../../game/types";
 import type {
   Artifact,
@@ -51,7 +53,14 @@ export type ShopAction =
       pricePaid: number;
     }
   | { kind: "reroll"; cost: number; newOffers: ReadonlyArray<ShopOffer> }
-  | { kind: "remove-card"; deckIndex: number; card: Card; pricePaid: number };
+  | { kind: "remove-card"; deckIndex: number; card: Card; pricePaid: number }
+  | {
+      kind: "smith-card";
+      deckIndex: number;
+      fromCard: Card;
+      toCard: Card;
+      pricePaid: number;
+    };
 
 type Props = {
   run: RunState;
@@ -72,6 +81,8 @@ export function Shop({ run, shop, onUpdate, onLeave, onAction }: Props) {
   const [openedPack, setOpenedPack] = useState<BoosterPack | null>(null);
   // Removal-mode toggle — swaps the deck list into a "click to remove" layout.
   const [removalMode, setRemovalMode] = useState(false);
+  // Smith-mode toggle — swaps the deck list into a "click to upgrade" layout.
+  const [smithMode, setSmithMode] = useState(false);
 
   const onBuyCard = (index: number) => {
     const offer = shop.offers[index];
@@ -156,8 +167,30 @@ export function Shop({ run, shop, onUpdate, onLeave, onAction }: Props) {
     }
   };
 
+  const onSmithDeckCard = (index: number) => {
+    const card = run.deck[index];
+    const cost = shop.smithCost;
+    const upgraded = card ? getUpgradedCard(card) : null;
+    const next = upgradeDeckCard(run, shop, index);
+    if (next) {
+      onUpdate(next);
+      setSmithMode(false);
+      if (card && upgraded) {
+        onAction?.({
+          kind: "smith-card",
+          deckIndex: index,
+          fromCard: card,
+          toCard: upgraded,
+          pricePaid: cost,
+        });
+      }
+    }
+  };
+
   const canReroll = run.gold >= shop.rerollCost;
   const canRemove = run.gold >= shop.removalCost && run.deck.length > 0;
+  const hasUpgradableCard = run.deck.some((c) => !isUpgraded(c));
+  const canSmith = run.gold >= shop.smithCost && hasUpgradableCard;
 
   return (
     <div className={styles.shop}>
@@ -261,6 +294,18 @@ export function Shop({ run, shop, onUpdate, onLeave, onAction }: Props) {
         >
           {removalMode ? "Cancel removal" : `Remove a card · ${shop.removalCost}g`}
         </button>
+        <button
+          type="button"
+          className={styles.serviceButton}
+          onClick={() => setSmithMode((v) => !v)}
+          disabled={!smithMode && !canSmith}
+        >
+          {smithMode
+            ? "Cancel upgrade"
+            : !hasUpgradableCard
+              ? "All cards upgraded"
+              : `Upgrade a card · ${shop.smithCost}g`}
+        </button>
       </div>
 
       {removalMode && (
@@ -283,6 +328,48 @@ export function Shop({ run, shop, onUpdate, onLeave, onAction }: Props) {
               type="button"
               className={cardListStyles.confirmButton}
               onClick={() => setRemovalMode(false)}
+            >
+              Cancel
+            </button>
+          }
+        />
+      )}
+
+      {smithMode && (
+        <CardListModal
+          title="Upgrade a card in your deck"
+          hint={`Each upgrade costs ${shop.smithCost} gold. Future upgrades get more expensive.`}
+          cards={run.deck}
+          renderControls={(card, i) => {
+            if (isUpgraded(card)) {
+              return <span className={styles.upgradedBadge}>Upgraded</span>;
+            }
+            const upgraded = getUpgradedCard(card);
+            return (
+              <>
+                {upgraded && (
+                  <span className={styles.smithPreview}>
+                    <span className={styles.smithPreviewArrow}>→</span>
+                    <span className={styles.smithPreviewCost}>{upgraded.cost}</span>
+                    <span className={styles.smithPreviewDescription}>{upgraded.description}</span>
+                  </span>
+                )}
+                <button
+                  type="button"
+                  className={cardListStyles.confirmButton}
+                  onClick={() => onSmithDeckCard(i)}
+                  disabled={run.gold < shop.smithCost || !upgraded}
+                >
+                  Upgrade
+                </button>
+              </>
+            );
+          }}
+          footer={
+            <button
+              type="button"
+              className={cardListStyles.confirmButton}
+              onClick={() => setSmithMode(false)}
             >
               Cancel
             </button>

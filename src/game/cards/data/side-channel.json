@@ -12,5 +12,8 @@
     "pattern": "diagonal-step",
     "singleUse": true,
     "pieceTypeFilter": "pawn"
+  },
+  "upgrade": {
+    "consume": false
   }
 }

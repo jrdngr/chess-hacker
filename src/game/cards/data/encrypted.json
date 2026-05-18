@@ -6,5 +6,9 @@
   "archetype": "defensive",
   "description": "Shield own piece until your next turn.",
   "target": { "kind": "own-piece" },
-  "effect": { "kind": "shield-piece" }
+  "effect": { "kind": "shield-piece" },
+  "upgrade": {
+    "description": "Shield own piece for 2 turns.",
+    "effect": { "kind": "shield-piece", "durationTurns": 2 }
+  }
 }

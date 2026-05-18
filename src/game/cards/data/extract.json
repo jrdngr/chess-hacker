@@ -6,5 +6,8 @@
   "archetype": "swap",
   "description": "Swap one of your pieces with any enemy non-King piece.",
   "target": { "kind": "enemy-and-own-piece" },
-  "effect": { "kind": "swap-with-enemy" }
+  "effect": { "kind": "swap-with-enemy" },
+  "upgrade": {
+    "cost": 2
+  }
 }

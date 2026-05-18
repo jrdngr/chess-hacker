@@ -6,5 +6,8 @@
   "archetype": "movement",
   "description": "Own pawn takes 2 actions this turn.",
   "target": { "kind": "own-piece" },
-  "effect": { "kind": "lightning-piece", "actions": 2, "pieceTypeFilter": "pawn" }
+  "effect": { "kind": "lightning-piece", "actions": 2, "pieceTypeFilter": "pawn" },
+  "upgrade": {
+    "cost": 0
+  }
 }

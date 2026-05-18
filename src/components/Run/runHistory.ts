@@ -92,6 +92,7 @@ export type RunHistoryEvent =
       offers: SerializableShopOffer[];
       rerollCost: number;
       removalCost: number;
+      smithCost: number;
     }
   | {
       kind: "shop-buy-card";
@@ -135,6 +136,15 @@ export type RunHistoryEvent =
       matchNumber: number;
       deckIndex: number;
       cardId: CardId;
+      pricePaid: number;
+      goldAfter: number;
+    }
+  | {
+      kind: "shop-smith-card";
+      matchNumber: number;
+      deckIndex: number;
+      fromCardId: CardId;
+      toCardId: CardId;
       pricePaid: number;
       goldAfter: number;
     }
@@ -228,7 +238,7 @@ export function describeRunEvent(ev: RunHistoryEvent): string {
     case "boss-artifact-skip":
       return `Boss artifact skipped (+${ev.skipGold} gold)`;
     case "shop-enter":
-      return `Shop entered (gold ${ev.gold}, ${ev.offers.length} offers, reroll ${ev.rerollCost}g, removal ${ev.removalCost}g)`;
+      return `Shop entered (gold ${ev.gold}, ${ev.offers.length} offers, reroll ${ev.rerollCost}g, removal ${ev.removalCost}g, smith ${ev.smithCost}g)`;
     case "shop-buy-card":
       return `Shop bought card ${ev.cardId} for ${ev.pricePaid}g (gold ${ev.goldAfter})`;
     case "shop-open-pack":
@@ -241,6 +251,8 @@ export function describeRunEvent(ev: RunHistoryEvent): string {
       return `Shop reroll for ${ev.cost}g (gold ${ev.goldAfter})`;
     case "shop-remove-card":
       return `Shop removed card #${ev.deckIndex} (${ev.cardId}) for ${ev.pricePaid}g (gold ${ev.goldAfter})`;
+    case "shop-smith-card":
+      return `Shop upgraded card #${ev.deckIndex} (${ev.fromCardId} → ${ev.toCardId}) for ${ev.pricePaid}g (gold ${ev.goldAfter})`;
     case "shop-leave":
       return `Shop left (+${ev.interest} interest, gold ${ev.goldAfter})`;
   }

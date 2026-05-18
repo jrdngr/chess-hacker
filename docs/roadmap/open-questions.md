@@ -6,7 +6,6 @@ Loosely grouped by topic.
 
 ## Cards / energy / hand
 
-- **Card upgrades.** Currently cut from the prototype. Reconsider after basic loop is working: do we want a shop service or a card-tier system that lets cards become stronger versions of themselves?
 - **Reactions on opponent turn.** Currently disallowed for all cards. Likely to revisit once base play feels good — having "interrupt" cards (e.g., "when an enemy moves to a square adjacent to your queen, freeze that piece") would deepen the design but is non-trivial.
 - **Card art.** Plain text-only cards in the prototype. Add visual identity later as a polish pass.
 - **End-of-turn cards.** Should there be cards that explicitly trigger at end of turn (vs the start)? Decide when first end-of-turn card is designed.

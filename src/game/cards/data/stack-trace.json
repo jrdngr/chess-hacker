@@ -6,5 +6,9 @@
   "archetype": "resource",
   "description": "Scry: rearrange the top 3 of your deck.",
   "target": { "kind": "none" },
-  "effect": { "kind": "scry", "count": 3 }
+  "effect": { "kind": "scry", "count": 3 },
+  "upgrade": {
+    "description": "Scry: rearrange the top 4 of your deck.",
+    "effect": { "kind": "scry", "count": 4 }
+  }
 }

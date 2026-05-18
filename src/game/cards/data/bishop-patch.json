@@ -7,5 +7,8 @@
   "consume": true,
   "description": "Empower with diagonal slide. Lost if another piece moves first.",
   "target": { "kind": "own-piece" },
-  "effect": { "kind": "empower-piece", "pattern": "bishop", "singleUse": true }
+  "effect": { "kind": "empower-piece", "pattern": "bishop", "singleUse": true },
+  "upgrade": {
+    "cost": 1
+  }
 }

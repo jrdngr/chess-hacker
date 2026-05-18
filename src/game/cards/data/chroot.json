@@ -6,5 +6,9 @@
   "archetype": "disruption",
   "description": "Root enemy piece (only adjacent captures next turn).",
   "target": { "kind": "enemy-piece" },
-  "effect": { "kind": "root-piece" }
+  "effect": { "kind": "root-piece" },
+  "upgrade": {
+    "description": "Root enemy piece for 2 turns (only adjacent captures).",
+    "effect": { "kind": "root-piece", "durationTurns": 2 }
+  }
 }

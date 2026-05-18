@@ -10,5 +10,8 @@
   "effect": {
     "kind": "play-power",
     "effect": { "kind": "haste-pawns-per-turn", "amount": 1 }
+  },
+  "upgrade": {
+    "cost": 3
   }
 }

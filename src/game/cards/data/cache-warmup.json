@@ -6,5 +6,9 @@
   "archetype": "resource",
   "description": "Gain +2 energy at the start of your next turn.",
   "target": { "kind": "none" },
-  "effect": { "kind": "pending-energy-next-turn", "amount": 2 }
+  "effect": { "kind": "pending-energy-next-turn", "amount": 2 },
+  "upgrade": {
+    "description": "Gain +3 energy at the start of your next turn.",
+    "effect": { "kind": "pending-energy-next-turn", "amount": 3 }
+  }
 }

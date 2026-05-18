@@ -6,5 +6,8 @@
   "archetype": "movement",
   "description": "All your pawns gain Haste for 3 turns.",
   "target": { "kind": "none" },
-  "effect": { "kind": "haste-all-of-type", "pieceType": "pawn", "durationTurns": 3 }
+  "effect": { "kind": "haste-all-of-type", "pieceType": "pawn", "durationTurns": 3 },
+  "upgrade": {
+    "cost": 2
+  }
 }

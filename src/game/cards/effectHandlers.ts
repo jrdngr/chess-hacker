@@ -111,7 +111,13 @@ export function applyEffect(
     // ---- Status (per-piece buffs/debuffs) ----------------------------------
     case "freeze-piece":
       return {
-        state: addStatus(state, "freezes", squareTarget(target), state.turn + 1, "opponent"),
+        state: addStatus(
+          state,
+          "freezes",
+          squareTarget(target),
+          state.turn + (effect.durationTurns ?? 1),
+          "opponent",
+        ),
         sideEffects: [],
       };
     case "root-piece":
@@ -127,7 +133,13 @@ export function applyEffect(
       };
     case "disarm-piece":
       return {
-        state: addStatus(state, "disarms", squareTarget(target), state.turn + 1, "opponent"),
+        state: addStatus(
+          state,
+          "disarms",
+          squareTarget(target),
+          state.turn + (effect.durationTurns ?? 1),
+          "opponent",
+        ),
         sideEffects: [],
       };
     case "compel-piece":
@@ -137,7 +149,13 @@ export function applyEffect(
       };
     case "shield-piece":
       return {
-        state: addStatus(state, "shields", squareTarget(target), state.turn + 1, "player"),
+        state: addStatus(
+          state,
+          "shields",
+          squareTarget(target),
+          state.turn + (effect.durationTurns ?? 1),
+          "player",
+        ),
         sideEffects: [],
       };
     case "haste-piece": {

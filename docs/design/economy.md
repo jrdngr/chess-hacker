@@ -52,15 +52,15 @@ All offerings are randomly selected each time the shop is generated. Prices are 
 |------------------|-----------------------------------------------------------|---------------------------|
 | Reroll           | Refresh all shop offerings (and pack contents not yet opened) for the current shop visit. | Scales **per shop visit**: 1st reroll = X gold, 2nd = X+1, 3rd = X+2, ... Resets at next shop. |
 | Card removal     | Permanently remove one card from the player's deck. | Scales **per use over the run**: 1st removal cheap, each subsequent more expensive. (e.g., 50 → 75 → 100 → 125 ...) |
+| Card upgrade (Smith) | Permanently improve one card in the player's deck — swaps the chosen deck slot for its `+` variant. Single tier; each card has exactly one upgraded form, and a deck slot can only be upgraded once. | Scales **per use over the run**, mirroring removal (50 → 75 → 100 → 125 ...). |
 
-The two services have **different scaling philosophies** on purpose:
+The three services have **different scaling philosophies** on purpose:
 
 - Reroll cost resets per-shop because the player should be free to roll once per shop without it spiraling.
-- Card removal cost compounds across the run because we want pruning the deck to be a real and increasingly hard tradeoff.
+- Card removal and card upgrade compound across the run because we want shaping the deck to be a real and increasingly hard tradeoff. They scale independently of each other — using the Smith doesn't bump removal cost or vice versa.
 
 ### What the shop does NOT offer
 
-- ❌ No card upgrades. (Considered, cut from prototype scope. See `cards.md`.)
 - ❌ No piece purchases (Skirmish pieces only via drafts).
 - ❌ No vouchers / permanent run upgrades. (Considered, cut. Reconsider after playtest.)
 - ❌ No "leave the shop" reward — leaving is free and unmotivated.
@@ -95,6 +95,7 @@ There is no card-draft skip in this prototype: cards are bought in the shop, not
 | Interest cap                      | +5 gold per shop visit                 |
 | Reroll cost                       | Scales **per shop visit** (5 + 1/use)  |
 | Card removal cost                 | Scales **per use over the run** (50 + 25/use) |
+| Card upgrade cost (Smith)         | Scales **per use over the run** (50 + 25/use) |
 | Skip boss-artifact bonus          | 10 gold                                |
 | Skip piece-draft bonus            | TBD (Skirmish only)                    |
 | Shop card price range             | ~5–15 gold                             |

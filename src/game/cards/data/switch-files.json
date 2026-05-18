@@ -6,5 +6,8 @@
   "archetype": "swap",
   "description": "Swap two of your own pieces.",
   "target": { "kind": "two-own-pieces" },
-  "effect": { "kind": "swap-own-pieces" }
+  "effect": { "kind": "swap-own-pieces" },
+  "upgrade": {
+    "cost": 1
+  }
 }

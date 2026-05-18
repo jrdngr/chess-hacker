@@ -6,5 +6,9 @@
   "archetype": "resource",
   "description": "Draw 2 cards.",
   "target": { "kind": "none" },
-  "effect": { "kind": "draw", "count": 2 }
+  "effect": { "kind": "draw", "count": 2 },
+  "upgrade": {
+    "description": "Draw 3 cards.",
+    "effect": { "kind": "draw", "count": 3 }
+  }
 }

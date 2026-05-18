@@ -3,7 +3,7 @@
 // Pure helpers — the Run shell holds the live `Shop` and feeds it through
 // these functions. Tuning knobs live at the top so balance changes are local.
 
-import { CARD_LIBRARY } from "../cards/library";
+import { CARD_LIBRARY, getUpgradedCard, isUpgraded } from "../cards/library";
 import { type Rng } from "../cards/match";
 import { pickRandomArtifacts } from "../artifacts/library";
 import { consumeRng, pickRandomCards, eligibleCardsByRarity } from "../progression/run";
@@ -31,6 +31,10 @@ export const REROLL_COST_STEP = 1;
 export const REMOVAL_COST_BASE = 50;
 export const REMOVAL_COST_STEP = 25;
 
+/** Smith (card upgrade) cost: starts at base, +step per Smith already used this run. */
+export const SMITH_COST_BASE = 50;
+export const SMITH_COST_STEP = 25;
+
 /** Interest at shop close: +1 per `INTEREST_PER` saved gold, capped. */
 export const INTEREST_PER = 5;
 export const INTEREST_CAP = 5;
@@ -56,6 +60,10 @@ export function rerollCostFor(rerollsUsed: number): number {
 
 export function removalCostFor(removalsUsed: number): number {
   return REMOVAL_COST_BASE + REMOVAL_COST_STEP * removalsUsed;
+}
+
+export function smithCostFor(smithUsed: number): number {
+  return SMITH_COST_BASE + SMITH_COST_STEP * smithUsed;
 }
 
 // ---- Generation ------------------------------------------------------------
@@ -100,6 +108,7 @@ export function generateShop(state: RunState): { shop: Shop; next: RunState } {
       rerollCost: rerollCostFor(0),
       rerollsUsed: 0,
       removalCost: removalCostFor(state.removalsUsed),
+      smithCost: smithCostFor(state.smithUsed),
     },
     next,
   };
@@ -253,6 +262,43 @@ export function removeCard(
   return {
     state: { ...state, gold: state.gold - cost, deck, removalsUsed },
     shop: { ...shop, removalCost: removalCostFor(removalsUsed) },
+  };
+}
+
+// ---- Card upgrade (Smith) --------------------------------------------------
+
+/**
+ * Upgrade the card at `deckIndex` in the player's run deck to its `+` variant.
+ * Charges the per-Smith cost and bumps `state.smithUsed`, which feeds the next
+ * upgrade price. The shop's own `smithCost` is also bumped so the UI shows the
+ * new price immediately. Returns null when:
+ *  - `deckIndex` is out of range,
+ *  - the player can't afford the current `smithCost`,
+ *  - the targeted card is already upgraded (its id already ends in `+`),
+ *  - the card has no registered upgrade (defensive — every base card defines
+ *    one, but if a future authoring bug breaks this, we fail gracefully).
+ *
+ * Only the deck slot at `deckIndex` is swapped — other slots referencing the
+ * same base card are untouched, so "two copies, upgrade one" works correctly.
+ */
+export function upgradeDeckCard(
+  state: RunState,
+  shop: Shop,
+  deckIndex: number,
+): { state: RunState; shop: Shop } | null {
+  if (deckIndex < 0 || deckIndex >= state.deck.length) return null;
+  if (state.gold < shop.smithCost) return null;
+  const base = state.deck[deckIndex];
+  if (isUpgraded(base)) return null;
+  const upgraded = getUpgradedCard(base);
+  if (!upgraded) return null;
+  const cost = shop.smithCost;
+  const smithUsed = state.smithUsed + 1;
+  const deck = state.deck.slice();
+  deck[deckIndex] = upgraded;
+  return {
+    state: { ...state, gold: state.gold - cost, deck, smithUsed },
+    shop: { ...shop, smithCost: smithCostFor(smithUsed) },
   };
 }
 
