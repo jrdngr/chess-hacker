@@ -128,7 +128,8 @@ type CardSideEffect =
   | { kind: "add-card-to-draw"; card: Card }
   | { kind: "revive-prompt" }
   | { kind: "remove-random-own-minor" }
-  | { kind: "undo-last-enemy-move" };
+  | { kind: "undo-last-enemy-move" }
+  | { kind: "garbage-collect"; recursive: boolean };
 
 /**
  * Apply the side effects produced by the card resolver. Mutates the engine
@@ -220,6 +221,28 @@ export function applyCardSideEffects(
           }
         }
         next = relocateStatuses(next, last.to, last.from);
+      }
+    } else if (fx.kind === "garbage-collect") {
+      // Sweep: destroy every enemy non-King piece currently attacked by a
+      // player piece. With `recursive`, repeat until a wave destroys nothing —
+      // catches discovered attacks revealed when blockers fall. The enemy
+      // king is never destroyed, even when newly attacked.
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const attacked = engine.attackedSquares("player");
+        const victims: AlgebraicSquare[] = [];
+        for (const { square, piece } of engine.pieces()) {
+          if (piece.side !== "opponent") continue;
+          if (piece.type === "king") continue;
+          if (!attacked.has(square)) continue;
+          victims.push(square);
+        }
+        if (victims.length === 0) break;
+        for (const sq of victims) {
+          engine.removePiece(sq);
+          next = clearStatusesOn(next, sq);
+        }
+        if (!fx.recursive) break;
       }
     } else if (fx.kind === "remove-random-own-minor") {
       // Bit Rot (Boss C). Pick uniformly at random from the player's

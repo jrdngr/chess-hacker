@@ -72,6 +72,12 @@ export type ExtraOverlays = {
   pawnPromotionRanks?: { player?: number; opponent?: number };
   /** Side-specific rook attack-through-wall counts (Sniper Optics). */
   rookAttackThroughWalls?: { player?: number; opponent?: number };
+  /**
+   * Mutex Lock zone: squares the opponent may not move to. Union of the
+   * 3×3 king-step-adjacent regions around each currently-active mutex lock
+   * anchor. Empty / absent when no locks are active.
+   */
+  forbiddenForOpponent?: ReadonlySet<AlgebraicSquare>;
 };
 
 type HistoryEntry = {

@@ -13,7 +13,9 @@ import type {
   EmpowerStatus,
   LightningStatus,
   MatchCardState,
+  MutexLockStatus,
   PieceStatus,
+  PieceType,
   PowerEffect,
   ZoneBuff,
 } from "../types";
@@ -302,7 +304,8 @@ export function applyEffect(
     // ---- Movement / board side-effects -------------------------------------
     case "swap-own-pieces":
     case "swap-rooted-with-own":
-    case "swap-with-enemy": {
+    case "swap-with-enemy":
+    case "swap-enemy-pieces": {
       if (target.kind !== "two-squares") return { state, sideEffects: [] };
       return {
         state,
@@ -316,6 +319,27 @@ export function applyEffect(
         sideEffects: [{ kind: "place-piece", square: sq, pieceType: effect.pieceType }],
       };
     }
+    case "summon-adjacent": {
+      // Fork: target is { kind: "two-squares", first: source, second: spawn }.
+      // The source piece's type is read live for `copy-of-source` (Fork+).
+      if (target.kind !== "two-squares") return { state, sideEffects: [] };
+      let pieceType: PieceType;
+      if (effect.pieceType === "copy-of-source") {
+        const source = ctx.pieceAt(target.first);
+        // Validator guarantees source is a player non-king piece; cross-check
+        // defensively. King is excluded so Fork+ cannot summon a second king.
+        if (!source || source.side !== "player" || source.type === "king") {
+          return { state, sideEffects: [] };
+        }
+        pieceType = source.type;
+      } else {
+        pieceType = effect.pieceType;
+      }
+      return {
+        state,
+        sideEffects: [{ kind: "place-piece", square: target.second, pieceType }],
+      };
+    }
     case "sacrifice-piece": {
       const sq = squareTarget(target);
       let next = drawCards(state, effect.drawCount, rng);
@@ -323,6 +347,57 @@ export function applyEffect(
       return {
         state: next,
         sideEffects: [{ kind: "remove-piece", square: sq }],
+      };
+    }
+    case "sacrifice-blast-action": {
+      // Buffer Overflow: destroy the targeted own piece, then grant each
+      // friendly piece in the blast pattern N Overclock-style free actions.
+      const sq = squareTarget(target);
+      const files = ctx.boardFiles ?? 8;
+      const ranks = ctx.boardRanks ?? 8;
+      const friendlySquares = friendlySquaresInBlast(sq, effect.pattern, files, ranks, ctx, sq);
+      // Lightning's `remaining: actions + 1` matches Overclock's encoding:
+      // one of the actions is consumed by the chess-move-flip itself, so
+      // `actions: 1` requires `remaining: 2`.
+      const expires = state.turn + 1;
+      let nextLightnings: LightningStatus[] = state.lightnings.slice();
+      for (const fsq of friendlySquares) {
+        nextLightnings = nextLightnings.filter((l) => l.square !== fsq);
+        nextLightnings.push({
+          square: fsq,
+          side: "player",
+          expiresOnTurn: expires,
+          remaining: effect.actions + 1,
+        });
+      }
+      return {
+        state: { ...state, lightnings: nextLightnings },
+        sideEffects: [{ kind: "remove-piece", square: sq }],
+      };
+    }
+    case "mutex-lock": {
+      const sq = squareTarget(target);
+      const lock: MutexLockStatus = {
+        anchor: sq,
+        side: "player",
+        remainingTurns: effect.durationTurns,
+      };
+      return {
+        state: {
+          ...state,
+          mutexLocks: [...(state.mutexLocks ?? []).filter((l) => l.anchor !== sq), lock],
+        },
+        sideEffects: [],
+      };
+    }
+    case "garbage-collect": {
+      // The actual sweep happens against the engine in sideEffects.ts because
+      // recursive destruction needs to recompute attacks against an updated
+      // board, which the pure resolver cannot do. We just emit the side
+      // effect.
+      return {
+        state,
+        sideEffects: [{ kind: "garbage-collect", recursive: effect.recursive }],
       };
     }
     case "marionette": {
@@ -425,6 +500,61 @@ function squareTarget(t: PlayTarget): AlgebraicSquare {
   if (t.kind === "square") return t.square;
   if (t.kind === "two-squares") return t.first;
   throw new Error(`expected square target, got ${t.kind}`);
+}
+
+const FILE_LETTERS = "abcdefgh";
+
+/**
+ * Collect player-controlled squares inside the blast pattern centered on
+ * `center`, on a `files`×`ranks` board. The center itself is excluded — the
+ * sacrificed piece doesn't propagate the free action to itself. `excludeSq`
+ * filters out an additional square (the sacrificed-piece square, in case the
+ * player has a friendly piece on it via some future stacking).
+ */
+function friendlySquaresInBlast(
+  center: AlgebraicSquare,
+  pattern: "king-step" | "king-step-and-knight",
+  files: number,
+  ranks: number,
+  ctx: BoardContext,
+  excludeSq: AlgebraicSquare,
+): AlgebraicSquare[] {
+  const cf = FILE_LETTERS.indexOf(center[0]);
+  const cr = Number(center.slice(1));
+  const kingSteps: ReadonlyArray<[number, number]> = [
+    [-1, -1],
+    [-1, 0],
+    [-1, 1],
+    [0, -1],
+    [0, 1],
+    [1, -1],
+    [1, 0],
+    [1, 1],
+  ];
+  const knightSteps: ReadonlyArray<[number, number]> = [
+    [-2, -1],
+    [-2, 1],
+    [-1, -2],
+    [-1, 2],
+    [1, -2],
+    [1, 2],
+    [2, -1],
+    [2, 1],
+  ];
+  const offsets = pattern === "king-step" ? kingSteps : [...kingSteps, ...knightSteps];
+  const out: AlgebraicSquare[] = [];
+  for (const [df, dr] of offsets) {
+    const f = cf + df;
+    const r = cr + dr;
+    if (f < 0 || f >= files) continue;
+    if (r < 1 || r > ranks) continue;
+    const sq = FILE_LETTERS[f] + String(r);
+    if (sq === excludeSq) continue;
+    const piece = ctx.pieceAt(sq);
+    if (!piece || piece.side !== "player") continue;
+    out.push(sq);
+  }
+  return out;
 }
 
 function anchorOf(buff: ZoneBuff): AlgebraicSquare | null {

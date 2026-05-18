@@ -80,6 +80,9 @@ export type CardArchetype =
  *  - "own-piece":                  a square holding one of the player's pieces.
  *  - "own-non-king-piece":         same as own-piece, but the king is excluded.
  *  - "two-own-pieces":             two squares each holding a player piece (multi-step).
+ *  - "two-enemy-non-king-pieces":  two distinct squares each holding an enemy non-king piece (Race Condition).
+ *  - "own-non-king-piece-then-adjacent-empty":
+ *                                  an own non-king piece, then an empty king-step-adjacent square (Fork).
  *  - "marionette":                 an enemy piece, then one of its legal destinations.
  *  - "rooted-enemy-and-own-piece": a rooted enemy piece, then one of your pieces (multi-step).
  *  - "enemy-and-own-piece":        any enemy non-king piece, then one of your pieces (multi-step).
@@ -95,6 +98,8 @@ export type CardTarget =
   | { kind: "own-piece" }
   | { kind: "own-non-king-piece" }
   | { kind: "two-own-pieces" }
+  | { kind: "two-enemy-non-king-pieces" }
+  | { kind: "own-non-king-piece-then-adjacent-empty" }
   | { kind: "marionette" }
   | { kind: "rooted-enemy-and-own-piece" }
   | { kind: "enemy-and-own-piece" }
@@ -162,8 +167,41 @@ export type CardEffect =
   | { kind: "swap-own-pieces" }
   | { kind: "swap-rooted-with-own" }
   | { kind: "swap-with-enemy" }
+  | { kind: "swap-enemy-pieces" }
   | { kind: "summon-piece"; pieceType: PieceType }
+  /**
+   * Fork: summon a piece on a king-step-adjacent empty square next to the
+   * targeted own piece. `pieceType: "pawn"` always summons a pawn;
+   * `"copy-of-source"` summons a copy of the source piece's type (used by
+   * the Fork+ upgrade).
+   */
+  | { kind: "summon-adjacent"; pieceType: PieceType | "copy-of-source" }
   | { kind: "sacrifice-piece"; drawCount: number; energyGain: number }
+  /**
+   * Buffer Overflow: sacrifice the targeted own piece, then grant each
+   * friendly piece in `pattern` `actions` Overclock-style free actions this
+   * turn. `pattern` controls the blast radius (king-step ∪ optional knight-L).
+   */
+  | {
+      kind: "sacrifice-blast-action";
+      pattern: "king-step" | "king-step-and-knight";
+      actions: number;
+    }
+  /**
+   * Mutex Lock: anchor a no-go zone to the targeted own piece. While active,
+   * enemy moves whose destination square is the anchor's king-step-adjacent
+   * (3×3 incl. anchor) region are illegal. Zone re-snapshots at end of each
+   * player turn; fizzles if the anchor is no longer on the board at snapshot
+   * time. `durationTurns` is decremented at each end-of-player-turn snapshot.
+   */
+  | { kind: "mutex-lock"; durationTurns: number }
+  /**
+   * Garbage Collect: destroy every enemy non-King piece currently attacked
+   * by one of the player's pieces. `recursive: true` repeats the sweep
+   * (chasing discovered attacks) until a pass produces zero destructions.
+   * The enemy king is never destroyed, even in recursion.
+   */
+  | { kind: "garbage-collect"; recursive: boolean }
   | { kind: "marionette" }
   | { kind: "destroy-piece"; filter: "any" | "attacked-by-player" }
   | { kind: "add-card-to-draw"; source: "self" | "card-id"; cardId?: CardId }
@@ -373,6 +411,22 @@ export type Trap = {
   square: AlgebraicSquare;
   effect: TrapEffect;
   expiresOnTurn: number;
+};
+
+/**
+ * Mutex Lock: piece-anchored no-go zone for opponent moves. The zone is the
+ * 3×3 king-step-adjacent region around `anchor` (inclusive). The anchor moves
+ * with the locked piece during the player turn (via relocateStatuses); at the
+ * end of the player turn the zone is re-snapshotted around the anchor's
+ * current square. `remainingTurns` is the opponent-turn count remaining
+ * before the lock expires; decremented at each end-of-player-turn snapshot.
+ */
+export type MutexLockStatus = {
+  /** The anchor piece's current square — kept in sync via relocateStatuses. */
+  anchor: AlgebraicSquare;
+  side: "player";
+  /** Opponent turns still covered, inclusive of the upcoming one. */
+  remainingTurns: number;
 };
 
 // ---- Scaffolding for M5+ milestones -----------------------------------------
@@ -844,6 +898,11 @@ export type MatchCardState = {
   sanctuaries: Sanctuary[];
   /** Trap square overlays. */
   traps: Trap[];
+  /**
+   * Active Mutex Locks. Each one keeps a no-go zone around the locked
+   * player piece while it's on the board. See `MutexLockStatus`.
+   */
+  mutexLocks: MutexLockStatus[];
   /**
    * Active zone-control buffs. Card-placed buffs carry an `expiresOnTurn`
    * and are ticked at start-of-turn; artifact-granted buffs have no expiry

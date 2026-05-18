@@ -6,6 +6,76 @@ import type { MatchCardState, Trap } from "../../game/types";
 
 import { applyCardSideEffects, resolveTrapForMove } from "./sideEffects";
 
+describe("Garbage Collect (sweep)", () => {
+  it("destroys every enemy non-king piece attacked by a player piece", () => {
+    // White rooks on a1 + h1 attack the a- and h-files; the black pawns on
+    // a5 and h5 are both directly attacked (they sit at the rooks' first
+    // blocker). Black king on e8 is unrelated.
+    const e = new ChoseEngine("4k3/8/8/p6p/8/8/8/R3K2R w - - 0 1");
+    expect(e.pieceAt("a5")).not.toBeNull();
+    expect(e.pieceAt("h5")).not.toBeNull();
+
+    applyCardSideEffects(
+      e,
+      freshState(),
+      [{ kind: "garbage-collect", recursive: false }],
+      Math.random,
+      () => {},
+    );
+
+    expect(e.pieceAt("a5")).toBeNull();
+    expect(e.pieceAt("h5")).toBeNull();
+    // King is never destroyed.
+    expect(e.pieceAt("e8")).toEqual({ type: "king", side: "opponent" });
+  });
+
+  it("never destroys the enemy king", () => {
+    // White rook on e1 directly attacks the black king on e8 — base wave
+    // would target it, but the king must be excluded. (Kings only; no
+    // other white pieces so the position is a checkmate-ish setup but
+    // we only care that GC doesn't remove the king.)
+    const e = new ChoseEngine("4k3/8/8/8/8/8/8/4RK2 w - - 0 1");
+    applyCardSideEffects(
+      e,
+      freshState(),
+      [{ kind: "garbage-collect", recursive: true }],
+      Math.random,
+      () => {},
+    );
+    expect(e.pieceAt("e8")).toEqual({ type: "king", side: "opponent" });
+  });
+
+  it("recursive sweep chases discovered attacks; non-recursive stops after one wave", () => {
+    // Setup: white rook on a1 attacks up the a-file. a2 black blocker is
+    // initially attacked (the rook stops at a2). With a2 gone, a3 (which
+    // is the next blocker, also black) becomes attacked. Recursive should
+    // remove both; non-recursive should remove only a2.
+    const fen = "4k2K/8/8/8/8/p7/p7/R7 w - - 0 1";
+
+    const eNon = new ChoseEngine(fen);
+    applyCardSideEffects(
+      eNon,
+      freshState(),
+      [{ kind: "garbage-collect", recursive: false }],
+      Math.random,
+      () => {},
+    );
+    expect(eNon.pieceAt("a2")).toBeNull();
+    expect(eNon.pieceAt("a3")).not.toBeNull();
+
+    const eRec = new ChoseEngine(fen);
+    applyCardSideEffects(
+      eRec,
+      freshState(),
+      [{ kind: "garbage-collect", recursive: true }],
+      Math.random,
+      () => {},
+    );
+    expect(eRec.pieceAt("a2")).toBeNull();
+    expect(eRec.pieceAt("a3")).toBeNull();
+  });
+});
+
 function freshState(): MatchCardState {
   const rng = makeRng(1);
   return createMatchCardState([], rng);

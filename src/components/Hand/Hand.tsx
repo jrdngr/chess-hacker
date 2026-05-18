@@ -27,6 +27,8 @@ import styles from "./Hand.module.css";
 // hand.
 const NON_DRAGGABLE_TARGETS: ReadonlySet<CardTarget["kind"]> = new Set([
   "two-own-pieces",
+  "two-enemy-non-king-pieces",
+  "own-non-king-piece-then-adjacent-empty",
   "marionette",
   "hand-card",
 ]);

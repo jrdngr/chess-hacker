@@ -45,6 +45,8 @@ export const VALID_TARGET_KINDS = [
   "own-piece",
   "own-non-king-piece",
   "two-own-pieces",
+  "two-enemy-non-king-pieces",
+  "own-non-king-piece-then-adjacent-empty",
   "marionette",
   "rooted-enemy-and-own-piece",
   "enemy-and-own-piece",
@@ -70,8 +72,13 @@ export const VALID_EFFECT_KINDS = [
   "swap-own-pieces",
   "swap-rooted-with-own",
   "swap-with-enemy",
+  "swap-enemy-pieces",
   "summon-piece",
+  "summon-adjacent",
   "sacrifice-piece",
+  "sacrifice-blast-action",
+  "mutex-lock",
+  "garbage-collect",
   "marionette",
   "destroy-piece",
   "add-card-to-draw",
@@ -118,6 +125,24 @@ export const VALID_PIECE_TYPES: readonly PieceType[] = [
   "queen",
   "king",
 ];
+
+/**
+ * Acceptable `pieceType` values for the `summon-adjacent` effect (Fork).
+ * In addition to the normal piece-type set, the upgrade variant uses the
+ * sentinel `"copy-of-source"` to summon a copy of the targeted source piece.
+ */
+export const VALID_SUMMON_ADJACENT_PIECE_TYPES = [
+  "pawn",
+  "knight",
+  "bishop",
+  "rook",
+  "queen",
+  "king",
+  "copy-of-source",
+] as const;
+
+/** Blast patterns for `sacrifice-blast-action` (Buffer Overflow). */
+export const VALID_BLAST_PATTERNS = ["king-step", "king-step-and-knight"] as const;
 
 // ---- Tiny shared helpers ----------------------------------------------------
 
@@ -430,6 +455,61 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
       return { kind: "swap-rooted-with-own" };
     case "swap-with-enemy":
       return { kind: "swap-with-enemy" };
+    case "swap-enemy-pieces":
+      return { kind: "swap-enemy-pieces" };
+    case "summon-adjacent": {
+      const pt = raw.pieceType;
+      if (
+        typeof pt !== "string" ||
+        !(VALID_SUMMON_ADJACENT_PIECE_TYPES as readonly string[]).includes(pt)
+      ) {
+        errors.push(
+          `'effect.pieceType' must be one of ${VALID_SUMMON_ADJACENT_PIECE_TYPES.join(", ")} for kind 'summon-adjacent'`,
+        );
+        return null;
+      }
+      return {
+        kind: "summon-adjacent",
+        pieceType: pt as PieceType | "copy-of-source",
+      };
+    }
+    case "sacrifice-blast-action": {
+      const pattern = raw.pattern;
+      if (
+        typeof pattern !== "string" ||
+        !(VALID_BLAST_PATTERNS as readonly string[]).includes(pattern)
+      ) {
+        errors.push(
+          `'effect.pattern' must be one of ${VALID_BLAST_PATTERNS.join(", ")} for kind 'sacrifice-blast-action'`,
+        );
+        return null;
+      }
+      if (!isPositiveInt(raw.actions)) {
+        errors.push(
+          "'effect.actions' must be a positive integer for kind 'sacrifice-blast-action'",
+        );
+        return null;
+      }
+      return {
+        kind: "sacrifice-blast-action",
+        pattern: pattern as "king-step" | "king-step-and-knight",
+        actions: raw.actions,
+      };
+    }
+    case "mutex-lock": {
+      if (!isPositiveInt(raw.durationTurns)) {
+        errors.push("'effect.durationTurns' must be a positive integer for kind 'mutex-lock'");
+        return null;
+      }
+      return { kind: "mutex-lock", durationTurns: raw.durationTurns };
+    }
+    case "garbage-collect": {
+      if (typeof raw.recursive !== "boolean") {
+        errors.push("'effect.recursive' must be a boolean for kind 'garbage-collect'");
+        return null;
+      }
+      return { kind: "garbage-collect", recursive: raw.recursive };
+    }
     case "destroy-piece": {
       const filter = raw.filter;
       if (
@@ -646,6 +726,22 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
       return tk === "enemy-and-own-piece"
         ? null
         : "'swap-with-enemy' effect requires target.kind 'enemy-and-own-piece'";
+    case "swap-enemy-pieces":
+      return tk === "two-enemy-non-king-pieces"
+        ? null
+        : "'swap-enemy-pieces' effect requires target.kind 'two-enemy-non-king-pieces'";
+    case "summon-adjacent":
+      return tk === "own-non-king-piece-then-adjacent-empty"
+        ? null
+        : "'summon-adjacent' effect requires target.kind 'own-non-king-piece-then-adjacent-empty'";
+    case "sacrifice-blast-action":
+      return tk === "own-non-king-piece"
+        ? null
+        : "'sacrifice-blast-action' effect requires target.kind 'own-non-king-piece'";
+    case "mutex-lock":
+      return tk === "own-piece" ? null : "'mutex-lock' effect requires target.kind 'own-piece'";
+    case "garbage-collect":
+      return tk === "none" ? null : "'garbage-collect' effect requires target.kind 'none'";
     case "marionette":
       return tk === "marionette" ? null : "'marionette' effect requires target.kind 'marionette'";
     case "destroy-piece":

@@ -29,6 +29,15 @@ export type OverlaySets = {
   trapSet: ReadonlySet<AlgebraicSquare>;
   hastedSet: ReadonlySet<AlgebraicSquare>;
   empowerMap: ReadonlyMap<AlgebraicSquare, ReadonlySet<EmpowerPattern>>;
+  /**
+   * Mutex Lock zones: union of every active lock's 3×3 king-step-adjacent
+   * region (anchor inclusive). The opponent cannot move pieces into any
+   * square in this set. Anchor squares are also painted by the Board UI for
+   * visual feedback.
+   */
+  forbiddenForOpponentSet: ReadonlySet<AlgebraicSquare>;
+  /** Anchor squares (locked piece positions) for UI highlighting. */
+  mutexAnchorSet: ReadonlySet<AlgebraicSquare>;
 };
 
 /** Build all overlay sets from a MatchCardState in one pass. */
@@ -42,6 +51,16 @@ export function deriveOverlaySets(state: MatchCardState): OverlaySets {
     }
     set.add(e.pattern);
   }
+  // Mutex Lock zones: union of every active lock's 3×3 king-step region.
+  // Anchor squares are tracked separately for the UI highlight layer.
+  const forbiddenForOpponentSet = new Set<AlgebraicSquare>();
+  const mutexAnchorSet = new Set<AlgebraicSquare>();
+  for (const lock of state.mutexLocks ?? []) {
+    mutexAnchorSet.add(lock.anchor);
+    for (const sq of kingStepAdjacentSquares(lock.anchor)) {
+      forbiddenForOpponentSet.add(sq);
+    }
+  }
   return {
     walledSet: new Set(state.walls.map((w) => w.square)),
     frozenSet: new Set(state.freezes.map((f) => f.square)),
@@ -53,7 +72,33 @@ export function deriveOverlaySets(state: MatchCardState): OverlaySets {
     trapSet: new Set(state.traps.map((t) => t.square)),
     hastedSet: new Set(state.hastes.map((h) => h.square)),
     empowerMap,
+    forbiddenForOpponentSet,
+    mutexAnchorSet,
   };
+}
+
+/**
+ * 3×3 king-step-adjacent region around `center` (anchor inclusive). Skips
+ * squares outside the standard 8×8 frame; the rule layer filters off-board
+ * destinations independently so a stray over-the-edge entry is harmless. We
+ * don't clip to the *current* board size here because OverlaySets is built
+ * from a MatchCardState without a board-size hint — the engine ignores
+ * off-board squares anyway.
+ */
+function kingStepAdjacentSquares(center: AlgebraicSquare): AlgebraicSquare[] {
+  const f0 = center.charCodeAt(0) - "a".charCodeAt(0);
+  const r0 = Number(center.slice(1));
+  const out: AlgebraicSquare[] = [];
+  for (let df = -1; df <= 1; df++) {
+    for (let dr = -1; dr <= 1; dr++) {
+      const f = f0 + df;
+      const r = r0 + dr;
+      if (f < 0 || f > 7) continue;
+      if (r < 1 || r > 8) continue;
+      out.push("abcdefgh"[f] + String(r));
+    }
+  }
+  return out;
 }
 
 /** Pack the rule-layer's "extra overlays" struct from the derived sets. */
@@ -77,6 +122,9 @@ export function buildExtraOverlays(
     sanctuaries: o.sanctuarySet,
     empowers: o.empowerMap,
   };
+  if (o.forbiddenForOpponentSet.size > 0) {
+    out.forbiddenForOpponent = o.forbiddenForOpponentSet;
+  }
   // Artifact-driven flags (Pawn Storm / Drill Sergeant / Promotion Engine /
   // Sniper Optics). Added only when the artifact is held — the rule engine
   // treats undefined fields as "off".
@@ -167,6 +215,14 @@ export function deriveSquareEffects(
     pushPiece(e.square, {
       label: `Empowered (${e.pattern})`,
       remaining: remaining(e.expiresOnTurn),
+    });
+  }
+  for (const lock of state.mutexLocks ?? []) {
+    // Show on the anchor square; the radiating zone is rendered by the Board
+    // overlay layer reading `forbiddenForOpponentSet`.
+    pushPiece(lock.anchor, {
+      label: "Mutex Locked",
+      remaining: lock.remainingTurns,
     });
   }
   for (const w of state.walls) {

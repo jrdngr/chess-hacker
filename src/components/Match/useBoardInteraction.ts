@@ -175,6 +175,48 @@ export function useBoardInteraction({
           cancelTargeting();
           return;
         }
+        if (k === "two-enemy-non-king-pieces") {
+          if (!partialTarget) {
+            const piece = engine.pieceAt(sq);
+            if (piece && piece.side === "opponent" && piece.type !== "king") {
+              setPartialTarget(sq);
+              return;
+            }
+            cancelTargeting();
+            return;
+          }
+          if (
+            tryResolveCard(targetingIndex, {
+              kind: "two-squares",
+              first: partialTarget,
+              second: sq,
+            })
+          )
+            return;
+          cancelTargeting();
+          return;
+        }
+        if (k === "own-non-king-piece-then-adjacent-empty") {
+          if (!partialTarget) {
+            const piece = engine.pieceAt(sq);
+            if (piece && piece.side === "player" && piece.type !== "king") {
+              setPartialTarget(sq);
+              return;
+            }
+            cancelTargeting();
+            return;
+          }
+          if (
+            tryResolveCard(targetingIndex, {
+              kind: "two-squares",
+              first: partialTarget,
+              second: sq,
+            })
+          )
+            return;
+          cancelTargeting();
+          return;
+        }
         if (k === "marionette") {
           if (!partialTarget) {
             const piece = engine.pieceAt(sq);

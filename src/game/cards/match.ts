@@ -127,6 +127,7 @@ export function createMatchCardState(
     empowers: [],
     sanctuaries: [],
     traps: [],
+    mutexLocks: [],
     zoneBuffs: zoneBuffsFromArtifacts(artifacts),
     artifacts,
     activePowers: [],
@@ -316,6 +317,23 @@ export function startPlayerTurn(
       pendingNextTurnEnergy -
       greedPenalty,
   );
+  // Mutex Lock snapshot/decrement. This runs at the top of each player turn,
+  // i.e. between two opponent turns from the lock's perspective. For each
+  // active lock:
+  //   - If the anchor piece is no longer on the board (sacrificed, swapped
+  //     off, …) → fizzle (drop the lock).
+  //   - Otherwise decrement remainingTurns; drop when it hits 0.
+  // When `ctx` is omitted (legacy tests), we keep the locks unchanged on the
+  // assumption the test setup is not exercising the anchor-life logic.
+  const liveMutexLocks =
+    ctx?.pieceSideAt !== undefined
+      ? (state.mutexLocks ?? []).flatMap((l) => {
+          if (ctx.pieceSideAt(l.anchor) !== "player") return [];
+          const next = l.remainingTurns - 1;
+          if (next <= 0) return [];
+          return [{ ...l, remainingTurns: next }];
+        })
+      : (state.mutexLocks ?? []);
   const next: MatchCardState = {
     ...tickedState,
     turn,
@@ -331,6 +349,7 @@ export function startPlayerTurn(
     empowers: alive(state.empowers),
     sanctuaries: alive(state.sanctuaries),
     traps: alive(state.traps),
+    mutexLocks: liveMutexLocks,
     // Note: the Throttled status's must-not-check flag is NOT reset here.
     // It's set the moment the player checks the boss (via on-self-check)
     // and must persist across the AI turn so the player's NEXT chess move
@@ -487,6 +506,19 @@ export function isInPlayerHalf(square: AlgebraicSquare, totalRanks: number = 8):
 }
 
 /**
+ * Whether `b` is one king-step away from `a` (file/rank distance ≤ 1, and not
+ * the same square). Used by Fork to validate spawn-adjacent-to-source.
+ */
+export function isKingAdjacent(a: AlgebraicSquare, b: AlgebraicSquare): boolean {
+  if (a === b) return false;
+  const fileA = a.charCodeAt(0) - "a".charCodeAt(0);
+  const rankA = Number(a.slice(1));
+  const fileB = b.charCodeAt(0) - "a".charCodeAt(0);
+  const rankB = Number(b.slice(1));
+  return Math.abs(fileA - fileB) <= 1 && Math.abs(rankA - rankB) <= 1;
+}
+
+/**
  * Read-only view of the chess board passed into `playCard` so it can
  * validate targets without coupling to the engine class.
  */
@@ -519,7 +551,14 @@ export type CardSideEffect =
   /** Bit Rot (Boss C): destroy a random own minor piece. */
   | { kind: "remove-random-own-minor" }
   /** Rollback: reverse the opponent's most recent chess move. */
-  | { kind: "undo-last-enemy-move" };
+  | { kind: "undo-last-enemy-move" }
+  /**
+   * Garbage Collect: destroy every enemy non-King piece currently attacked
+   * by one of the player's pieces. If `recursive`, repeat until a sweep
+   * destroys nothing — this catches discovered attacks revealed by removing
+   * blockers. The enemy king is never destroyed.
+   */
+  | { kind: "garbage-collect"; recursive: boolean };
 
 export type PlayCardResult =
   | { ok: true; state: MatchCardState; sideEffects: CardSideEffect[] }
@@ -537,6 +576,7 @@ export type PlayCardFailure =
   | "target-not-own-piece"
   | "target-not-own-non-king-piece"
   | "target-not-distinct"
+  | "target-not-adjacent"
   | "target-not-in-own-half"
   | "target-not-empty-or-walled"
   | "target-patch-same-piece-type"
@@ -722,6 +762,31 @@ function validateTarget(
       if (!a || a.side !== "player" || !b || b.side !== "player") return "target-not-own-piece";
       return null;
     }
+    case "two-enemy-non-king-pieces": {
+      // Race Condition: two distinct enemy non-king squares.
+      if (target.kind !== "two-squares") return "missing-target";
+      if (target.first === target.second) return "target-not-distinct";
+      const a = ctx.pieceAt(target.first);
+      const b = ctx.pieceAt(target.second);
+      if (!a || a.side !== "opponent" || !b || b.side !== "opponent") {
+        return "target-not-enemy-piece";
+      }
+      if (a.type === "king" || b.type === "king") return "target-not-enemy-non-king-piece";
+      return null;
+    }
+    case "own-non-king-piece-then-adjacent-empty": {
+      // Fork: source = own non-king piece; spawn = adjacent empty (king-step).
+      if (target.kind !== "two-squares") return "missing-target";
+      if (target.first === target.second) return "target-not-distinct";
+      const source = ctx.pieceAt(target.first);
+      if (!source || source.side !== "player") return "target-not-own-piece";
+      if (source.type === "king") return "target-not-own-non-king-piece";
+      if (ctx.pieceAt(target.second) !== null || ctx.hasWall(target.second)) {
+        return "target-not-empty";
+      }
+      if (!isKingAdjacent(target.first, target.second)) return "target-not-adjacent";
+      return null;
+    }
     case "marionette": {
       // Two squares: an enemy piece and its destination. We trust the React
       // layer to only offer destinations from the engine's legal-move set;
@@ -842,6 +907,11 @@ export function relocateStatuses(
 ): MatchCardState {
   const move = <T extends { square: AlgebraicSquare }>(arr: T[]): T[] =>
     arr.map((x) => (x.square === from ? { ...x, square: to } : x));
+  // Mutex locks are anchored to a piece; relocate the anchor too so the lock
+  // zone follows the locked piece across the current player turn. The
+  // re-snapshot at end-of-player-turn then uses the new anchor square.
+  const moveAnchor = (arr: MatchCardState["mutexLocks"]): MatchCardState["mutexLocks"] =>
+    arr.map((l) => (l.anchor === from ? { ...l, anchor: to } : l));
   return {
     ...state,
     freezes: move(state.freezes),
@@ -852,6 +922,7 @@ export function relocateStatuses(
     hastes: move(state.hastes),
     lightnings: move(state.lightnings),
     empowers: move(state.empowers),
+    mutexLocks: moveAnchor(state.mutexLocks ?? []),
   };
 }
 
@@ -862,6 +933,9 @@ export function relocateStatuses(
 export function clearStatusesOn(state: MatchCardState, square: AlgebraicSquare): MatchCardState {
   const drop = <T extends { square: AlgebraicSquare }>(arr: T[]): T[] =>
     arr.filter((x) => x.square !== square);
+  // Mutex locks anchored to a piece on `square` fizzle when the piece is
+  // removed (captured, sacrificed, swapped off). Per design: anchor-lost =
+  // lock gone for good.
   return {
     ...state,
     freezes: drop(state.freezes),
@@ -872,6 +946,7 @@ export function clearStatusesOn(state: MatchCardState, square: AlgebraicSquare):
     hastes: drop(state.hastes),
     lightnings: drop(state.lightnings),
     empowers: drop(state.empowers),
+    mutexLocks: (state.mutexLocks ?? []).filter((l) => l.anchor !== square),
   };
 }
 

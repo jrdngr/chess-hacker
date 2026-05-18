@@ -30,3 +30,12 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 - **Target:** any enemy non-King piece + one of your pieces (two-step pick)
 - **Effect:** Swap the two pieces' positions. The chosen enemy ends up where your piece was; your piece takes the enemy's square.
 - **Design note:** Repositions any threat without needing a setup card. Combos with chroot for the trap-payoff line (root, then yank), but no longer requires it. The +1 cost over the rooted-only version reflects the unconditional reach.
+
+## Race Condition
+
+- **Cost:** 2
+- **Rarity:** Uncommon
+- **Target:** two enemy non-King pieces (two-step pick)
+- **Effect:** Swap the two enemy pieces' positions.
+- **Upgrade (Race Condition+):** cost → 1.
+- **Design note:** Two parallel threads hit the same memory in the wrong order. Pure formation disruption — no destruction, no own-side displacement. The swap is legal even if it puts the enemy king into check; the opponent must respond on their next turn. Doesn't trigger Traps (Trap fires on enemy *movement*, not card-driven repositioning). The cheap upgrade turns it into a tempo play.

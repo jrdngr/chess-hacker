@@ -1028,6 +1028,53 @@ export function Match({
       }
       return out;
     }
+    if (targetKind === "two-enemy-non-king-pieces") {
+      if (partialTarget) {
+        // Phase 2: any other enemy non-king piece.
+        for (const { square, piece } of allPieces) {
+          if (piece.side !== "opponent") continue;
+          if (piece.type === "king") continue;
+          if (square === partialTarget) continue;
+          out.add(square);
+        }
+        return out;
+      }
+      for (const { square, piece } of allPieces) {
+        if (piece.side !== "opponent") continue;
+        if (piece.type === "king") continue;
+        out.add(square);
+      }
+      return out;
+    }
+    if (targetKind === "own-non-king-piece-then-adjacent-empty") {
+      if (partialTarget) {
+        // Phase 2: any king-step-adjacent empty, non-walled square.
+        const f0 = partialTarget.charCodeAt(0) - "a".charCodeAt(0);
+        const r0 = Number(partialTarget.slice(1));
+        const { files, ranks } = engine.size();
+        for (let df = -1; df <= 1; df++) {
+          for (let dr = -1; dr <= 1; dr++) {
+            if (df === 0 && dr === 0) continue;
+            const f = f0 + df;
+            const r = r0 + dr;
+            if (f < 0 || f >= files) continue;
+            if (r < 1 || r > ranks) continue;
+            const sq = "abcdefgh"[f] + r;
+            if (engine.pieceAt(sq)) continue;
+            if (walledSet.has(sq)) continue;
+            out.add(sq);
+          }
+        }
+        return out;
+      }
+      // Phase 1: any own non-king piece.
+      for (const { square, piece } of allPieces) {
+        if (piece.side !== "player") continue;
+        if (piece.type === "king") continue;
+        out.add(square);
+      }
+      return out;
+    }
     if (
       targetKind === "square" ||
       targetKind === "empty-square" ||
@@ -1134,6 +1181,14 @@ export function Match({
       hint = partialTarget
         ? `Pick the second piece for ${targetingCard.name}`
         : `Pick the first piece for ${targetingCard.name}`;
+    else if (k === "two-enemy-non-king-pieces")
+      hint = partialTarget
+        ? `Pick the second enemy non-King piece for ${targetingCard.name}`
+        : `Pick the first enemy non-King piece for ${targetingCard.name}`;
+    else if (k === "own-non-king-piece-then-adjacent-empty")
+      hint = partialTarget
+        ? `Pick an adjacent empty square for ${targetingCard.name}`
+        : `Pick one of your non-King pieces for ${targetingCard.name}`;
     else if (k === "marionette")
       hint = partialTarget
         ? `Pick a destination for ${targetingCard.name}`

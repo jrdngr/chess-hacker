@@ -41,9 +41,12 @@ Per-card reference for Chess Hacker. The mechanics doc is [`docs/design/cards.md
 | [Power Node](spatial.md#standing-stone) | Spatial | 3 | Uncommon | Zone-buff: +1 energy/turn near a square, 4 turns. |
 | [Overclock](tempo.md#quickstep) | Tempo | 2 | Common | Own piece takes 2 actions (moves and captures). |
 | [Encrypted](defensive.md#iron-guard) | Defensive | 1 | Common | Shield own piece. |
+| [Mutex Lock](defensive.md#mutex-lock) | Defensive | 3 | Rare | Lock own piece — 3×3 no-go zone around it for 2 opponent turns. |
 | [Exploit](burst.md#cheap-destroy) | Burst | 3 | Rare | **Consume.** Destroy an attacked enemy non-King piece. |
 | [Format C:](burst.md#big-destroy) | Burst | 4 | Rare | **Consume.** Destroy any enemy non-King piece. |
+| [Garbage Collect](burst.md#garbage-collect) | Burst | 4 | Rare | **Consume.** Destroy every enemy non-King piece attacked by your pieces. |
 | [kill -9](sacrifice.md#martyrs-gift) | Sacrifice | 1 | Uncommon | **Consume.** Destroy own piece; +2 cards, +1 energy. |
+| [Buffer Overflow](sacrifice.md#buffer-overflow) | Sacrifice | 3 | Rare | **Consume.** Destroy own piece; adjacent friendlies each get a free action. |
 | [Pawn Patch](movement-extension.md#pawn-soul) | Movement-extension | 1 | Common | **Consume.** Empower own piece w/ pawn movement (this turn). |
 | [Knight Patch](movement-extension.md#knight-patch) | Movement-extension | 2 | Rare | **Consume.** Empower own piece w/ knight L (this turn). |
 | [Bishop Patch](movement-extension.md#bishop-patch) | Movement-extension | 2 | Rare | **Consume.** Empower own piece w/ diagonal slide (this turn). |
@@ -55,15 +58,17 @@ Per-card reference for Chess Hacker. The mechanics doc is [`docs/design/cards.md
 | [Side Channel](movement-extension.md#side-channel) | Movement-extension | 1 | Common | **Consume.** Empower own pawn w/ 1-sq diagonal step (no capture, this turn). |
 | [Lateral Movement](movement-extension.md#lateral-movement) | Movement-extension | 1 | Common | **Consume.** Empower own pawn w/ 1-sq horizontal step (no capture, this turn). |
 | [Reinforce](summon.md#reinforce) | Summon | 4 | Rare | Summon a pawn on any empty square in your half. |
+| [Fork](summon.md#fork) | Summon | 3 | Uncommon | Choose a non-King piece; summon a pawn on an adjacent empty square. |
 | [Switch Files](swap.md#switch-files) | Swap/Displace | 2 | Uncommon | Swap two of your own pieces. |
 | [Remote Access](swap.md#marionette) | Swap/Displace | 3 | Rare | **Consume.** Move an enemy piece by its legal moves. |
 | [Extract](swap.md#extract) | Swap/Displace | 3 | Uncommon | Swap one of your pieces with any enemy non-King piece. |
+| [Race Condition](swap.md#race-condition) | Swap/Displace | 2 | Uncommon | Swap two enemy non-King pieces. |
 | [Restore from Backup](revival.md#recover) | Resource | 1 | Uncommon | **Consume.** Choose a discarded card to return to hand. |
 | [Pawn Storm Power](power.md#pawn-storm-power) | Power | 4 | Rare | **Consume.** Each turn-start, your pawns gain Haste until end of turn. |
 | [Garrison Mode](power.md#garrison-mode) | Power | 4 | Rare | **Consume.** Each turn-start, your rank-1 pieces (except king) are shielded. |
 
 ## Counts
 
-- **By Consume:** 12 cards have Consume; the rest cycle through the discard pile.
-- **By type:** Resource 6, Disruption 5, Spatial 6, Tempo 1, Movement-extension 10, Defensive 1, Burst 2, Sacrifice 1, Summon 1, Swap 3, Power 2.
-- **By cost (0–4):** 1× 0-cost (Stack Trace), 14× 1-cost, 8× 2-cost, 5× 3-cost, 5× 4-cost.
+- **By Consume:** 16 cards have Consume; the rest cycle through the discard pile.
+- **By type:** Resource 5, Disruption 5, Spatial 7, Tempo 1, Movement-extension 10, Defensive 2, Burst 3, Sacrifice 2, Summon 2, Swap 4, Power 2.
+- **By cost (0–4):** 1× 0-cost (Stack Trace), 17× 1-cost, 10× 2-cost, 9× 3-cost, 6× 4-cost.

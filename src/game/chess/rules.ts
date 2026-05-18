@@ -158,6 +158,14 @@ export type Overlays = {
    * squares past a wall is still blocked.
    */
   rookAttackThroughWalls?: { player?: number; opponent?: number };
+  /**
+   * Mutex Lock zone: squares the opponent may NOT move to. When `pos.turn`
+   * is "opponent", any move whose destination is in this set is filtered
+   * out by `pseudoLegalMoves`. Player moves are unaffected. Sliding pieces
+   * may still pass *through* a forbidden square — only the destination is
+   * gated.
+   */
+  forbiddenForOpponent?: ReadonlySet<AlgebraicSquare>;
 };
 
 const EMPTY_SET: ReadonlySet<AlgebraicSquare> = new Set();
@@ -525,6 +533,11 @@ export function pseudoLegalMoves(
     const disarmed = disarms(overlays).has(sq);
     const sanc = sanctuaries(overlays);
     const sh = shields(overlays);
+    // Mutex Lock: enemy moves into a forbidden zone are not legal. Applies
+    // only when the side to move is the opponent (the zone is player-anchored
+    // and player moves are unaffected). Only the destination square is gated;
+    // sliding through is fine.
+    const forbidden = pos.turn === "opponent" ? overlays.forbiddenForOpponent : undefined;
     for (const m of moves) {
       if (rooted) {
         if (!m.isCapture) continue;
@@ -536,6 +549,7 @@ export function pseudoLegalMoves(
       // Sanctuary: pieces on a Sanctuary square cannot be captured.
       // Shield: shielded pieces cannot be captured.
       if (m.isCapture && (sanc.has(m.to) || sh.has(m.to))) continue;
+      if (forbidden && forbidden.has(m.to)) continue;
       out.push(m);
     }
   };
