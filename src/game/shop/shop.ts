@@ -28,11 +28,11 @@ export const REROLL_COST_BASE = 5;
 export const REROLL_COST_STEP = 1;
 
 /** Removal cost: starts at base, +step per removal already used this run. */
-export const REMOVAL_COST_BASE = 50;
+export const REMOVAL_COST_BASE = 10;
 export const REMOVAL_COST_STEP = 25;
 
 /** Smith (card upgrade) cost: starts at base, +step per Smith already used this run. */
-export const SMITH_COST_BASE = 50;
+export const SMITH_COST_BASE = 10;
 export const SMITH_COST_STEP = 25;
 
 /** Interest at shop close: +1 per `INTEREST_PER` saved gold, capped. */
