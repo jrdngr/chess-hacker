@@ -16,28 +16,14 @@
   overflow: visible;
 }
 
-/* AMBER_TT: white pieces solid amber, black pieces solid red. Inner outlines
-   are a slightly darker shade of the same hue (color-mix vs. black) so the
-   detail reads without darkening the silhouette. The drop-shadow stack builds
-   a strong outer halo so the silhouette pops on busy squares. */
 .player {
   --piece-fill: var(--piece-mine);
   --piece-outline: color-mix(in srgb, var(--piece-mine) 65%, black);
-  filter: drop-shadow(0 0 2px rgba(var(--piece-mine-rgb) / 0.5))
-    drop-shadow(0 0 2px rgba(var(--piece-mine-rgb) / 0.5))
-    drop-shadow(0 0 6px rgba(var(--piece-mine-rgb) / 0.45))
-    drop-shadow(0 0 12px rgba(var(--piece-mine-rgb) / 0.35))
-    drop-shadow(0 0 22px rgba(var(--piece-mine-rgb) / 0.225))
-    drop-shadow(0 1px 1px rgba(0, 0, 0, 0.55));
+  filter: drop-shadow(0 0 8px rgba(var(--piece-mine-rgb) / 0.6));
 }
 
 .opponent {
   --piece-fill: var(--piece-opp);
   --piece-outline: var(--p-opp-dim);
-  filter: drop-shadow(0 0 2px rgba(var(--piece-opp-rgb) / 0.5))
-    drop-shadow(0 0 2px rgba(var(--piece-opp-rgb) / 0.5))
-    drop-shadow(0 0 6px rgba(var(--piece-opp-rgb) / 0.45))
-    drop-shadow(0 0 12px rgba(var(--piece-opp-rgb) / 0.35))
-    drop-shadow(0 0 22px rgba(var(--piece-opp-rgb) / 0.225))
-    drop-shadow(0 1px 1px rgba(0, 0, 0, 0.55));
+  filter: drop-shadow(0 0 8px rgba(var(--piece-opp-rgb) / 0.6));
 }
