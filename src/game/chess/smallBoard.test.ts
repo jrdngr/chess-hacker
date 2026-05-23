@@ -72,6 +72,37 @@ describe("engine — 6x8 board", () => {
   });
 });
 
+describe("engine — empowered pawn promotion", () => {
+  it("pawn empowered with diagonal-step promotes on the back rank (6x6)", () => {
+    // 6x6: white pawn on f5, black king on a6, white king on a1.
+    // Empower the pawn with diagonal-step so it can move diagonally to e6.
+    const fen = "k5/5P/6/6/6/K5 w - - 0 1";
+    const e = new ChoseEngine(fen, { files: 6, ranks: 6 });
+    e.setOverlays(new Set(), new Set(), {
+      empowers: new Map([["f5", new Set<"diagonal-step">(["diagonal-step"])]]),
+    });
+    const moves = e.legalMoves("f5").filter((m) => m.to === "e6");
+    expect(moves.length).toBe(4);
+    expect(moves.every((m) => m.isPromotion)).toBe(true);
+    expect(moves.map((m) => m.promotion).sort()).toEqual(["b", "n", "q", "r"]);
+  });
+
+  it("pawn empowered with horizontal-step promotes on the back rank (8x8)", () => {
+    // White pawn on a7, black king on h8, empowered with horizontal-step.
+    // b7 is not the back rank — no promotion. a8 via normal push should promote.
+    const fen = "7k/P7/8/8/8/8/8/K7 w - - 0 1";
+    const e = new ChoseEngine(fen);
+    e.setOverlays(new Set(), new Set(), {
+      empowers: new Map([["a7", new Set<"horizontal-step">(["horizontal-step"])]]),
+    });
+    const moves = e.legalMoves("a7").filter((m) => m.to === "b7");
+    expect(moves.every((m) => !m.isPromotion)).toBe(true);
+    const pushMoves = e.legalMoves("a7").filter((m) => m.to === "a8");
+    expect(pushMoves.length).toBe(4);
+    expect(pushMoves.every((m) => m.isPromotion)).toBe(true);
+  });
+});
+
 describe("engine — defaults to 8x8 for back-compat", () => {
   it("constructor with no args still produces an 8x8 starting position", () => {
     const e = new ChoseEngine();

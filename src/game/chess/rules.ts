@@ -667,6 +667,7 @@ function addJumpMoves(
 ): void {
   const { file, rank } = squareCoords(from);
   const size = pos.size;
+  const promoR = piece.type === "pawn" ? promotionRank(size, piece.side, overlays) : -1;
   for (const [df, dr] of deltas) {
     const tf = file + df;
     const tr = rank + dr;
@@ -676,14 +677,20 @@ function addJumpMoves(
     const occ = pos.pieces.get(to);
     if (occ && occ.side === piece.side) continue;
     if (occ && !allowCaptures) continue;
-    out.push({
+    const base = {
       from,
       to,
       isCapture: !!occ,
       capturedPiece: occ,
       isDouble: false,
-      isPromotion: false,
-    });
+    };
+    if (tr === promoR) {
+      for (const promo of ["q", "r", "b", "n"] as const) {
+        out.push({ ...base, promotion: promo, isPromotion: true });
+      }
+    } else {
+      out.push({ ...base, isPromotion: false });
+    }
   }
 }
 
@@ -698,6 +705,16 @@ function addSlideMoves(
 ): void {
   const { file, rank } = squareCoords(from);
   const size = pos.size;
+  const promoR = piece.type === "pawn" ? promotionRank(size, piece.side, overlays) : -1;
+  const pushOrPromo = (base: Omit<RuleMove, "isPromotion" | "promotion">, destRank: number) => {
+    if (destRank === promoR) {
+      for (const promo of ["q", "r", "b", "n"] as const) {
+        out.push({ ...base, promotion: promo, isPromotion: true });
+      }
+    } else {
+      out.push({ ...base, isPromotion: false });
+    }
+  };
   for (const [df, dr] of dirs) {
     let tf = file + df;
     let tr = rank + dr;
@@ -707,18 +724,11 @@ function addSlideMoves(
       const occ = pos.pieces.get(to);
       if (occ) {
         if (occ.side !== piece.side && allowCaptures) {
-          out.push({
-            from,
-            to,
-            isCapture: true,
-            capturedPiece: occ,
-            isDouble: false,
-            isPromotion: false,
-          });
+          pushOrPromo({ from, to, isCapture: true, capturedPiece: occ, isDouble: false }, tr);
         }
         break;
       }
-      out.push({ from, to, isCapture: false, isDouble: false, isPromotion: false });
+      pushOrPromo({ from, to, isCapture: false, isDouble: false }, tr);
       tf += df;
       tr += dr;
     }
@@ -835,9 +845,11 @@ function addPawnMoves(
  * pawn-flavored Side Channel / Lateral Movement cards, and the
  * Polished Bishop / Cavalry Doctrine artifacts).
  *
- * Empower-pawn ignores promotion, double-pushes, and en passant — those are
- * intrinsic to actual pawns. The empowered piece just gets a forward step
- * (no diagonal-forward captures, since empower never captures).
+ * Empower-pawn ignores double-pushes and en passant — those are intrinsic to
+ * actual pawns. The empowered piece just gets a forward step (no
+ * diagonal-forward captures, since empower never captures). Pawns empowered
+ * with non-pawn movement patterns (e.g. diagonal-step) still promote on the
+ * back rank — promotion is handled by addJumpMoves / addSlideMoves.
  */
 function addEmpowerMoves(
   out: RuleMove[],
