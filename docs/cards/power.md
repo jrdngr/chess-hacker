@@ -28,6 +28,16 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 
 Powers are exponential: every turn after they land, they pay back roughly the equivalent of a 1-cost card (Haste application, persistent shield, etc.). Across a 12+ turn match, that compounds far past the 4-energy spend. Cost 4 reflects the immediate opportunity cost (a full turn's budget) and the upper bound of the post-banking economy. Cache Warmup is the explicit setup tool: turn N "Cache Warmup" → turn N+1 "Power" with 1 energy left over.
 
+## Intrusion Detection
+
+- **Cost:** 4
+- **Rarity:** Rare
+- **Keywords:** **Consume**
+- **Target:** none
+- **Effect:** Power. At the start of each of your turns, **Root** every enemy piece that moved into your half of the board on the opponent's last turn.
+- **Upgrade (Intrusion Detection+):** Also **Disarm** the affected pieces (Root + Disarm — they can only capture adjacent enemies, and even that is forbidden).
+- **Design note:** a defensive Power that punishes the opponent for pushing into your territory. "Your half" = ranks 1–⌊totalRanks/2⌋. The engine diffs enemy piece positions between your last turn-start and the current turn-start; any piece that crossed the midline triggers the Root. Pieces already in your half before the Power was played are not affected — only new entrants. Combos with Firewall (wall off key entry squares, funneling enemies into the Root zone) and chroot (stack Root durations). The upgrade adding Disarm creates a near-Freeze for entrants — they can't move freely (Root) and can't capture (Disarm), so they're stuck until both wear off.
+
 ## Deferred Power: Tactical Override
 
 A third Power — a free 1-square non-capture move per turn — was scoped during the power-curve overhaul but deferred. It needs a dedicated player-action mechanic (a per-turn 1-square king-step budget distinct from the existing `extra-chess-move-per-turn` budget, which counts whole moves). See `docs/roadmap/open-questions.md` if you pick it up.

@@ -66,9 +66,20 @@ Per-card reference for Chess Hacker. The mechanics doc is [`docs/design/cards.md
 | [Restore from Backup](revival.md#recover) | Resource | 1 | Uncommon | **Consume.** Choose a discarded card to return to hand. |
 | [Pawn Storm Power](power.md#pawn-storm-power) | Power | 4 | Rare | **Consume.** Each turn-start, your pawns gain Haste until end of turn. |
 | [Garrison Mode](power.md#garrison-mode) | Power | 4 | Rare | **Consume.** Each turn-start, your rank-1 pieces (except king) are shielded. |
+| [Sudo](tempo.md#sudo) | Tempo | 3 | Rare | **Consume.** Pawn acts as queen for one move this turn; reverts after. |
+| [Hot Swap](tempo.md#hot-swap) | Tempo | 1 | Common | After your move, bonus move with a different piece (no capture). |
+| [Downgrade](disruption.md#downgrade) | Disruption | 2 | Uncommon | Enemy piece moves as a pawn for 2 turns. |
+| [Bit Flip](disruption.md#bit-flip) | Disruption | 3 | Rare | **Consume.** Convert enemy minor piece to your side. |
+| [Polymorphism](burst.md#polymorphism) | Burst | 2 | Rare | **Consume.** Transform friendly piece one tier up. |
+| [Self-Destruct](sacrifice.md#self-destruct) | Sacrifice | 1 | Uncommon | **Consume.** Destroy own piece + all adjacent enemies. |
+| [Intrusion Detection](power.md#intrusion-detection) | Power | 4 | Rare | **Consume.** Each turn-start, Root enemies that entered your half. |
+| [Heartbleed](resource.md#heartbleed) | Resource | 2 | Uncommon | +1 energy per enemy piece captured this match (uncapped). |
+| [Backdoor](spatial.md#backdoor) | Spatial | 1 | Uncommon | **Consume.** Place marker; free-action teleport a piece there later. |
+| [SSH Tunnel](movement-extension.md#ssh-tunnel) | Movement-extension | 3 | Rare | **Consume.** Teleport own piece to any empty square. |
+| [Git Revert](summon.md#git-revert) | Summon | 4 | Rare | **Consume.** Resurrect a captured/destroyed piece to your half. |
 
 ## Counts
 
-- **By Consume:** 16 cards have Consume; the rest cycle through the discard pile.
-- **By type:** Resource 5, Disruption 5, Spatial 7, Tempo 1, Movement-extension 10, Defensive 2, Burst 3, Sacrifice 2, Summon 2, Swap 4, Power 2.
-- **By cost (0–4):** 1× 0-cost (Stack Trace), 17× 1-cost, 10× 2-cost, 9× 3-cost, 6× 4-cost.
+- **By Consume:** 24 cards have Consume; the rest cycle through the discard pile.
+- **By type:** Resource 6, Disruption 7, Spatial 8, Tempo 3, Movement-extension 11, Defensive 2, Burst 4, Sacrifice 3, Summon 3, Swap 4, Power 3.
+- **By cost (0–4):** 1× 0-cost (Stack Trace), 20× 1-cost, 13× 2-cost, 12× 3-cost, 8× 4-cost.

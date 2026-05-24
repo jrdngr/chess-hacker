@@ -51,3 +51,13 @@ See [`keywords.md`](keywords.md) for keyword definitions and [`docs/design/board
 - **Target:** any unwalled square (occupied is fine)
 - **Effect:** Place a **Power Node** on a square. While you have a friendly piece on it or any orthogonally adjacent square, gain +1 energy at the start of your turn. Lasts 4 turns.
 - **Design note:** the prototype's first zone-control card. The aura encourages parking a piece near the stone, turning a positional choice into a tempo bonus. The orthogonal-only adjacency keeps it from blanket-buffing a whole castled cluster — you have to hold the line through the stone, not just stand near it. Cost 3 (was 2) reflects how strong a persistent +1/turn is in the no-banking world: it's nearly a half-Power, and 4 turns of contested control on a fresh anchor pays back the upfront 3 energy.
+
+## Backdoor
+
+- **Cost:** 1
+- **Rarity:** Uncommon
+- **Keywords:** **Consume**
+- **Target:** empty square
+- **Effect:** Place a **Backdoor** marker on the target square. The marker persists indefinitely and is visible to both players. On any future turn, as a free action (no card or energy cost), teleport any friendly non-King piece to the marked square. The marker is consumed on use. Enemy pieces can move through and onto the square freely — it is not a wall or trap.
+- **Upgrade (Backdoor+):** Place markers on **2** squares (each usable once).
+- **Design note:** a delayed spatial setup that rewards planning ahead. Place it early behind enemy lines; activate it later to teleport a piece into a surprise attack position. The free-action activation means it doesn't compete with your card plays on the turn you use it. Consume prevents repeat marker spam — each copy in the deck is one backdoor. The marker being visible gives the opponent counterplay: they can park a piece on the square to block the teleport (the target square must be empty when activated).

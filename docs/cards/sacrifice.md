@@ -22,3 +22,13 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 - **Effect:** Destroy the targeted piece. Each friendly piece in the surrounding 8 king-step-adjacent squares gets one free chess action this turn (full action — can move or capture, same as Overclock's grant).
 - **Upgrade (Buffer Overflow+):** The blast pattern expands from king-step (8 squares) to king-step ∪ knight-L (16 squares). Same cost.
 - **Design note:** The buffer spills; everything nearby jumps. A cluster-sacrifice haymaker: stack pieces around a pawn, then pop the pawn for multi-action tempo. The action-grant uses the same Lightning machinery as Overclock — each affected piece is treated as if it had been Overclock'd with `actions: 1` for the turn. The sacrificed piece is removed *first*, so any friendly piece on the sacrificed-piece's own square (impossible in normal play; possible after swap effects) is not counted. Consume keeps the swing scarce; the Rare rarity bounds how often it shows up in draft pools.
+
+## Self-Destruct
+
+- **Cost:** 1
+- **Rarity:** Uncommon
+- **Keywords:** **Consume**
+- **Target:** own non-King piece
+- **Effect:** Destroy the targeted piece. Destroy all enemy non-King pieces on the 8 king-step-adjacent squares around it.
+- **Upgrade (Self-Destruct+):** Also draw 2 cards after the detonation resolves.
+- **Design note:** the AoE sacrifice — position a piece in the thick of the enemy formation, then detonate it. Compared to kill -9 (resource payoff: cards + energy) and Buffer Overflow (tempo payoff: allied actions), Self-Destruct's payoff is enemy removal. Cost 1 is low because you're also paying a piece and the card is Consume. Devastating when a pawn can be parked next to 2–3 enemy pieces. The enemy king is never destroyed (non-King restriction). Pieces destroyed by Self-Destruct are eligible for Git Revert resurrection — enabling a sacrifice→resurrect combo that costs 1 + 4 = 5 energy and two Consume cards, so it's a one-shot per-match play.

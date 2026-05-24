@@ -15,6 +15,7 @@ Terms used across the Chess Hacker design and technical docs.
 | **Status effect**   | A persistent passive on a side of a match. Fires automatically when its trigger condition (turn-start, every-N-turns, on-check, on-capture, etc.) is met. Used by bosses today; future cards may apply status effects to the enemy. See `design/status-effects.md`. |
 | **Deck**            | The persistent card collection of a run. Grows by drafting / shopping; shrinks by removal. |
 | **Disarm**          | Status keyword: enemy piece may move but may not capture on its next turn.              |
+| **Downgrade**       | Status keyword: enemy piece loses its native movement and moves as a pawn (1 square forward, diagonal capture) for the specified duration. |
 | **Draft**           | A 1-of-3 choice (cards or, in Skirmish, pieces) shown after each match.                 |
 | **Empower**         | Buff keyword: own piece gains an additional movement pattern this turn.                 |
 | **Energy**          | Resource for playing cards. Every turn starts at 3 (no banking). Costs span 0–4.        |

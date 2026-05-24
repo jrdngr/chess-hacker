@@ -97,3 +97,13 @@ This is the primary way Patches enter your deck — none of them appear in the s
 - **Target:** own piece (must be a pawn)
 - **Effect:** Target own pawn: **Empower** with a 1-square horizontal step (left or right) **this turn**, no capture. Lost if you move a different piece first.
 - **Design note:** also a security term — an attacker pivoting sideways through a network. Lets a pawn change file once without first capturing, then resume its forward push the next turn. Combos with Promotion Engine (slip onto a clearer file) and with Pawn Storm tempo (re-align the wave). Movement-only; native captures are unaffected.
+
+## SSH Tunnel
+
+- **Cost:** 3
+- **Rarity:** Rare
+- **Keywords:** **Consume**
+- **Target:** own non-King piece, then any empty square on the board
+- **Effect:** Teleport the targeted friendly piece to the chosen empty square. The piece ignores all geometry — no path, no line of sight, no walls. It simply appears on the destination.
+- **Upgrade (SSH Tunnel+):** Can also target your King.
+- **Design note:** the ultimate repositioning tool — bypass the entire board topology for one piece. Cost 3 + Consume reflects the power of unconstrained placement. Distinct from Switch Files (swaps two of your pieces, both must exist) and Extract (swaps with an enemy piece). The upgrade allowing King teleportation is a potent escape hatch from checkmate setups — but costs 3 energy on the turn you might need cards to defend.

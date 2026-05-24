@@ -37,3 +37,12 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 - **Design note:** lets the player save a card across turn rollovers. Useful for the cost-4 haymaker drawn in a turn you can't afford it (no Cache Warmup on hand) — Bookmark it, draw fresh next turn, then play. Cannot target already-retained slots.
 
   Implementation: hand entries carry a per-instance `retained` flag (see `MatchCardState.hand` in `src/game/types.ts`). The flag survives end-of-turn discards but is dropped when the card is played.
+
+## Heartbleed
+
+- **Cost:** 2
+- **Rarity:** Uncommon
+- **Target:** none
+- **Effect:** Gain 1 energy for each enemy piece you have captured this match (uncapped).
+- **Upgrade (Heartbleed+):** Also draw 1 card.
+- **Design note:** the scaling resource card — weak early (0–1 captures = marginal), explosive late (5+ captures = a full turn's energy on top of the baseline). Rewards aggressive play and piece trading. Non-Consume so it cycles back; each time you draw it later in the match, it's stronger. The capture counter includes pieces taken by chess moves, Traps (capture), and destroy effects (Exploit, Format C:, etc.) — anything that removed an enemy piece from the board counts. A build-around card for aggressive decks.

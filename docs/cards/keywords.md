@@ -37,6 +37,13 @@ A compelled piece **must move on its next turn**. If any capture is legal for it
 - **Duration:** opponent's next turn.
 - **Edge cases:** if the compelled piece has no legal moves at all (fully blocked, or moving would put own king in check), Compel does nothing — the constraint is on top of legality, not a replacement for it.
 
+### Downgrade
+
+A downgraded piece **loses its native movement and moves as a pawn** — one square forward, diagonal capture only. All other movement options are gone for the duration. Effectively reduces any piece to pawn-level mobility.
+
+- **Duration:** card-specified (2 turns base, 3 turns upgraded).
+- **Edge cases:** a downgraded knight cannot use its L-shape; a downgraded rook/bishop/queen cannot slide. Downgrade does not affect the piece's capture ability via diagonal-forward — it captures exactly like a pawn. The piece's type is unchanged (a downgraded queen is still a queen for targeting purposes, e.g. Bit Flip cannot target it). Downgrade does not stack with itself; reapplying refreshes the duration.
+
 ## Piece buffs
 
 Applied to one of your own pieces.
