@@ -1,0 +1,48 @@
+.evalBar {
+  display: flex;
+  flex-direction: column;
+  width: 24px;
+  min-width: 24px;
+  margin-right: 6px;
+  border: 1px solid var(--amber-primary);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+  align-self: stretch;
+  background: var(--amber-bg2);
+}
+
+.blackHalf {
+  background: var(--amber-bg);
+  transition: flex 0.3s ease;
+}
+
+.whiteHalf {
+  background: var(--amber-primary);
+  transition: flex 0.3s ease;
+}
+
+.label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 9px;
+  font-weight: bold;
+  line-height: 1;
+  color: var(--amber-bg);
+  text-shadow: 0 0 4px var(--amber-primary);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.turnsLeft {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 8px;
+  color: var(--amber-primary);
+  opacity: 0.8;
+  pointer-events: none;
+}

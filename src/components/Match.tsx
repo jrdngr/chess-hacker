@@ -67,9 +67,15 @@ import { useCardPlay } from "./Match/useCardPlay";
 import { useBoardInteraction } from "./Match/useBoardInteraction";
 import { useDevEditor } from "./Match/useDevEditor";
 import { useDevSandbox } from "./Match/useDevSandbox";
+import { usePlayerAnalysis } from "./Match/usePlayerAnalysis";
 import { useUndoRedo } from "./Match/useUndoRedo";
 import { ChoseEngine, type EngineSnapshot, type LegalMove } from "../game/chess/engine";
-import { type Difficulty, type StockfishEngine, type StockfishOptions } from "../ai/stockfish";
+import {
+  type Difficulty,
+  type StockfishEngine,
+  type StockfishOptions,
+  uciToMove,
+} from "../ai/stockfish";
 import { parseFen } from "../game/chess/rules";
 import {
   offendingSquares as validationOffendingSquares,
@@ -462,6 +468,10 @@ export function Match({
    * keeps standalone Match mounts (tests) defaulting to off.
    */
   const highlightThreats = threatsProp ?? false;
+
+  // ---- Engine analysis (Insert Probe card + dev toggles) -------------------
+  const [devShowEval, setDevShowEval] = useState(false);
+  const [devShowBestMove, setDevShowBestMove] = useState(false);
 
   // ---- Card-system state (vs-ai only) --------------------------------------
 
@@ -905,6 +915,34 @@ export function Match({
     applyStatusEffects,
     triggerAnimation,
   });
+
+  // ---- Player analysis (Insert Probe + dev toggles) -------------------------
+  const probeActive = (cardState.probeExpiresOnTurn ?? 0) > cardState.turn;
+  const showEval = probeActive || devShowEval;
+  const showBestMove = probeActive || devShowBestMove;
+  const analysisActive = showEval || showBestMove;
+  const playerAnalysis = usePlayerAnalysis({
+    engine,
+    active: analysisActive,
+    version,
+    createAi,
+  });
+  const evalScore =
+    showEval && playerAnalysis
+      ? { scoreCp: playerAnalysis.scoreCp, scoreMate: playerAnalysis.scoreMate }
+      : null;
+  const bestMoveArrow = useMemo(() => {
+    if (!showBestMove || !playerAnalysis?.bestMove) return null;
+    try {
+      const move = uciToMove(playerAnalysis.bestMove);
+      return { from: move.from, to: move.to };
+    } catch {
+      return null;
+    }
+  }, [showBestMove, playerAnalysis?.bestMove]);
+  const probeRemaining = probeActive
+    ? (cardState.probeExpiresOnTurn ?? 0) - cardState.turn
+    : undefined;
 
   // ---- Player input handlers -----------------------------------------------
 
@@ -1559,6 +1597,9 @@ export function Match({
             editMode={devPanelEnabled && editMode}
             invalidSquares={invalidSquares}
             invalidBoard={validation !== null && !validation.ok}
+            evalScore={evalScore}
+            bestMoveArrow={bestMoveArrow}
+            probeRemaining={probeRemaining}
           />
           {!displayOnly && (
             <CapturedPieces
@@ -1637,6 +1678,10 @@ export function Match({
             onRedo={redo}
             historyCount={history.length}
             onShowHistory={() => setHistoryOpen(true)}
+            devShowEval={devShowEval}
+            onToggleDevShowEval={() => setDevShowEval((v) => !v)}
+            devShowBestMove={devShowBestMove}
+            onToggleDevShowBestMove={() => setDevShowBestMove((v) => !v)}
           />
         )}
         {runMode === "run" && !devPanelOpen && !displayOnly && (

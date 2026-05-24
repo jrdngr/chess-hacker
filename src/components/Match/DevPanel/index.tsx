@@ -127,6 +127,12 @@ type Props = {
   /** True when a real outcome has already fired and the skip is moot. */
   skipMatchDisabled?: boolean;
 
+  // Engine analysis
+  devShowEval: boolean;
+  onToggleDevShowEval: () => void;
+  devShowBestMove: boolean;
+  onToggleDevShowBestMove: () => void;
+
   // History
   canUndo: boolean;
   canRedo: boolean;
@@ -177,6 +183,10 @@ export function DevPanel({
   onLoadDeck,
   artifacts,
   onSaveArtifacts,
+  devShowEval,
+  onToggleDevShowEval,
+  devShowBestMove,
+  onToggleDevShowBestMove,
   onBumpEnergy,
   onSkipMatchAndWin,
   skipMatchDisabled,
@@ -429,6 +439,21 @@ export function DevPanel({
           >
             AI Move
           </button>
+        </div>
+      </Section>
+
+      <Section>
+        <div className={styles.row}>
+          <label className={styles.checkboxRow}>
+            <input type="checkbox" checked={devShowEval} onChange={onToggleDevShowEval} />
+            <span>Show Eval Bar</span>
+          </label>
+        </div>
+        <div className={styles.row}>
+          <label className={styles.checkboxRow}>
+            <input type="checkbox" checked={devShowBestMove} onChange={onToggleDevShowBestMove} />
+            <span>Show Best Move</span>
+          </label>
         </div>
       </Section>
 

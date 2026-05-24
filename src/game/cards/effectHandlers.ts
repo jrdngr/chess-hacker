@@ -594,6 +594,18 @@ export function applyEffect(
         ],
       };
     }
+    case "insert-probe": {
+      return {
+        state: {
+          ...state,
+          probeExpiresOnTurn: Math.max(
+            state.probeExpiresOnTurn ?? 0,
+            state.turn + effect.durationTurns,
+          ),
+        },
+        sideEffects: [],
+      };
+    }
     case "resurrect-piece": {
       if (target.kind !== "two-squares") return { state, sideEffects: [] };
       const captured = (state.capturedPieces ?? []).filter((p) => p.side === "player");

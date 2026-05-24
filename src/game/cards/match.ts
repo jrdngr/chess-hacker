@@ -364,6 +364,8 @@ export function startPlayerTurn(
     sudoSquare: undefined,
     pendingHotSwap: undefined,
     playerExtraMovesRemaining: powerExtraMoves(tickedState),
+    probeExpiresOnTurn:
+      (state.probeExpiresOnTurn ?? 0) > turn ? state.probeExpiresOnTurn : undefined,
   };
   const refilled = refillHand(next, rng, ctx);
   return applyStartOfTurnArtifactsAndPowers(refilled, ctx);

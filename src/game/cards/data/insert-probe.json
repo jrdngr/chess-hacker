@@ -1,0 +1,15 @@
+{
+  "id": "insert-probe",
+  "name": "Insert Probe",
+  "cost": 3,
+  "rarity": "uncommon",
+  "archetype": "resource",
+  "consume": true,
+  "description": "Reveal the engine eval bar and best move for 3 turns.",
+  "target": { "kind": "none" },
+  "effect": { "kind": "insert-probe", "durationTurns": 3 },
+  "upgrade": {
+    "description": "Reveal the engine eval bar and best move for 5 turns.",
+    "effect": { "kind": "insert-probe", "durationTurns": 5 }
+  }
+}

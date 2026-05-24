@@ -107,6 +107,7 @@ export const VALID_EFFECT_KINDS = [
   "place-backdoor",
   "teleport-piece",
   "resurrect-piece",
+  "insert-probe",
   "compound",
 ] as const;
 export const VALID_POWER_KINDS = [
@@ -717,6 +718,13 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
       return { kind: "teleport-piece" };
     case "resurrect-piece":
       return { kind: "resurrect-piece" };
+    case "insert-probe": {
+      if (!isPositiveInt(raw.durationTurns)) {
+        errors.push("'effect.durationTurns' must be a positive integer for kind 'insert-probe'");
+        return null;
+      }
+      return { kind: "insert-probe", durationTurns: raw.durationTurns };
+    }
     case "compound": {
       const children = raw.effects;
       if (!Array.isArray(children) || children.length === 0) {
@@ -888,6 +896,8 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
       return tk === "captured-friendly-piece-then-empty-square-own-half"
         ? null
         : "'resurrect-piece' effect requires target.kind 'captured-friendly-piece-then-empty-square-own-half'";
+    case "insert-probe":
+      return tk === "none" ? null : "'insert-probe' effect requires target.kind 'none'";
     case "compound": {
       for (const child of effect.effects) {
         const m = targetMatchesEffect(target, child);

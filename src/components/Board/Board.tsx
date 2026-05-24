@@ -17,6 +17,8 @@ import {
 } from "../../game/chess/engine";
 import type { AlgebraicSquare, FileIndex, Piece, RankIndex, Side } from "../../game/types";
 
+import { EvalBar } from "./EvalBar";
+import { MoveArrow } from "./MoveArrow";
 import { PieceGlyph } from "./PieceGlyph";
 import styles from "./Board.module.css";
 
@@ -132,6 +134,12 @@ type Props = {
    * with `invalidSquares` to signal a globally invalid position.
    */
   invalidBoard?: boolean;
+  /** Engine evaluation score to display as a vertical bar beside the board. */
+  evalScore?: { scoreCp: number | null; scoreMate: number | null } | null;
+  /** Best-move arrow overlay: from source square to destination. */
+  bestMoveArrow?: { from: AlgebraicSquare; to: AlgebraicSquare } | null;
+  /** Turns remaining on the probe effect (shown on the eval bar). */
+  probeRemaining?: number;
 };
 
 const DRAG_MIME = "application/x-chess-hacker-from";
@@ -170,6 +178,9 @@ export function Board({
   editMode = false,
   invalidSquares = EMPTY_SET,
   invalidBoard = false,
+  evalScore,
+  bestMoveArrow,
+  probeRemaining,
 }: Props) {
   // ChoseEngine mutates internally on move(), so we recompute these every render.
   // Memoizing on `[engine]` would serve stale data because the ref doesn't change.
@@ -212,6 +223,13 @@ export function Board({
 
   return (
     <div className={styles.boardWrapper} aria-label="Chess board">
+      {evalScore && (
+        <EvalBar
+          scoreCp={evalScore.scoreCp}
+          scoreMate={evalScore.scoreMate}
+          turnsLeft={probeRemaining}
+        />
+      )}
       {targeting && (mode.kind === "target" || mode.kind === "drop-anywhere") && (
         <div className={styles.targetingHint} role="status">
           {mode.hint}
@@ -419,6 +437,14 @@ export function Board({
             })}
           </div>
         ))}
+        {bestMoveArrow && (
+          <MoveArrow
+            from={bestMoveArrow.from}
+            to={bestMoveArrow.to}
+            files={fileCount}
+            ranks={rankCount}
+          />
+        )}
         {!targeting && hoverSquare && renderTooltip(hoverSquare, squareEffects)}
       </div>
     </div>

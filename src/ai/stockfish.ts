@@ -38,6 +38,13 @@
 import type { EngineMove, LegalMove } from "../game/chess/engine";
 import type { AlgebraicSquare, BoardSize } from "../game/types";
 
+export type AnalysisResult = {
+  scoreCp: number | null;
+  scoreMate: number | null;
+  bestMove: string;
+  depth: number;
+};
+
 export type GoOptions = (
   | { depth: number; movetimeMs?: never }
   | { movetimeMs: number; depth?: never }
@@ -134,6 +141,14 @@ export class StockfishEngine {
   private uciOk = false;
   private bestMoveResolve: ((uci: string) => void) | null = null;
   private bestMoveReject: ((err: Error) => void) | null = null;
+  private analysisResolve: ((result: AnalysisResult) => void) | null = null;
+  private analysisReject: ((err: Error) => void) | null = null;
+  private analysisAccum: {
+    scoreCp: number | null;
+    scoreMate: number | null;
+    depth: number;
+    pv: string;
+  } | null = null;
   private destroyed = false;
   /** Recent UCI lines (engine → main), oldest first. Capped to UCI_LINE_BUFFER. */
   private recentLines: string[] = [];
@@ -152,6 +167,10 @@ export class StockfishEngine {
       this.bestMoveReject?.(err);
       this.bestMoveReject = null;
       this.bestMoveResolve = null;
+      this.analysisReject?.(err);
+      this.analysisReject = null;
+      this.analysisResolve = null;
+      this.analysisAccum = null;
     };
 
     this.readyPromise = new Promise((resolve, reject) => {
@@ -257,11 +276,52 @@ export class StockfishEngine {
   }
 
   /**
+   * Run a full analysis: returns the eval score and best move from the deepest
+   * info line. Same concurrency rule as getBestMove — one search at a time.
+   */
+  analyze(opts: GoOptions): Promise<AnalysisResult> {
+    if (this.destroyed) return Promise.reject(new Error("stockfish destroyed"));
+    if (this.bestMoveResolve || this.analysisResolve) {
+      return Promise.reject(new Error("search already in progress"));
+    }
+    return new Promise<AnalysisResult>((resolve, reject) => {
+      this.analysisResolve = resolve;
+      this.analysisReject = reject;
+      this.analysisAccum = { scoreCp: null, scoreMate: null, depth: 0, pv: "" };
+      const head =
+        "movetimeMs" in opts && opts.movetimeMs != null
+          ? `go movetime ${opts.movetimeMs}`
+          : `go depth ${opts.depth ?? 6}`;
+      const restrict =
+        opts.searchMoves && opts.searchMoves.length > 0
+          ? ` searchmoves ${opts.searchMoves.join(" ")}`
+          : "";
+      this.send(`${head}${restrict}`);
+
+      const wd = opts.watchdogMs;
+      if (typeof wd === "number" && wd > 0) {
+        this.watchdogTimer = setTimeout(() => {
+          this.watchdogTimer = null;
+          this.send("stop");
+          this.watchdogStopTimer = setTimeout(() => {
+            this.watchdogStopTimer = null;
+            const rej = this.analysisReject;
+            this.analysisResolve = null;
+            this.analysisReject = null;
+            this.analysisAccum = null;
+            rej?.(new Error(`stockfish watchdog timed out after ${wd}ms`));
+          }, 1000);
+        }, wd);
+      }
+    });
+  }
+
+  /**
    * Stop any ongoing search. The engine responds with bestmove based on its
-   * current best line; that resolves the in-flight getBestMove() promise.
+   * current best line; that resolves the in-flight getBestMove() or analyze() promise.
    */
   stop(): void {
-    if (this.bestMoveResolve) this.send("stop");
+    if (this.bestMoveResolve || this.analysisResolve) this.send("stop");
   }
 
   destroy(): void {
@@ -280,6 +340,12 @@ export class StockfishEngine {
       this.bestMoveReject(new Error("stockfish destroyed"));
       this.bestMoveReject = null;
       this.bestMoveResolve = null;
+    }
+    if (this.analysisReject) {
+      this.analysisReject(new Error("stockfish destroyed"));
+      this.analysisReject = null;
+      this.analysisResolve = null;
+      this.analysisAccum = null;
     }
     // If destroy() races the handshake (e.g. StrictMode mount/unmount before
     // readyok arrives), reject ready() so awaiters don't dangle forever.
@@ -349,20 +415,55 @@ export class StockfishEngine {
       }
       return;
     }
+    if (this.analysisAccum && line.startsWith("info depth")) {
+      const tokens = line.split(/\s+/);
+      const depthIdx = tokens.indexOf("depth");
+      const d = depthIdx >= 0 ? Number(tokens[depthIdx + 1]) : 0;
+      if (d >= this.analysisAccum.depth) {
+        this.analysisAccum.depth = d;
+        const cpIdx = tokens.indexOf("cp");
+        if (cpIdx >= 0) {
+          this.analysisAccum.scoreCp = Number(tokens[cpIdx + 1]);
+          this.analysisAccum.scoreMate = null;
+        }
+        const mateIdx = tokens.indexOf("mate");
+        if (mateIdx >= 0) {
+          this.analysisAccum.scoreMate = Number(tokens[mateIdx + 1]);
+          this.analysisAccum.scoreCp = null;
+        }
+        const pvIdx = tokens.indexOf("pv");
+        if (pvIdx >= 0 && tokens[pvIdx + 1]) {
+          this.analysisAccum.pv = tokens[pvIdx + 1];
+        }
+      }
+    }
     if (line.startsWith("bestmove")) {
-      // "bestmove e2e4" or "bestmove e7e8q ponder ..."
       this.clearWatchdog();
       const parts = line.split(/\s+/);
       const uci = parts[1];
-      const resolve = this.bestMoveResolve;
-      this.bestMoveResolve = null;
-      this.bestMoveReject = null;
-      if (resolve) {
-        if (!uci || uci === "(none)") {
-          // No legal move — caller treats this as "no move available".
-          resolve("");
-        } else {
-          resolve(uci);
+      if (this.analysisResolve) {
+        const resolve = this.analysisResolve;
+        const accum = this.analysisAccum;
+        this.analysisResolve = null;
+        this.analysisReject = null;
+        this.analysisAccum = null;
+        const bestMove = accum?.pv || (!uci || uci === "(none)" ? "" : uci);
+        resolve({
+          scoreCp: accum?.scoreCp ?? null,
+          scoreMate: accum?.scoreMate ?? null,
+          bestMove,
+          depth: accum?.depth ?? 0,
+        });
+      } else {
+        const resolve = this.bestMoveResolve;
+        this.bestMoveResolve = null;
+        this.bestMoveReject = null;
+        if (resolve) {
+          if (!uci || uci === "(none)") {
+            resolve("");
+          } else {
+            resolve(uci);
+          }
         }
       }
     }

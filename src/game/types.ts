@@ -330,6 +330,7 @@ export type CardEffect =
    * square in the player's half.
    */
   | { kind: "resurrect-piece" }
+  | { kind: "insert-probe"; durationTurns: number }
   | { kind: "compound"; effects: CardEffect[] };
 
 /**
@@ -1115,4 +1116,5 @@ export type MatchCardState = {
    * cleared after use.
    */
   chosenCapturedIndex?: number;
+  probeExpiresOnTurn?: number;
 };

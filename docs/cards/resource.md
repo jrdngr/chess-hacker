@@ -38,6 +38,16 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 
   Implementation: hand entries carry a per-instance `retained` flag (see `MatchCardState.hand` in `src/game/types.ts`). The flag survives end-of-turn discards but is dropped when the card is played.
 
+## Insert Probe
+
+- **Cost:** 3
+- **Rarity:** Uncommon
+- **Target:** none
+- **Keywords:** Consume
+- **Effect:** Reveal the engine's eval bar and best move arrow for 3 turns.
+- **Upgrade (Insert Probe+):** Lasts 5 turns.
+- **Design note:** pure information card — doesn't alter the board, but gives the player Stockfish-grade analysis for a limited window. High cost + Consume ensures it's a deliberate investment. The eval bar shows the position score; the best-move arrow highlights the engine's recommended move. Both update reactively if the board changes (walls placed, pieces moved by other cards). If the dev panel's "Show Eval Bar" and "Show Best Move" toggles are both already on, the card still consumes but adds no additional effect.
+
 ## Heartbleed
 
 - **Cost:** 2
