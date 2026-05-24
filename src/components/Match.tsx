@@ -1144,6 +1144,71 @@ export function Match({
       }
       return out;
     }
+    if (targetKind === "own-pawn") {
+      for (const { square, piece } of allPieces) {
+        if (piece.side === "player" && piece.type === "pawn") out.add(square);
+      }
+      return out;
+    }
+    if (targetKind === "enemy-minor-piece") {
+      for (const { square, piece } of allPieces) {
+        if (piece.side !== "opponent") continue;
+        if (piece.type === "knight" || piece.type === "bishop" || piece.type === "pawn")
+          out.add(square);
+      }
+      return out;
+    }
+    if (targetKind === "own-non-king-piece-then-empty-square") {
+      if (partialTarget) {
+        const { files, ranks } = engine.size();
+        for (let r = 1; r <= ranks; r++) {
+          for (let f = 0; f < files; f++) {
+            const sq = "abcdefgh"[f] + String(r);
+            if (engine.pieceAt(sq)) continue;
+            if (walledSet.has(sq)) continue;
+            out.add(sq);
+          }
+        }
+        return out;
+      }
+      for (const { square, piece } of allPieces) {
+        if (piece.side === "player" && piece.type !== "king") out.add(square);
+      }
+      return out;
+    }
+    if (targetKind === "captured-friendly-piece-then-empty-square-own-half") {
+      if (partialTarget) {
+        const { files, ranks } = engine.size();
+        const halfRank = Math.floor(ranks / 2);
+        for (let r = 1; r <= halfRank; r++) {
+          for (let f = 0; f < files; f++) {
+            const sq = "abcdefgh"[f] + String(r);
+            if (engine.pieceAt(sq)) continue;
+            if (walledSet.has(sq)) continue;
+            out.add(sq);
+          }
+        }
+        return out;
+      }
+      // Phase 1: any empty square acts as a click target — the actual piece
+      // selection uses the most recent captured piece. A more complete UI
+      // would show a picker modal; for now auto-select the last captured piece.
+      if ((cardState.capturedPieces ?? []).length > 0) {
+        // Mark all squares as valid to allow clicking anywhere to proceed
+        // (the handler will use the last captured piece as the selection).
+        const { files, ranks } = engine.size();
+        const halfRank = Math.floor(ranks / 2);
+        for (let r = 1; r <= halfRank; r++) {
+          for (let f = 0; f < files; f++) {
+            const sq = "abcdefgh"[f] + String(r);
+            if (engine.pieceAt(sq)) continue;
+            if (walledSet.has(sq)) continue;
+            out.add(sq);
+          }
+        }
+      }
+      return out;
+    }
     return out;
     // engine is mutable; depend on version + walls + rooted
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1201,6 +1266,15 @@ export function Match({
       hint = partialTarget
         ? `Pick one of your pieces to swap with the chosen enemy for ${targetingCard.name}`
         : `Pick an enemy piece for ${targetingCard.name}`;
+    else if (k === "own-pawn") hint = `Pick one of your pawns for ${targetingCard.name}`;
+    else if (k === "enemy-minor-piece")
+      hint = `Pick an enemy knight, bishop, or pawn for ${targetingCard.name}`;
+    else if (k === "own-non-king-piece-then-empty-square")
+      hint = partialTarget
+        ? `Pick any empty square for ${targetingCard.name}`
+        : `Pick one of your non-King pieces for ${targetingCard.name}`;
+    else if (k === "captured-friendly-piece-then-empty-square-own-half")
+      hint = `Pick an empty square in your half to place the revived piece for ${targetingCard.name}`;
     return { kind: "target", cardName: targetingCard.name, hint, valid: validTargetSquares };
   }, [targetingCard, partialTarget, validTargetSquares]);
 
@@ -1457,6 +1531,7 @@ export function Match({
             frozenSquares={frozenSet}
             sanctuarySquares={sanctuarySet}
             trapSquares={trapSet}
+            backdoorSquares={overlays.backdoorSet}
             zoneBuffActiveSquares={zoneBuffOverlay.active}
             zoneBuffInactiveSquares={zoneBuffOverlay.inactive}
             zoneBuffAnchorSquares={zoneBuffOverlay.anchors}

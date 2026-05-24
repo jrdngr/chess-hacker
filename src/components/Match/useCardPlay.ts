@@ -262,6 +262,26 @@ export function useCardPlay({
         next = { ...next, capturedThisTurn: true };
       }
 
+      // Track captures for Heartbleed (energy scaling) and Git Revert (resurrection pool).
+      if (mover?.side === "player" && applied.isCapture && captured) {
+        next = {
+          ...next,
+          playerCaptureCount: (next.playerCaptureCount ?? 0) + 1,
+          capturedPieces: [...(next.capturedPieces ?? [])],
+        };
+      }
+
+      // Sudo: clear after the pawn moves. If it reached the back rank, promote permanently.
+      if (next.sudoSquare && from === next.sudoSquare && mover?.side === "player") {
+        const destRank = Number(to.slice(1));
+        const backRank = engine.size().ranks;
+        if (destRank === backRank) {
+          engine.removePiece(to);
+          engine.placePiece(to, { type: "queen", side: "player" });
+        }
+        next = { ...next, sudoSquare: undefined };
+      }
+
       // Artifact triggers — only fire on player-side moves. Capture / check
       // grants apply to the active turn so the player can spend the granted
       // energy or freshly-drawn cards before turn rollover.
@@ -348,6 +368,27 @@ export function useCardPlay({
         };
         consumeAndContinue = true;
       }
+      // Hot Swap: after a normal player move, grant a bonus move with a
+      // different piece. The hot-swap flag is consumed and the turn stays open.
+      // Unlike Haste/Lightning, the bonus move is NOT locked to the same piece —
+      // any non-king piece (except the one that just moved) may take the bonus.
+      if (!consumeAndContinue && mover?.side === "player" && next.pendingHotSwap) {
+        const swap = next.pendingHotSwap;
+        if (!swap.canCapture) {
+          // Disarm the player for the bonus move — it cannot capture.
+          // We'll clear the disarm overlay after the bonus move resolves.
+          next = {
+            ...next,
+            pendingHotSwap: undefined,
+            // Use a special flag so we know we're in hot-swap continuation
+            continuationSquare: undefined,
+          };
+        } else {
+          next = { ...next, pendingHotSwap: undefined };
+        }
+        consumeAndContinue = true;
+      }
+
       if (consumeAndContinue) {
         engine.forceTurn("player");
       } else if (cardState.continuationSquare) {

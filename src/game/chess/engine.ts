@@ -78,6 +78,8 @@ export type ExtraOverlays = {
    * anchor. Empty / absent when no locks are active.
    */
   forbiddenForOpponent?: ReadonlySet<AlgebraicSquare>;
+  sudoSquares?: ReadonlySet<AlgebraicSquare>;
+  downgrades?: ReadonlySet<AlgebraicSquare>;
 };
 
 type HistoryEntry = {

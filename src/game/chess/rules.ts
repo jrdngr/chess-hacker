@@ -166,6 +166,10 @@ export type Overlays = {
    * gated.
    */
   forbiddenForOpponent?: ReadonlySet<AlgebraicSquare>;
+  /** Sudo: pawns on these squares generate queen moves instead of pawn moves. */
+  sudoSquares?: ReadonlySet<AlgebraicSquare>;
+  /** Downgrade: pieces on these squares generate pawn moves instead of their native moves. */
+  downgrades?: ReadonlySet<AlgebraicSquare>;
 };
 
 const EMPTY_SET: ReadonlySet<AlgebraicSquare> = new Set();
@@ -574,6 +578,17 @@ function addPieceMoves(
   pos: Position,
   overlays: Overlays,
 ): void {
+  // Downgrade: piece generates pawn moves instead of its native moveset.
+  if (piece.type !== "king" && overlays.downgrades?.has(from)) {
+    addPawnMoves(out, from, piece, pos, overlays);
+    return;
+  }
+  // Sudo: pawn generates queen moves instead of pawn moves.
+  if (piece.type === "pawn" && overlays.sudoSquares?.has(from)) {
+    addSlideMoves(out, from, piece, pos, overlays, QUEEN_DIRS);
+    addRookCaptureThroughWallMoves(out, from, piece, pos, overlays);
+    return;
+  }
   switch (piece.type) {
     case "pawn":
       addPawnMoves(out, from, piece, pos, overlays);
@@ -590,8 +605,6 @@ function addPieceMoves(
       break;
     case "queen":
       addSlideMoves(out, from, piece, pos, overlays, QUEEN_DIRS);
-      // Queens get the same wall-skipping capture-only ray on their rook
-      // axes if the artifact is held — they slide both as rook and bishop.
       addRookCaptureThroughWallMoves(out, from, piece, pos, overlays);
       break;
     case "king":

@@ -1103,4 +1103,10 @@ export type MatchCardState = {
    * Cleared after the pawn moves or at end of turn.
    */
   sudoSquare?: AlgebraicSquare;
+  /**
+   * Intrusion Detection snapshot: enemy squares in the player's half at the
+   * start of the previous turn. Diffed against the current board at each
+   * turn start to identify new entrants to root.
+   */
+  lastTurnEnemyHalfSquares?: AlgebraicSquare[];
 };

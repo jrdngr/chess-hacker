@@ -227,6 +227,17 @@
   z-index: 1;
 }
 
+/* Backdoor marker — cyan dashed outline. */
+.backdoorMark {
+  position: absolute;
+  inset: 3px;
+  border-radius: 0;
+  border: 2px dashed var(--amber-dim2);
+  background: rgba(var(--p-dim-rgb) / 0.12);
+  pointer-events: none;
+  z-index: 1;
+}
+
 /* Zone-buff aura — green tint for active, dim grey-amber for inactive. */
 .zoneActive::before {
   content: "";

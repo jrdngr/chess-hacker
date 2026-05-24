@@ -81,6 +81,8 @@ type Props = {
   zoneBuffInactiveSquares?: ReadonlySet<AlgebraicSquare>;
   /** Anchor squares of zone-buffs (origin marker). Subset of *Squares above. */
   zoneBuffAnchorSquares?: ReadonlySet<AlgebraicSquare>;
+  /** Squares with a backdoor marker (teleport destination). */
+  backdoorSquares?: ReadonlySet<AlgebraicSquare>;
   /** Player pieces with active status badges (root/disarm/compel/shield/haste/lightning/empower). */
   pieceBadges?: ReadonlyMap<AlgebraicSquare, string>;
   /**
@@ -153,6 +155,7 @@ export function Board({
   zoneBuffActiveSquares = EMPTY_SET,
   zoneBuffInactiveSquares = EMPTY_SET,
   zoneBuffAnchorSquares = EMPTY_SET,
+  backdoorSquares = EMPTY_SET,
   pieceBadges = EMPTY_BADGES,
   squareEffects = EMPTY_EFFECTS,
   attackedByPlayer = EMPTY_SET,
@@ -250,6 +253,7 @@ export function Board({
               const isFrozen = frozenSquares.has(sq);
               const isSanctuary = sanctuarySquares.has(sq);
               const isTrap = trapSquares.has(sq);
+              const isBackdoor = backdoorSquares.has(sq);
               const isZoneActive = zoneBuffActiveSquares.has(sq);
               const isZoneInactive = !isZoneActive && zoneBuffInactiveSquares.has(sq);
               const isZoneAnchor = zoneBuffAnchorSquares.has(sq);
@@ -401,6 +405,7 @@ export function Board({
                   {isFrozen && <span className={styles.frostMark} aria-label="frozen" />}
                   {isSanctuary && <span className={styles.sanctuaryMark} aria-label="sanctuary" />}
                   {isTrap && <span className={styles.trapMark} aria-label="trap" />}
+                  {isBackdoor && <span className={styles.backdoorMark} aria-label="backdoor" />}
                   {isZoneAnchor && (
                     <span className={styles.zoneAnchorMark} aria-label="zone-buff" />
                   )}

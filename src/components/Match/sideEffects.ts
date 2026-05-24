@@ -129,7 +129,9 @@ type CardSideEffect =
   | { kind: "revive-prompt" }
   | { kind: "remove-random-own-minor" }
   | { kind: "undo-last-enemy-move" }
-  | { kind: "garbage-collect"; recursive: boolean };
+  | { kind: "garbage-collect"; recursive: boolean }
+  | { kind: "convert-piece"; square: AlgebraicSquare }
+  | { kind: "transform-piece"; square: AlgebraicSquare; newType: PieceType };
 
 /**
  * Apply the side effects produced by the card resolver. Mutates the engine
@@ -243,6 +245,18 @@ export function applyCardSideEffects(
           next = clearStatusesOn(next, sq);
         }
         if (!fx.recursive) break;
+      }
+    } else if (fx.kind === "convert-piece") {
+      const piece = engine.pieceAt(fx.square);
+      if (piece && piece.side === "opponent") {
+        engine.removePiece(fx.square);
+        engine.placePiece(fx.square, { type: piece.type, side: "player" });
+      }
+    } else if (fx.kind === "transform-piece") {
+      const piece = engine.pieceAt(fx.square);
+      if (piece && piece.side === "player") {
+        engine.removePiece(fx.square);
+        engine.placePiece(fx.square, { type: fx.newType, side: "player" });
       }
     } else if (fx.kind === "remove-random-own-minor") {
       // Bit Rot (Boss C). Pick uniformly at random from the player's

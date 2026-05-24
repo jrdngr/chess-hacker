@@ -38,6 +38,12 @@ export type OverlaySets = {
   forbiddenForOpponentSet: ReadonlySet<AlgebraicSquare>;
   /** Anchor squares (locked piece positions) for UI highlighting. */
   mutexAnchorSet: ReadonlySet<AlgebraicSquare>;
+  /** Sudo: pawns acting as queens this turn. */
+  sudoSet: ReadonlySet<AlgebraicSquare>;
+  /** Downgraded pieces (move as pawns). */
+  downgradedSet: ReadonlySet<AlgebraicSquare>;
+  /** Backdoor markers placed on the board. */
+  backdoorSet: ReadonlySet<AlgebraicSquare>;
 };
 
 /** Build all overlay sets from a MatchCardState in one pass. */
@@ -74,6 +80,9 @@ export function deriveOverlaySets(state: MatchCardState): OverlaySets {
     empowerMap,
     forbiddenForOpponentSet,
     mutexAnchorSet,
+    sudoSet: state.sudoSquare ? new Set([state.sudoSquare]) : new Set(),
+    downgradedSet: new Set((state.downgrades ?? []).map((d) => d.square)),
+    backdoorSet: new Set((state.backdoors ?? []).map((b) => b.square)),
   };
 }
 
@@ -136,6 +145,8 @@ export function buildExtraOverlays(
   if (typeof promo === "number") out.pawnPromotionRanks = { player: promo };
   const sniper = rookAttackThroughWalls(artifacts);
   if (sniper > 0) out.rookAttackThroughWalls = { player: sniper };
+  if (o.sudoSet.size > 0) out.sudoSquares = o.sudoSet;
+  if (o.downgradedSet.size > 0) out.downgrades = o.downgradedSet;
   return out;
 }
 
@@ -155,6 +166,14 @@ export function derivePieceBadges(state: MatchCardState): ReadonlyMap<AlgebraicS
   for (const e of state.empowers) {
     const existing = m.get(e.square);
     m.set(e.square, existing ? `${existing}, empowered` : "empowered");
+  }
+  for (const d of state.downgrades ?? []) {
+    const existing = m.get(d.square);
+    m.set(d.square, existing ? `${existing}, downgraded` : "downgraded");
+  }
+  if (state.sudoSquare) {
+    const existing = m.get(state.sudoSquare);
+    m.set(state.sudoSquare, existing ? `${existing}, sudo` : "sudo");
   }
   return m;
 }
@@ -218,12 +237,19 @@ export function deriveSquareEffects(
     });
   }
   for (const lock of state.mutexLocks ?? []) {
-    // Show on the anchor square; the radiating zone is rendered by the Board
-    // overlay layer reading `forbiddenForOpponentSet`.
     pushPiece(lock.anchor, {
       label: "Mutex Locked",
       remaining: lock.remainingTurns,
     });
+  }
+  for (const d of state.downgrades ?? []) {
+    pushPiece(d.square, { label: "Downgraded", remaining: remaining(d.expiresOnTurn) });
+  }
+  if (state.sudoSquare) {
+    pushPiece(state.sudoSquare, { label: "Sudo (queen)", remaining: 1 });
+  }
+  for (const b of state.backdoors ?? []) {
+    pushSquare(b.square, { label: "Backdoor" });
   }
   for (const w of state.walls) {
     if (w.permanent) {

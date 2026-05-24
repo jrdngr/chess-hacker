@@ -354,19 +354,15 @@ export function startPlayerTurn(
     sanctuaries: alive(state.sanctuaries),
     traps: alive(state.traps),
     mutexLocks: liveMutexLocks,
-    // Note: the Throttled status's must-not-check flag is NOT reset here.
-    // It's set the moment the player checks the boss (via on-self-check)
-    // and must persist across the AI turn so the player's NEXT chess move
-    // — which may be the first move of the next player turn — is correctly
-    // constrained. The flag is consumed by that next move (see useCardPlay).
-    // Reset turn-scoped flags / counters consumed above.
+    downgrades: alive(state.downgrades ?? []),
     pendingEnergyLossOnNoCapture: false,
     capturedThisTurn: false,
     noZeroCostCardsThisTurn: false,
     pendingPlayerEnergyOnTurnStart: 0,
     pendingEnergyNextTurn: 0,
     continuationSquare: undefined,
-    // Re-arm extra-chess-move budget from active Powers each turn.
+    sudoSquare: undefined,
+    pendingHotSwap: undefined,
     playerExtraMovesRemaining: powerExtraMoves(tickedState),
   };
   const refilled = refillHand(next, rng, ctx);
@@ -403,7 +399,17 @@ function applyStartOfTurnArtifactsAndPowers(
     (p) => p.kind === "shield-back-rank-per-turn",
   );
 
-  if (empowerSpecs.length === 0 && !phalanx && !hastePawns && !shieldBackRank) {
+  const intrusionDetection = (state.activePowers ?? []).find(
+    (p) => p.kind === "root-half-entrants-per-turn",
+  );
+
+  if (
+    empowerSpecs.length === 0 &&
+    !phalanx &&
+    !hastePawns &&
+    !shieldBackRank &&
+    !intrusionDetection
+  ) {
     return state;
   }
 
@@ -450,6 +456,33 @@ function applyStartOfTurnArtifactsAndPowers(
       }
     }
   }
+
+  // Intrusion Detection Power: root (and optionally disarm) enemy pieces
+  // that entered the player's half since the last turn start.
+  if (intrusionDetection) {
+    const halfRank = Math.floor(ranks / 2);
+    const currentEnemyHalf: AlgebraicSquare[] = [];
+    for (let f = 0; f < files; f++) {
+      for (let r = 1; r <= halfRank; r++) {
+        const sq = FILES[f] + String(r);
+        if (pieceSideAt(sq) === "opponent") currentEnemyHalf.push(sq);
+      }
+    }
+    const prev = new Set(next.lastTurnEnemyHalfSquares ?? []);
+    for (const sq of currentEnemyHalf) {
+      if (!prev.has(sq)) {
+        next = addStatus(next, "roots", sq, expires, "opponent");
+        if (
+          intrusionDetection.kind === "root-half-entrants-per-turn" &&
+          intrusionDetection.disarm
+        ) {
+          next = addStatus(next, "disarms", sq, expires, "opponent");
+        }
+      }
+    }
+    next = { ...next, lastTurnEnemyHalfSquares: currentEnemyHalf };
+  }
+
   return next;
 }
 
@@ -964,6 +997,7 @@ export function relocateStatuses(
     lightnings: move(state.lightnings),
     empowers: move(state.empowers),
     mutexLocks: moveAnchor(state.mutexLocks ?? []),
+    downgrades: move(state.downgrades ?? []),
   };
 }
 
@@ -988,6 +1022,7 @@ export function clearStatusesOn(state: MatchCardState, square: AlgebraicSquare):
     lightnings: drop(state.lightnings),
     empowers: drop(state.empowers),
     mutexLocks: (state.mutexLocks ?? []).filter((l) => l.anchor !== square),
+    downgrades: drop(state.downgrades ?? []),
   };
 }
 

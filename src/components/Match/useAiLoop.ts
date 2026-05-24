@@ -262,6 +262,16 @@ export function useAiLoop({
             pendingPlayerEnergyOnTurnStart: (trapped.pendingPlayerEnergyOnTurnStart ?? 0) + 1,
           };
         }
+        // Track friendly pieces captured by the AI for Git Revert resurrection pool.
+        if (applied.isCapture && captured?.side === "player") {
+          trapped = {
+            ...trapped,
+            capturedPieces: [
+              ...(trapped.capturedPieces ?? []),
+              { type: captured.type, side: "player" as const, reason: "captured" as const },
+            ],
+          };
+        }
         // Status effect triggers — fire on AI captures so player-targeting
         // statuses with "on-opponent-capture" triggers (currently none, but
         // wired in for future player-applied curses on the enemy) take effect.
