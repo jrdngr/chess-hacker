@@ -62,13 +62,25 @@ export function LibraryOverlay({
           ×
         </button>
       </div>
-      <input
-        type="text"
-        className={styles.librarySearch}
-        placeholder="Search cards…"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
+      <div className={styles.librarySearchRow}>
+        <input
+          type="text"
+          className={styles.librarySearch}
+          placeholder="Search cards…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        {search && (
+          <button
+            type="button"
+            className={styles.librarySearchClear}
+            onClick={() => setSearch("")}
+            aria-label="Clear search"
+          >
+            ×
+          </button>
+        )}
+      </div>
       <p className={styles.note}>
         Plays are free and don't enter the spent pile. Effects (statuses, added cards, summons)
         persist. Click to play, or drag onto the board.

@@ -318,9 +318,14 @@
   position: relative;
 }
 
+.librarySearchRow {
+  position: relative;
+  margin-top: 4px;
+}
+
 .librarySearch {
   width: 100%;
-  padding: 6px 8px;
+  padding: 6px 24px 6px 8px;
   font: inherit;
   font-size: 12px;
   background: rgba(255, 255, 255, 0.05);
@@ -328,11 +333,33 @@
   border-radius: 4px;
   color: inherit;
   outline: none;
-  margin-top: 4px;
 }
 
 .librarySearch:focus {
   border-color: var(--player);
+}
+
+.librarySearchClear {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.librarySearchClear:hover {
+  color: var(--player);
 }
 
 .libraryCardRow {
