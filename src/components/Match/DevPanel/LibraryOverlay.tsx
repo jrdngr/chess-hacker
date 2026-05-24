@@ -112,7 +112,7 @@ export function LibraryOverlay({
                     const upgraded = getUpgradedCard(card);
                     if (upgraded) onPlayLibraryCard(upgraded);
                   }}
-                  title="Play upgraded version"
+                  title={getUpgradedCard(card)?.description ?? "Play upgraded version"}
                 >
                   +
                 </button>
