@@ -15,6 +15,7 @@ import type {
   CardUpgradeDelta,
   EmpowerPattern,
   PieceType,
+  PowerEffect,
   TrapEffect,
 } from "../types";
 
@@ -51,6 +52,10 @@ export const VALID_TARGET_KINDS = [
   "rooted-enemy-and-own-piece",
   "enemy-and-own-piece",
   "hand-card",
+  "own-pawn",
+  "enemy-minor-piece",
+  "own-non-king-piece-then-empty-square",
+  "captured-friendly-piece-then-empty-square-own-half",
 ] as const;
 export const VALID_EFFECT_KINDS = [
   "gain-energy",
@@ -92,6 +97,16 @@ export const VALID_EFFECT_KINDS = [
   "pending-energy-next-turn",
   "play-power",
   "undo-last-enemy-move",
+  "sudo-piece",
+  "hot-swap",
+  "downgrade-piece",
+  "convert-piece",
+  "transform-piece-up",
+  "sacrifice-detonate",
+  "gain-energy-per-capture",
+  "place-backdoor",
+  "teleport-piece",
+  "resurrect-piece",
   "compound",
 ] as const;
 export const VALID_POWER_KINDS = [
@@ -100,6 +115,7 @@ export const VALID_POWER_KINDS = [
   "extra-chess-move-per-turn",
   "haste-pawns-per-turn",
   "shield-back-rank-per-turn",
+  "root-half-entrants-per-turn",
 ] as const;
 export const VALID_ZONE_BUFF_PATTERNS = ["square-orthogonal-1", "square-radius-1"] as const;
 export const VALID_ZONE_BUFF_EFFECT_KINDS = ["energy-per-turn", "hand-size"] as const;
@@ -620,6 +636,21 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
         errors.push("'effect.effect.amount' must be a positive integer for kind 'play-power'");
         return null;
       }
+      if (innerKind === "root-half-entrants-per-turn") {
+        const disarm = inner.disarm;
+        if (disarm !== undefined && typeof disarm !== "boolean") {
+          errors.push(
+            "'effect.effect.disarm' must be a boolean if present for power kind 'root-half-entrants-per-turn'",
+          );
+          return null;
+        }
+        const pe: PowerEffect & { kind: "root-half-entrants-per-turn" } = {
+          kind: "root-half-entrants-per-turn",
+          amount: inner.amount,
+        };
+        if (disarm === true) pe.disarm = true;
+        return { kind: "play-power", effect: pe };
+      }
       return {
         kind: "play-power",
         effect: {
@@ -633,6 +664,59 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
         },
       };
     }
+    case "sudo-piece":
+      return { kind: "sudo-piece" };
+    case "hot-swap": {
+      const canCapture = raw.canCapture;
+      if (canCapture !== undefined && typeof canCapture !== "boolean") {
+        errors.push("'effect.canCapture' must be a boolean if present for kind 'hot-swap'");
+        return null;
+      }
+      const out: CardEffect & { kind: "hot-swap" } = { kind: "hot-swap" };
+      if (canCapture === true) out.canCapture = true;
+      return out;
+    }
+    case "downgrade-piece": {
+      if (!isPositiveInt(raw.durationTurns)) {
+        errors.push("'effect.durationTurns' must be a positive integer for kind 'downgrade-piece'");
+        return null;
+      }
+      return { kind: "downgrade-piece", durationTurns: raw.durationTurns };
+    }
+    case "convert-piece":
+      return { kind: "convert-piece" };
+    case "transform-piece-up":
+      return { kind: "transform-piece-up" };
+    case "sacrifice-detonate": {
+      const drawCount = raw.drawCount;
+      if (drawCount !== undefined && (!Number.isInteger(drawCount) || (drawCount as number) < 0)) {
+        errors.push(
+          "'effect.drawCount' must be a non-negative integer if present for kind 'sacrifice-detonate'",
+        );
+        return null;
+      }
+      const out: CardEffect & { kind: "sacrifice-detonate" } = { kind: "sacrifice-detonate" };
+      if (typeof drawCount === "number") out.drawCount = drawCount;
+      return out;
+    }
+    case "gain-energy-per-capture":
+      return { kind: "gain-energy-per-capture" };
+    case "place-backdoor": {
+      const count = raw.count;
+      if (count !== undefined && (!Number.isInteger(count) || (count as number) < 1)) {
+        errors.push(
+          "'effect.count' must be a positive integer if present for kind 'place-backdoor'",
+        );
+        return null;
+      }
+      const out: CardEffect & { kind: "place-backdoor" } = { kind: "place-backdoor" };
+      if (typeof count === "number") out.count = count;
+      return out;
+    }
+    case "teleport-piece":
+      return { kind: "teleport-piece" };
+    case "resurrect-piece":
+      return { kind: "resurrect-piece" };
     case "compound": {
       const children = raw.effects;
       if (!Array.isArray(children) || children.length === 0) {
@@ -768,6 +852,42 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
       return tk === "hand-card"
         ? null
         : "'apply-retain-to-hand-card' effect requires target.kind 'hand-card'";
+    case "sudo-piece":
+      return tk === "own-pawn" ? null : "'sudo-piece' effect requires target.kind 'own-pawn'";
+    case "hot-swap":
+      return tk === "own-non-king-piece"
+        ? null
+        : "'hot-swap' effect requires target.kind 'own-non-king-piece'";
+    case "downgrade-piece":
+      return tk === "enemy-non-king-piece"
+        ? null
+        : "'downgrade-piece' effect requires target.kind 'enemy-non-king-piece'";
+    case "convert-piece":
+      return tk === "enemy-minor-piece" || tk === "enemy-non-king-piece"
+        ? null
+        : "'convert-piece' effect requires target.kind 'enemy-minor-piece' or 'enemy-non-king-piece'";
+    case "transform-piece-up":
+      return tk === "own-non-king-piece"
+        ? null
+        : "'transform-piece-up' effect requires target.kind 'own-non-king-piece'";
+    case "sacrifice-detonate":
+      return tk === "own-non-king-piece"
+        ? null
+        : "'sacrifice-detonate' effect requires target.kind 'own-non-king-piece'";
+    case "gain-energy-per-capture":
+      return tk === "none" ? null : "'gain-energy-per-capture' effect requires target.kind 'none'";
+    case "place-backdoor":
+      return tk === "empty-square"
+        ? null
+        : "'place-backdoor' effect requires target.kind 'empty-square'";
+    case "teleport-piece":
+      return tk === "own-non-king-piece-then-empty-square"
+        ? null
+        : "'teleport-piece' effect requires target.kind 'own-non-king-piece-then-empty-square'";
+    case "resurrect-piece":
+      return tk === "captured-friendly-piece-then-empty-square-own-half"
+        ? null
+        : "'resurrect-piece' effect requires target.kind 'captured-friendly-piece-then-empty-square-own-half'";
     case "compound": {
       for (const child of effect.effects) {
         const m = targetMatchesEffect(target, child);

@@ -1,0 +1,14 @@
+{
+  "id": "git-revert",
+  "name": "Git Revert",
+  "cost": 4,
+  "rarity": "rare",
+  "archetype": "summon",
+  "consume": true,
+  "description": "Resurrect a captured piece onto an empty square in your half.",
+  "target": { "kind": "captured-friendly-piece-then-empty-square-own-half" },
+  "effect": { "kind": "resurrect-piece" },
+  "upgrade": {
+    "description": "Resurrect a captured piece onto an empty square in your half. It enters with Shield."
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "polymorphism",
+  "name": "Polymorphism",
+  "cost": 2,
+  "rarity": "rare",
+  "archetype": "burst",
+  "consume": true,
+  "description": "Transform friendly piece one tier up (pawn→minor, minor→rook, rook→queen).",
+  "target": { "kind": "own-non-king-piece" },
+  "effect": { "kind": "transform-piece-up" },
+  "upgrade": {
+    "cost": 1
+  }
+}

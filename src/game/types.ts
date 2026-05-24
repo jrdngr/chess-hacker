@@ -87,6 +87,13 @@ export type CardArchetype =
  *  - "rooted-enemy-and-own-piece": a rooted enemy piece, then one of your pieces (multi-step).
  *  - "enemy-and-own-piece":        any enemy non-king piece, then one of your pieces (multi-step).
  *  - "hand-card":                  another card currently in your hand (Bookmark).
+ *  - "own-pawn":                    a square holding one of the player's pawns (Sudo).
+ *  - "enemy-minor-piece":           enemy knight, bishop, or pawn (Bit Flip).
+ *  - "own-non-king-piece-then-empty-square":
+ *                                  own non-king piece, then any empty square (SSH Tunnel).
+ *  - "captured-friendly-piece-then-empty-square-own-half":
+ *                                  choose a captured/destroyed friendly piece, then an
+ *                                  empty square in your half (Git Revert).
  */
 export type CardTarget =
   | { kind: "none" }
@@ -103,7 +110,11 @@ export type CardTarget =
   | { kind: "marionette" }
   | { kind: "rooted-enemy-and-own-piece" }
   | { kind: "enemy-and-own-piece" }
-  | { kind: "hand-card" };
+  | { kind: "hand-card" }
+  | { kind: "own-pawn" }
+  | { kind: "enemy-minor-piece" }
+  | { kind: "own-non-king-piece-then-empty-square" }
+  | { kind: "captured-friendly-piece-then-empty-square-own-half" };
 
 /** Trap variant — picked per-card when the trap is placed. */
 export type TrapEffect = "capture" | "freeze" | "push";
@@ -270,6 +281,55 @@ export type CardEffect =
    * moved this match — UI gates this against the engine's history.
    */
   | { kind: "undo-last-enemy-move" }
+  /**
+   * Sudo: target pawn temporarily acts as a queen this turn. After it moves,
+   * it reverts. Permanent promotion if it reaches the back rank.
+   */
+  | { kind: "sudo-piece" }
+  /**
+   * Hot Swap: after the player's chess move, take a bonus move with a
+   * different piece. `canCapture` controls whether the bonus move may capture.
+   */
+  | { kind: "hot-swap"; canCapture?: boolean }
+  /**
+   * Downgrade: enemy piece loses its native movement and moves as a pawn for
+   * `durationTurns` turns.
+   */
+  | { kind: "downgrade-piece"; durationTurns: number }
+  /**
+   * Bit Flip: convert target enemy minor piece (knight/bishop/pawn) to the
+   * player's side. The upgrade variant relaxes targeting to include rooks.
+   */
+  | { kind: "convert-piece" }
+  /**
+   * Polymorphism: transform target friendly piece one tier up.
+   * Pawn → knight/bishop (player's choice), knight/bishop → rook, rook → queen.
+   */
+  | { kind: "transform-piece-up" }
+  /**
+   * Self-Destruct: destroy the targeted own piece and all enemy non-King
+   * pieces on the 8 adjacent squares. Optional `drawCount` for the upgrade.
+   */
+  | { kind: "sacrifice-detonate"; drawCount?: number }
+  /**
+   * Heartbleed: gain 1 energy per enemy piece captured this match (uncapped).
+   */
+  | { kind: "gain-energy-per-capture" }
+  /**
+   * Backdoor: place a backdoor marker on the target square. On a future turn,
+   * the player can teleport a piece there as a free action. `count` controls
+   * how many markers to place (1 base, 2 upgraded).
+   */
+  | { kind: "place-backdoor"; count?: number }
+  /**
+   * SSH Tunnel: teleport target friendly piece to any empty square on the board.
+   */
+  | { kind: "teleport-piece" }
+  /**
+   * Git Revert: resurrect a captured/destroyed friendly piece onto an empty
+   * square in the player's half.
+   */
+  | { kind: "resurrect-piece" }
   | { kind: "compound"; effects: CardEffect[] };
 
 /**
@@ -293,7 +353,13 @@ export type PowerEffect =
    * is shielded until the player's next turn. `amount` reserved for stacking;
    * always 1 in the prototype.
    */
-  | { kind: "shield-back-rank-per-turn"; amount: number };
+  | { kind: "shield-back-rank-per-turn"; amount: number }
+  /**
+   * Intrusion Detection: at the start of each player turn, Root every enemy
+   * piece that moved into the player's half on the opponent's last turn.
+   * `disarm` adds Disarm on top of Root (upgrade).
+   */
+  | { kind: "root-half-entrants-per-turn"; amount: number; disarm?: boolean };
 
 export type Card = {
   id: CardId;
@@ -840,6 +906,28 @@ export type ZoneBuff = {
   sourceLabel: string;
 };
 
+/**
+ * Backdoor overlay — a player-placed marker on an empty square. On any future
+ * turn, the player can teleport a friendly non-King piece to the marked square
+ * as a free action (no card or energy cost). The marker is consumed on use.
+ */
+export type BackdoorMarker = {
+  square: AlgebraicSquare;
+  side: Side;
+};
+
+/**
+ * Tracked record of a friendly piece that was removed from the board (by enemy
+ * capture, sacrifice, trap, destroy effects, etc.). Used by Git Revert to
+ * offer resurrection choices and by Heartbleed to count captures.
+ */
+export type CapturedPieceEntry = {
+  type: PieceType;
+  side: Side;
+  /** How the piece was removed. */
+  reason: "captured" | "sacrificed" | "destroyed";
+};
+
 // === Skirmish piece identity (M10) ===
 // Piece today is just { type, side }. M10 needs identity so individual
 // pieces can be tracked across drafts and placement. The optional `id`
@@ -986,4 +1074,33 @@ export type MatchCardState = {
    * present; defaults to [].
    */
   statusEffects: StatusEffect[];
+  /** Enemy pieces that are Downgraded (move as pawns). */
+  downgrades: PieceStatus[];
+  /** Backdoor markers placed on the board. */
+  backdoors: BackdoorMarker[];
+  /**
+   * All friendly pieces removed from the board this match — captures,
+   * sacrifices, destroy effects, traps. Used by Git Revert (resurrection
+   * pool) and Heartbleed (capture counter).
+   */
+  capturedPieces: CapturedPieceEntry[];
+  /**
+   * Total enemy pieces captured/destroyed by the player this match. Incremented
+   * by any removal of an enemy piece (chess capture, destroy card, trap). Read
+   * by Heartbleed for energy scaling.
+   */
+  playerCaptureCount: number;
+  /**
+   * Hot Swap: when set, the player gets a bonus chess move with a different
+   * piece after their normal move. `canCapture` controls whether the bonus
+   * move may capture. `excludeSquare` is the square the normal move originated
+   * from (the bonus move must use a different piece).
+   */
+  pendingHotSwap?: { canCapture: boolean; excludeSquare?: AlgebraicSquare };
+  /**
+   * Sudo: when set, the pawn on this square is temporarily acting as a queen
+   * this turn. The chess engine reads this to generate queen moves for the pawn.
+   * Cleared after the pawn moves or at end of turn.
+   */
+  sudoSquare?: AlgebraicSquare;
 };

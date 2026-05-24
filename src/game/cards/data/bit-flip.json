@@ -1,0 +1,15 @@
+{
+  "id": "bit-flip",
+  "name": "Bit Flip",
+  "cost": 3,
+  "rarity": "rare",
+  "archetype": "disruption",
+  "consume": true,
+  "description": "Convert enemy knight, bishop, or pawn to your side.",
+  "target": { "kind": "enemy-minor-piece" },
+  "effect": { "kind": "convert-piece" },
+  "upgrade": {
+    "description": "Convert enemy knight, bishop, pawn, or rook to your side.",
+    "target": { "kind": "enemy-non-king-piece" }
+  }
+}

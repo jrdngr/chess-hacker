@@ -8,6 +8,7 @@
 
 import type {
   AlgebraicSquare,
+  BackdoorMarker,
   Card,
   CardEffect,
   EmpowerStatus,
@@ -465,6 +466,151 @@ export function applyEffect(
         sideEffects: [],
       };
     }
+
+    // ---- New cards (batch 2) -----------------------------------------------
+
+    case "sudo-piece": {
+      const sq = squareTarget(target);
+      return {
+        state: { ...state, sudoSquare: sq },
+        sideEffects: [],
+      };
+    }
+    case "hot-swap": {
+      const sq = squareTarget(target);
+      return {
+        state: {
+          ...state,
+          pendingHotSwap: {
+            canCapture: effect.canCapture ?? false,
+            excludeSquare: sq,
+          },
+        },
+        sideEffects: [],
+      };
+    }
+    case "downgrade-piece": {
+      const sq = squareTarget(target);
+      const expires = state.turn + effect.durationTurns;
+      const status: PieceStatus = { square: sq, side: "opponent", expiresOnTurn: expires };
+      return {
+        state: {
+          ...state,
+          downgrades: [...(state.downgrades ?? []).filter((d) => d.square !== sq), status],
+        },
+        sideEffects: [],
+      };
+    }
+    case "convert-piece": {
+      const sq = squareTarget(target);
+      return {
+        state,
+        sideEffects: [{ kind: "convert-piece", square: sq }],
+      };
+    }
+    case "transform-piece-up": {
+      const sq = squareTarget(target);
+      const piece = ctx.pieceAt(sq);
+      if (!piece || piece.side !== "player") return { state, sideEffects: [] };
+      let newType: PieceType;
+      switch (piece.type) {
+        // Pawn → knight (default; UI should prompt for knight vs bishop)
+        case "pawn":
+          newType = "knight";
+          break;
+        case "knight":
+        case "bishop":
+          newType = "rook";
+          break;
+        case "rook":
+          newType = "queen";
+          break;
+        default:
+          return { state, sideEffects: [] };
+      }
+      return {
+        state,
+        sideEffects: [{ kind: "transform-piece", square: sq, newType }],
+      };
+    }
+    case "sacrifice-detonate": {
+      const sq = squareTarget(target);
+      const files = ctx.boardFiles ?? 8;
+      const ranks = ctx.boardRanks ?? 8;
+      const sideEffects: CardSideEffect[] = [{ kind: "remove-piece", square: sq }];
+      // Destroy adjacent enemy non-King pieces
+      const f = sq.charCodeAt(0) - "a".charCodeAt(0);
+      const r = Number(sq.slice(1));
+      for (let df = -1; df <= 1; df++) {
+        for (let dr = -1; dr <= 1; dr++) {
+          if (df === 0 && dr === 0) continue;
+          const nf = f + df;
+          const nr = r + dr;
+          if (nf < 0 || nf >= files || nr < 1 || nr > ranks) continue;
+          const adjSq = FILE_LETTERS[nf] + String(nr);
+          const p = ctx.pieceAt(adjSq);
+          if (p && p.side === "opponent" && p.type !== "king") {
+            sideEffects.push({ kind: "remove-piece", square: adjSq });
+          }
+        }
+      }
+      let next = state;
+      if (effect.drawCount && effect.drawCount > 0) {
+        next = drawCards(next, effect.drawCount, rng);
+      }
+      return { state: next, sideEffects };
+    }
+    case "gain-energy-per-capture": {
+      const captures = state.playerCaptureCount ?? 0;
+      return {
+        state: { ...state, energy: clampEnergy(state.energy + captures) },
+        sideEffects: [],
+      };
+    }
+    case "place-backdoor": {
+      const sq = squareTarget(target);
+      const marker: BackdoorMarker = { square: sq, side: "player" };
+      return {
+        state: {
+          ...state,
+          backdoors: [...(state.backdoors ?? []), marker],
+        },
+        sideEffects: [],
+      };
+    }
+    case "teleport-piece": {
+      if (target.kind !== "two-squares") return { state, sideEffects: [] };
+      return {
+        state,
+        sideEffects: [
+          { kind: "remove-piece", square: target.first },
+          {
+            kind: "place-piece",
+            square: target.second,
+            pieceType: ctx.pieceAt(target.first)?.type ?? "pawn",
+          },
+        ],
+      };
+    }
+    case "resurrect-piece": {
+      // Git Revert: target.first encodes the captured piece index (as a dummy
+      // square), target.second is the placement square. The full UI flow
+      // selects from capturedPieces — for now, the handler places the piece.
+      if (target.kind !== "two-squares") return { state, sideEffects: [] };
+      // The captured piece type is encoded by the UI in the first target;
+      // for the stub, we look at capturedPieces if available.
+      const captured = state.capturedPieces ?? [];
+      if (captured.length === 0) return { state, sideEffects: [] };
+      const entry = captured[captured.length - 1];
+      return {
+        state: {
+          ...state,
+          capturedPieces: captured.slice(0, -1),
+        },
+        sideEffects: [{ kind: "place-piece", square: target.second, pieceType: entry.type }],
+      };
+    }
+
     case "compound": {
       let next = state;
       const sideEffects: CardSideEffect[] = [];

@@ -1,0 +1,21 @@
+{
+  "id": "intrusion-detection",
+  "name": "Intrusion Detection",
+  "cost": 4,
+  "rarity": "rare",
+  "archetype": "power",
+  "consume": true,
+  "description": "Power: each turn, Root enemies that entered your half.",
+  "target": { "kind": "none" },
+  "effect": {
+    "kind": "play-power",
+    "effect": { "kind": "root-half-entrants-per-turn", "amount": 1 }
+  },
+  "upgrade": {
+    "description": "Power: each turn, Root and Disarm enemies that entered your half.",
+    "effect": {
+      "kind": "play-power",
+      "effect": { "kind": "root-half-entrants-per-turn", "amount": 1, "disarm": true }
+    }
+  }
+}

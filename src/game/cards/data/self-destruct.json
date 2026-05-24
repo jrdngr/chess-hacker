@@ -1,0 +1,15 @@
+{
+  "id": "self-destruct",
+  "name": "Self-Destruct",
+  "cost": 1,
+  "rarity": "uncommon",
+  "archetype": "sacrifice",
+  "consume": true,
+  "description": "Destroy own piece and all adjacent enemy non-King pieces.",
+  "target": { "kind": "own-non-king-piece" },
+  "effect": { "kind": "sacrifice-detonate" },
+  "upgrade": {
+    "description": "Destroy own piece and all adjacent enemy non-King pieces. Draw 2.",
+    "effect": { "kind": "sacrifice-detonate", "drawCount": 2 }
+  }
+}

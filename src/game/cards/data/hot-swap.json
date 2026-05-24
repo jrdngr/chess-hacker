@@ -1,0 +1,14 @@
+{
+  "id": "hot-swap",
+  "name": "Hot Swap",
+  "cost": 1,
+  "rarity": "common",
+  "archetype": "tempo",
+  "description": "After your chess move, take a bonus move with a different piece (no capture).",
+  "target": { "kind": "own-non-king-piece" },
+  "effect": { "kind": "hot-swap" },
+  "upgrade": {
+    "description": "After your chess move, take a bonus move with a different piece (can capture).",
+    "effect": { "kind": "hot-swap", "canCapture": true }
+  }
+}

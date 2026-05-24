@@ -132,6 +132,10 @@ export function createMatchCardState(
     artifacts,
     activePowers: [],
     statusEffects: [],
+    downgrades: [],
+    backdoors: [],
+    capturedPieces: [],
+    playerCaptureCount: 0,
   };
 }
 
@@ -559,7 +563,9 @@ export type CardSideEffect =
    * destroys nothing — this catches discovered attacks revealed by removing
    * blockers. The enemy king is never destroyed.
    */
-  | { kind: "garbage-collect"; recursive: boolean };
+  | { kind: "garbage-collect"; recursive: boolean }
+  | { kind: "convert-piece"; square: AlgebraicSquare }
+  | { kind: "transform-piece"; square: AlgebraicSquare; newType: PieceType };
 
 export type PlayCardResult =
   | { ok: true; state: MatchCardState; sideEffects: CardSideEffect[] }
@@ -829,6 +835,40 @@ function validateTarget(
       if (target.index === playingIndex) return "target-hand-card-self";
       const slot = state.hand[target.index];
       if (slot.retained) return "target-hand-card-already-retained";
+      return null;
+    }
+    case "own-pawn": {
+      if (target.kind !== "square") return "missing-target";
+      const p = ctx.pieceAt(target.square);
+      if (!p || p.side !== "player") return "target-not-own-piece";
+      if (p.type !== "pawn") return "target-piece-type-mismatch";
+      return null;
+    }
+    case "enemy-minor-piece": {
+      if (target.kind !== "square") return "missing-target";
+      const p = ctx.pieceAt(target.square);
+      if (!p || p.side !== "opponent") return "target-not-enemy-piece";
+      if (p.type !== "knight" && p.type !== "bishop" && p.type !== "pawn")
+        return "target-not-enemy-non-king-piece";
+      return null;
+    }
+    case "own-non-king-piece-then-empty-square": {
+      if (target.kind !== "two-squares") return "missing-target";
+      const source = ctx.pieceAt(target.first);
+      if (!source || source.side !== "player") return "target-not-own-piece";
+      if (source.type === "king") return "target-not-own-non-king-piece";
+      if (ctx.pieceAt(target.second) !== null || ctx.hasWall(target.second))
+        return "target-not-empty";
+      return null;
+    }
+    case "captured-friendly-piece-then-empty-square-own-half": {
+      // Git Revert: first step picks from captured list (UI-driven), second picks empty square.
+      // At this layer we validate the placement square. The captured-piece selection
+      // is validated by the UI before reaching playCard.
+      if (target.kind !== "two-squares") return "missing-target";
+      if (!isInPlayerHalf(target.second, ctx.boardRanks)) return "target-not-in-own-half";
+      if (ctx.pieceAt(target.second) !== null || ctx.hasWall(target.second))
+        return "target-not-empty";
       return null;
     }
   }
