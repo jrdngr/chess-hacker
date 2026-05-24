@@ -361,6 +361,7 @@ export function startPlayerTurn(
     noZeroCostCardsThisTurn: false,
     pendingPlayerEnergyOnTurnStart: 0,
     pendingEnergyNextTurn: 0,
+    continuationSquare: undefined,
     // Re-arm extra-chess-move budget from active Powers each turn.
     playerExtraMovesRemaining: powerExtraMoves(tickedState),
   };

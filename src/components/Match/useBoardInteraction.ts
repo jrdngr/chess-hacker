@@ -26,6 +26,8 @@ type Params = {
   // Selected state owned by Match (passed through from useState).
   selected: AlgebraicSquare | null;
   setSelected: (sq: AlgebraicSquare | null) => void;
+  // Haste/Lightning continuation lock: only this piece may be selected.
+  continuationSquare: AlgebraicSquare | null;
   // From useCardPlay
   targetingIndex: number | null;
   targetingCard: Card | null;
@@ -96,10 +98,12 @@ export function useBoardInteraction({
   applyEditorMove,
   onPaletteDragEnd,
   rootedSet,
+  continuationSquare,
 }: Params): Result {
   /** Select a square iff it has a piece the human controls right now. */
   const trySelect = useCallback(
     (sq: AlgebraicSquare): boolean => {
+      if (continuationSquare && sq !== continuationSquare) return false;
       const piece = engine.pieceAt(sq);
       if (!piece) return false;
       if (!controllableSides.has(piece.side)) return false;
@@ -107,7 +111,7 @@ export function useBoardInteraction({
       setSelected(sq);
       return true;
     },
-    [engine, controllableSides, turn, setSelected],
+    [engine, controllableSides, turn, setSelected, continuationSquare],
   );
 
   const onSquareClick = useCallback(

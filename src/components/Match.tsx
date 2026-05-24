@@ -1280,6 +1280,7 @@ export function Match({
     applyEditorMove,
     onPaletteDragEnd,
     rootedSet,
+    continuationSquare: cardState.continuationSquare ?? null,
   });
 
   /**

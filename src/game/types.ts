@@ -973,6 +973,12 @@ export type MatchCardState = {
    */
   playerExtraMovesRemaining?: number;
   /**
+   * When set, the player's next chess move MUST originate from this square.
+   * Set after a Haste/Lightning piece's first move so the second action
+   * stays on the same piece. Cleared after the continuation move resolves.
+   */
+  continuationSquare?: AlgebraicSquare;
+  /**
    * Active status effects (boss curses; future player-applied curses).
    * Replaces the old "curse card forced into hand" mechanism. Each entry is
    * a live instance of a StatusEffectDef; the dispatcher in

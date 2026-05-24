@@ -188,6 +188,9 @@ export function useCardPlay({
       promotion?: PromotionChoice,
       source: "click" | "drag" = "click",
     ): boolean => {
+      if (cardState.continuationSquare && from !== cardState.continuationSquare) {
+        return false;
+      }
       let candidates = engine.legalMoves(from).filter((m) => m.to === to);
       if (cardState.mustNotCheckNextMove) {
         candidates = candidates.filter((m) => !engine.wouldDeliverCheck(m));
@@ -324,9 +327,11 @@ export function useCardPlay({
       let consumeAndContinue = false;
       if (stillOurs && lightning && lightning.remaining > 1) {
         next = consumeLightningAction(next, to);
+        next = { ...next, continuationSquare: to };
         consumeAndContinue = true;
       } else if (stillOurs && haste) {
         next = consumeHaste(next, to);
+        next = { ...next, continuationSquare: to };
         consumeAndContinue = true;
       }
       // Fork Process Power: every extra move on the budget keeps the turn
@@ -345,6 +350,8 @@ export function useCardPlay({
       }
       if (consumeAndContinue) {
         engine.forceTurn("player");
+      } else if (cardState.continuationSquare) {
+        next = { ...next, continuationSquare: undefined };
       }
 
       // Player's chess move ended their turn (no Haste/Lightning/extra-move
@@ -356,7 +363,7 @@ export function useCardPlay({
         next = discardHandAtTurnEnd(next);
       }
 
-      setSelected(null);
+      setSelected(consumeAndContinue ? to : null);
       setTargetingIndex(null);
       setPartialTarget(null);
       setMarionetteMoves([]);
