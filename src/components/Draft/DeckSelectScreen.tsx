@@ -54,6 +54,19 @@ export function DeckSelectScreen({ onPickPremade, onStartDraft }: Props) {
       <h2 className={styles.title}>Draft Deck</h2>
       <p className={styles.subtitle}>Pick a curated deck or draft your own</p>
       <div className={styles.deckList}>
+        <div className={styles.deckRow}>
+          <button
+            type="button"
+            className={`${styles.deckButton} ${styles.draftButton}`}
+            onClick={onStartDraft}
+          >
+            <span className={styles.deckLabel}>Draft new deck</span>
+            <span className={styles.deckDesc}>
+              Pick 1 of 3 cards over 10 rounds (6 commons, 3 uncommons, 1 rare), then pick 1 of 3
+              uncommon artifacts.
+            </span>
+          </button>
+        </div>
         {decks.map((deck) => {
           const artifactName = bundledArtifactName(deck);
           return (
@@ -81,19 +94,6 @@ export function DeckSelectScreen({ onPickPremade, onStartDraft }: Props) {
             </div>
           );
         })}
-        <div className={styles.deckRow}>
-          <button
-            type="button"
-            className={`${styles.deckButton} ${styles.draftButton}`}
-            onClick={onStartDraft}
-          >
-            <span className={styles.deckLabel}>Draft new deck</span>
-            <span className={styles.deckDesc}>
-              Pick 1 of 3 cards over 10 rounds (6 commons, 3 uncommons, 1 rare), then pick 1 of 3
-              uncommon artifacts.
-            </span>
-          </button>
-        </div>
       </div>
 
       {previewing && (
