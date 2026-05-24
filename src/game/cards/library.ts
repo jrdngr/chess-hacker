@@ -229,13 +229,14 @@ export function getCardsByRarity(rarity: CardRarity): Card[] {
 }
 
 /**
- * Group library cards by archetype, sort each group by (cost, name), and
- * sort the archetype list alphabetically. Used by the dev-panel Library and
- * Deck-editor overlays.
+ * Group base (non-upgraded) library cards by archetype, sort each group by
+ * (cost, name), and sort the archetype list alphabetically. Used by the
+ * dev-panel Library and Deck-editor overlays.
  */
 export function groupCardsByArchetype(): Array<[string, Card[]]> {
   const groups = new Map<string, Card[]>();
   for (const card of Object.values(CARD_LIBRARY)) {
+    if (isUpgraded(card)) continue;
     const list = groups.get(card.archetype);
     if (list) list.push(card);
     else groups.set(card.archetype, [card]);
