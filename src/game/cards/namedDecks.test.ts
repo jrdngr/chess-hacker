@@ -4,18 +4,18 @@ import { ARTIFACT_LIBRARY } from "../artifacts/library";
 import { getNamedDecks } from "./library";
 
 describe("named decks", () => {
-  it("loads the three pre-made themed decks (Sysadmin, Hackathon, Architect)", () => {
+  const ALL_THEMED = ["Sysadmin", "Hackathon", "Architect", "Botnet", "Pentester"];
+
+  it("loads all pre-made themed decks", () => {
     const names = new Set(getNamedDecks().map((d) => d.name));
-    expect(names.has("Sysadmin")).toBe(true);
-    expect(names.has("Hackathon")).toBe(true);
-    expect(names.has("Architect")).toBe(true);
+    for (const n of ALL_THEMED) {
+      expect(names.has(n)).toBe(true);
+    }
   });
 
   it("each pre-made deck has 10 cards composed 6 commons / 3 uncommons / 1 rare", () => {
-    const themed = getNamedDecks().filter((d) =>
-      ["Sysadmin", "Hackathon", "Architect"].includes(d.name),
-    );
-    expect(themed.length).toBe(3);
+    const themed = getNamedDecks().filter((d) => ALL_THEMED.includes(d.name));
+    expect(themed.length).toBe(ALL_THEMED.length);
     for (const deck of themed) {
       expect(deck.cards.length).toBe(10);
       let c = 0;
@@ -31,9 +31,7 @@ describe("named decks", () => {
   });
 
   it("each pre-made deck's bundled artifactId resolves to a real artifact", () => {
-    const themed = getNamedDecks().filter((d) =>
-      ["Sysadmin", "Hackathon", "Architect"].includes(d.name),
-    );
+    const themed = getNamedDecks().filter((d) => ALL_THEMED.includes(d.name));
     for (const deck of themed) {
       expect(deck.artifactId).toBeTruthy();
       expect(ARTIFACT_LIBRARY[deck.artifactId!]).toBeDefined();

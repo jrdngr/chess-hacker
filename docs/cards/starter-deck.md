@@ -57,6 +57,38 @@ Turn squares into structure: walls, traps, sanctuaries, garrison. **Bundled arti
 | 1 | Trusted Zone | Uncommon | Sanctuary square — pieces can't be captured. |
 | 1 | Garrison Mode | Rare | Power: rank-1 pieces gain Shield each turn. |
 
+### Botnet — summon + sacrifice
+Spawn disposable pieces, trade them for explosive value, overwhelm. **Bundled artifact:** Promotion Engine (uncommon — pawns promote at rank 7 instead of rank 8).
+
+| Count | Card | Rarity | Notes |
+|---|---|---|---|
+| 1 | Port Scan | Common | Draw 2 cards. |
+| 1 | Stack Trace | Common | Scry top 3 of deck. |
+| 1 | Cache Warmup | Common | +2 energy on the next turn. |
+| 1 | Sprint | Common | Give a friendly piece Haste. |
+| 1 | Vanguard | Common | Pawn takes 2 actions this turn. |
+| 1 | Overclock | Common | Own piece takes 2 actions this turn. |
+| 1 | Fork | Uncommon | Summon pawn adjacent to a non-King piece. |
+| 1 | kill -9 | Uncommon | Sacrifice a piece for draw + energy. |
+| 1 | Self-Destruct | Uncommon | Sacrifice a piece; destroy adjacent enemies. |
+| 1 | Buffer Overflow | Rare | Sacrifice a piece; adjacent friendlies act free. |
+
+### Pentester — resource + burst
+Probe, accumulate, wait for the opening — then annihilate. **Bundled artifact:** Foothold (uncommon — hand size +1 while you have a piece on a center square).
+
+| Count | Card | Rarity | Notes |
+|---|---|---|---|
+| 1 | Port Scan | Common | Draw 2 cards. |
+| 1 | Stack Trace | Common | Scry top 3 of deck. |
+| 1 | Cache Warmup | Common | +2 energy on the next turn. |
+| 1 | Encrypted | Common | Captures illegal until next turn. |
+| 1 | Hot Swap | Common | Bonus move with a different piece (no capture). |
+| 1 | Connection Reset | Common | Push trap (3 turns). |
+| 1 | Heartbleed | Uncommon | +1 energy per capture this match. |
+| 1 | Bookmark | Uncommon | Apply Retain to a hand card. |
+| 1 | Extract | Uncommon | Swap your piece with an enemy non-King. |
+| 1 | Format C: | Rare | Destroy any enemy non-King piece. |
+
 ## Drafting from scratch
 
 If the player picks **Draft new deck**, they build a deck via repeated 1-of-3 picks:
@@ -70,7 +102,7 @@ Cards already drafted may show up again in later rounds — multiples in the dec
 
 ## Rationale
 
-- **Identity at run-start.** Every run begins with a clear strategic shape (control, tempo, structure) instead of the same 12-card grab-bag. The pre-made decks teach the archetypes; the draft path lets a confident player roll their own.
+- **Identity at run-start.** Every run begins with a clear strategic shape (control, aggro, structure, swarm, combo) instead of the same 12-card grab-bag. The pre-made decks teach the archetypes; the draft path lets a confident player roll their own.
 - **Power floor.** Both paths come with a starting artifact, so the run never opens artifact-empty. Pre-made decks ship a thematically aligned uncommon; the draft path ends in an uncommon-artifact pick from the full pool.
 - **No Cache Warmup or Bookmark in the curated decks (mostly).** Cache Warmup ships only with Architect (where +2-energy-next-turn buys a Garrison Mode setup turn) and Bookmark only with Sysadmin (banking Exploit across turns). The other decks are deliberately a touch pinched on tempo/banking so the shop's first purchase still matters.
 - **Patches come from captures, not the deck.** Capture-grants-Patch keeps every starting deck refreshing organically during play.
