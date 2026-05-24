@@ -6,7 +6,7 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 
 ## Overclock
 
-- **Cost:** 2
+- **Cost:** 5
 - **Rarity:** Common
 - **Target:** own piece
 - **Effect:** Target own piece may take **2 actions** this turn (moves and captures).
@@ -14,7 +14,7 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 
 ## Sudo
 
-- **Cost:** 3
+- **Cost:** 7
 - **Rarity:** Rare
 - **Keywords:** **Consume**
 - **Target:** own pawn
@@ -24,7 +24,7 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 
 ## Hot Swap
 
-- **Cost:** 1
+- **Cost:** 3
 - **Rarity:** Common
 - **Target:** own non-King piece
 - **Effect:** Play before your chess move. After your move resolves, take a bonus move with a **different** friendly piece. The bonus move cannot capture.

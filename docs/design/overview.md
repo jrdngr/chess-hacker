@@ -40,8 +40,8 @@ See [`progression.md`](progression.md) for the post-match flow in detail and the
 
 A single match is a chess game with two augmentations:
 
-1. The player's side has a **deck of cards** drawn from across the run. They start the match with 5 cards in hand and refill to 5 at the start of each of their turns.
-2. The player gains **3 energy at the start of every turn** to spend playing cards. Energy does **not** bank — unspent energy is wiped at end-of-turn. Cards cost 0–4 energy (4 is the haymaker cap). Every played card is removed for the rest of the match — no reshuffle.
+1. The player's side has a **deck of cards** drawn from across the run. They start the match with 3 cards in hand. Cards **persist** between turns — unplayed cards stay in hand. The player draws 2 cards at the start of each turn (up to a hand limit of 7) and must discard exactly 1 card at the end of each turn.
+2. The player has a **persistent energy pool** that accumulates across turns. They gain +1 energy passively each turn, plus energy equal to the **standard chess piece value** of each enemy piece they capture (Pawn=1, Knight/Bishop=3, Rook=5, Queen=9). Energy caps at 20. Cards cost 0–15 energy (haymakers sit at 12–15).
 
 On the player's turn, the player may **play any number of cards** (limited only by energy and hand contents), then make exactly one chess move. Cards are mostly played during the player's own turn, before or after the move; some specific card effects may target the move itself (e.g. "this turn, your knight may also move 1 square diagonally"). There are **no reactions** on the opponent's turn in the prototype.
 

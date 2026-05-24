@@ -4,7 +4,7 @@ Summon cards create new pieces on empty squares.
 
 ## Reinforce
 
-- **Cost:** 4
+- **Cost:** 8
 - **Rarity:** Rare
 - **Target:** an empty square in your half (ranks 1..⌊totalRanks/2⌋)
 - **Effect:** Place a new player pawn on the targeted square. The piece behaves like a normal pawn from that point — including the start-rank double-push gate.
@@ -12,7 +12,7 @@ Summon cards create new pieces on empty squares.
 
 ## Fork
 
-- **Cost:** 3
+- **Cost:** 6
 - **Rarity:** Uncommon
 - **Target:** one of your non-King pieces + a king-step-adjacent empty square (two-step pick)
 - **Effect:** Summon a pawn on the targeted adjacent empty square.
@@ -21,10 +21,10 @@ Summon cards create new pieces on empty squares.
 
 ## Git Revert
 
-- **Cost:** 4
+- **Cost:** 8
 - **Rarity:** Rare
 - **Keywords:** **Consume**
 - **Target:** a friendly piece that was captured or destroyed this match (chosen from a list), then an empty square in your half
 - **Effect:** Choose a friendly piece that was removed from the board this match (by enemy capture, sacrifice, trap, or any other means). Place it on any empty square in your half of the board.
 - **Upgrade (Git Revert+):** The revived piece enters with **Shield** (captures targeting it are illegal until your next turn).
-- **Design note:** resurrection at the cost cap. Undoes the opponent's best capture or lets you sacrifice a piece with kill -9 / Self-Destruct and bring it back — though the combo costs 5+ energy across two turns and burns two Consume cards, so it's a one-shot per match. The own-half placement restriction prevents dropping a queen behind enemy lines. The piece revives with no statuses — it's a fresh start. The upgrade granting Shield gives the revived piece a turn of protection to get settled. Kings cannot be "captured" so they never appear in the eligible list.
+- **Design note:** resurrection at the expensive tier. Undoes the opponent's best capture or lets you sacrifice a piece with Self-Destruct and bring it back — though the combo costs 10 energy and burns two Consume cards, so it's a major commitment. The own-half placement restriction prevents dropping a queen behind enemy lines. The piece revives with no statuses — it's a fresh start. The upgrade granting Shield gives the revived piece a turn of protection to get settled. Kings cannot be "captured" so they never appear in the eligible list.

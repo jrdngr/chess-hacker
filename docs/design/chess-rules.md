@@ -58,20 +58,20 @@ In **Standard / Royal**, promotion is unlimited.
 
 In **Skirmish**, promotion is allowed and the promoted piece exists for the rest of the match only. Promotion does **not** add to the persistent roster.
 
-## Capture-grants-Patch (card-system extension)
+## Capture-grants-Energy (card-system extension)
 
-When the **player** captures an enemy piece during their chess move, the matching Patch card is shuffled into the player's draw pile:
+When the **player** captures an enemy piece during their chess move, energy equal to the captured piece's **standard chess piece value** is immediately added to the player's energy pool:
 
-- pawn → Pawn Patch
-- knight → Knight Patch
-- bishop → Bishop Patch
-- rook → Rook Patch
-- queen → Queen Patch
+- pawn → +1 energy
+- knight → +3 energy
+- bishop → +3 energy
+- rook → +5 energy
+- queen → +9 energy
 - king → (never reachable; the game ends on checkmate)
 
-This is an addition to standard rules — the chess movement and legality are unchanged, but the card-system reaches in and inserts a card on every successful player-side capture. The opposite direction (AI capturing one of the player's pieces) does **not** grant anything: souls flow *to* the player only.
+Energy is capped at 20; excess is lost. This is an addition to standard rules — the chess movement and legality are unchanged, but the energy system rewards aggressive piece capture. The opposite direction (AI capturing one of the player's pieces) does **not** grant energy: energy from captures flows *to* the player only.
 
-See [`cards.md`](cards.md) "Card economy" for the bigger picture and [`../cards/movement-extension.md`](../cards/movement-extension.md) for what the granted Patch cards actually do when played.
+See [`cards.md`](cards.md) for the energy system details.
 
 ## Check
 

@@ -49,7 +49,7 @@ export type AlgebraicSquare = string;
 // ---- Cards (M3) -------------------------------------------------------------
 
 export type CardId = string;
-export type CardCost = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+export type CardCost = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15;
 export type CardRarity = "common" | "uncommon" | "rare";
 export type CardArchetype =
   | "tempo"
@@ -645,6 +645,7 @@ export type ArtifactEffect =
   | { kind: "start-energy-bonus"; amount: number }
   | { kind: "energy-per-turn-bonus"; amount: number }
   | { kind: "card-cost-discount"; archetype?: CardArchetype; amount: number }
+  | { kind: "card-cost-percentage-discount"; archetype?: CardArchetype; percent: number }
   | { kind: "gold-on-match-start"; amount: number }
   | { kind: "draw-on-capture"; count: number }
   | { kind: "energy-on-capture"; amount: number }

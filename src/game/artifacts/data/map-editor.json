@@ -2,7 +2,7 @@
   "id": "map-editor",
   "name": "Map Editor",
   "rarity": "uncommon",
-  "description": "Spatial cards cost 1 less (minimum 0).",
+  "description": "Spatial cards cost 25% less (round down, minimum 0).",
   "emoji": "🗺️",
-  "effects": [{ "kind": "card-cost-discount", "archetype": "spatial", "amount": 1 }]
+  "effects": [{ "kind": "card-cost-percentage-discount", "archetype": "spatial", "percent": 25 }]
 }

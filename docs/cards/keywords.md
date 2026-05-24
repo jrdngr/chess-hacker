@@ -66,9 +66,9 @@ A hasted piece **may move a second time on the same turn**. The **first move can
 
 An empowered piece **gains an additional movement pattern**, defined per card (e.g., "knight L-shape", "diagonal slide", "pawn forward step"). The piece keeps its normal moveset *and* the granted pattern; it picks one to use. Patterns stack — multiple Empower effects on the same piece coexist.
 
-**Empower-granted patterns are never capturing.** A piece may only capture using its native moveset; the granted pattern is movement-only. This rule applies to every Empower source — Patch cards, the pawn-flavored Side Channel / Lateral Movement cards, and the Polished Bishop / Cavalry Doctrine artifacts. A rook with a Knight Patch can use the L-shape to reposition to an empty square, but it cannot use the L-shape to take an enemy piece; the rook still captures normally along files and ranks.
+**Empower-granted patterns are never capturing.** A piece may only capture using its native moveset; the granted pattern is movement-only. This rule applies to every Empower source — the pawn-flavored Side Channel / Lateral Movement cards, and the Polished Bishop / Cavalry Doctrine artifacts. A rook with a granted knight L-shape can use the L-shape to reposition to an empty square, but it cannot use the L-shape to take an enemy piece; the rook still captures normally along files and ranks.
 
-- **Duration:** card-specified. The **Patch** family (Pawn / Knight / Bishop / Rook / Queen Patch) is **single-use this turn**: the status lasts the current turn AND drops immediately if the player moves a different piece first. Either way, the status drops if the empowered piece is captured or sacrificed.
+- **Duration:** card-specified. Side Channel and Lateral Movement are **single-use this turn**: the status lasts the current turn AND drops immediately if the player moves a different piece first. Either way, the status drops if the empowered piece is captured or sacrificed.
 - **Patterns currently in the prototype:**
   - **knight** — knight L-shape (ignores blockers).
   - **bishop** — diagonal slide (blocked normally).
@@ -78,7 +78,7 @@ An empowered piece **gains an additional movement pattern**, defined per card (e
   - **king-step** — one square in any direction (the king's native move). Used by the Polished Bishop and Cavalry Doctrine artifacts to give bishops and knights a 1-square ortho-step option.
   - **diagonal-step** — one square in any of the four diagonal directions. Used by Side Channel.
   - **horizontal-step** — one square left or right. Used by Lateral Movement.
-- **Edge cases:** the granted pattern follows the same blocking rules as a real piece of that move-type. Granting a pattern the piece already covers is a no-op (e.g. Bishop Patch on a queen). Because Empower never captures, occupied destinations are simply not legal under the granted pattern, even if the same square would be a legal capture under the piece's native moveset.
+- **Edge cases:** the granted pattern follows the same blocking rules as a real piece of that move-type. Granting a pattern the piece already covers is a no-op (e.g. bishop slide on a queen). Because Empower never captures, occupied destinations are simply not legal under the granted pattern, even if the same square would be a legal capture under the piece's native moveset.
 
 ## Square / board effects
 
@@ -104,7 +104,6 @@ A square that **triggers an effect when an enemy piece enters or passes through 
 
 - **Trap (capture)** — the entering piece is removed from the board (counts as a capture for any "on capture" effects).
 - **Trap (freeze)** — the entering piece is frozen for 1 turn (see Freeze).
-- **Trap (push)** — the entering piece is pushed back 1 square along its movement path; if that square is occupied or off the board, the push fails and the Trap remains armed.
 
 The Trap dissolves on trigger. It does not affect your own pieces.
 
@@ -113,38 +112,29 @@ The Trap dissolves on trigger. It does not affect your own pieces.
 
 ## Card-flow keywords
 
-The hand discards at end of turn. A new hand of 5 is drawn at the start of every player turn. The discard pile reshuffles into the draw pile when the draw pile is empty mid-draw. Two keywords carve out exceptions to that default.
-
-### Retain
-
-A card with **Retain** stays in your hand at end-of-turn discards. It only leaves your hand when you play it. Retain can be applied two ways:
-
-- **Inherent**: the card definition declares `retain: true`. None of the prototype cards have inherent Retain.
-- **Granted**: the **Bookmark** card applies Retain to a chosen card in your hand for the rest of the match. Bookmark itself does not have Retain.
-
-Retain ends when the card is played.
+Cards persist in hand between turns. The player draws 2 cards at the start of each turn (up to hand limit 7) and must discard exactly 1 card at end of turn. The discard pile reshuffles into the draw pile when the draw pile is empty mid-draw.
 
 ### Consume
 
-A card with **Consume** is removed from the match when played — it lands in the consumed pile and never re-enters the cycle. Cards in the consumed pile are not eligible for revival via Restore Point or Restore from Backup.
+A card with **Consume** is removed from the match when played — it lands in the consumed pile and never re-enters the cycle. Cards in the consumed pile are not eligible for revival via Restore from Backup.
 
-- Used for haymakers (Format C:, Exploit), Patches (Pawn / Knight / Bishop / Rook / Queen), Remote Access, Restore from Backup, kill -9.
+- Used for haymakers (Format C:, Exploit, Garbage Collect), Remote Access, Restore from Backup, Self-Destruct, Buffer Overflow, and others.
 - Without Consume, cards land in the discard pile when played and cycle back into the draw pile when it empties.
 
 ### Discard & cycle
 
-Played cards without Consume go to the **discard pile**. End-of-turn dumps every non-retained hand card into the discard pile. When the draw pile is empty mid-draw, the discard pile is shuffled to form a new draw pile and drawing continues.
+Played cards without Consume go to the **discard pile**. At end of turn, the forced discard sends 1 card from hand to the discard pile. When the draw pile is empty mid-draw, the discard pile is shuffled to form a new draw pile and drawing continues.
 
 ### Revive
 
-A card whose effect returns one card from your **discard pile** to your hand. Restore Point picks at random; Restore from Backup prompts you to choose. Revivers cannot reach into the consumed pile — Consume cards are gone for the match.
+A card whose effect returns one card from your **discard pile** to your hand. Restore from Backup prompts you to choose. Revivers cannot reach into the consumed pile — Consume cards are gone for the match.
 
 ### "+" (Upgraded)
 
 A card whose name ends in **+** is the upgraded variant of its base card —
 stronger numbers, lower cost, an added keyword, or some combination thereof.
 Every base card has exactly one `+` form. The `+` variant is never offered in
-shops, packs, or Patch grants; the only way to acquire one is to use the
+shops or packs; the only way to acquire one is to use the
 shop's **Smith** service on an existing deck card. Upgrade is single-tier —
 there are no `++` cards. See [`../design/cards.md`](../design/cards.md) for
 authoring and [`../design/economy.md`](../design/economy.md) for pricing.

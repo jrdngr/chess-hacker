@@ -11,7 +11,6 @@ import type {
   Artifact,
   Card,
   CardEffect,
-  CardId,
   EmpowerStatus,
   HandCard,
   LightningStatus,
@@ -36,34 +35,41 @@ import {
   zoneBuffHandSize,
   type ZoneBoardContext,
 } from "../overlays/zoneBuffs";
-import { applyEffect, cloneCardDef } from "./effectHandlers";
-import { getCardById } from "./library";
+import { applyEffect } from "./effectHandlers";
 
 /** Per `docs/design/cards.md`. */
-export const HAND_SIZE = 5;
-/**
- * Energy granted at the start of every player turn. Energy does NOT bank —
- * unspent energy is wiped at end-of-turn alongside the hand. Cards cost
- * 0–4. `STARTING_ENERGY` is kept as an alias for code that historically
- * read turn-1's energy separately; the two are now the same value.
- */
-export const ENERGY_PER_TURN = 3;
-export const STARTING_ENERGY = ENERGY_PER_TURN;
+export const HAND_SIZE = 7;
+/** Passive energy gained at the start of every player turn. */
+export const ENERGY_PER_TURN = 1;
+/** Energy at match start (before first turn). */
+export const STARTING_ENERGY = 0;
+/** Cards drawn at the start of each player turn. */
+export const DRAW_PER_TURN = 2;
+/** Cards drawn as the opening hand at match start. */
+export const STARTING_HAND_SIZE = 3;
 
-/**
- * Energy is no longer banked, so there is no upper cap from the engine —
- * Power cards and Cache Warmup can drive a single turn well past the
- * baseline. The clamp only enforces a non-negative floor.
- */
+/** Energy cap — excess energy is lost. */
+export const ENERGY_CAP = 20;
+
 export function clampEnergy(n: number): number {
   if (n < 0) return 0;
+  if (n > ENERGY_CAP) return ENERGY_CAP;
   return n;
 }
 
+/** Standard chess piece values for capture-grants-energy. */
+export const PIECE_ENERGY_VALUES: Record<PieceType, number> = {
+  pawn: 1,
+  knight: 3,
+  bishop: 3,
+  rook: 5,
+  queen: 9,
+  king: 0,
+};
+
 /**
  * Sentinel value used by tests that want "more than enough energy to play
- * any card" — kept as an export so legacy callers still compile. It is *not*
- * an enforced cap; in the post-banking model there is no upper cap.
+ * any card" — kept as an export so legacy callers still compile.
  */
 export const ENERGY_MAX = 99;
 
@@ -95,9 +101,9 @@ export function shuffle<T>(arr: ReadonlyArray<T>, rng: Rng = Math.random): T[] {
 }
 
 /**
- * Initial match state: deck shuffled into the draw pile, hand empty,
- * energy 0, turn 0. Caller should immediately follow with `startPlayerTurn`
- * to deal the opening hand and set turn = 1, energy = STARTING_ENERGY.
+ * Initial match state: deck shuffled into the draw pile, starting hand
+ * drawn (STARTING_HAND_SIZE cards), energy at STARTING_ENERGY, turn 0.
+ * Caller should immediately follow with `startPlayerTurn` to begin turn 1.
  *
  * Artifacts default to none — callers in a real run should pass the run's
  * artifact list so per-match modifiers (hand size, energy, discounts,
@@ -108,9 +114,14 @@ export function createMatchCardState(
   rng: Rng = Math.random,
   artifacts: ReadonlyArray<Artifact> = [],
 ): MatchCardState {
+  const shuffled = shuffle(deck, rng);
+  const startingHand: HandCard[] = [];
+  for (let i = 0; i < STARTING_HAND_SIZE && shuffled.length > 0; i++) {
+    startingHand.push({ card: shuffled.shift()!, retained: false });
+  }
   return {
-    hand: [],
-    drawPile: shuffle(deck, rng),
+    hand: startingHand,
+    drawPile: shuffled,
     discardPile: [],
     consumedPile: [],
     acquisitionLog: deck.slice(),
@@ -167,21 +178,22 @@ function zoneBuffsFromArtifacts(artifacts: ReadonlyArray<Artifact>): ZoneBuff[] 
  * the consumed pile never re-enter the cycle. If both piles are empty, the
  * remaining draws fizzle.
  *
- * Note: cards drawn this way may push the hand above HAND_SIZE — the size
- * cap only applies to the start-of-turn auto-refill (see `refillHand`).
- *
- * Drawn cards become hand slots with `retained: false`; Retain is applied
- * later by Bookmark (see `applyEffect` for `apply-retain-to-hand-card`).
+ * When `respectHandLimit` is true (default false), drawing stops when the
+ * hand reaches the effective hand size (HAND_SIZE + artifact bonuses). The
+ * start-of-turn draw uses this; card effects that say "draw N" do not.
  */
 export function drawCards(
   state: MatchCardState,
   n: number,
   rng: Rng = Math.random,
+  respectHandLimit = false,
 ): MatchCardState {
+  const handLimit = respectHandLimit ? effectiveHandSize(state.artifacts ?? []) : Infinity;
   const hand = state.hand.slice();
   let drawPile = state.drawPile.slice();
   let discardPile = state.discardPile.slice();
   for (let i = 0; i < n; i++) {
+    if (respectHandLimit && hand.length >= handLimit) break;
     if (drawPile.length === 0) {
       if (discardPile.length === 0) break;
       drawPile = shuffle(discardPile, rng);
@@ -193,23 +205,34 @@ export function drawCards(
 }
 
 /**
- * Draw until the hand is at the effective hand size (HAND_SIZE plus any
- * artifact bonuses, plus any active zone-buff `hand-size` bonuses); never
- * trims an oversized hand. `ctx` is optional — without it, zone-buffs are
- * skipped (e.g., legacy tests that don't model the chess board).
+ * Draw DRAW_PER_TURN cards (+ any Power draw bonuses), stopping if the hand
+ * reaches the effective hand size (HAND_SIZE + artifact bonuses + zone-buff
+ * bonuses). Cards persist between turns — this is NOT a refill-to-cap.
  */
 export function refillHand(
   state: MatchCardState,
   rng: Rng = Math.random,
   ctx?: ZoneBoardContext,
 ): MatchCardState {
-  const target =
-    effectiveHandSize(state.artifacts ?? []) +
-    zoneBuffsHandSizeFor(state, ctx) +
-    powerDrawBonus(state);
-  const need = target - state.hand.length;
-  if (need <= 0) return state;
-  return drawCards(state, need, rng);
+  const drawCount = DRAW_PER_TURN + powerDrawBonus(state);
+  if (drawCount <= 0) return state;
+  const handLimitWithBonuses =
+    effectiveHandSize(state.artifacts ?? []) + zoneBuffsHandSizeFor(state, ctx);
+  const drawState = { ...state, artifacts: state.artifacts ?? [] };
+  // Temporarily set hand limit for the draw call
+  const hand = state.hand.slice();
+  let drawPile = state.drawPile.slice();
+  let discardPile = state.discardPile.slice();
+  for (let i = 0; i < drawCount; i++) {
+    if (hand.length >= handLimitWithBonuses) break;
+    if (drawPile.length === 0) {
+      if (discardPile.length === 0) break;
+      drawPile = shuffle(discardPile, rng);
+      discardPile = [];
+    }
+    hand.push({ card: drawPile.shift()!, retained: false });
+  }
+  return { ...drawState, hand, drawPile, discardPile };
 }
 
 /** Sum of all "draw-per-turn" Power effects on this match. */
@@ -240,21 +263,23 @@ function powerExtraMoves(state: MatchCardState): number {
 }
 
 /**
- * End-of-turn discard: every non-retained hand slot is moved to the discard
- * pile. Retained cards (Bookmark, or an inherent Retain keyword) stay in
- * hand until played.
+ * Forced end-of-turn discard: the player chooses one card from hand to
+ * discard. In the new persistent-hand system, cards stay in hand between
+ * turns — only the forced discard moves cards to the discard pile.
+ */
+export function discardCardFromHand(state: MatchCardState, handIndex: number): MatchCardState {
+  if (handIndex < 0 || handIndex >= state.hand.length) return state;
+  const hand = state.hand.slice();
+  const [removed] = hand.splice(handIndex, 1);
+  return { ...state, hand, discardPile: [...state.discardPile, removed.card] };
+}
+
+/**
+ * @deprecated Legacy alias. In the new persistent-hand system, cards stay
+ * between turns. This no-ops so callers that still reference it don't crash.
  */
 export function discardHandAtTurnEnd(state: MatchCardState): MatchCardState {
-  const keep: HandCard[] = [];
-  const discardPile = state.discardPile.slice();
-  for (const slot of state.hand) {
-    if (slot.retained || slot.card.retain) {
-      keep.push(slot);
-    } else {
-      discardPile.push(slot.card);
-    }
-  }
-  return { ...state, hand: keep, discardPile };
+  return state;
 }
 
 function zoneBuffsHandSizeFor(state: MatchCardState, ctx?: ZoneBoardContext): number {
@@ -276,20 +301,16 @@ function zoneBuffsEnergyPerTurnFor(state: MatchCardState, ctx?: ZoneBoardContext
  *  - Increment turn counter.
  *  - Expire walls / freezes / sanctuaries / traps / debuffs / shields /
  *    one-turn buffs (haste/empower/lightning) whose `expiresOnTurn <= turn`.
- *  - Refill hand to HAND_SIZE (+ artifact / zone-buff / Power bonuses).
- *  - Reset energy to the per-turn baseline (no banking): ENERGY_PER_TURN
- *    + artifact bonuses + zone-buff bonus + Power bonus + queued / pending
- *    one-shot grants - any greed penalty.
+ *  - Draw DRAW_PER_TURN cards (up to hand limit).
+ *  - Add ENERGY_PER_TURN to the persistent energy pool (+ artifact bonuses
+ *    + zone-buff bonus + Power bonus + queued/pending one-shot grants
+ *    - any greed penalty). Energy is capped at ENERGY_CAP.
  */
 export function startPlayerTurn(
   state: MatchCardState,
   rng: Rng = Math.random,
   ctx?: ZoneBoardContext,
 ): MatchCardState {
-  // Turn 1 has no previous turn to clean up; turn 2+ discards last turn's
-  // un-retained hand cards into the discard pile before refilling.
-  const cleared = state.turn === 0 ? state : discardHandAtTurnEnd(state);
-  state = cleared;
   const turn = state.turn + 1;
   const alive = <T extends { expiresOnTurn: number }>(arr: T[]) =>
     arr.filter((x) => x.expiresOnTurn > turn);
@@ -313,14 +334,14 @@ export function startPlayerTurn(
   // Cache Warmup et al — bonus carried into this start-of-turn from the
   // previous turn's plays. Cleared after applying.
   const pendingNextTurnEnergy = state.pendingEnergyNextTurn ?? 0;
-  const energy = clampEnergy(
+  const energyGain =
     effectiveEnergyPerTurn(artifacts) +
-      powerEnergyBonus(tickedState) +
-      zoneEnergyBonus +
-      queuedCaptureEnergy +
-      pendingNextTurnEnergy -
-      greedPenalty,
-  );
+    powerEnergyBonus(tickedState) +
+    zoneEnergyBonus +
+    queuedCaptureEnergy +
+    pendingNextTurnEnergy -
+    greedPenalty;
+  const energy = clampEnergy(state.energy + energyGain);
   // Mutex Lock snapshot/decrement. This runs at the top of each player turn,
   // i.e. between two opponent turns from the lock's perspective. For each
   // active lock:
@@ -1141,36 +1162,29 @@ export function completeRevive(state: MatchCardState, cardIndex: number): MatchC
 }
 
 /**
- * Capture-grants-Patch: when the player captures an enemy non-king piece,
- * splice the matching Patch card into the player's draw pile. No-op for
- * opponent captures, missing pieces, or kings (which can't be captured).
- *
- * The mapping (pawn/knight/bishop/rook/queen → corresponding Patch) is
- * fixed; missing patch cards in the library no-op safely.
+ * Capture-grants-Energy: when the player captures an enemy non-king piece,
+ * add the piece's standard chess value to the player's energy pool. No-op
+ * for opponent captures, missing pieces, or kings (which can't be captured).
  */
-export function grantPatchOnCapture(
+export function grantEnergyOnCapture(
   state: MatchCardState,
   captured: Piece | null,
   by: Side,
-  rng: Rng = Math.random,
 ): MatchCardState {
   if (by !== "player") return state;
   if (!captured || captured.side !== "opponent") return state;
-  const patchId = PATCH_BY_PIECE_TYPE[captured.type];
-  if (!patchId) return state;
-  let patch: Card;
-  try {
-    patch = cloneCardDef(getCardById(patchId));
-  } catch {
-    return state;
-  }
-  return shuffleIntoDraw(state, patch, rng);
+  const value = PIECE_ENERGY_VALUES[captured.type] ?? 0;
+  if (value === 0) return state;
+  return { ...state, energy: clampEnergy(state.energy + value) };
 }
 
-const PATCH_BY_PIECE_TYPE: Partial<Record<PieceType, CardId>> = {
-  pawn: "pawn-patch",
-  knight: "knight-patch",
-  bishop: "bishop-patch",
-  rook: "rook-patch",
-  queen: "queen-patch",
-};
+/**
+ * @deprecated Legacy alias. Use `grantEnergyOnCapture` instead.
+ * Kept so call sites compile during migration.
+ */
+export const grantPatchOnCapture = (
+  state: MatchCardState,
+  captured: Piece | null,
+  by: Side,
+  _rng?: Rng,
+): MatchCardState => grantEnergyOnCapture(state, captured, by);

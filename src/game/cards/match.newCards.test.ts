@@ -57,7 +57,7 @@ describe("Race Condition (swap-enemy-pieces)", () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.sideEffects).toEqual([{ kind: "swap-pieces", a: "a8", b: "h8" }]);
-    expect(r.state.energy).toBe(10 - 2);
+    expect(r.state.energy).toBe(10 - card.cost);
   });
 
   it("rejects same-square pick", () => {
@@ -285,7 +285,7 @@ describe("Garbage Collect", () => {
     const rng = makeRng(140);
     const base = getCardById("garbage-collect");
     let st = startPlayerTurn(createMatchCardState([base], rng), rng);
-    st = { ...st, energy: 10 };
+    st = { ...st, energy: 20 };
     const idx = st.hand.findIndex((s) => s.card.id === "garbage-collect");
     const ctx = withPieces({});
     const r = playCard(st, idx, { kind: "none" }, ctx, rng);
@@ -299,7 +299,7 @@ describe("Garbage Collect", () => {
     const rng = makeRng(141);
     const upg = getCardById("garbage-collect+");
     let st = startPlayerTurn(createMatchCardState([upg], rng), rng);
-    st = { ...st, energy: 10 };
+    st = { ...st, energy: 20 };
     const idx = st.hand.findIndex((s) => s.card.id === "garbage-collect+");
     const ctx = withPieces({});
     const r = playCard(st, idx, { kind: "none" }, ctx, rng);

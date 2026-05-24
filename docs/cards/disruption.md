@@ -6,7 +6,7 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 
 ## Freeze Process
 
-- **Cost:** 2
+- **Cost:** 4
 - **Rarity:** Common
 - **Target:** enemy piece
 - **Effect:** Target enemy piece: **Freeze** for its next turn.
@@ -14,7 +14,7 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 
 ## chroot
 
-- **Cost:** 1
+- **Cost:** 2
 - **Rarity:** Common
 - **Target:** enemy piece
 - **Effect:** Target enemy piece: **Root** for its next turn.
@@ -22,7 +22,7 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 
 ## Read-Only
 
-- **Cost:** 1
+- **Cost:** 2
 - **Rarity:** Common
 - **Target:** enemy piece
 - **Effect:** Target enemy piece: **Disarm** for its next turn.
@@ -30,7 +30,7 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 
 ## Phishing
 
-- **Cost:** 2
+- **Cost:** 4
 - **Rarity:** Uncommon
 - **Target:** enemy piece
 - **Effect:** Target enemy piece: **Compel** on its next turn.
@@ -38,7 +38,7 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 
 ## Rollback
 
-- **Cost:** 2
+- **Cost:** 6
 - **Rarity:** Uncommon
 - **Target:** none
 - **Effect:** Reverse the opponent's most recent chess move: their piece returns to where it came from, and any captured player piece is restored. **It remains your turn** — the move is undone, but you do not lose tempo.
@@ -46,7 +46,7 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 
 ## Downgrade
 
-- **Cost:** 2
+- **Cost:** 4
 - **Rarity:** Uncommon
 - **Target:** enemy non-King piece
 - **Effect:** Target enemy piece is **Downgraded** for 2 turns: it loses its native movement and moves as a pawn (1 square forward, diagonal capture only).
@@ -55,10 +55,10 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 
 ## Bit Flip
 
-- **Cost:** 3
+- **Cost:** 10
 - **Rarity:** Rare
 - **Keywords:** **Consume**
 - **Target:** enemy minor piece (knight, bishop, or pawn)
 - **Effect:** Convert the target enemy piece to your side. It stays on its current square but is now yours — you control it from your next move onward.
 - **Upgrade (Bit Flip+):** Can also target rooks.
-- **Design note:** the single most disruptive card in the pool — a net two-piece material swing (they lose one, you gain one). Restricted to minor pieces to prevent instant-win scenarios (no queen/king conversion). The upgrade opening rooks is a significant power spike. Consume + Rare + cost 3 means this is a one-shot haymaker that competes for the turn's budget.
+- **Design note:** the single most disruptive card in the pool — a net two-piece material swing (they lose one, you gain one). Restricted to minor pieces to prevent instant-win scenarios (no queen/king conversion). The upgrade opening rooks is a significant power spike. Consume + Rare + cost 10 means this requires a big capture or patient saving — a major commitment for a major swing.

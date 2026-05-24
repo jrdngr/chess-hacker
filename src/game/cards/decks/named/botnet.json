@@ -3,14 +3,14 @@
   "description": "Summon + sacrifice. Spawn disposable pieces, trade them for explosive value, overwhelm.",
   "artifactId": "promotion-engine",
   "cards": [
-    { "id": "port-scan", "count": 1 },
+    { "id": "encrypted", "count": 1 },
     { "id": "stack-trace", "count": 1 },
-    { "id": "cache-warmup", "count": 1 },
+    { "id": "restore-from-backup", "count": 1 },
     { "id": "sprint", "count": 1 },
     { "id": "vanguard", "count": 1 },
     { "id": "overclock", "count": 1 },
     { "id": "fork", "count": 1 },
-    { "id": "kill-9", "count": 1 },
+    { "id": "firewall", "count": 1 },
     { "id": "self-destruct", "count": 1 },
     { "id": "buffer-overflow", "count": 1 }
   ]

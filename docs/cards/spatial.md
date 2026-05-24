@@ -6,7 +6,7 @@ See [`keywords.md`](keywords.md) for keyword definitions and [`docs/design/board
 
 ## Firewall
 
-- **Cost:** 1
+- **Cost:** 2
 - **Rarity:** Common
 - **Target:** empty square
 - **Effect:** Place a **Wall** on an empty square. Lasts 3 turns.
@@ -14,7 +14,7 @@ See [`keywords.md`](keywords.md) for keyword definitions and [`docs/design/board
 
 ## Trusted Zone
 
-- **Cost:** 2
+- **Cost:** 4
 - **Rarity:** Uncommon
 - **Target:** any unwalled square (occupied is fine)
 - **Effect:** Place a **Sanctuary** on a square. Pieces standing there can't be captured. Lasts 3 turns.
@@ -22,7 +22,7 @@ See [`keywords.md`](keywords.md) for keyword definitions and [`docs/design/board
 
 ## Logic Bomb
 
-- **Cost:** 2
+- **Cost:** 6
 - **Rarity:** Uncommon
 - **Target:** empty square
 - **Effect:** Place a **Trap** on an empty square. The first enemy piece to enter is **captured**. Lasts 4 turns.
@@ -30,31 +30,23 @@ See [`keywords.md`](keywords.md) for keyword definitions and [`docs/design/board
 
 ## Honeypot
 
-- **Cost:** 1
+- **Cost:** 2
 - **Rarity:** Common
 - **Target:** empty square
 - **Effect:** Place a **Trap** on an empty square. The first enemy piece to enter is **frozen** for 1 turn. Lasts 3 turns.
 - **Design note:** the introductory trap card — cheap, low-stakes, teaches the trigger pattern. The freeze it applies is the same Freeze as Freeze Process, so the player learns one effect across two cards.
 
-## Connection Reset
-
-- **Cost:** 1
-- **Rarity:** Common
-- **Target:** empty square
-- **Effect:** Place a **Trap** on an empty square. The first enemy piece to enter is **pushed** back 1 square along its movement path. Lasts 3 turns.
-- **Design note:** the displacement trap. Useful for fork-prevention and as a low-cost way to break opposing tempo without removing material. Push direction is opposite the piece's movement vector — a knight pushed back lands on its origin square if it's empty.
-
 ## Power Node
 
 - **Cost:** 3
 - **Rarity:** Uncommon
-- **Target:** any unwalled square (occupied is fine)
-- **Effect:** Place a **Power Node** on a square. While you have a friendly piece on it or any orthogonally adjacent square, gain +1 energy at the start of your turn. Lasts 4 turns.
-- **Design note:** the prototype's first zone-control card. The aura encourages parking a piece near the stone, turning a positional choice into a tempo bonus. The orthogonal-only adjacency keeps it from blanket-buffing a whole castled cluster — you have to hold the line through the stone, not just stand near it. Cost 3 (was 2) reflects how strong a persistent +1/turn is in the no-banking world: it's nearly a half-Power, and 4 turns of contested control on a fresh anchor pays back the upfront 3 energy.
+- **Target:** none (placed automatically)
+- **Effect:** A **Power Node** spawns on a random square in the center of the board (center 4×4 on an 8×8 board, scaled proportionally for smaller boards). While you have a friendly piece on it or any orthogonally adjacent square, gain +1 energy at the start of your turn. Lasts 5 turns.
+- **Design note:** the prototype's first zone-control card. The random center placement creates a tactical scramble — both players must evaluate whether it's worth contesting. The aura encourages pushing a piece to the center, turning a positional choice into a tempo bonus. Cost 3 is speculative: you might not control the center, so the payoff is uncertain. Over 5 turns, the maximum return is +5 energy — a good deal if you maintain board control.
 
 ## Backdoor
 
-- **Cost:** 1
+- **Cost:** 3
 - **Rarity:** Uncommon
 - **Keywords:** **Consume**
 - **Target:** empty square

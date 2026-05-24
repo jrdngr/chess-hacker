@@ -1,14 +1,22 @@
 {
   "id": "firewall",
   "name": "Firewall",
-  "cost": 1,
+  "cost": 2,
   "rarity": "common",
   "archetype": "spatial",
   "description": "Wall on a square. 3 turns.",
-  "target": { "kind": "empty-square" },
-  "effect": { "kind": "place-wall", "durationTurns": 3 },
+  "target": {
+    "kind": "empty-square"
+  },
+  "effect": {
+    "kind": "place-wall",
+    "durationTurns": 3
+  },
   "upgrade": {
     "description": "Wall on a square. 5 turns.",
-    "effect": { "kind": "place-wall", "durationTurns": 5 }
+    "effect": {
+      "kind": "place-wall",
+      "durationTurns": 5
+    }
   }
 }

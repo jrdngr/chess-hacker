@@ -6,7 +6,7 @@
     { "id": "firewall", "count": 1 },
     { "id": "honeypot", "count": 1 },
     { "id": "reinforced-wall", "count": 1 },
-    { "id": "cache-warmup", "count": 1 },
+    { "id": "read-only", "count": 1 },
     { "id": "encrypted", "count": 1 },
     { "id": "stack-trace", "count": 1 },
     { "id": "power-node", "count": 1 },

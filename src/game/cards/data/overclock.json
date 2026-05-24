@@ -1,12 +1,17 @@
 {
   "id": "overclock",
   "name": "Overclock",
-  "cost": 2,
+  "cost": 5,
   "rarity": "common",
   "archetype": "tempo",
   "description": "Own piece takes 2 actions this turn.",
-  "target": { "kind": "own-piece" },
-  "effect": { "kind": "lightning-piece", "actions": 2 },
+  "target": {
+    "kind": "own-piece"
+  },
+  "effect": {
+    "kind": "lightning-piece",
+    "actions": 2
+  },
   "upgrade": {
     "cost": 1
   }

@@ -1,12 +1,18 @@
 {
   "id": "logic-bomb",
   "name": "Logic Bomb",
-  "cost": 2,
+  "cost": 6,
   "rarity": "uncommon",
   "archetype": "spatial",
   "description": "First enemy to enter is captured. 4 turns.",
-  "target": { "kind": "empty-square" },
-  "effect": { "kind": "place-trap", "trapEffect": "capture", "durationTurns": 4 },
+  "target": {
+    "kind": "empty-square"
+  },
+  "effect": {
+    "kind": "place-trap",
+    "trapEffect": "capture",
+    "durationTurns": 4
+  },
   "upgrade": {
     "cost": 1
   }

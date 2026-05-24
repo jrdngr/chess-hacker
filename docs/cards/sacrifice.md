@@ -1,21 +1,12 @@
 # Sacrifice cards
 
-Sacrifice cards destroy one of your own pieces in exchange for a strong effect. They give players a way to convert dead-weight material into resources or tempo.
+Sacrifice cards destroy one of your own pieces in exchange for a strong effect. They give players a way to convert dead-weight material into tempo or enemy removal.
 
 See [`keywords.md`](keywords.md) for keyword definitions.
 
-## kill -9
-
-- **Cost:** 1
-- **Rarity:** Uncommon
-- **Keywords:** **Consume**
-- **Target:** own non-King piece
-- **Effect:** Destroy one of your own non-King pieces; draw 2 cards and gain 1 energy this turn.
-- **Design note:** the introductory Sacrifice card. Net effect for 1 energy: lose a piece, draw 2, gain 1 energy — so the *real* cost is the piece, and the energy is back in the budget. Consume keeps it from looping into a deck-thinning engine; the King exclusion is non-negotiable.
-
 ## Buffer Overflow
 
-- **Cost:** 3
+- **Cost:** 7
 - **Rarity:** Rare
 - **Keywords:** **Consume**
 - **Target:** own non-King piece
@@ -25,10 +16,10 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 
 ## Self-Destruct
 
-- **Cost:** 1
+- **Cost:** 2
 - **Rarity:** Uncommon
 - **Keywords:** **Consume**
 - **Target:** own non-King piece
 - **Effect:** Destroy the targeted piece. Destroy all enemy non-King pieces on the 8 king-step-adjacent squares around it.
 - **Upgrade (Self-Destruct+):** Also draw 2 cards after the detonation resolves.
-- **Design note:** the AoE sacrifice — position a piece in the thick of the enemy formation, then detonate it. Compared to kill -9 (resource payoff: cards + energy) and Buffer Overflow (tempo payoff: allied actions), Self-Destruct's payoff is enemy removal. Cost 1 is low because you're also paying a piece and the card is Consume. Devastating when a pawn can be parked next to 2–3 enemy pieces. The enemy king is never destroyed (non-King restriction). Pieces destroyed by Self-Destruct are eligible for Git Revert resurrection — enabling a sacrifice→resurrect combo that costs 1 + 4 = 5 energy and two Consume cards, so it's a one-shot per-match play.
+- **Design note:** the AoE sacrifice — position a piece in the thick of the enemy formation, then detonate it. Compared to Buffer Overflow (tempo payoff: allied actions), Self-Destruct's payoff is enemy removal. Cost 2 is low because you're also paying a piece and the card is Consume. Devastating when a pawn can be parked next to 2–3 enemy pieces. The enemy king is never destroyed (non-King restriction). Pieces destroyed by Self-Destruct are eligible for Git Revert resurrection.

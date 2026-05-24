@@ -6,7 +6,7 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 
 ## Switch Files
 
-- **Cost:** 2
+- **Cost:** 4
 - **Rarity:** Uncommon
 - **Target:** two of your own pieces
 - **Effect:** Swap the positions of two of your own pieces.
@@ -14,7 +14,7 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 
 ## Remote Access
 
-- **Cost:** 3
+- **Cost:** 7
 - **Rarity:** Rare
 - **Keywords:** **Consume**
 - **Target:** enemy piece
@@ -25,7 +25,7 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 
 ## Extract
 
-- **Cost:** 3
+- **Cost:** 7
 - **Rarity:** Uncommon
 - **Target:** any enemy non-King piece + one of your pieces (two-step pick)
 - **Effect:** Swap the two pieces' positions. The chosen enemy ends up where your piece was; your piece takes the enemy's square.
@@ -33,7 +33,7 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 
 ## Race Condition
 
-- **Cost:** 2
+- **Cost:** 4
 - **Rarity:** Uncommon
 - **Target:** two enemy non-King pieces (two-step pick)
 - **Effect:** Swap the two enemy pieces' positions.

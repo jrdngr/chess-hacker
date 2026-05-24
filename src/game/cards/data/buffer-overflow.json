@@ -1,15 +1,25 @@
 {
   "id": "buffer-overflow",
   "name": "Buffer Overflow",
-  "cost": 3,
+  "cost": 7,
   "rarity": "rare",
   "archetype": "sacrifice",
   "consume": true,
   "description": "Destroy one of your non-King pieces. Each friendly piece adjacent (king-step) gets 1 free action this turn.",
-  "target": { "kind": "own-non-king-piece" },
-  "effect": { "kind": "sacrifice-blast-action", "pattern": "king-step", "actions": 1 },
+  "target": {
+    "kind": "own-non-king-piece"
+  },
+  "effect": {
+    "kind": "sacrifice-blast-action",
+    "pattern": "king-step",
+    "actions": 1
+  },
   "upgrade": {
     "description": "Destroy one of your non-King pieces. Each friendly piece within king-step or knight-jump gets 1 free action this turn.",
-    "effect": { "kind": "sacrifice-blast-action", "pattern": "king-step-and-knight", "actions": 1 }
+    "effect": {
+      "kind": "sacrifice-blast-action",
+      "pattern": "king-step-and-knight",
+      "actions": 1
+    }
   }
 }

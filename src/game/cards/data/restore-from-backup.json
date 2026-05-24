@@ -1,13 +1,18 @@
 {
   "id": "restore-from-backup",
   "name": "Restore from Backup",
-  "cost": 1,
+  "cost": 2,
   "rarity": "uncommon",
   "archetype": "resource",
   "consume": true,
   "description": "Return a card from your discard to your hand.",
-  "target": { "kind": "none" },
-  "effect": { "kind": "revive", "selection": "choose" },
+  "target": {
+    "kind": "none"
+  },
+  "effect": {
+    "kind": "revive",
+    "selection": "choose"
+  },
   "upgrade": {
     "consume": false
   }

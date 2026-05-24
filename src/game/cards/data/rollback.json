@@ -1,12 +1,16 @@
 {
   "id": "rollback",
   "name": "Rollback",
-  "cost": 2,
+  "cost": 6,
   "rarity": "uncommon",
   "archetype": "disruption",
   "description": "Undo opponent's last move; restore any captured piece.",
-  "target": { "kind": "none" },
-  "effect": { "kind": "undo-last-enemy-move" },
+  "target": {
+    "kind": "none"
+  },
+  "effect": {
+    "kind": "undo-last-enemy-move"
+  },
   "upgrade": {
     "cost": 1
   }

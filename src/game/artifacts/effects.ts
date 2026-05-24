@@ -51,11 +51,15 @@ export function effectiveEnergyPerTurn(artifacts: ReadonlyArray<Artifact>): numb
  * target a specific archetype or apply globally (no `archetype` field).
  */
 export function effectiveCardCost(card: Card, artifacts: ReadonlyArray<Artifact>): number {
-  let cost = card.cost;
+  let cost: number = card.cost;
   each(artifacts, (fx) => {
-    if (fx.kind !== "card-cost-discount") return;
-    if (fx.archetype !== undefined && fx.archetype !== card.archetype) return;
-    cost -= fx.amount;
+    if (fx.kind === "card-cost-discount") {
+      if (fx.archetype !== undefined && fx.archetype !== card.archetype) return;
+      cost -= fx.amount;
+    } else if (fx.kind === "card-cost-percentage-discount") {
+      if (fx.archetype !== undefined && fx.archetype !== card.archetype) return;
+      cost = Math.floor(cost * (1 - fx.percent / 100));
+    }
   });
   return Math.max(0, cost);
 }

@@ -4,21 +4,38 @@ The card system is the central self-expression mechanic. Cards augment chess; th
 
 ## Hand and deck
 
-- **Hand size:** 5 cards.
-- **Draw timing:** at the **start of each player turn**, discard every non-retained hand card into the discard pile, then draw until your hand is at 5. (A card played during a turn does not get refilled until the next turn unless an effect explicitly says so.)
+- **Hand size limit:** 7 cards.
+- **Starting hand:** 3 cards drawn at match start.
+- **Draw timing:** at the **start of each player turn**, draw 2 cards (stopping early if the hand reaches 7).
+- **Discard timing:** at the **end of each player turn**, the player must discard exactly 1 card from hand.
+- **Cards persist** between turns — unplayed cards stay in hand.
 - **Run-start deck:** 10 cards. The pre-game draft flow lets the player either pick one of three pre-made themed decks (Sysadmin, Hackathon, Architect — each 6 commons / 3 uncommons / 1 rare with a bundled artifact) or build a deck from scratch by drafting 1-of-3 ten times (also 6 commons / 3 uncommons / 1 rare) followed by an uncommon-artifact pick. See [`../cards/starter-deck.md`](../cards/starter-deck.md) for the composition of each pre-made deck and the rationale.
-- **Adding to your deck:** the shop is the only source of new cards between matches — single-card offers and booster packs (open the pack, pick 1 from its contents). Capturing an enemy piece during a match grants the matching Patch card directly into your draw pile (see "Card economy" below). There is no post-match card draft.
+- **Adding to your deck:** the shop is the only source of new cards between matches — single-card offers and booster packs (open the pack, pick 1 from its contents).
 - **Removing from your deck:** shop card-removal service (scaling per use).
 
 ## Energy
 
-- Every player turn starts with **3 energy**. Energy does **not** bank — unspent energy is wiped at end-of-turn alongside the discarded hand.
-- **Cards cost 0–4 energy.** 0 cost = tone-setting cantrips (e.g. Stack Trace); 1–2 = bread-and-butter utility; 3 = strong cards; 4 = haymakers (the cap).
-- **No per-turn cap on cards played** other than the energy budget and hand contents.
-- Artifacts and Power cards may permanently raise the per-turn baseline (e.g. Daemon Process gives +1/turn for the rest of the match; the boss-reward "+1 energy/turn" boon does the same for the rest of the run).
-- **Cache Warmup** (cost 1, +2 energy on the next turn) is the deliberate way to break the 3-energy ceiling on a future turn — the only "save up" tool in a no-banking world.
+Energy is a **persistent pool** that accumulates across turns.
 
-Tempo is per-turn rather than across-turn: the player decides each turn how to spend exactly 3 energy. The decision space stays interesting because card costs span 0–4, so on any given turn you might play four 0-cost cantrips, one cost-3 strong card, two cost-1+cost-2, or hold a slot open for a 4-cost haymaker (Cache Warmup setup or Power).
+- **Passive income:** +1 energy at the start of each player turn.
+- **Capture income:** capturing an enemy piece grants energy equal to its **standard chess piece value** — Pawn = 1, Knight = 3, Bishop = 3, Rook = 5, Queen = 9. Capture energy is granted immediately when the capture resolves.
+- **Starting energy:** 0 per match.
+- **Energy cap:** 20. Energy cannot exceed 20; excess is lost. This creates spend-before-you-capture pressure — if your pool is nearly full and a big capture is coming, spend down first or waste the energy.
+- **Cards cost 0–15 energy.** See the cost tiers below.
+- **No per-turn cap on cards played** other than the energy budget and hand contents.
+- Artifacts and Power cards may permanently raise the per-turn baseline (e.g. +1 energy/turn for the rest of the match).
+
+### Card cost tiers
+
+| Tier     | Cost  | Role                                                          |
+|----------|-------|---------------------------------------------------------------|
+| Free     | 0     | Cantrips, small utility                                       |
+| Cheap    | 1–3   | Bread and butter, playable on passive income                  |
+| Medium   | 4–6   | Requires a couple turns of saving or a minor-piece capture    |
+| Expensive| 8–10  | Needs a rook capture or significant banking                   |
+| Haymaker | 12–15 | Queen-capture territory. Major commitment.                    |
+
+Tempo spans multiple turns: the player decides when to spend energy and when to bank it. The decision space is rich because chess captures feed the energy pool at variable rates — aggressive play is rewarded with more card-game resources, but only if you have cards worth spending on.
 
 ## When can cards be played?
 
@@ -43,34 +60,29 @@ A card declares one or more **target slots** when played. Common target types:
 
 A card may have multiple targets in sequence (e.g., choose own piece, then choose destination square). When previewing a card, the UI must indicate exactly which legal targets are valid (see `technical/architecture.md`).
 
-## Disposal: discard, consume, retain, cycle
+## Disposal: discard, consume, cycle
 
-The hand is wiped at the end of every player turn and a fresh hand is drawn at the start of the next turn. Two keywords carve out exceptions to this default:
+Cards persist in hand between turns. The player chooses which card to discard at end of turn (forced discard), and may play cards to consume them during the turn.
 
 - **Consume** — a played card is removed from the match (lands in the *consumed pile*). It is not eligible for revival.
-- **Retain** — a card stays in your hand at end-of-turn discards until played. The **Bookmark** card grants Retain to a chosen card in hand. No card has inherent Retain in the prototype.
+- **Forced discard** — at the end of every player turn, the player must discard exactly 1 card from hand. This ensures steady deck cycling even with persistent hands.
 
 Cycle rules:
 
 1. Played cards without Consume go to the **discard pile**.
-2. End-of-turn discards every non-retained hand card into the discard pile.
+2. End-of-turn forced discard goes to the discard pile.
 3. When the draw pile is empty mid-draw, the discard pile is shuffled to form a new draw pile and drawing continues. The consumed pile never re-enters the cycle.
 
 UI piles: **Draw: N | Discard: N | Consumed: N**. The discard pile is the active rotation; the consumed pile is the graveyard.
 
-A 20-card deck cycles through itself multiple times in a typical match, so the binding resource is energy, not card supply. With energy capped at 3/turn (no banking), Cache Warmup is the only way to land a haymaker without giving up the rest of the turn — and Consume cards remain finite per match, with capture-grants-Patch keeping the deck fresh on the way.
+With draw 2 per turn, a 10-card deck cycles through itself roughly every 5 turns. Consume cards thin the deck permanently, causing remaining cards to appear more frequently — deck-thinning is a deliberate strategy.
 
 ## Card economy
 
-A few cards exist explicitly to manage the cycle:
-
-- **Bookmark** (1 cost) — apply Retain to a card in your hand so it survives end-of-turn until you play it. The standard way to bank a haymaker across turns.
-- **Revivers** (Restore Point, Restore from Backup) — pull a card from your discard pile back to your hand (random or chosen). Restore from Backup has Consume; Restore Point does not. Neither can reach into the consumed pile.
-- **Capture-grants-Patch** — capturing an enemy non-King piece during a chess move grants the matching Patch card (Pawn → Pawn Patch, Knight → Knight Patch, etc.) into your draw pile. Patches have Consume, so each capture grants exactly one empower trigger.
+- **Restore from Backup** (cost 2, Consume) — choose a discarded card to return to hand. Useful for retrieving cards lost to forced discards.
 
 See the per-archetype docs in `../cards/`:
-- [`resource.md`](../cards/resource.md) — draw, scry, Bookmark.
-- [`revival.md`](../cards/revival.md) — Restore Point, Restore from Backup.
+- [`resource.md`](../cards/resource.md) — scry, Restore from Backup.
 
 ## Card archetypes (the design space)
 
@@ -78,12 +90,12 @@ Cards group into a handful of archetypes. The prototype card pool should hit all
 
 1. **Tempo** — extra moves, chained moves, free moves on a piece.
 2. **Spatial** — walls, blocked squares, zone-control buffs, "marked" squares with effects.
-3. **Movement-extension** — pieces gain extra move types this turn (knight moves diagonally, bishop jumps a piece, pawn moves backward).
+3. **Movement-extension** — pieces gain extra move types this turn (pawn moves diagonally, etc.).
 4. **Disruption** — freeze enemy piece, force enemy piece to move toward a square, swap two pieces.
-5. **Resource / draw** — gain energy, draw cards, discard-and-redraw.
-6. **Defensive / setup** — shield a piece (one-time damage immunity from capture), promote a pawn early, ward a square.
-7. **Burst / win-condition** — high-cost cards that radically change the board (e.g., "destroy any enemy non-King piece", "your queen makes two moves this turn"). Sit at the cost cap (4); the player either pre-plays a Cache Warmup the prior turn or commits the full per-turn budget to a single card.
-8. **Power** — Slay-the-Spire-style match-scoped passives. Cost 4. Played for keeps: card is consumed and its passive (+1 energy/turn, +1 draw/turn, +1 chess move/turn) applies for the remainder of the match.
+5. **Resource** — scry, retrieve from discard.
+6. **Defensive / setup** — shield a piece (one-time damage immunity from capture), ward a square.
+7. **Burst / win-condition** — high-cost cards that radically change the board (e.g., "destroy any enemy non-King piece"). Sit at the expensive–haymaker tiers (8–15 cost); the player needs major captures or patient saving to reach them.
+8. **Power** — Slay-the-Spire-style match-scoped passives. Cost 10–12. Played for keeps: card is consumed and its passive applies for the remainder of the match.
 
 The prototype does not need a final card list; it needs enough cards to populate the starter deck plus reasonable drafts/shops. See `roadmap/milestones.md` for the rough sizing target. The current per-card reference, grouped by type, lives in [`../cards/`](../cards/) — see [`../cards/README.md`](../cards/README.md) for the full list and [`../cards/keywords.md`](../cards/keywords.md) for keyword definitions.
 
@@ -100,8 +112,8 @@ no draft, boss-reward, or event-room route in the prototype. See
   its `+` variant. Other copies of the same base card in the deck are
   unaffected. If you have two copies of Freeze Process and upgrade one, the
   other stays a base card.
-- **Single-source:** `+` variants never appear in shop card offers, booster
-  packs, or Patch grants — they enter the deck only via the Smith service.
+- **Single-source:** `+` variants never appear in shop card offers or booster
+  packs — they enter the deck only via the Smith service.
 
 ### Authoring
 
@@ -113,7 +125,7 @@ the base:
 {
   "id": "freeze-process",
   "name": "Freeze Process",
-  "cost": 2,
+  "cost": 4,
   "description": "Freeze enemy piece (no move next turn).",
   "target": { "kind": "enemy-piece" },
   "effect": { "kind": "freeze-piece" },
@@ -156,7 +168,7 @@ A card JSON has the shape:
 {
   "id": "freeze-process",
   "name": "Freeze Process",
-  "cost": 2,
+  "cost": 4,
   "rarity": "common",
   "archetype": "disruption",
   "description": "Freeze enemy piece (no move next turn).",
@@ -173,14 +185,18 @@ and `effect.kind` values for the prototype.
 
 | Knob                         | Value                                                |
 |------------------------------|------------------------------------------------------|
-| Hand size                    | 5                                                    |
-| Draw timing                  | Discard hand at end of turn; redraw to 5 at start of next turn |
-| Starting energy (every turn) | 3                                                    |
-| Energy banking               | None — unspent energy is wiped at end of turn        |
-| Energy cap                   | None (Power cards / Cache Warmup can drive a single turn well past the baseline) |
-| Card cost range              | 0 – 4                                                |
+| Hand size limit              | 7                                                    |
+| Starting hand                | 3 cards drawn at match start                         |
+| Draw per turn                | 2 cards at start of turn (up to hand limit)          |
+| Forced discard               | 1 card at end of turn (player's choice)              |
+| Card persistence             | Unplayed cards stay in hand between turns             |
+| Starting energy              | 0 per match                                          |
+| Passive energy               | +1 per turn                                          |
+| Capture energy               | +piece value (P=1, N=3, B=3, R=5, Q=9)              |
+| Energy cap                   | 20                                                   |
+| Energy banking               | Yes — energy persists between turns                  |
+| Card cost range              | 0 – 15                                               |
 | Cards-per-turn cap           | None beyond energy/hand                              |
-| Disposal                     | Discard pile cycles into draw on empty; Consume removes for the match; Retain skips end-of-turn discard |
+| Disposal                     | Discard pile cycles into draw on empty; Consume removes for the match; forced discard 1/turn |
 | Reactions on opponent turn   | None (may revisit)                                   |
 | Card upgrades                | Shop Smith service; one `+` tier per card. See `economy.md`. |
-| Capture-grants-Patch          | Player captures of non-King enemies grant matching Patch (Patches have Consume) |

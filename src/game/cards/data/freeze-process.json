@@ -1,14 +1,21 @@
 {
   "id": "freeze-process",
   "name": "Freeze Process",
-  "cost": 2,
+  "cost": 4,
   "rarity": "common",
   "archetype": "disruption",
   "description": "Freeze enemy piece (no move next turn).",
-  "target": { "kind": "enemy-piece" },
-  "effect": { "kind": "freeze-piece" },
+  "target": {
+    "kind": "enemy-piece"
+  },
+  "effect": {
+    "kind": "freeze-piece"
+  },
   "upgrade": {
     "description": "Freeze enemy piece for 2 turns.",
-    "effect": { "kind": "freeze-piece", "durationTurns": 2 }
+    "effect": {
+      "kind": "freeze-piece",
+      "durationTurns": 2
+    }
   }
 }

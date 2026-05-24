@@ -1,12 +1,16 @@
 {
   "id": "race-condition",
   "name": "Race Condition",
-  "cost": 2,
+  "cost": 4,
   "rarity": "uncommon",
   "archetype": "swap",
   "description": "Swap two enemy non-King pieces.",
-  "target": { "kind": "two-enemy-non-king-pieces" },
-  "effect": { "kind": "swap-enemy-pieces" },
+  "target": {
+    "kind": "two-enemy-non-king-pieces"
+  },
+  "effect": {
+    "kind": "swap-enemy-pieces"
+  },
   "upgrade": {
     "cost": 1
   }

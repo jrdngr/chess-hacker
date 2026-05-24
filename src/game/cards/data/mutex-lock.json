@@ -1,14 +1,22 @@
 {
   "id": "mutex-lock",
   "name": "Mutex Lock",
-  "cost": 3,
+  "cost": 7,
   "rarity": "rare",
   "archetype": "defensive",
   "description": "Lock one of your pieces. Enemies cannot move to its square or adjacent for your opponent's next 2 turns. Fizzles if the locked piece is destroyed.",
-  "target": { "kind": "own-piece" },
-  "effect": { "kind": "mutex-lock", "durationTurns": 2 },
+  "target": {
+    "kind": "own-piece"
+  },
+  "effect": {
+    "kind": "mutex-lock",
+    "durationTurns": 2
+  },
   "upgrade": {
     "description": "Lock one of your pieces. Enemies cannot move to its square or adjacent for your opponent's next 3 turns. Fizzles if the locked piece is destroyed.",
-    "effect": { "kind": "mutex-lock", "durationTurns": 3 }
+    "effect": {
+      "kind": "mutex-lock",
+      "durationTurns": 3
+    }
   }
 }

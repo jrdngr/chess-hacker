@@ -1,14 +1,24 @@
 {
   "id": "honeypot",
   "name": "Honeypot",
-  "cost": 1,
+  "cost": 2,
   "rarity": "common",
   "archetype": "spatial",
   "description": "First enemy to enter is frozen 1 turn. 3 turns.",
-  "target": { "kind": "empty-square" },
-  "effect": { "kind": "place-trap", "trapEffect": "freeze", "durationTurns": 3 },
+  "target": {
+    "kind": "empty-square"
+  },
+  "effect": {
+    "kind": "place-trap",
+    "trapEffect": "freeze",
+    "durationTurns": 3
+  },
   "upgrade": {
     "description": "First enemy to enter is frozen 1 turn. 5 turns.",
-    "effect": { "kind": "place-trap", "trapEffect": "freeze", "durationTurns": 5 }
+    "effect": {
+      "kind": "place-trap",
+      "trapEffect": "freeze",
+      "durationTurns": 5
+    }
   }
 }

@@ -1,15 +1,23 @@
 {
   "id": "garbage-collect",
   "name": "Garbage Collect",
-  "cost": 4,
+  "cost": 15,
   "rarity": "rare",
   "archetype": "burst",
   "consume": true,
   "description": "Destroy every enemy non-King piece currently attacked by one of your pieces.",
-  "target": { "kind": "none" },
-  "effect": { "kind": "garbage-collect", "recursive": false },
+  "target": {
+    "kind": "none"
+  },
+  "effect": {
+    "kind": "garbage-collect",
+    "recursive": false
+  },
   "upgrade": {
     "description": "Destroy every enemy non-King piece attacked by one of your pieces. Repeat until no new pieces are destroyed.",
-    "effect": { "kind": "garbage-collect", "recursive": true }
+    "effect": {
+      "kind": "garbage-collect",
+      "recursive": true
+    }
   }
 }

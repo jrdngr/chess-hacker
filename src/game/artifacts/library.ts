@@ -31,6 +31,7 @@ export const VALID_ARTIFACT_EFFECT_KINDS = [
   "start-energy-bonus",
   "energy-per-turn-bonus",
   "card-cost-discount",
+  "card-cost-percentage-discount",
   "gold-on-match-start",
   "draw-on-capture",
   "energy-on-capture",
@@ -261,6 +262,33 @@ function validateArtifactEffect(raw: unknown, errors: string[]): ArtifactEffect 
         return null;
       }
       const out: ArtifactEffect = { kind: "card-cost-discount", amount: raw.amount };
+      if (typeof archetype === "string") {
+        (out as { archetype?: CardArchetype }).archetype = archetype as CardArchetype;
+      }
+      return out;
+    }
+    case "card-cost-percentage-discount": {
+      if (typeof raw.percent !== "number" || raw.percent <= 0 || raw.percent >= 100) {
+        errors.push(
+          "'effect.percent' must be a number between 0 and 100 (exclusive) for kind 'card-cost-percentage-discount'",
+        );
+        return null;
+      }
+      const archetype = raw.archetype;
+      if (
+        archetype !== undefined &&
+        (typeof archetype !== "string" ||
+          !(VALID_ARCHETYPES as readonly string[]).includes(archetype))
+      ) {
+        errors.push(
+          `'effect.archetype' must be one of ${VALID_ARCHETYPES.join(", ")} if present for 'card-cost-percentage-discount'`,
+        );
+        return null;
+      }
+      const out: ArtifactEffect = {
+        kind: "card-cost-percentage-discount",
+        percent: raw.percent,
+      };
       if (typeof archetype === "string") {
         (out as { archetype?: CardArchetype }).archetype = archetype as CardArchetype;
       }

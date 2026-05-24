@@ -1,12 +1,18 @@
 {
   "id": "vanguard",
   "name": "Vanguard",
-  "cost": 1,
+  "cost": 2,
   "rarity": "common",
   "archetype": "movement",
   "description": "Own pawn takes 2 actions this turn.",
-  "target": { "kind": "own-piece" },
-  "effect": { "kind": "lightning-piece", "actions": 2, "pieceTypeFilter": "pawn" },
+  "target": {
+    "kind": "own-piece"
+  },
+  "effect": {
+    "kind": "lightning-piece",
+    "actions": 2,
+    "pieceTypeFilter": "pawn"
+  },
   "upgrade": {
     "cost": 0
   }

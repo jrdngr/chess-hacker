@@ -1,14 +1,21 @@
 {
   "id": "sprint",
   "name": "Sprint",
-  "cost": 1,
+  "cost": 2,
   "rarity": "common",
   "archetype": "movement",
   "description": "Give Haste to a piece (move twice; first move can't capture).",
-  "target": { "kind": "own-piece" },
-  "effect": { "kind": "haste-piece" },
+  "target": {
+    "kind": "own-piece"
+  },
+  "effect": {
+    "kind": "haste-piece"
+  },
   "upgrade": {
     "description": "Own piece takes 2 actions this turn (captures allowed).",
-    "effect": { "kind": "lightning-piece", "actions": 2 }
+    "effect": {
+      "kind": "lightning-piece",
+      "actions": 2
+    }
   }
 }

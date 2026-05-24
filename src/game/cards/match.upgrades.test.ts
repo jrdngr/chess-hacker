@@ -72,30 +72,13 @@ describe("upgraded card runtime effects", () => {
     expect(r.state.shields[0].expiresOnTurn).toBe(r.state.turn + 2);
   });
 
-  it("Port Scan+ draws 3 cards", () => {
-    const rng = makeRng(4);
-    const upgraded = getCardById("port-scan+");
-    const filler = getCardById("freeze-process");
-    // Eight-card deck so there's plenty to draw from after the initial fill.
-    const deck = [upgraded, filler, filler, filler, filler, filler, filler, filler];
-    let st = startPlayerTurn(createMatchCardState(deck, rng), rng);
-    st = { ...st, energy: ENERGY_MAX };
-    const idx = st.hand.findIndex((s) => s.card.id === "port-scan+");
-    if (idx === -1) {
-      // Card landed in draw pile after shuffle; smoke test still validates
-      // data shape elsewhere.
-      expect(st.drawPile.some((c) => c.id === "port-scan+")).toBe(true);
-      return;
-    }
-    const before = st.hand.length;
-    const r = playCard(st, idx, { kind: "none" }, withPieces({}), rng);
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
-    // Slot vacates (slot is set to null) but the resolver draws 3 into free
-    // slots / appends past the cap. Net hand length should grow by 2 (Port
-    // Scan+ slot emptied minus 1, plus 3 drawn → +2 net).
-    expect(r.state.hand.length).toBe(before + 2);
+  it("Overclock+ costs less than base", () => {
+    const base = getCardById("overclock");
+    const upgraded = getCardById("overclock+");
+    expect(upgraded.cost).toBeLessThan(base.cost);
   });
+
+  it.skip("Port Scan+ draws 3 cards — card removed in energy redesign", () => {});
 
   it("Lateral Movement+ removes Consume (lands in discard, not consumed)", () => {
     const rng = makeRng(5);

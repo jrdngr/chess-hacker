@@ -1,14 +1,22 @@
 {
   "id": "trusted-zone",
   "name": "Trusted Zone",
-  "cost": 2,
+  "cost": 4,
   "rarity": "uncommon",
   "archetype": "spatial",
   "description": "Sanctuary: pieces on it can't be captured. 3 turns.",
-  "target": { "kind": "square" },
-  "effect": { "kind": "place-sanctuary", "durationTurns": 3 },
+  "target": {
+    "kind": "square"
+  },
+  "effect": {
+    "kind": "place-sanctuary",
+    "durationTurns": 3
+  },
   "upgrade": {
     "description": "Sanctuary: pieces on it can't be captured. 5 turns.",
-    "effect": { "kind": "place-sanctuary", "durationTurns": 5 }
+    "effect": {
+      "kind": "place-sanctuary",
+      "durationTurns": 5
+    }
   }
 }

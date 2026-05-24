@@ -40,23 +40,23 @@ Artifacts can affect any of the following domains. The prototype design space sp
 
 Modify the card system globally.
 
-- "All Tempo cards cost 1 less (minimum 0)."
-- "The first card you play each turn is free."
-- "When you draw your last card, draw 2 instead."
+- "Spatial cards cost 25% less (round down, minimum 0)."
+- "The first card you play each turn costs 2 less (minimum 0)."
+- "Draw an extra card at the start of each turn."
 
 ### 2. Piece-related
 
 Modify how the player's pieces behave globally for the rest of the run.
 
-- "Your knights may also move 1 square diagonally."
-- "Your pawns promote at rank 6 (instead of 8)."
+- "Your knights may also step 1 square in any direction."
+- "Your pawns promote at rank 7 (instead of 8)."
 - "When one of your pawns reaches rank 4, draw a card."
 
 ### 3. Resource / match-rule
 
 Modify the match's resources or rules.
 
-- "Start each match with +1 energy on turn 1 only." (i.e., turn 1 begins at 2 energy instead of 1.)
+- "Start each match with 3 energy instead of 0."
 - "Hand size +1."
 - "On turn 1 of every match, gain 1 gold."
 
@@ -65,7 +65,7 @@ Modify the match's resources or rules.
 React to in-match events.
 
 - "When you put the opponent in check, draw a card."
-- "When you capture an enemy piece, gain 1 energy this turn."
+- "When you capture an enemy piece, gain 1 bonus energy."
 - "On the first capture of every match, place a wall on a chosen square."
 
 The trigger / piece-modifying / energy-modifying / card-modifying split is a useful taxonomy when designing new artifacts and when balancing power level by category.
@@ -110,7 +110,7 @@ The prototype's artifact pool sits at 12 entries — under the target above; thi
 **Uncommon (5)**
 - *Threat Detector:* When you put the opponent in check, draw 1 card.
 - *Foothold:* Hand size +1 while you have a friendly piece on a center square (d4 / e4 / d5 / e5 on 8×8; the central 2×2 on even-sized boards, the single middle square on odd).
-- *Map Editor:* Spatial cards cost 1 less (minimum 0).
+- *Map Editor:* Spatial cards cost 25% less (round down, minimum 0).
 - *Cavalry Doctrine:* Your knights may also step 1 square in any direction in addition to the L-shape. The granted king-step is non-capturing — knights still capture only on the L-shape.
 - *Promotion Engine:* Your pawns promote at rank 7 instead of rank 8.
 

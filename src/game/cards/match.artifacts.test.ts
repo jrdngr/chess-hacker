@@ -7,8 +7,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   HAND_SIZE,
-  STARTING_ENERGY,
   ENERGY_PER_TURN,
+  DRAW_PER_TURN,
+  STARTING_HAND_SIZE,
   createMatchCardState,
   makeRng,
   playCard,
@@ -35,39 +36,56 @@ function syntheticArtifact(id: string, ...effects: ArtifactEffect[]): Artifact {
 }
 
 describe("artifact-driven match state", () => {
-  it("hand-size-bonus increases the start-of-turn refill target", () => {
+  it("hand-size-bonus increases the hand cap and allows drawing more over multiple turns", () => {
     const rng = makeRng(1);
     const hourglass = syntheticArtifact("hourglass", { kind: "hand-size-bonus", amount: 1 });
-    const st = startPlayerTurn(createMatchCardState(makeStarterDeck(), rng, [hourglass]), rng);
+    const deck = makeStarterDeck();
+    // Build up hand over several turns to reach the cap
+    let st = startPlayerTurn(createMatchCardState(deck, rng, [hourglass]), rng);
+    // Turn 1: starting 3 + draw 2 = 5
+    expect(st.hand.length).toBe(STARTING_HAND_SIZE + DRAW_PER_TURN);
+    // Keep advancing turns without playing cards — hand grows until cap
+    st = startPlayerTurn(st, rng); // Turn 2: 5 + 2 = 7
+    st = startPlayerTurn(st, rng); // Turn 3: 7 + 1 = 8 (cap is HAND_SIZE + 1 = 8)
+    expect(st.hand.length).toBe(HAND_SIZE + 1);
+    // One more turn should not exceed cap
+    st = startPlayerTurn(st, rng);
     expect(st.hand.length).toBe(HAND_SIZE + 1);
   });
 
-  it("start-energy-bonus folds into the per-turn baseline (banking removed)", () => {
+  it("start-energy-bonus adds to each turn's energy gain", () => {
     const rng = makeRng(1);
     const spark = syntheticArtifact("spark", { kind: "start-energy-bonus", amount: 1 });
     let st = startPlayerTurn(createMatchCardState(makeStarterDeck(), rng, [spark]), rng);
     expect(st.turn).toBe(1);
-    expect(st.energy).toBe(STARTING_ENERGY + 1);
-    // Without banking, every subsequent turn lands on the same elevated baseline.
+    // Energy accumulates: 0 + (ENERGY_PER_TURN + 1) = 2
+    expect(st.energy).toBe(ENERGY_PER_TURN + 1);
+    // Energy persists and more is added each turn
     st = startPlayerTurn(st, rng);
-    expect(st.energy).toBe(STARTING_ENERGY + 1);
+    expect(st.energy).toBe(2 * (ENERGY_PER_TURN + 1));
   });
 
-  it("energy-per-turn-bonus raises every turn's baseline (no carryover)", () => {
+  it("energy-per-turn-bonus raises the per-turn energy gain", () => {
     const rng = makeRng(1);
     const drum = syntheticArtifact("drum", { kind: "energy-per-turn-bonus", amount: 1 });
     let st = startPlayerTurn(createMatchCardState(makeStarterDeck(), rng, [drum]), rng);
+    // Turn 1: 0 + (1 + 1) = 2
     expect(st.energy).toBe(ENERGY_PER_TURN + 1);
     st = startPlayerTurn(st, rng);
     expect(st.turn).toBe(2);
-    expect(st.energy).toBe(ENERGY_PER_TURN + 1);
+    // Turn 2: 2 + (1 + 1) = 4
+    expect(st.energy).toBe(2 * (ENERGY_PER_TURN + 1));
   });
 
-  it("card-cost-discount lets the player play cards they couldn't otherwise afford", () => {
+  it("card-cost-discount lets the player play discounted cards", () => {
     const rng = makeRng(1);
-    const sigil = getArtifactById("map-editor"); // -1 spatial
-    // Force-feed Firewall (cost 1, spatial) onto a hand with 0 energy. Without
-    // the discount this throws "not-enough-energy"; with it the play succeeds.
+    // Use a flat discount artifact instead of the percentage-based Map Editor
+    const sigil = syntheticArtifact("sigil", {
+      kind: "card-cost-discount",
+      archetype: "spatial",
+      amount: 2,
+    });
+    // Firewall costs 2; with -2 discount it's free
     const base = createMatchCardState([FIREWALL], rng, [sigil]);
     const st = {
       ...base,
@@ -90,25 +108,31 @@ describe("artifact-driven match state", () => {
     expect(st.zoneBuffs[0].expiresOnTurn).toBeUndefined();
   });
 
-  it("an active zone-buff hand-size bonus inflates the start-of-turn refill", () => {
+  it("an active zone-buff hand-size bonus inflates the hand cap", () => {
     const rng = makeRng(1);
     const banner = getArtifactById("foothold");
-    // Foothold's center region on 8×8 = d4/e4/d5/e5; placing a player piece on
-    // d4 activates the buff.
     const ctx = {
       size: { files: 8, ranks: 8 },
       pieceSideAt: (sq: string) => (sq === "d4" ? ("player" as const) : null),
     };
-    const st = startPlayerTurn(createMatchCardState(makeStarterDeck(), rng, [banner]), rng, ctx);
+    // Build up to cap over multiple turns
+    let st = startPlayerTurn(createMatchCardState(makeStarterDeck(), rng, [banner]), rng, ctx);
+    st = startPlayerTurn(st, rng, ctx);
+    st = startPlayerTurn(st, rng, ctx);
+    st = startPlayerTurn(st, rng, ctx);
+    // Cap is HAND_SIZE + 1 = 8
     expect(st.hand.length).toBe(HAND_SIZE + 1);
   });
 
   it("an inactive zone-buff (region uncontrolled) doesn't grant its bonus", () => {
     const rng = makeRng(1);
     const banner = getArtifactById("foothold");
-    // No piece on a center square → buff inactive.
     const ctx = { size: { files: 8, ranks: 8 }, pieceSideAt: () => null };
-    const st = startPlayerTurn(createMatchCardState(makeStarterDeck(), rng, [banner]), rng, ctx);
+    // Build up to cap over multiple turns
+    let st = startPlayerTurn(createMatchCardState(makeStarterDeck(), rng, [banner]), rng, ctx);
+    st = startPlayerTurn(st, rng, ctx);
+    st = startPlayerTurn(st, rng, ctx);
+    // Cap is HAND_SIZE = 7 (no zone buff)
     expect(st.hand.length).toBe(HAND_SIZE);
   });
 });

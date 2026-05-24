@@ -4,63 +4,9 @@ Movement-extension cards give one of your pieces an additional movement pattern.
 
 See [`keywords.md`](keywords.md) for keyword definitions, especially **Empower**.
 
-## Capture-grants-Patch
-
-All Patches have the **Consume** keyword: each play removes the Patch for the rest of the match. Combined with capture-grants-Patch, this means each capture grants exactly one empower trigger of the matching pattern.
-
-When you capture an enemy non-King piece during a chess move, the matching Patch card is shuffled into your draw pile:
-
-- pawn → Pawn Patch
-- knight → Knight Patch
-- bishop → Bishop Patch
-- rook → Rook Patch
-- queen → Queen Patch
-
-This is the primary way Patches enter your deck — none of them appear in the starter (see [`starter-deck.md`](starter-deck.md)). Capturing more pieces means a richer movement-extension supply line.
-
-## Pawn Patch
-
-- **Cost:** 1
-- **Rarity:** Common
-- **Target:** own piece
-- **Effect:** Target own piece: **Empower** with pawn movement (one square forward in your direction) **this turn**. Lost if you move a different piece first.
-- **Design note:** the cheap Patch. Most niche on pieces that already cover that square (kings, queens, rooks) but useful on a knight that needs a quiet step. No diagonal-forward captures (Empower never captures — see [`keywords.md`](keywords.md)), no double-push, no en passant, no promotion — those stay pawn-only.
-
-## Knight Patch
-
-- **Cost:** 2
-- **Rarity:** Rare
-- **Target:** own piece
-- **Effect:** Target own piece: **Empower** with the knight L-shape as an additional movement pattern **this turn**. Lost if you move a different piece first.
-- **Design note:** Empower with the knight L-shape — the granted pattern ignores blockers like a real knight, so it's strongest on rooks/bishops (sudden forks) and on pawns (a one-turn jump break). The "use it or lose it" clause prevents pre-buffing across turns.
-
-## Bishop Patch
-
-- **Cost:** 2
-- **Rarity:** Rare
-- **Target:** own piece
-- **Effect:** Target own piece: **Empower** with diagonal sliding as an additional movement pattern **this turn**. Lost if you move a different piece first.
-- **Design note:** turns a rook into a queen for a turn, gives a knight the long diagonals, lets a pawn cut across the board. No-op on bishops and queens (they already have it).
-
-## Rook Patch
-
-- **Cost:** 3
-- **Rarity:** Rare
-- **Target:** own piece
-- **Effect:** Target own piece: **Empower** with straight sliding as an additional movement pattern **this turn**. Lost if you move a different piece first.
-- **Design note:** Turns a bishop into a queen, gives a knight long files and ranks. No-op on rooks and queens.
-
-## Queen Patch
-
-- **Cost:** 4
-- **Rarity:** Rare
-- **Target:** own piece
-- **Effect:** Target own piece: **Empower** with **both** straight and diagonal sliding (i.e. queen movement) as additional movement patterns **this turn**. Lost if you move a different piece first.
-- **Design note:** The apex Patch. A pawn or knight briefly threatens the entire board. The +1 cost over Rook Patch reflects that the queen pattern is strictly the strongest single-piece empower available.
-
 ## Sprint
 
-- **Cost:** 1
+- **Cost:** 2
 - **Rarity:** Common
 - **Target:** own piece
 - **Effect:** Give Haste to a friendly piece (it may move twice this turn; the first move cannot capture, the second may).
@@ -68,7 +14,7 @@ This is the primary way Patches enter your deck — none of them appear in the s
 
 ## Vanguard
 
-- **Cost:** 1
+- **Cost:** 2
 - **Rarity:** Common
 - **Target:** own piece (must be a pawn)
 - **Effect:** Target friendly **pawn** may take 2 actions this turn (moves and captures).
@@ -76,11 +22,11 @@ This is the primary way Patches enter your deck — none of them appear in the s
 
 ## Blitz
 
-- **Cost:** 3
+- **Cost:** 6
 - **Rarity:** Uncommon
 - **Target:** none
 - **Effect:** All your pawns gain Haste for 3 turns.
-- **Design note:** Multi-turn pawn-swarm payoff. The Haste status applied here lasts longer than Sprint's single-turn application; combos with Pawn Storm artifact, Promotion Engine, and the Pawn Storm Power for a sustained pawn assault.
+- **Design note:** Multi-turn pawn-swarm payoff. The Haste status applied here lasts longer than Sprint's single-turn application; combos with Pawn Storm artifact, Promotion Engine, and the Garrison Mode Power for a sustained pawn assault.
 
 ## Side Channel
 
@@ -100,10 +46,10 @@ This is the primary way Patches enter your deck — none of them appear in the s
 
 ## SSH Tunnel
 
-- **Cost:** 3
+- **Cost:** 7
 - **Rarity:** Rare
 - **Keywords:** **Consume**
 - **Target:** own non-King piece, then any empty square on the board
 - **Effect:** Teleport the targeted friendly piece to the chosen empty square. The piece ignores all geometry — no path, no line of sight, no walls. It simply appears on the destination.
 - **Upgrade (SSH Tunnel+):** Can also target your King.
-- **Design note:** the ultimate repositioning tool — bypass the entire board topology for one piece. Cost 3 + Consume reflects the power of unconstrained placement. Distinct from Switch Files (swaps two of your pieces, both must exist) and Extract (swaps with an enemy piece). The upgrade allowing King teleportation is a potent escape hatch from checkmate setups — but costs 3 energy on the turn you might need cards to defend.
+- **Design note:** the ultimate repositioning tool — bypass the entire board topology for one piece. Cost 7 + Consume reflects the power of unconstrained placement. Distinct from Switch Files (swaps two of your pieces, both must exist) and Extract (swaps with an enemy piece). The upgrade allowing King teleportation is a potent escape hatch from checkmate setups.

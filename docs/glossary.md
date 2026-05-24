@@ -18,18 +18,16 @@ Terms used across the Chess Hacker design and technical docs.
 | **Downgrade**       | Status keyword: enemy piece loses its native movement and moves as a pawn (1 square forward, diagonal capture) for the specified duration. |
 | **Draft**           | A 1-of-3 choice (cards or, in Skirmish, pieces) shown after each match.                 |
 | **Empower**         | Buff keyword: own piece gains an additional movement pattern this turn.                 |
-| **Energy**          | Resource for playing cards. Every turn starts at 3 (no banking). Costs span 0–4.        |
-| **Cache Warmup**    | Resource card (cost 1): grants +2 energy at the start of your next turn. The deliberate way to break the 3-energy ceiling on a single future turn. |
-| **Power**           | Card archetype: Slay-the-Spire-style match-scoped passives. The card is consumed on play; its effect (energy / draw / chess-move per turn) persists for the rest of the match. |
+| **Energy**          | Persistent resource for playing cards. +1 per turn passive, +piece value on captures. Caps at 20. Costs span 0–15. |
+| **Energy cap**      | Maximum energy the player can hold (20). Excess energy from captures or other sources is lost. Creates pressure to spend before big captures. |
+| **Forced discard**  | At the end of each player turn, the player must discard exactly 1 card from hand. Ensures deck cycling with persistent hands. |
+| **Power**           | Card archetype: Slay-the-Spire-style match-scoped passives. The card is consumed on play; its effect persists for the rest of the match. |
 | **Boon pick**       | Monster-Train-style 3-option boss reward (+1 energy/turn, +1 draw/turn, delete 2 cards). Resolves before the artifact pick and card draft on every boss win. Run-permanent, not meta-progression. |
 | **Consume**         | Card-flow keyword: a played card with Consume is removed from the match (lands in the consumed pile) and is not eligible for revival. |
-| **Discard pile**    | Where played cards without Consume land at the moment they're played, plus the end-of-turn hand wipe. Reshuffles into the draw pile when it empties mid-draw. |
+| **Discard pile**    | Where played cards without Consume land at the moment they're played, plus the end-of-turn forced discard. Reshuffles into the draw pile when it empties mid-draw. |
 | **Consumed pile**   | Where Consume-keyworded cards land when played. Cards here never re-enter the cycle. |
-| **Retain**          | Card-flow keyword: a card with Retain stays in your hand at end-of-turn discards until played. Granted dynamically by Bookmark; no card has inherent Retain in the prototype. |
-| **Revive**          | A card effect that returns a card from the discard pile to your hand (Restore Point, Restore from Backup). Cannot reach into the consumed pile. |
+| **Revive**          | A card effect that returns a card from the discard pile to your hand (Restore from Backup). Cannot reach into the consumed pile. |
 | **Rooted**          | Status keyword: enemy piece cannot move on its next turn except to capture (alias for Root). Also used by Extract as a target filter. |
-| **Patch card**       | One of five (Pawn / Knight / Bishop / Rook / Queen) Empower cards granted to your draw pile when you capture the matching enemy piece. All Patches have Consume. |
-| **Bookmark**           | Resource card: applies Retain to a chosen card in hand for the rest of the match. |
 | **FIDE**            | The international chess federation; "FIDE rules" = the standard chess rules baseline.   |
 | **Freeze**          | Status keyword: enemy piece cannot move or capture on its next turn.                    |
 | **Haste**           | Buff keyword: own piece may move a second time this turn; first move cannot capture.    |
@@ -56,6 +54,6 @@ Terms used across the Chess Hacker design and technical docs.
 | **Square effect**   | A card-painted effect on a single board square; triggers on enter / start-of-turn / etc. |
 | **Stockfish**       | The open-source chess engine used for the 8x8 AI. Loaded as Stockfish.wasm.              |
 | **Toy AI**          | Internal negamax-with-material-eval used in place of Stockfish on non-8x8 boards (Stockfish doesn't support them). Lives in `src/ai/toyAi.ts`. |
-| **Trap**            | Square keyword: triggers a per-card effect (capture/freeze/push) when an enemy enters.   |
+| **Trap**            | Square keyword: triggers a per-card effect (capture/freeze) when an enemy enters.        |
 | **Wall**            | A card-painted impassable square. Blocks movement and attack rays.                       |
 | **Zone-control buff** | A passive buff active while you "control" a region of the board.                       |

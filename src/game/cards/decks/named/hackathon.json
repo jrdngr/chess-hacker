@@ -5,13 +5,13 @@
   "cards": [
     { "id": "sprint", "count": 1 },
     { "id": "vanguard", "count": 1 },
-    { "id": "pawn-patch", "count": 1 },
+    { "id": "hot-swap", "count": 1 },
     { "id": "side-channel", "count": 1 },
     { "id": "lateral-movement", "count": 1 },
     { "id": "overclock", "count": 1 },
     { "id": "blitz", "count": 1 },
     { "id": "switch-files", "count": 1 },
-    { "id": "kill-9", "count": 1 },
-    { "id": "pawn-storm-power", "count": 1 }
+    { "id": "fork", "count": 1 },
+    { "id": "polymorphism", "count": 1 }
   ]
 }

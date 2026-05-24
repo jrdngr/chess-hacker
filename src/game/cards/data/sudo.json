@@ -1,13 +1,17 @@
 {
   "id": "sudo",
   "name": "Sudo",
-  "cost": 3,
+  "cost": 7,
   "rarity": "rare",
   "archetype": "tempo",
   "consume": true,
   "description": "Pawn acts as queen for one move this turn. Promotes permanently if it reaches the back rank.",
-  "target": { "kind": "own-pawn" },
-  "effect": { "kind": "sudo-piece" },
+  "target": {
+    "kind": "own-pawn"
+  },
+  "effect": {
+    "kind": "sudo-piece"
+  },
   "upgrade": {
     "cost": 2
   }

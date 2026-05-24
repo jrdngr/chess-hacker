@@ -68,11 +68,6 @@ describe("upgrade expansion", () => {
     expect((upgraded.effect as { durationTurns?: number }).durationTurns).toBe(2);
   });
 
-  it("Port Scan+ draws 3 cards", () => {
-    const upgraded = CARD_LIBRARY["port-scan+"];
-    expect(upgraded.effect).toEqual({ kind: "draw", count: 3 });
-  });
-
   it("Lateral Movement+ removes Consume", () => {
     const base = CARD_LIBRARY["lateral-movement"];
     const upgraded = CARD_LIBRARY["lateral-movement+"];

@@ -1,12 +1,17 @@
 {
   "id": "reinforce",
   "name": "Reinforce",
-  "cost": 4,
+  "cost": 8,
   "rarity": "rare",
   "archetype": "summon",
   "description": "Summon a pawn on any empty square in your half.",
-  "target": { "kind": "empty-square-own-half" },
-  "effect": { "kind": "summon-piece", "pieceType": "pawn" },
+  "target": {
+    "kind": "empty-square-own-half"
+  },
+  "effect": {
+    "kind": "summon-piece",
+    "pieceType": "pawn"
+  },
   "upgrade": {
     "cost": 3
   }

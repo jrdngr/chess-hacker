@@ -1,14 +1,21 @@
 {
   "id": "read-only",
   "name": "Read-Only",
-  "cost": 1,
+  "cost": 2,
   "rarity": "common",
   "archetype": "disruption",
   "description": "Disarm enemy piece (may move, no capture next turn).",
-  "target": { "kind": "enemy-piece" },
-  "effect": { "kind": "disarm-piece" },
+  "target": {
+    "kind": "enemy-piece"
+  },
+  "effect": {
+    "kind": "disarm-piece"
+  },
   "upgrade": {
     "description": "Disarm enemy piece for 2 turns (may move, no capture).",
-    "effect": { "kind": "disarm-piece", "durationTurns": 2 }
+    "effect": {
+      "kind": "disarm-piece",
+      "durationTurns": 2
+    }
   }
 }

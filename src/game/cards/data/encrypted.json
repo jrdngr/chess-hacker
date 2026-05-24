@@ -1,14 +1,21 @@
 {
   "id": "encrypted",
   "name": "Encrypted",
-  "cost": 1,
+  "cost": 2,
   "rarity": "common",
   "archetype": "defensive",
   "description": "Shield own piece until your next turn.",
-  "target": { "kind": "own-piece" },
-  "effect": { "kind": "shield-piece" },
+  "target": {
+    "kind": "own-piece"
+  },
+  "effect": {
+    "kind": "shield-piece"
+  },
   "upgrade": {
     "description": "Shield own piece for 2 turns.",
-    "effect": { "kind": "shield-piece", "durationTurns": 2 }
+    "effect": {
+      "kind": "shield-piece",
+      "durationTurns": 2
+    }
   }
 }

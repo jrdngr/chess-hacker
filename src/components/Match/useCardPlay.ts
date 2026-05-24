@@ -241,11 +241,11 @@ export function useCardPlay({
       // Statuses follow the piece.
       next = relocateStatuses(next, from, to);
       if (applied.isCapture) {
-        // Capture-grants-Patch: feed the matching Patch card into the draw
-        // pile. The helper filters by side itself (only player captures grant
-        // patches). In dev mode the human can drive Black, so we pass the
+        // Capture-grants-Energy: add piece value to the player's energy pool.
+        // The helper filters by side itself (only player captures grant
+        // energy). In dev mode the human can drive Black, so we pass the
         // actual mover side rather than hardcoding "player".
-        next = grantPatchOnCapture(next, captured, mover?.side ?? "player", rng);
+        next = grantPatchOnCapture(next, captured, mover?.side ?? "player");
       }
 
       // Resolve any trap triggered by this move (player pieces are not exempt).

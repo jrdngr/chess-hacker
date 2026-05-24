@@ -1,15 +1,20 @@
 {
   "id": "garrison-mode",
   "name": "Garrison Mode",
-  "cost": 4,
+  "cost": 10,
   "rarity": "rare",
   "archetype": "power",
   "consume": true,
   "description": "Each turn-start, shield your rank-1 pieces (except king).",
-  "target": { "kind": "none" },
+  "target": {
+    "kind": "none"
+  },
   "effect": {
     "kind": "play-power",
-    "effect": { "kind": "shield-back-rank-per-turn", "amount": 1 }
+    "effect": {
+      "kind": "shield-back-rank-per-turn",
+      "amount": 1
+    }
   },
   "upgrade": {
     "cost": 3

@@ -1,13 +1,18 @@
 {
   "id": "format-c",
   "name": "Format C:",
-  "cost": 4,
+  "cost": 12,
   "rarity": "rare",
   "archetype": "burst",
   "consume": true,
   "description": "Destroy any enemy non-King piece.",
-  "target": { "kind": "enemy-non-king-piece" },
-  "effect": { "kind": "destroy-piece", "filter": "any" },
+  "target": {
+    "kind": "enemy-non-king-piece"
+  },
+  "effect": {
+    "kind": "destroy-piece",
+    "filter": "any"
+  },
   "upgrade": {
     "cost": 3
   }

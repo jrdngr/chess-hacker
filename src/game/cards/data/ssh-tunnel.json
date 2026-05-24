@@ -1,15 +1,21 @@
 {
   "id": "ssh-tunnel",
   "name": "SSH Tunnel",
-  "cost": 3,
+  "cost": 7,
   "rarity": "rare",
   "archetype": "movement",
   "consume": true,
   "description": "Teleport own piece to any empty square.",
-  "target": { "kind": "own-non-king-piece-then-empty-square" },
-  "effect": { "kind": "teleport-piece" },
+  "target": {
+    "kind": "own-non-king-piece-then-empty-square"
+  },
+  "effect": {
+    "kind": "teleport-piece"
+  },
   "upgrade": {
     "description": "Teleport any own piece (including King) to any empty square.",
-    "target": { "kind": "own-non-king-piece-then-empty-square" }
+    "target": {
+      "kind": "own-non-king-piece-then-empty-square"
+    }
   }
 }

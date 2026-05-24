@@ -1,13 +1,17 @@
 {
   "id": "remote-access",
   "name": "Remote Access",
-  "cost": 3,
+  "cost": 7,
   "rarity": "rare",
   "archetype": "swap",
   "consume": true,
   "description": "Move an enemy piece by its legal moves.",
-  "target": { "kind": "marionette" },
-  "effect": { "kind": "marionette" },
+  "target": {
+    "kind": "marionette"
+  },
+  "effect": {
+    "kind": "marionette"
+  },
   "upgrade": {
     "cost": 2
   }

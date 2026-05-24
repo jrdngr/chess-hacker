@@ -7,11 +7,11 @@
     { "id": "read-only", "count": 1 },
     { "id": "freeze-process", "count": 1 },
     { "id": "encrypted", "count": 1 },
-    { "id": "port-scan", "count": 1 },
+    { "id": "honeypot", "count": 1 },
     { "id": "stack-trace", "count": 1 },
     { "id": "phishing", "count": 1 },
     { "id": "rollback", "count": 1 },
-    { "id": "bookmark", "count": 1 },
+    { "id": "restore-from-backup", "count": 1 },
     { "id": "exploit", "count": 1 }
   ]
 }

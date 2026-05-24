@@ -1,12 +1,16 @@
 {
   "id": "switch-files",
   "name": "Switch Files",
-  "cost": 2,
+  "cost": 4,
   "rarity": "uncommon",
   "archetype": "swap",
   "description": "Swap two of your own pieces.",
-  "target": { "kind": "two-own-pieces" },
-  "effect": { "kind": "swap-own-pieces" },
+  "target": {
+    "kind": "two-own-pieces"
+  },
+  "effect": {
+    "kind": "swap-own-pieces"
+  },
   "upgrade": {
     "cost": 1
   }
