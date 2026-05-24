@@ -27,7 +27,7 @@ export function MoveArrow({ from, to, files, ranks }: Props) {
   const px = -uy;
   const py = ux;
 
-  const headWidth = 0.8;
+  const headWidth = 0.4;
   const bodyWidth = headWidth / 3;
   const headLength = headWidth * 0.9;
 
