@@ -9,7 +9,7 @@
 import { useCallback, useRef, useState } from "react";
 
 import type { ChoseEngine, LegalMove } from "../../game/chess/engine";
-import type { PromotionChoice } from "../Board/PromotionModal";
+import type { PromotionChoice } from "../Board/PieceChoiceModal";
 import {
   applyCardSideEffects as applyCardSideEffectsPure,
   resolveTrapForMove,
@@ -42,6 +42,7 @@ import type {
   BossDef,
   Card,
   MatchCardState,
+  PieceType,
   Side,
 } from "../../game/types";
 import type { StatusEvent } from "../../game/status/dispatch";
@@ -99,6 +100,10 @@ type Result = {
   setPromotionPending: (
     next: { from: AlgebraicSquare; to: AlgebraicSquare; side: Side } | null,
   ) => void;
+  transformPending: { square: AlgebraicSquare; options: PieceType[] } | null;
+  setTransformPending: (next: { square: AlgebraicSquare; options: PieceType[] } | null) => void;
+  resurrectPending: boolean;
+  setResurrectPending: (next: boolean) => void;
   libraryFreePlayActive: boolean;
   // Callbacks
   tryPlay: (
@@ -164,6 +169,11 @@ export function useCardPlay({
     to: AlgebraicSquare;
     side: Side;
   } | null>(null);
+  const [transformPending, setTransformPending] = useState<{
+    square: AlgebraicSquare;
+    options: PieceType[];
+  } | null>(null);
+  const [resurrectPending, setResurrectPending] = useState<boolean>(false);
   /**
    * When non-null, a library-card play is in flight: the dev panel injected a
    * card at hand[0], paid no energy, and we're waiting for targeting (or the
@@ -489,8 +499,13 @@ export function useCardPlay({
       state: MatchCardState;
       sideEffects: ReadonlyArray<CardSideEffect>;
     }): MatchCardState =>
-      applyCardSideEffectsPure(engine, result.state, result.sideEffects, rng, () =>
-        setRevivePending(true),
+      applyCardSideEffectsPure(
+        engine,
+        result.state,
+        result.sideEffects,
+        rng,
+        () => setRevivePending(true),
+        (square, options) => setTransformPending({ square, options }),
       ),
     [engine, rng],
   );
@@ -613,6 +628,12 @@ export function useCardPlay({
       setPartialTarget(null);
       setMarionetteMoves([]);
       setTargetingIndex(index);
+      if (card.target.kind === "captured-friendly-piece-then-empty-square-own-half") {
+        const playerCaptured = (cardState.capturedPieces ?? []).filter((p) => p.side === "player");
+        if (playerCaptured.length > 0) {
+          setResurrectPending(true);
+        }
+      }
     },
     [
       matchOver,
@@ -761,6 +782,10 @@ export function useCardPlay({
     setRevivePending,
     promotionPending,
     setPromotionPending,
+    transformPending,
+    setTransformPending,
+    resurrectPending,
+    setResurrectPending,
     libraryFreePlayActive,
     tryPlay,
     tryResolveCard,

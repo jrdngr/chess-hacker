@@ -34,7 +34,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { Board, type BoardMode } from "./Board/Board";
 import { CapturedPieces } from "./Board/CapturedPieces";
 import { materialAdvantage } from "./Board/material";
-import { PromotionModal } from "./Board/PromotionModal";
+import { PieceChoiceModal } from "./Board/PieceChoiceModal";
+import type { PieceType } from "../game/types";
 import { DevPanel } from "./Match/DevPanel";
 import { StatusEffectsList } from "./Match/StatusEffectsList";
 import { ArtifactsPanel } from "./Match/sidebars/ArtifactsPanel";
@@ -958,6 +959,10 @@ export function Match({
     setRevivePending,
     promotionPending,
     setPromotionPending,
+    transformPending,
+    setTransformPending,
+    resurrectPending,
+    setResurrectPending,
     libraryFreePlayActive,
     tryPlay,
     tryResolveCard,
@@ -1666,16 +1671,60 @@ export function Match({
         />
       )}
       {promotionPending && (
-        <PromotionModal
-          side={promotionPending.side}
-          onPick={(choice) => {
+        <PieceChoiceModal
+          title="Promote to…"
+          options={(["queen", "rook", "bishop", "knight"] as PieceType[]).map((type) => ({
+            type,
+            side: promotionPending.side,
+            label: type.charAt(0).toUpperCase() + type.slice(1),
+          }))}
+          onPick={(index) => {
+            const codes = ["q", "r", "b", "n"] as const;
             const { from, to } = promotionPending;
             setPromotionPending(null);
-            tryPlay(from, to, choice);
+            tryPlay(from, to, codes[index]);
           }}
           onCancel={() => {
             setPromotionPending(null);
             setSelected(null);
+          }}
+        />
+      )}
+      {transformPending && (
+        <PieceChoiceModal
+          title="Transform to…"
+          options={transformPending.options.map((type) => ({
+            type,
+            side: "player" as const,
+            label: type.charAt(0).toUpperCase() + type.slice(1),
+          }))}
+          onPick={(index) => {
+            const type = transformPending.options[index];
+            const sq = transformPending.square;
+            engine.removePiece(sq);
+            engine.placePiece(sq, { type, side: "player" });
+            setTransformPending(null);
+            bumpVersion();
+          }}
+        />
+      )}
+      {resurrectPending && (
+        <PieceChoiceModal
+          title="Revive which piece?"
+          options={(cardState.capturedPieces ?? [])
+            .filter((p) => p.side === "player")
+            .map((p) => ({
+              type: p.type,
+              side: "player" as const,
+              label: p.type.charAt(0).toUpperCase() + p.type.slice(1),
+            }))}
+          onPick={(index) => {
+            setCardState((prev) => ({ ...prev, chosenCapturedIndex: index }));
+            setResurrectPending(false);
+          }}
+          onCancel={() => {
+            setResurrectPending(false);
+            cancelTargeting();
           }}
         />
       )}

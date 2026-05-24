@@ -1109,4 +1109,10 @@ export type MatchCardState = {
    * turn start to identify new entrants to root.
    */
   lastTurnEnemyHalfSquares?: AlgebraicSquare[];
+  /**
+   * Git Revert: index into the player-filtered `capturedPieces` array chosen
+   * by the PieceChoiceModal. Read by the `resurrect-piece` effect handler;
+   * cleared after use.
+   */
+  chosenCapturedIndex?: number;
 };

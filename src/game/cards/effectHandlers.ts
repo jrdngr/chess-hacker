@@ -512,26 +512,28 @@ export function applyEffect(
       const sq = squareTarget(target);
       const piece = ctx.pieceAt(sq);
       if (!piece || piece.side !== "player") return { state, sideEffects: [] };
-      let newType: PieceType;
       switch (piece.type) {
-        // Pawn → knight (default; UI should prompt for knight vs bishop)
         case "pawn":
-          newType = "knight";
-          break;
+          return {
+            state,
+            sideEffects: [
+              { kind: "transform-choice-prompt", square: sq, options: ["knight", "bishop"] },
+            ],
+          };
         case "knight":
         case "bishop":
-          newType = "rook";
-          break;
+          return {
+            state,
+            sideEffects: [{ kind: "transform-piece", square: sq, newType: "rook" }],
+          };
         case "rook":
-          newType = "queen";
-          break;
+          return {
+            state,
+            sideEffects: [{ kind: "transform-piece", square: sq, newType: "queen" }],
+          };
         default:
           return { state, sideEffects: [] };
       }
-      return {
-        state,
-        sideEffects: [{ kind: "transform-piece", square: sq, newType }],
-      };
     }
     case "sacrifice-detonate": {
       const sq = squareTarget(target);
@@ -593,19 +595,18 @@ export function applyEffect(
       };
     }
     case "resurrect-piece": {
-      // Git Revert: target.first encodes the captured piece index (as a dummy
-      // square), target.second is the placement square. The full UI flow
-      // selects from capturedPieces — for now, the handler places the piece.
       if (target.kind !== "two-squares") return { state, sideEffects: [] };
-      // The captured piece type is encoded by the UI in the first target;
-      // for the stub, we look at capturedPieces if available.
-      const captured = state.capturedPieces ?? [];
-      if (captured.length === 0) return { state, sideEffects: [] };
-      const entry = captured[captured.length - 1];
+      const captured = (state.capturedPieces ?? []).filter((p) => p.side === "player");
+      const idx = state.chosenCapturedIndex ?? captured.length - 1;
+      if (idx < 0 || idx >= captured.length) return { state, sideEffects: [] };
+      const entry = captured[idx];
       return {
         state: {
           ...state,
-          capturedPieces: captured.slice(0, -1),
+          capturedPieces: (state.capturedPieces ?? []).filter(
+            (p, i) => !(p.side === "player" && i === idx),
+          ),
+          chosenCapturedIndex: undefined,
         },
         sideEffects: [{ kind: "place-piece", square: target.second, pieceType: entry.type }],
       };

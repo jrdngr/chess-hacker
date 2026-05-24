@@ -131,7 +131,8 @@ type CardSideEffect =
   | { kind: "undo-last-enemy-move" }
   | { kind: "garbage-collect"; recursive: boolean }
   | { kind: "convert-piece"; square: AlgebraicSquare }
-  | { kind: "transform-piece"; square: AlgebraicSquare; newType: PieceType };
+  | { kind: "transform-piece"; square: AlgebraicSquare; newType: PieceType }
+  | { kind: "transform-choice-prompt"; square: AlgebraicSquare; options: PieceType[] };
 
 /**
  * Apply the side effects produced by the card resolver. Mutates the engine
@@ -145,6 +146,7 @@ export function applyCardSideEffects(
   sideEffects: ReadonlyArray<unknown>,
   rng: Rng | undefined,
   onRevivePrompt: () => void,
+  onTransformPrompt?: (square: AlgebraicSquare, options: PieceType[]) => void,
 ): MatchCardState {
   let next = state;
   for (const raw of sideEffects) {
@@ -274,6 +276,8 @@ export function applyCardSideEffects(
         engine.removePiece(fx.square);
         engine.placePiece(fx.square, { type: fx.newType, side: "player" });
       }
+    } else if (fx.kind === "transform-choice-prompt") {
+      onTransformPrompt?.(fx.square, fx.options);
     } else if (fx.kind === "remove-random-own-minor") {
       // Bit Rot (Boss C). Pick uniformly at random from the player's
       // knights and bishops. No-op if the player has none — the curse still

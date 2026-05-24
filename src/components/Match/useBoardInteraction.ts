@@ -13,7 +13,7 @@ import { useCallback } from "react";
 import type { ChoseEngine, LegalMove } from "../../game/chess/engine";
 import type { AlgebraicSquare, Card, MatchCardState, PieceType, Side } from "../../game/types";
 
-import type { PromotionChoice } from "../Board/PromotionModal";
+import type { PromotionChoice } from "../Board/PieceChoiceModal";
 import type { EditorPiece } from "./DevPanel";
 
 type Params = {
@@ -337,9 +337,7 @@ export function useBoardInteraction({
           return;
         }
         if (k === "captured-friendly-piece-then-empty-square-own-half") {
-          // Git Revert: simplified flow — auto-select most recent captured piece.
-          // The clicked square is the placement target. Encode the captured piece
-          // index as the first "square" (a dummy value the handler decodes).
+          // Phase 2 (after PieceChoiceModal picked the piece): click placement square.
           if (
             tryResolveCard(targetingIndex, {
               kind: "two-squares",

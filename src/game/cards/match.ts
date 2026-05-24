@@ -598,7 +598,8 @@ export type CardSideEffect =
    */
   | { kind: "garbage-collect"; recursive: boolean }
   | { kind: "convert-piece"; square: AlgebraicSquare }
-  | { kind: "transform-piece"; square: AlgebraicSquare; newType: PieceType };
+  | { kind: "transform-piece"; square: AlgebraicSquare; newType: PieceType }
+  | { kind: "transform-choice-prompt"; square: AlgebraicSquare; options: PieceType[] };
 
 export type PlayCardResult =
   | { ok: true; state: MatchCardState; sideEffects: CardSideEffect[] }
