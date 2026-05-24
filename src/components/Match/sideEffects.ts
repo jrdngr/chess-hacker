@@ -152,6 +152,18 @@ export function applyCardSideEffects(
     if (fx.kind === "place-piece") {
       engine.placePiece(fx.square, { type: fx.pieceType, side: "player" });
     } else if (fx.kind === "remove-piece") {
+      const removed = engine.pieceAt(fx.square);
+      if (removed?.side === "player") {
+        next = {
+          ...next,
+          capturedPieces: [
+            ...(next.capturedPieces ?? []),
+            { type: removed.type, side: "player" as const, reason: "destroyed" as const },
+          ],
+        };
+      } else if (removed?.side === "opponent") {
+        next = { ...next, playerCaptureCount: (next.playerCaptureCount ?? 0) + 1 };
+      }
       engine.removePiece(fx.square);
       next = clearStatusesOn(next, fx.square);
     } else if (fx.kind === "swap-pieces") {
@@ -240,6 +252,10 @@ export function applyCardSideEffects(
           victims.push(square);
         }
         if (victims.length === 0) break;
+        next = {
+          ...next,
+          playerCaptureCount: (next.playerCaptureCount ?? 0) + victims.length,
+        };
         for (const sq of victims) {
           engine.removePiece(sq);
           next = clearStatusesOn(next, sq);

@@ -546,6 +546,7 @@ export function Match({
   }, [cardState.hand, matchRules]);
   /** Which pile inspector is open, if any. */
   const [pileInspector, setPileInspector] = useState<"draw" | "discard" | "consumed" | null>(null);
+  const [backdoorPending, setBackdoorPending] = useState<AlgebraicSquare | null>(null);
 
   // Undo / redo stack — one snapshot per turn rollover (prototype) plus one
   // per dev-mode action (editor edit, energy bump, library card play).
@@ -1355,6 +1356,10 @@ export function Match({
     onPaletteDragEnd,
     rootedSet,
     continuationSquare: cardState.continuationSquare ?? null,
+    backdoorSet: overlays.backdoorSet,
+    setCardState,
+    backdoorPending,
+    setBackdoorPending,
   });
 
   /**

@@ -11,7 +11,7 @@
 import { useCallback } from "react";
 
 import type { ChoseEngine, LegalMove } from "../../game/chess/engine";
-import type { AlgebraicSquare, Card, PieceType, Side } from "../../game/types";
+import type { AlgebraicSquare, Card, MatchCardState, PieceType, Side } from "../../game/types";
 
 import type { PromotionChoice } from "../Board/PromotionModal";
 import type { EditorPiece } from "./DevPanel";
@@ -61,6 +61,10 @@ type Params = {
   onPaletteDragEnd: () => void;
   // From shared overlays
   rootedSet: ReadonlySet<AlgebraicSquare>;
+  backdoorSet: ReadonlySet<AlgebraicSquare>;
+  setCardState: (next: MatchCardState | ((prev: MatchCardState) => MatchCardState)) => void;
+  backdoorPending: AlgebraicSquare | null;
+  setBackdoorPending: (sq: AlgebraicSquare | null) => void;
 };
 
 type Result = {
@@ -99,6 +103,10 @@ export function useBoardInteraction({
   onPaletteDragEnd,
   rootedSet,
   continuationSquare,
+  backdoorSet,
+  setCardState,
+  backdoorPending,
+  setBackdoorPending,
 }: Params): Result {
   /** Select a square iff it has a piece the human controls right now. */
   const trySelect = useCallback(
@@ -149,6 +157,38 @@ export function useBoardInteraction({
       }
 
       if (matchOver) return;
+
+      // Backdoor activation: if a backdoor-pending square is set, the next
+      // click picks the piece to teleport. If the player clicks a piece of
+      // their own (non-King), teleport it to the backdoor square.
+      if (backdoorPending) {
+        const piece = engine.pieceAt(sq);
+        if (piece && piece.side === "player" && piece.type !== "king") {
+          engine.removePiece(sq);
+          engine.placePiece(backdoorPending, { type: piece.type, side: "player" });
+          setCardState((prev) => ({
+            ...prev,
+            backdoors: (prev.backdoors ?? []).filter((b) => b.square !== backdoorPending),
+          }));
+          setBackdoorPending(null);
+          setSelected(null);
+          return;
+        }
+        setBackdoorPending(null);
+        return;
+      }
+
+      // Clicking a backdoor square starts backdoor activation (free action).
+      if (
+        !selected &&
+        targetingIndex === null &&
+        backdoorSet.has(sq) &&
+        !engine.pieceAt(sq) &&
+        turn === "player"
+      ) {
+        setBackdoorPending(sq);
+        return;
+      }
 
       // Card-targeting takes priority over chess interaction.
       if (targetingIndex !== null && targetingCard) {
@@ -275,6 +315,42 @@ export function useBoardInteraction({
           cancelTargeting();
           return;
         }
+        if (k === "own-non-king-piece-then-empty-square") {
+          if (!partialTarget) {
+            const piece = engine.pieceAt(sq);
+            if (piece && piece.side === "player" && piece.type !== "king") {
+              setPartialTarget(sq);
+              return;
+            }
+            cancelTargeting();
+            return;
+          }
+          if (
+            tryResolveCard(targetingIndex, {
+              kind: "two-squares",
+              first: partialTarget,
+              second: sq,
+            })
+          )
+            return;
+          cancelTargeting();
+          return;
+        }
+        if (k === "captured-friendly-piece-then-empty-square-own-half") {
+          // Git Revert: simplified flow — auto-select most recent captured piece.
+          // The clicked square is the placement target. Encode the captured piece
+          // index as the first "square" (a dummy value the handler decodes).
+          if (
+            tryResolveCard(targetingIndex, {
+              kind: "two-squares",
+              first: "a1",
+              second: sq,
+            })
+          )
+            return;
+          cancelTargeting();
+          return;
+        }
         // Single-square targets.
         if (tryResolveCard(targetingIndex, { kind: "square", square: sq })) return;
         cancelTargeting();
@@ -312,6 +388,11 @@ export function useBoardInteraction({
       setPartialTarget,
       setMarionetteMoves,
       setSelected,
+      backdoorPending,
+      setBackdoorPending,
+      backdoorSet,
+      setCardState,
+      turn,
     ],
   );
 

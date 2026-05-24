@@ -262,13 +262,9 @@ export function useCardPlay({
         next = { ...next, capturedThisTurn: true };
       }
 
-      // Track captures for Heartbleed (energy scaling) and Git Revert (resurrection pool).
-      if (mover?.side === "player" && applied.isCapture && captured) {
-        next = {
-          ...next,
-          playerCaptureCount: (next.playerCaptureCount ?? 0) + 1,
-          capturedPieces: [...(next.capturedPieces ?? [])],
-        };
+      // Heartbleed: track total enemy pieces captured by the player for energy scaling.
+      if (mover?.side === "player" && applied.isCapture) {
+        next = { ...next, playerCaptureCount: (next.playerCaptureCount ?? 0) + 1 };
       }
 
       // Sudo: clear after the pawn moves. If it reached the back rank, promote permanently.
