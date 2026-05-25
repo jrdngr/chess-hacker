@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import type { BoardContext, PlayTarget } from "./match";
+import type { PlayTarget } from "./match";
 import {
   ENERGY_MAX,
   createMatchCardState,
@@ -18,16 +18,7 @@ import {
   startPlayerTurn,
 } from "./match";
 import { getCardById } from "./library";
-import type { Piece } from "../types";
-
-function withPieces(map: Record<string, Piece>): BoardContext {
-  return {
-    pieceAt: (sq) => map[sq] ?? null,
-    hasWall: () => false,
-    isAttackedBy: () => false,
-    isRooted: () => false,
-  };
-}
+import { withPieces } from "./match.testHelpers";
 
 describe("upgraded card runtime effects", () => {
   it("Freeze Process+ freezes for 2 player turns", () => {
@@ -78,8 +69,6 @@ describe("upgraded card runtime effects", () => {
     expect(base.effect.kind).toBe("haste-piece");
     expect(upgraded.effect.kind).toBe("lightning-piece");
   });
-
-  it.skip("Port Scan+ draws 3 cards — card removed in energy redesign", () => {});
 
   it("Lateral Movement+ removes Consume (lands in discard, not consumed)", () => {
     const rng = makeRng(5);

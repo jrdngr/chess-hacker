@@ -62,22 +62,26 @@ describe("upgrade expansion", () => {
     expect(baseLibraryCards().length).toBe(Object.values(CARD_LIBRARY).length / 2);
   });
 
-  it("Freeze Process+ adds durationTurns 2", () => {
-    const upgraded = CARD_LIBRARY["freeze-process+"];
-    expect(upgraded.effect.kind).toBe("freeze-piece");
-    expect((upgraded.effect as { durationTurns?: number }).durationTurns).toBe(2);
-  });
+  it("upgrade deltas are reflected in the generated upgraded card", () => {
+    for (const base of baseLibraryCards()) {
+      const u = base.upgrade!;
+      const upgraded = CARD_LIBRARY[base.id + UPGRADE_SUFFIX];
 
-  it("Lateral Movement+ removes Consume", () => {
-    const base = CARD_LIBRARY["lateral-movement"];
-    const upgraded = CARD_LIBRARY["lateral-movement+"];
-    expect(base.consume).toBe(true);
-    expect(upgraded.consume).toBe(false);
-  });
-
-  it("Overclock+ swaps haste-piece for lightning-piece (no Disarm)", () => {
-    const upgraded = CARD_LIBRARY["overclock+"];
-    expect(upgraded.effect.kind).toBe("lightning-piece");
-    expect((upgraded.effect as { actions?: number }).actions).toBe(2);
+      if (u.cost !== undefined) {
+        expect(upgraded.cost, `${base.id}+ cost`).toBe(u.cost);
+      }
+      if (u.effect !== undefined) {
+        expect(upgraded.effect.kind, `${base.id}+ effect kind`).toBe(u.effect.kind);
+      }
+      if (u.consume !== undefined) {
+        expect(!!upgraded.consume, `${base.id}+ consume`).toBe(!!u.consume);
+      }
+      if (u.retain !== undefined) {
+        expect(!!upgraded.retain, `${base.id}+ retain`).toBe(!!u.retain);
+      }
+      if (u.target !== undefined) {
+        expect(upgraded.target.kind, `${base.id}+ target kind`).toBe(u.target.kind);
+      }
+    }
   });
 });

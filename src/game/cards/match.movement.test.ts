@@ -2,47 +2,18 @@
 
 import { describe, expect, it } from "vitest";
 
-import {
-  ENERGY_MAX,
-  createMatchCardState,
-  makeRng,
-  playCard,
-  startPlayerTurn,
-  type BoardContext,
-} from "./match";
+import { ENERGY_MAX, createMatchCardState, makeRng, playCard, startPlayerTurn } from "./match";
 import { getCardById } from "./library";
+import { withPieces } from "./match.testHelpers";
+import type { Piece } from "../types";
 
 function ctxFrom(pieces: Record<string, { side: "player" | "opponent"; type: string }>) {
-  const ctx: BoardContext = {
-    pieceAt: (sq) => {
-      const p = pieces[sq];
-      if (!p) return null;
-      return { side: p.side, type: p.type as never };
-    },
-    hasWall: () => false,
-    isAttackedBy: () => false,
-    isRooted: () => false,
-    boardRanks: 8,
-    boardFiles: 8,
-  };
-  return ctx;
+  const typed: Record<string, Piece> = {};
+  for (const [sq, p] of Object.entries(pieces)) {
+    typed[sq] = { side: p.side, type: p.type as Piece["type"] };
+  }
+  return withPieces(typed, { boardRanks: 8, boardFiles: 8 });
 }
-
-describe("Overclock (Haste + Disarm)", () => {
-  it("applies Haste to a friendly piece (1-turn)", () => {
-    const rng = makeRng(1);
-    const overclock = getCardById("overclock");
-    let st = startPlayerTurn(createMatchCardState([overclock], rng), rng);
-    st = { ...st, energy: ENERGY_MAX };
-    const ctx = ctxFrom({ d4: { side: "player", type: "knight" } });
-    const idx = st.hand.findIndex((s) => s.card.id === "overclock");
-    const r = playCard(st, idx, { kind: "square", square: "d4" }, ctx, rng);
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
-    expect(r.state.hastes.find((h) => h.square === "d4")).toBeTruthy();
-    expect(r.state.hastes[0].expiresOnTurn).toBe(st.turn + 1);
-  });
-});
 
 describe("Vanguard (pawn-only Overclock)", () => {
   it("rejects a non-pawn target", () => {

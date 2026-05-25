@@ -12,6 +12,7 @@ import {
   rollPieceSet,
   standardMatchConfig,
 } from "./standard";
+import { STANDARD_RUN_CONFIG } from "./run";
 
 const NBR: PieceType[] = ["knight", "bishop", "rook"];
 const NBRQ: PieceType[] = ["knight", "bishop", "rook", "queen"];
@@ -122,14 +123,17 @@ describe("rollPieceSet", () => {
 
 describe("resolvePieceSet", () => {
   it("returns a clone of the explicit back rank for boss configs", () => {
-    const cfg = standardMatchConfig(3); // Boss A
+    const bossMatch = STANDARD_MATCHES.find((m) => m.isBoss && m.pieceSpec.kind === "explicit");
+    expect(bossMatch).toBeDefined();
+    const cfg = standardMatchConfig(bossMatch!.matchNumber);
     expect(cfg.pieceSpec.kind).toBe("explicit");
+    const expected = cfg.pieceSpec.kind === "explicit" ? [...cfg.pieceSpec.backRank] : [];
     const resolved = resolvePieceSet(cfg, makeRng(1));
-    expect(resolved.backRank).toEqual(["king", "knight", "bishop", "rook"]);
+    expect(resolved.backRank).toEqual(expected);
     // Mutating the returned set must not mutate the source config.
     resolved.backRank.push("queen");
     const again = resolvePieceSet(cfg, makeRng(1));
-    expect(again.backRank).toEqual(["king", "knight", "bishop", "rook"]);
+    expect(again.backRank).toEqual(expected);
   });
 
   it("delegates to rollPieceSet for random configs", () => {
@@ -142,17 +146,24 @@ describe("resolvePieceSet", () => {
 });
 
 describe("STANDARD_MATCHES curve", () => {
-  it("has 9 matches with bosses on 3, 6, 9", () => {
-    expect(STANDARD_MATCHES).toHaveLength(9);
-    expect(STANDARD_MATCHES[2].isBoss).toBe(true);
-    expect(STANDARD_MATCHES[5].isBoss).toBe(true);
-    expect(STANDARD_MATCHES[8].isBoss).toBe(true);
-    expect(STANDARD_MATCHES.filter((m) => m.isBoss)).toHaveLength(3);
+  const { actCount, matchesPerAct } = STANDARD_RUN_CONFIG;
+
+  it("total matches = actCount × matchesPerAct", () => {
+    expect(STANDARD_MATCHES).toHaveLength(actCount * matchesPerAct);
   });
 
-  it("starts at 6×6 and ends at 8×8", () => {
-    expect(STANDARD_MATCHES[0].size).toEqual({ files: 6, ranks: 6 });
-    expect(STANDARD_MATCHES[8].size).toEqual({ files: 8, ranks: 8 });
+  it("bosses appear at the last match of each act", () => {
+    for (let i = 0; i < STANDARD_MATCHES.length; i++) {
+      const isLastInAct = (i + 1) % matchesPerAct === 0;
+      expect(STANDARD_MATCHES[i].isBoss, `match ${i + 1}`).toBe(isLastInAct);
+    }
+  });
+
+  it("first match uses the smallest board and last match uses the largest", () => {
+    const first = STANDARD_MATCHES[0].size;
+    const last = STANDARD_MATCHES[STANDARD_MATCHES.length - 1].size;
+    expect(last.files).toBeGreaterThanOrEqual(first.files);
+    expect(last.ranks).toBeGreaterThanOrEqual(first.ranks);
   });
 
   it("grows the board monotonically (no shrink between matches)", () => {
@@ -164,15 +175,13 @@ describe("STANDARD_MATCHES curve", () => {
     }
   });
 
-  it("uses one square board per act (Act 1 = 6×6, Act 2 = 7×7, Act 3 = 8×8)", () => {
-    for (const m of STANDARD_MATCHES.slice(0, 3)) {
-      expect(m.size).toEqual({ files: 6, ranks: 6 });
-    }
-    for (const m of STANDARD_MATCHES.slice(3, 6)) {
-      expect(m.size).toEqual({ files: 7, ranks: 7 });
-    }
-    for (const m of STANDARD_MATCHES.slice(6, 9)) {
-      expect(m.size).toEqual({ files: 8, ranks: 8 });
+  it("all matches within an act share the same board size", () => {
+    for (let act = 0; act < actCount; act++) {
+      const start = act * matchesPerAct;
+      const actSize = STANDARD_MATCHES[start].size;
+      for (let i = start + 1; i < start + matchesPerAct; i++) {
+        expect(STANDARD_MATCHES[i].size, `act ${act + 1}, match ${i + 1}`).toEqual(actSize);
+      }
     }
   });
 

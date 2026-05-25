@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { BoardContext, PlayTarget } from "./match";
+import type { BoardContext } from "./match";
 import {
   ENERGY_MAX,
   ENERGY_PER_TURN,
@@ -57,18 +57,8 @@ import {
   getCardById,
   makeStarterDeck,
 } from "./library";
-import type { Card, Piece, Side } from "../types";
-
-const emptyBoard: BoardContext = {
-  pieceAt: () => null,
-  hasWall: () => false,
-  isAttackedBy: () => false,
-  isRooted: () => false,
-};
-
-function noTarget(): PlayTarget {
-  return { kind: "none" };
-}
+import type { Card, Piece } from "../types";
+import { emptyBoard, noTarget, withPieces } from "./match.testHelpers";
 
 /** Synthetic random-revive card for tests; replaces the retired Restore Point. */
 function syntheticRandomRevive(): Card {
@@ -81,22 +71,6 @@ function syntheticRandomRevive(): Card {
     description: "Return a random card from your discard pile to your hand.",
     target: { kind: "none" },
     effect: { kind: "revive", selection: "random" },
-  };
-}
-
-type WithPiecesOptions = {
-  attackedByPlayer?: ReadonlySet<string>;
-  rooted?: ReadonlySet<string>;
-};
-
-function withPieces(map: Record<string, Piece>, opts: WithPiecesOptions = {}): BoardContext {
-  const attacked = opts.attackedByPlayer ?? new Set<string>();
-  const rooted = opts.rooted ?? new Set<string>();
-  return {
-    pieceAt: (sq) => map[sq] ?? null,
-    hasWall: () => false,
-    isAttackedBy: (sq, by: Side) => by === "player" && attacked.has(sq),
-    isRooted: (sq) => rooted.has(sq),
   };
 }
 

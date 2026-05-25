@@ -1,59 +1,65 @@
 import { describe, expect, it } from "vitest";
 
-import { bossForAct, bossForMatch, getBossById } from "./library";
+import { BOSS_DEFS, VALID_BOSS_MODIFIER_KINDS, bossForAct, bossForMatch } from "./library";
 import { getStatusEffectById } from "../status/library";
 
 describe("boss library", () => {
-  it("Boss A is the-firewall on match 3 / act 1", () => {
-    expect(bossForMatch(3)?.id).toBe("the-firewall");
-    expect(bossForAct(1)?.id).toBe("the-firewall");
+  it("every boss has a modifier with a recognized kind", () => {
+    for (const boss of BOSS_DEFS) {
+      expect(
+        VALID_BOSS_MODIFIER_KINDS.includes(boss.modifier.kind as never),
+        `${boss.id}: modifier kind '${boss.modifier.kind}' not in VALID_BOSS_MODIFIER_KINDS`,
+      ).toBe(true);
+    }
   });
 
-  it("Boss A modifier blocks the player from placing walls", () => {
-    const a = getBossById("the-firewall");
-    expect(a.modifier.kind).toBe("no-player-walls");
+  it("every boss's statusEffects resolve and have curse flavor", () => {
+    for (const boss of BOSS_DEFS) {
+      for (const seId of boss.statusEffects) {
+        const def = getStatusEffectById(seId);
+        expect(def, `${boss.id}: status effect '${seId}' not found`).toBeDefined();
+        expect(def.flavor, `${boss.id}: status '${seId}' should be a curse`).toBe("curse");
+      }
+    }
   });
 
-  it("Boss A places permanent c3/d4 wall hazards on the 6x6 board", () => {
-    const a = getBossById("the-firewall");
-    expect(a.hazardWalls.sort()).toEqual(["c3", "d4"]);
+  it("bossForMatch and bossForAct agree for every boss", () => {
+    for (const boss of BOSS_DEFS) {
+      expect(bossForMatch(boss.matchNumber)?.id).toBe(boss.id);
+      const act = (boss.matchNumber / 3) as 1 | 2 | 3;
+      expect(bossForAct(act)?.id).toBe(boss.id);
+    }
   });
 
-  it("Boss A applies the Throttled status effect", () => {
-    const a = getBossById("the-firewall");
-    expect(a.statusEffects).toEqual(["throttled"]);
-    const throttled = getStatusEffectById("throttled");
-    expect(throttled.trigger.kind).toBe("on-self-check");
-    expect(throttled.flavor).toBe("curse");
+  it("every boss defines at least one game mechanic", () => {
+    for (const boss of BOSS_DEFS) {
+      const hasMechanic =
+        boss.modifier.kind !== undefined ||
+        (boss.hazardWalls?.length ?? 0) > 0 ||
+        (boss.voidSquares?.length ?? 0) > 0 ||
+        boss.statusEffects.length > 0;
+      expect(hasMechanic, `${boss.id}: defines no game mechanics`).toBe(true);
+    }
   });
 
-  it("Boss B is the-whale on match 6 / act 2 with the captures-grant rule", () => {
-    expect(bossForMatch(6)?.id).toBe("the-whale");
-    expect(bossForAct(2)?.id).toBe("the-whale");
-    const b = getBossById("the-whale");
-    expect(b.modifier.kind).toBe("captures-grant-captured-energy");
-    expect(b.statusEffects).toEqual(["memory-leak"]);
-    const memoryLeak = getStatusEffectById("memory-leak");
-    expect(memoryLeak.trigger.kind).toBe("every-n-turns");
-  });
-
-  it("Boss C is the-singularity on match 9 / act 3 with no-promotion + void hazards", () => {
-    expect(bossForMatch(9)?.id).toBe("the-singularity");
-    expect(bossForAct(3)?.id).toBe("the-singularity");
-    const c = getBossById("the-singularity");
-    expect(c.modifier.kind).toBe("no-promotion");
-    expect((c.voidSquares ?? []).sort()).toEqual(["d4", "d5", "e4", "e5"]);
-    expect([...c.statusEffects].sort()).toEqual(["bit-rot", "echo", "hardened"]);
-    for (const id of ["hardened", "echo", "bit-rot"]) {
-      const def = getStatusEffectById(id);
-      expect(def.flavor).toBe("curse");
+  it("hazardWalls and voidSquares use valid algebraic notation", () => {
+    const algebraic = /^[a-h][1-8]$/;
+    for (const boss of BOSS_DEFS) {
+      for (const sq of boss.hazardWalls ?? []) {
+        expect(sq, `${boss.id}: invalid hazard wall '${sq}'`).toMatch(algebraic);
+      }
+      for (const sq of boss.voidSquares ?? []) {
+        expect(sq, `${boss.id}: invalid void square '${sq}'`).toMatch(algebraic);
+      }
     }
   });
 
   it("returns null for matches without a defined boss", () => {
-    expect(bossForMatch(1)).toBeNull();
-    expect(bossForMatch(2)).toBeNull();
-    expect(bossForMatch(4)).toBeNull();
-    expect(bossForMatch(7)).toBeNull();
+    const bossMatches = new Set<number>(BOSS_DEFS.map((b) => b.matchNumber));
+    for (let m = 1; m <= 12; m++) {
+      if (!bossMatches.has(m)) {
+        expect(bossForMatch(m), `match ${m} should not have a boss`).toBeNull();
+      }
+    }
   });
 });

@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import type { BoardContext, PlayTarget } from "./match";
+import type { PlayTarget } from "./match";
 import {
   clearStatusesOn,
   createMatchCardState,
@@ -16,17 +16,9 @@ import {
   startPlayerTurn,
 } from "./match";
 import { getCardById } from "./library";
-import type { Piece, Side } from "../types";
+import type { Piece } from "../types";
 import type { ZoneBoardContext } from "../overlays/zoneBuffs";
-
-function withPieces(map: Record<string, Piece>): BoardContext {
-  return {
-    pieceAt: (sq) => map[sq] ?? null,
-    hasWall: () => false,
-    isAttackedBy: (_sq, _by: Side) => false,
-    isRooted: () => false,
-  };
-}
+import { withPieces } from "./match.testHelpers";
 
 function zoneCtx(map: Record<string, Piece>): ZoneBoardContext {
   return {

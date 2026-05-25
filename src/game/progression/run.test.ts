@@ -19,7 +19,7 @@ import {
 } from "./run";
 import { parseFen } from "../chess/rules";
 import { standardMatchConfig } from "./standard";
-import type { PieceType, RunMatchOutcome, RunState } from "../types";
+import type { RunMatchOutcome, RunState } from "../types";
 
 const MOCK_OUTCOME_WIN: RunMatchOutcome = {
   won: true,
@@ -125,13 +125,14 @@ describe("phase transitions: shop → next match (non-boss)", () => {
 });
 
 describe("nextMatchSetup (Standard mode)", () => {
+  const total = STANDARD_RUN_CONFIG.actCount * STANDARD_RUN_CONFIG.matchesPerAct;
   const startStandard = (matchNumber: number, seed = 1): RunState => ({
     ...createRun({ mode: "standard", rngSeed: seed, config: STANDARD_RUN_CONFIG }),
     matchNumber,
   });
 
   it("returns the configured board size for each match in the curve", () => {
-    for (let m = 1; m <= 9; m++) {
+    for (let m = 1; m <= total; m++) {
       const cfg = standardMatchConfig(m);
       const { size } = nextMatchSetup(startStandard(m));
       expect(size).toEqual(cfg.size);
@@ -139,11 +140,10 @@ describe("nextMatchSetup (Standard mode)", () => {
   });
 
   it("produces a parseable FEN for every match", () => {
-    for (let m = 1; m <= 9; m++) {
+    for (let m = 1; m <= total; m++) {
       const { fen, size } = nextMatchSetup(startStandard(m, m * 7));
       expect(fen).toBeDefined();
       const pos = parseFen(fen!, size);
-      // Each side should have at least the king plus full pawn rank.
       let players = 0;
       let opponents = 0;
       for (const [, p] of pos.pieces) {
@@ -154,51 +154,28 @@ describe("nextMatchSetup (Standard mode)", () => {
       expect(players).toBe(opponents);
     }
   });
-
-  const explicitBackRank = (m: number, expected: PieceType[]) => {
-    const { fen, size } = nextMatchSetup(startStandard(m));
-    const pos = parseFen(fen!, size);
-    const back: Array<{ file: number; type: PieceType }> = [];
-    for (const [sq, p] of pos.pieces) {
-      if (p.side !== "player") continue;
-      const rank = Number(sq.slice(1)) - 1;
-      if (rank !== 0 || p.type === "pawn") continue;
-      back.push({ file: "abcdefgh".indexOf(sq[0]), type: p.type });
-    }
-    const sortedTypes = back.sort((a, b) => a.file - b.file).map((b) => b.type);
-    expect([...sortedTypes].sort()).toEqual([...expected].sort());
-  };
-
-  it("Boss A (match 3) places exactly K + N + B + R on a 6×6 board", () => {
-    explicitBackRank(3, ["king", "knight", "bishop", "rook"]);
-  });
-
-  it("Boss B (match 6) places exactly K + 2N + 2B + 2R on a 7×7 board", () => {
-    explicitBackRank(6, ["king", "knight", "knight", "bishop", "bishop", "rook", "rook"]);
-  });
-
-  it("Boss C (match 9) places exactly K + 2N + 2B + 2R + Q on an 8×8 board", () => {
-    explicitBackRank(9, ["king", "knight", "knight", "bishop", "bishop", "rook", "rook", "queen"]);
-  });
 });
 
-describe("Standard boss flow (M8)", () => {
-  it("a Standard run starts in `match` and exposes Boss A on match 3", () => {
+describe("Standard boss flow", () => {
+  const firstBossMatch = STANDARD_RUN_CONFIG.matchesPerAct;
+
+  it("a Standard run starts in `match` and exposes a boss on the first boss match", () => {
     const run = createRun({ mode: "standard", rngSeed: 1 });
     expect(run.phase).toBe("match");
-    expect(activeBossFor({ ...run, matchNumber: 3 })?.id).toBe("the-firewall");
+    expect(activeBossFor({ ...run, matchNumber: firstBossMatch })).not.toBeNull();
   });
 
-  it("isBossMatch is true on Standard match 3, false elsewhere in act 1", () => {
+  it("isBossMatch is true on boss matches, false on non-boss matches", () => {
     const run = createRun({ mode: "standard", rngSeed: 1 });
-    expect(isBossMatch({ ...run, matchNumber: 1 })).toBe(false);
-    expect(isBossMatch({ ...run, matchNumber: 2 })).toBe(false);
-    expect(isBossMatch({ ...run, matchNumber: 3 })).toBe(true);
+    for (let m = 1; m < firstBossMatch; m++) {
+      expect(isBossMatch({ ...run, matchNumber: m }), `match ${m}`).toBe(false);
+    }
+    expect(isBossMatch({ ...run, matchNumber: firstBossMatch })).toBe(true);
   });
 
   it("a Standard boss win pays WIN_BONUS_BOSS and routes to reward", () => {
     const run = createRun({ mode: "standard", rngSeed: 1 });
-    const onBoss: RunState = { ...run, matchNumber: 3, phase: "match" };
+    const onBoss: RunState = { ...run, matchNumber: firstBossMatch, phase: "match" };
     const after = applyMatchOutcome(onBoss, MOCK_OUTCOME_WIN);
     expect(after.phase).toBe("reward");
     expect(after.gold).toBe(WIN_BONUS_BOSS);

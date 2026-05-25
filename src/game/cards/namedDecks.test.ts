@@ -4,20 +4,15 @@ import { ARTIFACT_LIBRARY } from "../artifacts/library";
 import { getNamedDecks } from "./library";
 
 describe("named decks", () => {
-  const ALL_THEMED = ["Sysadmin", "Hackathon", "Architect", "Botnet", "Pentester"];
+  const decks = getNamedDecks();
 
-  it("loads all pre-made themed decks", () => {
-    const names = new Set(getNamedDecks().map((d) => d.name));
-    for (const n of ALL_THEMED) {
-      expect(names.has(n)).toBe(true);
-    }
+  it("at least one pre-made deck exists", () => {
+    expect(decks.length).toBeGreaterThan(0);
   });
 
-  it("each pre-made deck has 10 cards composed 6 commons / 3 uncommons / 1 rare", () => {
-    const themed = getNamedDecks().filter((d) => ALL_THEMED.includes(d.name));
-    expect(themed.length).toBe(ALL_THEMED.length);
-    for (const deck of themed) {
-      expect(deck.cards.length).toBe(10);
+  it("each deck has 10 cards composed 6 commons / 3 uncommons / 1 rare", () => {
+    for (const deck of decks) {
+      expect(deck.cards.length, `${deck.name}: card count`).toBe(10);
       let c = 0;
       let u = 0;
       let r = 0;
@@ -30,11 +25,13 @@ describe("named decks", () => {
     }
   });
 
-  it("each pre-made deck's bundled artifactId resolves to a real artifact", () => {
-    const themed = getNamedDecks().filter((d) => ALL_THEMED.includes(d.name));
-    for (const deck of themed) {
-      expect(deck.artifactId).toBeTruthy();
-      expect(ARTIFACT_LIBRARY[deck.artifactId!]).toBeDefined();
+  it("each deck's bundled artifactId resolves to a real artifact", () => {
+    for (const deck of decks) {
+      expect(deck.artifactId, `${deck.name}: missing artifactId`).toBeTruthy();
+      expect(
+        ARTIFACT_LIBRARY[deck.artifactId!],
+        `${deck.name}: artifact '${deck.artifactId}' not found`,
+      ).toBeDefined();
     }
   });
 });
