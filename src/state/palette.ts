@@ -23,7 +23,7 @@ export const PALETTES: ReadonlyArray<{
     id: "hexbloom",
     name: "HEX_BLOOM",
     tag: "magenta + cyan",
-    swatches: ["#1befff", "#ff2bd6", "#c9ff3a", "#7c3aed"],
+    swatches: ["#1befff", "#ff2bd6", "#c9ff3a", "#a78bfa"],
   },
   {
     id: "amber",
