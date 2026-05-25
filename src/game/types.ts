@@ -525,7 +525,7 @@ export type RunMode = "standard" | "royal" | "skirmish";
 /**
  * Phases a run cycles through.
  */
-export type RunPhase = "match" | "reward" | "shop" | "won" | "lost";
+export type RunPhase = "match" | "reward" | "shop" | "placement" | "won" | "lost";
 
 /**
  * How many matches each act contains. Real Royal runs are 3 acts × 3 matches;
@@ -601,6 +601,16 @@ export type DraftOffer = {
   /** 1-of-N cards the player picks between. */
   cards: Card[];
   /** Gold awarded if the player skips the draft. */
+  skipGold: number;
+};
+
+/**
+ * Skirmish piece-draft offer — 1-of-3 piece types to add to the player's
+ * roster. Shown after every Skirmish match win. The player picks one piece
+ * type or skips for gold.
+ */
+export type PieceDraftOffer = {
+  pieces: PieceType[];
   skipGold: number;
 };
 
