@@ -19,12 +19,19 @@ import {
   enterShop,
   generateBossArtifactOffer,
   generateBossPickOffer,
+  isBossMatch,
   leaveShop,
   nextMatchSetup,
   pickBossArtifact,
   pickBossOption,
   skipBossArtifact,
 } from "../../game/progression/run";
+import {
+  draftPiece,
+  generatePieceDraftOffer,
+  skipPieceDraft,
+  PIECE_SKIP_GOLD,
+} from "../../game/progression/skirmish";
 import { applyInterest, generateShop } from "../../game/shop/shop";
 import { goldOnMatchStart } from "../../game/artifacts/effects";
 import type { EngineSnapshot } from "../../game/chess/engine";
@@ -36,6 +43,8 @@ import type {
   BossPickOption,
   Card,
   MatchCardState,
+  PieceDraftOffer,
+  PieceType,
   RunMatchOutcome,
   RunMode,
   RunState,
@@ -114,6 +123,13 @@ type PhaseExtras = {
    */
   bossPickResolved: boolean;
   /**
+  /**
+   * Skirmish piece-draft offer for the current reward step. Generated on
+   * reward-phase entry; null once the player picks or skips.
+   */
+  pieceDraftOffer: PieceDraftOffer | null;
+  pieceDraftGenerated: boolean;
+  /**
    * Held while the player reviews the just-finished match's final position
    * after a win. The phase stays at `"match"` so `<Match>` keeps its engine
    * state mounted; the win panel replaces the side panel and the player
@@ -164,6 +180,8 @@ export function Run({
     bossArtifactGenerated: false,
     bossPickOffer: null,
     bossPickResolved: false,
+    pieceDraftOffer: null,
+    pieceDraftGenerated: false,
     pendingWin: null,
     finalSnapshot: null,
     finalOutcome: null,
@@ -238,23 +256,35 @@ export function Run({
     // Drop the previous match's setup once we've left the match — the next
     // "match" entry will regenerate a fresh starting position. We keep it
     // alive through "lost"/"won" so Match can stay mounted there.
-    if ((run.phase === "reward" || run.phase === "shop") && extras.matchSetup !== null) {
+    if (
+      (run.phase === "reward" || run.phase === "shop" || run.phase === "placement") &&
+      extras.matchSetup !== null
+    ) {
       setExtras((e) => ({ ...e, matchSetup: null }));
       return;
     }
     if (run.phase === "reward") {
-      // The reward phase is boss-only now — non-boss wins skip it via
-      // applyMatchOutcome. Resolution order: bossPick → bossArtifact → shop.
+      // Skirmish: piece draft comes first — generate offer, wait for resolution.
+      if (run.mode === "skirmish" && !extras.pieceDraftGenerated) {
+        const { offer, next } = generatePieceDraftOffer(run);
+        setExtras((e) => ({ ...e, pieceDraftOffer: offer, pieceDraftGenerated: true }));
+        setRun(next);
+        return;
+      }
+      if (extras.pieceDraftOffer !== null) return;
+      // Non-boss Skirmish wins: piece draft was the only reward → shop.
+      if (!isBossMatch(run)) {
+        setRun((r) => enterShop(r));
+        return;
+      }
+      // Boss reward flow: bossPick → bossArtifact → shop.
       if (!extras.bossPickResolved) {
         if (extras.bossPickOffer === null) {
           setExtras((e) => ({ ...e, bossPickOffer: generateBossPickOffer() }));
           return;
         }
-        // Offer is showing — wait for the player to resolve it.
         return;
       }
-      // Boss-pick may have given the player free deletion charges; gate the
-      // rest of the reward step until they're spent.
       if ((run.bossDeleteCharges ?? 0) > 0) return;
       if (!extras.bossArtifactGenerated) {
         const { offer, next } = generateBossArtifactOffer(run);
@@ -266,9 +296,7 @@ export function Run({
         setRun(next);
         return;
       }
-      // Boss-artifact pick still showing — wait for the player.
       if (extras.bossArtifactOffer !== null) return;
-      // All boss-reward steps resolved → advance to the shop.
       setRun((r) => enterShop(r));
       return;
     }
@@ -290,15 +318,12 @@ export function Run({
       }
       return;
     }
-    if (run.phase === "match") {
-      // Stale shop / boss-reward state from previous round must not leak into
-      // the next entry to that phase — drop them as we leave them behind.
+    if (run.phase === "placement") {
+      // Skirmish placement phase — stale state cleanup, same as match entry.
       if (
         extras.shop !== null ||
         extras.bossArtifactGenerated ||
-        extras.bossArtifactOffer !== null ||
-        extras.bossPickOffer !== null ||
-        extras.bossPickResolved ||
+        extras.pieceDraftGenerated ||
         extras.finalSnapshot !== null ||
         extras.finalOutcome !== null
       ) {
@@ -309,6 +334,36 @@ export function Run({
           bossArtifactGenerated: false,
           bossPickOffer: null,
           bossPickResolved: false,
+          pieceDraftOffer: null,
+          pieceDraftGenerated: false,
+          finalSnapshot: null,
+          finalOutcome: null,
+        }));
+      }
+      return;
+    }
+    if (run.phase === "match") {
+      // Stale shop / boss-reward state from previous round must not leak into
+      // the next entry to that phase — drop them as we leave them behind.
+      if (
+        extras.shop !== null ||
+        extras.bossArtifactGenerated ||
+        extras.bossArtifactOffer !== null ||
+        extras.bossPickOffer !== null ||
+        extras.bossPickResolved ||
+        extras.pieceDraftGenerated ||
+        extras.finalSnapshot !== null ||
+        extras.finalOutcome !== null
+      ) {
+        setExtras((e) => ({
+          ...e,
+          shop: null,
+          bossArtifactOffer: null,
+          bossArtifactGenerated: false,
+          bossPickOffer: null,
+          bossPickResolved: false,
+          pieceDraftOffer: null,
+          pieceDraftGenerated: false,
           finalSnapshot: null,
           finalOutcome: null,
         }));
@@ -351,6 +406,8 @@ export function Run({
     extras.bossArtifactGenerated,
     extras.bossPickOffer,
     extras.bossPickResolved,
+    extras.pieceDraftOffer,
+    extras.pieceDraftGenerated,
     extras.finalSnapshot,
     extras.finalOutcome,
     pushRunEvent,
@@ -404,6 +461,18 @@ export function Run({
     const outcome = extras.pendingWin;
     setRun((r) => applyMatchOutcome(r, outcome));
     setExtras((e) => ({ ...e, pendingWin: null }));
+  };
+
+  // ---- Piece draft handlers (Skirmish) ------------------------------------
+
+  const onPickPiece = (pieceType: PieceType) => {
+    setRun((r) => draftPiece(r, pieceType));
+    setExtras((e) => ({ ...e, pieceDraftOffer: null }));
+  };
+
+  const onSkipPieceDraft = () => {
+    setRun((r) => skipPieceDraft(r, PIECE_SKIP_GOLD));
+    setExtras((e) => ({ ...e, pieceDraftOffer: null }));
   };
 
   // ---- Boss reward handlers ----------------------------------------------
@@ -601,10 +670,13 @@ export function Run({
           run={run}
           bossArtifactOffer={extras.bossArtifactOffer}
           bossPickOffer={extras.bossPickOffer}
+          pieceDraftOffer={extras.pieceDraftOffer}
           onPickBossArtifact={onPickBossArtifact}
           onSkipBossArtifact={onSkipBossArtifact}
           onPickBossOption={onPickBossOption}
           onDeleteDeckCard={onDeleteDeckCard}
+          onPickPiece={onPickPiece}
+          onSkipPieceDraft={onSkipPieceDraft}
         />
       )}
       {run.phase === "shop" && extras.shop && (

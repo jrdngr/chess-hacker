@@ -1,15 +1,20 @@
-// Post-match reward step. Boss-only: a Monster-Train-style 3-pick (energy /
-// draw / delete-cards) followed by a 1-of-3 artifact pick from the rare-skewed
-// boss pool. Resolution order: boss-pick → bossArtifact → shop.
-// Non-boss wins skip this phase entirely (match → shop directly).
+// Post-match reward step. In Standard mode this is boss-only (non-boss wins
+// skip directly to shop). In Skirmish mode every win comes here for the piece
+// draft before optionally continuing to boss rewards.
+//
+// Resolution order (Skirmish): pieceDraft → (bossPick → bossArtifact if boss) → shop.
+// Resolution order (Standard): bossPick → bossArtifact → shop.
 
 import { CardListModal } from "../Hand/CardListModal";
 import { FormattedText } from "../FormattedText";
+import { PieceDraft } from "./PieceDraft";
 import type {
   Artifact,
   BossArtifactOffer,
   BossPickOffer,
   BossPickOption,
+  PieceDraftOffer,
+  PieceType,
   RunState,
 } from "../../game/types";
 import styles from "./Reward.module.css";
@@ -19,21 +24,39 @@ type Props = {
   run: RunState;
   bossArtifactOffer: BossArtifactOffer | null;
   bossPickOffer: BossPickOffer | null;
+  pieceDraftOffer: PieceDraftOffer | null;
   onPickBossArtifact: (artifact: Artifact) => void;
   onSkipBossArtifact: () => void;
   onPickBossOption: (option: BossPickOption) => void;
   onDeleteDeckCard: (deckIndex: number) => void;
+  onPickPiece: (pieceType: PieceType) => void;
+  onSkipPieceDraft: () => void;
 };
 
 export function Reward({
   run,
   bossArtifactOffer,
   bossPickOffer,
+  pieceDraftOffer,
   onPickBossArtifact,
   onSkipBossArtifact,
   onPickBossOption,
   onDeleteDeckCard,
+  onPickPiece,
+  onSkipPieceDraft,
 }: Props) {
+  // Piece draft comes first in Skirmish — gates boss rewards.
+  if (pieceDraftOffer) {
+    return (
+      <PieceDraft
+        offer={pieceDraftOffer}
+        roster={run.roster ?? []}
+        onPick={onPickPiece}
+        onSkip={onSkipPieceDraft}
+      />
+    );
+  }
+
   // Boss-pick comes first — gates everything else. The 3 fixed options have
   // no skip; once picked, either the run advances (energy/draw → adds artifact)
   // or the deletion modal opens (delete-cards → bossDeleteCharges = 2).

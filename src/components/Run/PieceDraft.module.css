@@ -1,0 +1,117 @@
+/* Piece draft UI — shown in the reward phase for Skirmish mode. */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  min-height: 0;
+}
+
+.header {
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--player);
+}
+
+.subtitle {
+  margin: 6px 0 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.draftRow {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.pieceCard {
+  width: 140px;
+  min-height: 160px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition:
+    transform 100ms ease-out,
+    border-color 100ms ease-out;
+  font: inherit;
+  color: inherit;
+}
+
+.pieceCard:hover {
+  transform: translateY(-4px);
+  border-color: var(--player);
+}
+
+.pieceGlyph {
+  width: 56px;
+  height: 56px;
+}
+
+.pieceName {
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.pieceValue {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.roster {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 400px;
+}
+
+.rosterPiece {
+  width: 28px;
+  height: 28px;
+  opacity: 0.7;
+}
+
+.rosterInfo {
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+}
+
+.skip {
+  padding: 10px 20px;
+  font-size: 14px;
+  background: var(--panel);
+  color: var(--fg);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.skip:hover {
+  border-color: var(--player);
+  background: rgba(244, 162, 60, 0.08);
+}
