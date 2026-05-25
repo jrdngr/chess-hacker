@@ -1,0 +1,222 @@
+/* Skirmish placement screen — player places pieces before each match. */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  min-height: 0;
+  flex: 1;
+}
+
+.header {
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--player);
+}
+
+.subtitle {
+  margin: 6px 0 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Board grid */
+.board {
+  display: grid;
+  border: 2px solid var(--panel-border);
+}
+
+.square {
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  transition: background 80ms ease;
+}
+
+.square.light {
+  background: var(--board-light, #e8d5b5);
+}
+
+.square.dark {
+  background: var(--board-dark, #b58863);
+}
+
+.square.placeable {
+  outline: 2px dashed var(--player);
+  outline-offset: -2px;
+}
+
+.square.placeable:hover {
+  background: rgba(244, 162, 60, 0.3);
+}
+
+.square .glyph {
+  width: 42px;
+  height: 42px;
+  pointer-events: none;
+}
+
+.square.inactive {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Roster panel */
+.roster {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 180px;
+}
+
+.rosterTitle {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.rosterPieces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.rosterPiece {
+  width: 44px;
+  height: 44px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    border-color 80ms ease,
+    transform 80ms ease;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+}
+
+.rosterPiece:hover {
+  border-color: var(--player);
+  transform: scale(1.08);
+}
+
+.rosterPiece.selected {
+  border-color: var(--player);
+  box-shadow: 0 0 8px rgba(244, 162, 60, 0.5);
+  transform: scale(1.08);
+}
+
+.rosterPiece .glyph {
+  width: 34px;
+  height: 34px;
+}
+
+/* Info bar */
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
+.valueMeter {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.valueMeter.overCap {
+  color: #e74c3c;
+}
+
+.errors {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.error {
+  font-size: 12px;
+  color: #e74c3c;
+}
+
+/* Actions */
+.actions {
+  display: flex;
+  gap: 12px;
+}
+
+.startButton {
+  padding: 12px 28px;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--player);
+  color: var(--bg, #1a1a2e);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition:
+    opacity 120ms ease,
+    transform 80ms ease;
+}
+
+.startButton:hover:not(:disabled) {
+  transform: scale(1.03);
+}
+
+.startButton:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.autoButton {
+  padding: 10px 20px;
+  font-size: 13px;
+  background: var(--panel);
+  color: var(--fg);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease;
+}
+
+.autoButton:hover {
+  border-color: var(--player);
+  background: rgba(244, 162, 60, 0.08);
+}

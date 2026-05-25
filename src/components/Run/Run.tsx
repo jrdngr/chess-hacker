@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Match } from "../Match";
 import { MatchWonPanel } from "./MatchWonPanel";
+import { PlacementScreen } from "./PlacementScreen";
 import { Reward } from "./Reward";
 import { RunHistoryModal } from "./RunHistoryModal";
 import { Shop, type ShopAction } from "./Shop";
@@ -30,8 +31,12 @@ import {
   draftPiece,
   generatePieceDraftOffer,
   skipPieceDraft,
+  skirmishBoardSize,
   PIECE_SKIP_GOLD,
 } from "../../game/progression/skirmish";
+import { buildSkirmishFen } from "../../game/progression/placement";
+import { resolvePieceSet, standardMatchConfig } from "../../game/progression/standard";
+import { makeRng } from "../../game/cards/match";
 import { applyInterest, generateShop } from "../../game/shop/shop";
 import { goldOnMatchStart } from "../../game/artifacts/effects";
 import type { EngineSnapshot } from "../../game/chess/engine";
@@ -475,6 +480,26 @@ export function Run({
     setExtras((e) => ({ ...e, pieceDraftOffer: null }));
   };
 
+  // ---- Placement handler (Skirmish) -----------------------------------------
+
+  const onPlacementConfirm = (backRank: (PieceType | null)[], pawnFiles: boolean[]) => {
+    const size = skirmishBoardSize(run.matchNumber);
+    const boss = activeBossFor(run);
+    const rng = makeRng(run.rngSeed + run.rngCursor + run.matchNumber);
+    let aiPieceSet = undefined;
+    if (boss) {
+      const cfg = standardMatchConfig(run.matchNumber);
+      aiPieceSet = resolvePieceSet(cfg, rng);
+    }
+    const fen = buildSkirmishFen(backRank, pawnFiles, size, rng, aiPieceSet);
+    const matchStartGold = goldOnMatchStart(run.artifacts);
+    if (matchStartGold > 0) {
+      setRun((r) => ({ ...r, gold: r.gold + matchStartGold }));
+    }
+    setExtras((e) => ({ ...e, matchSetup: { fen, size } }));
+    setRun((r) => ({ ...r, phase: "match" }));
+  };
+
   // ---- Boss reward handlers ----------------------------------------------
 
   const onPickBossArtifact = (artifact: Artifact) => {
@@ -665,6 +690,14 @@ export function Run({
             }
           />
         )}
+      {run.phase === "placement" && run.roster && (
+        <PlacementScreen
+          roster={run.roster}
+          boardSize={skirmishBoardSize(run.matchNumber)}
+          matchNumber={run.matchNumber}
+          onConfirm={onPlacementConfirm}
+        />
+      )}
       {run.phase === "reward" && (
         <Reward
           run={run}
