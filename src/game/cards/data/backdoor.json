@@ -5,7 +5,7 @@
   "rarity": "uncommon",
   "archetype": "spatial",
   "consume": true,
-  "description": "Place a marker. Later, teleport a piece there (free action).",
+  "description": "Place a marker. Later, teleport a non-King piece there (free action).",
   "target": {
     "kind": "empty-square"
   },
@@ -13,7 +13,7 @@
     "kind": "place-backdoor"
   },
   "upgrade": {
-    "description": "Place 2 markers. Later, teleport a piece to each (free action).",
+    "description": "Place 2 markers. Later, teleport a non-King piece to each (free action).",
     "effect": {
       "kind": "place-backdoor",
       "count": 2

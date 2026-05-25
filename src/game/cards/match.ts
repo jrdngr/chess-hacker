@@ -863,11 +863,12 @@ function validateTarget(
       return null;
     }
     case "own-piece-then-adjacent-empty": {
-      // Fork: source = own piece; spawn = adjacent empty (king-step).
+      // Fork: source = own non-king piece; spawn = adjacent empty (king-step).
       if (target.kind !== "two-squares") return "missing-target";
       if (target.first === target.second) return "target-not-distinct";
       const source = ctx.pieceAt(target.first);
       if (!source || source.side !== "player") return "target-not-own-piece";
+      if (source.type === "king") return "target-not-own-non-king-piece";
       if (ctx.pieceAt(target.second) !== null || ctx.hasWall(target.second)) {
         return "target-not-empty";
       }
@@ -939,6 +940,23 @@ function validateTarget(
       if (source.type === "king") return "target-not-own-non-king-piece";
       if (ctx.pieceAt(target.second) !== null || ctx.hasWall(target.second))
         return "target-not-empty";
+      return null;
+    }
+    case "own-piece-then-empty-square": {
+      // SSH Tunnel+: any own piece (including King), then any empty square.
+      if (target.kind !== "two-squares") return "missing-target";
+      const source = ctx.pieceAt(target.first);
+      if (!source || source.side !== "player") return "target-not-own-piece";
+      if (ctx.pieceAt(target.second) !== null || ctx.hasWall(target.second))
+        return "target-not-empty";
+      return null;
+    }
+    case "own-promotable-piece": {
+      // Polymorphism: own piece excluding king and queen (pieces that can tier up).
+      if (target.kind !== "square") return "missing-target";
+      const p = ctx.pieceAt(target.square);
+      if (!p || p.side !== "player") return "target-not-own-piece";
+      if (p.type === "king" || p.type === "queen") return "target-piece-type-mismatch";
       return null;
     }
     case "captured-friendly-piece-then-empty-square-own-half": {

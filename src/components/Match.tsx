@@ -1115,9 +1115,10 @@ export function Match({
         }
         return out;
       }
-      // Phase 1: any own piece.
+      // Phase 1: any own non-king piece.
       for (const { square, piece } of allPieces) {
         if (piece.side !== "player") continue;
+        if (piece.type === "king") continue;
         out.add(square);
       }
       return out;
@@ -1177,6 +1178,14 @@ export function Match({
       }
       return out;
     }
+    if (targetKind === "own-promotable-piece") {
+      for (const { square, piece } of allPieces) {
+        if (piece.side !== "player") continue;
+        if (piece.type === "king" || piece.type === "queen") continue;
+        out.add(square);
+      }
+      return out;
+    }
     if (targetKind === "own-piece" || targetKind === "own-non-king-piece") {
       const excludeKing = targetKind === "own-non-king-piece";
       const patchPattern =
@@ -1220,6 +1229,24 @@ export function Match({
       }
       for (const { square, piece } of allPieces) {
         if (piece.side === "player" && piece.type !== "king") out.add(square);
+      }
+      return out;
+    }
+    if (targetKind === "own-piece-then-empty-square") {
+      if (partialTarget) {
+        const { files, ranks } = engine.size();
+        for (let r = 1; r <= ranks; r++) {
+          for (let f = 0; f < files; f++) {
+            const sq = "abcdefgh"[f] + String(r);
+            if (engine.pieceAt(sq)) continue;
+            if (walledSet.has(sq)) continue;
+            out.add(sq);
+          }
+        }
+        return out;
+      }
+      for (const { square, piece } of allPieces) {
+        if (piece.side === "player") out.add(square);
       }
       return out;
     }
@@ -1320,6 +1347,12 @@ export function Match({
       hint = partialTarget
         ? `Pick any empty square for ${targetingCard.name}`
         : `Pick one of your non-King pieces for ${targetingCard.name}`;
+    else if (k === "own-piece-then-empty-square")
+      hint = partialTarget
+        ? `Pick any empty square for ${targetingCard.name}`
+        : `Pick one of your pieces for ${targetingCard.name}`;
+    else if (k === "own-promotable-piece")
+      hint = `Pick a pawn, knight, bishop, or rook for ${targetingCard.name}`;
     else if (k === "captured-friendly-piece-then-empty-square-own-half")
       hint = `Pick an empty square in your half to place the revived piece for ${targetingCard.name}`;
     return { kind: "target", cardName: targetingCard.name, hint, valid: validTargetSquares };

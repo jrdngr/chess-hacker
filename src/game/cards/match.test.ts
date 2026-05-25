@@ -364,21 +364,24 @@ describe("playCard — disruption / spatial", () => {
     expect(trapAt(st, "f4")?.effect).toBe("freeze");
   });
 
-  it("Power Node places a zone-buff anchored at the targeted square", () => {
+  it("Power Node auto-places a zone-buff on a random center square", () => {
     const rng = makeRng(41);
     const stone = getCardById("power-node");
     let st = startPlayerTurn(createMatchCardState([stone], rng), rng);
     st = { ...st, energy: 10 };
     const idx = st.hand.findIndex((s) => s.card.id === "power-node");
-    const r = playCard(st, idx, { kind: "square", square: "e4" }, emptyBoard, rng);
+    const r = playCard(st, idx, { kind: "none" }, emptyBoard, rng);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     st = r.state;
     expect(st.zoneBuffs).toHaveLength(1);
     const buff = st.zoneBuffs[0];
-    expect(buff.region).toEqual({ kind: "square-orthogonal-1", anchor: "e4" });
+    expect(buff.region.kind).toBe("square-orthogonal-1");
+    if (buff.region.kind === "square-orthogonal-1") {
+      expect(["d4", "d5", "e4", "e5"]).toContain(buff.region.anchor);
+    }
     expect(buff.effect).toEqual({ kind: "energy-per-turn", amount: 1 });
-    expect(buff.expiresOnTurn).toBe(st.turn + 4);
+    expect(buff.expiresOnTurn).toBe(st.turn + 5);
     expect(buff.sourceLabel).toBe("Power Node");
   });
 });

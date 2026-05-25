@@ -5,7 +5,7 @@
   "rarity": "rare",
   "archetype": "swap",
   "consume": true,
-  "description": "Move an enemy piece by its legal moves.",
+  "description": "Move an enemy piece by its legal moves (may not capture your pieces).",
   "target": {
     "kind": "marionette"
   },

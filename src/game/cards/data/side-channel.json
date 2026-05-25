@@ -14,6 +14,13 @@
     "pieceTypeFilter": "pawn"
   },
   "upgrade": {
-    "consume": false
+    "consume": false,
+    "description": "**Empower** a pawn: 1-sq diagonal step.",
+    "effect": {
+      "kind": "empower-piece",
+      "pattern": "diagonal-step",
+      "singleUse": false,
+      "pieceTypeFilter": "pawn"
+    }
   }
 }

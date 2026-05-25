@@ -57,6 +57,8 @@ export const VALID_TARGET_KINDS = [
   "own-pawn",
   "enemy-minor-piece",
   "own-non-king-piece-then-empty-square",
+  "own-piece-then-empty-square",
+  "own-promotable-piece",
   "captured-friendly-piece-then-empty-square-own-half",
 ] as const;
 export const VALID_EFFECT_KINDS = [
@@ -412,6 +414,7 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
         errors.push("'effect.sourceLabel' must be a non-empty string for kind 'place-zone-buff'");
         return null;
       }
+      const autoPlace = Array.isArray(raw.autoPlace) ? (raw.autoPlace as string[]) : undefined;
       return {
         kind: "place-zone-buff",
         pattern: pattern as "square-orthogonal-1" | "square-radius-1",
@@ -421,6 +424,7 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
         },
         durationTurns: raw.durationTurns,
         sourceLabel,
+        ...(autoPlace ? { autoPlace } : {}),
       };
     }
     case "swap-own-pieces":
@@ -774,11 +778,18 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
         ? null
         : `'${effect.kind}' effect requires target.kind 'empty-square'`;
     case "place-sanctuary":
-    case "place-zone-buff":
-      // Buff overlays legitimately apply on top of an occupied square.
       return tk === "square" || tk === "empty-square"
         ? null
-        : `'${effect.kind}' effect requires target.kind 'square' or 'empty-square'`;
+        : "'place-sanctuary' effect requires target.kind 'square' or 'empty-square'";
+    case "place-zone-buff":
+      if (effect.autoPlace) {
+        return tk === "none"
+          ? null
+          : "'place-zone-buff' with autoPlace requires target.kind 'none'";
+      }
+      return tk === "square" || tk === "empty-square"
+        ? null
+        : "'place-zone-buff' effect requires target.kind 'square' or 'empty-square'";
     case "summon-piece":
       return tk === "empty-square" || tk === "empty-square-own-half"
         ? null
@@ -858,9 +869,9 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
         ? null
         : "'convert-piece' effect requires target.kind 'enemy-minor-piece' or 'enemy-non-king-piece'";
     case "transform-piece-up":
-      return tk === "own-non-king-piece"
+      return tk === "own-non-king-piece" || tk === "own-promotable-piece"
         ? null
-        : "'transform-piece-up' effect requires target.kind 'own-non-king-piece'";
+        : "'transform-piece-up' effect requires target.kind 'own-non-king-piece' or 'own-promotable-piece'";
     case "sacrifice-detonate":
       return tk === "own-non-king-piece"
         ? null
@@ -872,9 +883,9 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
         ? null
         : "'place-backdoor' effect requires target.kind 'empty-square'";
     case "teleport-piece":
-      return tk === "own-non-king-piece-then-empty-square"
+      return tk === "own-non-king-piece-then-empty-square" || tk === "own-piece-then-empty-square"
         ? null
-        : "'teleport-piece' effect requires target.kind 'own-non-king-piece-then-empty-square'";
+        : "'teleport-piece' effect requires target.kind 'own-non-king-piece-then-empty-square' or 'own-piece-then-empty-square'";
     case "resurrect-piece":
       return tk === "captured-friendly-piece-then-empty-square-own-half"
         ? null

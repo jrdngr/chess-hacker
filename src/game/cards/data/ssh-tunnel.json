@@ -15,7 +15,7 @@
   "upgrade": {
     "description": "Teleport any own piece (including King) to any empty square.",
     "target": {
-      "kind": "own-non-king-piece-then-empty-square"
+      "kind": "own-piece-then-empty-square"
     }
   }
 }

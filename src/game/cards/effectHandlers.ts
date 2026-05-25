@@ -264,7 +264,16 @@ export function applyEffect(
       };
     }
     case "place-zone-buff": {
-      const sq = squareTarget(target);
+      let sq: AlgebraicSquare;
+      if (effect.autoPlace) {
+        const candidates = effect.autoPlace.filter(
+          (s) => !ctx.hasWall(s as AlgebraicSquare),
+        ) as AlgebraicSquare[];
+        if (candidates.length === 0) return { state, sideEffects: [] };
+        sq = candidates[Math.floor(rng() * candidates.length)];
+      } else {
+        sq = squareTarget(target);
+      }
       const buff: ZoneBuff = {
         region: { kind: effect.pattern, anchor: sq },
         effect: effect.buff,

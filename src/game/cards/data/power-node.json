@@ -4,23 +4,25 @@
   "cost": 3,
   "rarity": "uncommon",
   "archetype": "spatial",
-  "description": "+1 energy/turn while a friendly piece is on or adjacent. 4 turns.",
-  "target": { "kind": "square" },
+  "description": "+1 energy/turn while a friendly piece is on or adjacent. Spawns on a center square. 5 turns.",
+  "target": { "kind": "none" },
   "effect": {
     "kind": "place-zone-buff",
     "pattern": "square-orthogonal-1",
     "buff": { "kind": "energy-per-turn", "amount": 1 },
-    "durationTurns": 4,
-    "sourceLabel": "Power Node"
+    "durationTurns": 5,
+    "sourceLabel": "Power Node",
+    "autoPlace": ["d4", "d5", "e4", "e5"]
   },
   "upgrade": {
-    "description": "+1 energy/turn while a friendly piece is on or adjacent. 6 turns.",
+    "description": "+1 energy/turn while a friendly piece is on or adjacent. Spawns on a center square. 6 turns.",
     "effect": {
       "kind": "place-zone-buff",
       "pattern": "square-orthogonal-1",
       "buff": { "kind": "energy-per-turn", "amount": 1 },
       "durationTurns": 6,
-      "sourceLabel": "Power Node"
+      "sourceLabel": "Power Node",
+      "autoPlace": ["d4", "d5", "e4", "e5"]
     }
   }
 }

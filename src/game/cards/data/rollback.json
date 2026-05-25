@@ -4,7 +4,7 @@
   "cost": 6,
   "rarity": "uncommon",
   "archetype": "disruption",
-  "description": "Undo opponent's last move; restore any captured piece.",
+  "description": "Undo opponent's last move; restore any captured piece. It remains your turn.",
   "target": {
     "kind": "none"
   },

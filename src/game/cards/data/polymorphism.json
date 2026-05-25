@@ -7,12 +7,12 @@
   "consume": true,
   "description": "Transform friendly piece one tier up (pawn\u2192minor, minor\u2192rook, rook\u2192queen).",
   "target": {
-    "kind": "own-non-king-piece"
+    "kind": "own-promotable-piece"
   },
   "effect": {
     "kind": "transform-piece-up"
   },
   "upgrade": {
-    "cost": 1
+    "cost": 5
   }
 }

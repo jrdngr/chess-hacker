@@ -147,7 +147,7 @@ describe("Fork (summon-adjacent)", () => {
     if (!r.ok) expect(r.reason).toBe("target-not-empty");
   });
 
-  it("allows the king as the source piece", () => {
+  it("rejects the king as the source piece", () => {
     const rng = makeRng(114);
     const card = getCardById("fork");
     let st = startPlayerTurn(createMatchCardState([card], rng), rng);
@@ -155,7 +155,7 @@ describe("Fork (summon-adjacent)", () => {
     const idx = st.hand.findIndex((s) => s.card.id === "fork");
     const ctx = withPieces({ e1: { type: "king", side: "player" } });
     const r = playCard(st, idx, twoSquares("e1", "e2"), ctx, rng);
-    expect(r.ok).toBe(true);
+    expect(r.ok).toBe(false);
   });
 });
 

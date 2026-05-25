@@ -90,7 +90,9 @@ export type CardArchetype =
  *  - "own-pawn":                    a square holding one of the player's pawns (Sudo).
  *  - "enemy-minor-piece":           enemy knight, bishop, or pawn (Bit Flip).
  *  - "own-non-king-piece-then-empty-square":
- *                                  own non-king piece, then any empty square (SSH Tunnel).
+ *                                  own non-king piece, then any empty square (SSH Tunnel base).
+ *  - "own-piece-then-empty-square":  any own piece (incl. King), then any empty square (SSH Tunnel+).
+ *  - "own-promotable-piece":         own piece excluding king AND queen (Polymorphism).
  *  - "captured-friendly-piece-then-empty-square-own-half":
  *                                  choose a captured/destroyed friendly piece, then an
  *                                  empty square in your half (Git Revert).
@@ -114,6 +116,8 @@ export type CardTarget =
   | { kind: "own-pawn" }
   | { kind: "enemy-minor-piece" }
   | { kind: "own-non-king-piece-then-empty-square" }
+  | { kind: "own-piece-then-empty-square" }
+  | { kind: "own-promotable-piece" }
   | { kind: "captured-friendly-piece-then-empty-square-own-half" };
 
 /** Trap variant — picked per-card when the trap is placed. */
@@ -225,6 +229,8 @@ export type CardEffect =
       durationTurns: number;
       /** Sidebar label shown while the buff is active. */
       sourceLabel: string;
+      /** When set, auto-pick a random square from this list instead of using player target. */
+      autoPlace?: AlgebraicSquare[];
     }
   /**
    * Status-effect payload (Boss A / Throttled): constrains the next chess
