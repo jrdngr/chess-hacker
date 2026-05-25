@@ -18,6 +18,7 @@ import type {
   PieceStatus,
   PieceType,
   PowerEffect,
+  Side,
   ZoneBuff,
 } from "../types";
 import {
@@ -29,6 +30,10 @@ import {
   type Rng,
 } from "./match";
 import { getCardById } from "./library";
+
+function opposite(s: Side): Side {
+  return s === "player" ? "opponent" : "player";
+}
 
 export type EffectResult = { state: MatchCardState; sideEffects: CardSideEffect[] };
 
@@ -46,6 +51,7 @@ export function applyEffect(
   rng: Rng,
   source: Card,
   playingIndex: number,
+  side: Side = "player",
 ): EffectResult {
   switch (effect.kind) {
     // ---- Card / resource manipulation --------------------------------------
@@ -119,7 +125,7 @@ export function applyEffect(
           "freezes",
           squareTarget(target),
           state.turn + (effect.durationTurns ?? 1),
-          "opponent",
+          opposite(side),
         ),
         sideEffects: [],
       };
@@ -130,7 +136,7 @@ export function applyEffect(
           "roots",
           squareTarget(target),
           state.turn + (effect.durationTurns ?? 1),
-          "opponent",
+          opposite(side),
         ),
         sideEffects: [],
       };
@@ -141,13 +147,13 @@ export function applyEffect(
           "disarms",
           squareTarget(target),
           state.turn + (effect.durationTurns ?? 1),
-          "opponent",
+          opposite(side),
         ),
         sideEffects: [],
       };
     case "compel-piece":
       return {
-        state: addStatus(state, "compels", squareTarget(target), state.turn + 1, "opponent"),
+        state: addStatus(state, "compels", squareTarget(target), state.turn + 1, opposite(side)),
         sideEffects: [],
       };
     case "shield-piece": {
@@ -160,7 +166,7 @@ export function applyEffect(
           "shields",
           shieldSq,
           state.turn + (effect.durationTurns ?? 1),
-          "player",
+          side,
         ),
         sideEffects: [],
       };
@@ -168,7 +174,7 @@ export function applyEffect(
     case "haste-piece": {
       const dur = effect.durationTurns ?? 1;
       return {
-        state: addStatus(state, "hastes", squareTarget(target), state.turn + dur, "player"),
+        state: addStatus(state, "hastes", squareTarget(target), state.turn + dur, side),
         sideEffects: [],
       };
     }
@@ -180,7 +186,7 @@ export function applyEffect(
       const dur = effect.durationTurns ?? 1;
       const status: EmpowerStatus = {
         square: sq,
-        side: "player",
+        side,
         expiresOnTurn: state.turn + dur,
         pattern: effect.pattern,
       };
@@ -206,7 +212,7 @@ export function applyEffect(
       const sq = squareTarget(target);
       const status: LightningStatus = {
         square: sq,
-        side: "player",
+        side,
         expiresOnTurn: state.turn + 1,
         remaining: effect.actions,
       };
@@ -277,7 +283,7 @@ export function applyEffect(
       const buff: ZoneBuff = {
         region: { kind: effect.pattern, anchor: sq },
         effect: effect.buff,
-        side: "player",
+        side,
         expiresOnTurn: state.turn + effect.durationTurns,
         sourceLabel: effect.sourceLabel,
       };
@@ -360,7 +366,7 @@ export function applyEffect(
         nextLightnings = nextLightnings.filter((l) => l.square !== fsq);
         nextLightnings.push({
           square: fsq,
-          side: "player",
+          side,
           expiresOnTurn: expires,
           remaining: effect.actions + 1,
         });
@@ -374,7 +380,7 @@ export function applyEffect(
       const sq = squareTarget(target);
       const lock: MutexLockStatus = {
         anchor: sq,
-        side: "player",
+        side,
         remainingTurns: effect.durationTurns,
       };
       return {
@@ -486,7 +492,7 @@ export function applyEffect(
     case "downgrade-piece": {
       const sq = squareTarget(target);
       const expires = state.turn + effect.durationTurns;
-      const status: PieceStatus = { square: sq, side: "opponent", expiresOnTurn: expires };
+      const status: PieceStatus = { square: sq, side: opposite(side), expiresOnTurn: expires };
       return {
         state: {
           ...state,
@@ -565,7 +571,7 @@ export function applyEffect(
     }
     case "place-backdoor": {
       const sq = squareTarget(target);
-      const marker: BackdoorMarker = { square: sq, side: "player" };
+      const marker: BackdoorMarker = { square: sq, side };
       return {
         state: {
           ...state,
@@ -622,7 +628,7 @@ export function applyEffect(
       let next = state;
       const sideEffects: CardSideEffect[] = [];
       for (const child of effect.effects) {
-        const r = applyEffect(child, next, target, ctx, rng, source, playingIndex);
+        const r = applyEffect(child, next, target, ctx, rng, source, playingIndex, side);
         next = r.state;
         sideEffects.push(...r.sideEffects);
       }

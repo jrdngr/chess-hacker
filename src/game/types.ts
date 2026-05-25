@@ -496,7 +496,7 @@ export type Trap = {
 export type MutexLockStatus = {
   /** The anchor piece's current square — kept in sync via relocateStatuses. */
   anchor: AlgebraicSquare;
-  side: "player";
+  side: Side;
   /** Opponent turns still covered, inclusive of the upcoming one. */
   remainingTurns: number;
 };

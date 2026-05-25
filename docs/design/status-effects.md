@@ -72,7 +72,7 @@ Triggers resolve relative to `target`:
 - `on-opponent-capture` matches when `event.by !== target`.
 - `every-n-turns` measures target-side turns.
 
-**Limitation today:** the existing CardEffect handlers (e.g. `next-move-constraint`) write to player-side flags only. The dispatcher therefore asserts `target === "player"` at fire time. When the first player → enemy curse ships, those handlers will need a side parameter; until then, only boss curses are exercised.
+The `target` side is forwarded to `applyEffect` as the `side` parameter. Per-piece statuses, zone buffs, and other side-aware handlers write to the correct side's state based on this parameter, so both boss → player and player → enemy status effects are supported.
 
 ## Hook points
 

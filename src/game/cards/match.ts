@@ -724,7 +724,7 @@ export function playCard(
   let next: MatchCardState = { ...state, energy: clampEnergy(state.energy - cost) };
   const sideEffects: CardSideEffect[] = [];
 
-  const applied = applyEffect(card.effect, next, target, ctx, rng, card, cardIndex);
+  const applied = applyEffect(card.effect, next, target, ctx, rng, card, cardIndex, "player");
   next = applied.state;
   sideEffects.push(...applied.sideEffects);
 

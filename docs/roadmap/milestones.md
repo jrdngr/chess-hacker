@@ -186,16 +186,9 @@ Before adding more content, validate what exists:
 - **Economy numbers:** performance bonuses, skip-bonus values, and reroll cost curve are all still TBD in `docs/roadmap/open-questions.md`. Set concrete numbers based on playtesting.
 - **Card removal pricing:** default curve is 50, 75, 100, 125, 150... — verify it feels fair across a full 9-match run.
 
-### M11d — Refactor status effects for side-symmetry
+### M11d — Refactor status effects for side-symmetry [done]
 
-`src/game/status/dispatch.ts` currently throws when `status.target !== "player"` because `applyEffect` handlers in `src/game/cards/effectHandlers.ts` are hard-coded to write player-side flags. This blocks an entire archetype: cards that place debuffs on the enemy.
-
-Change:
-1. Add a `side` parameter to `applyEffect` and the individual handler functions.
-2. Remove the `throw` guard in `dispatch.ts`.
-3. Audit each handler to ensure it writes to the correct side's state.
-
-This is a small architectural change but gates future content: player-cast curses, offensive status effects, and symmetrical boss abilities.
+`applyEffect` now takes a `side: Side` parameter. Per-piece statuses, zone buffs, empowers, lightnings, mutex locks, backdoors, and downgrades all use `side` (or `opposite(side)` for debuffs) instead of hardcoded `"player"` / `"opponent"`. The dispatcher in `dispatch.ts` passes `status.target` as `side`; card-play passes `"player"`. The throw guard is removed. Player-cast curses, offensive status effects, and symmetrical boss abilities are now unblocked.
 
 ### M11e — Polish pass
 

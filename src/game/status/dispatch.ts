@@ -10,11 +10,11 @@
 // Side-symmetry: a status's `target` field determines which side's events it
 // listens to and whose state its effect mutates. Boss curses set target =
 // "player" — they fire on player-side events (turn-start when side === player,
-// on-self-* when by === player, on-opponent-* when by === opponent). Future
-// player-applied curses on the enemy would set target = "opponent". Most
-// existing CardEffect handlers are hard-coded to write player-side flags, so
-// the dispatcher asserts target === "player" at fire time and we'll
-// side-parameterize the handlers when the first player → enemy curse ships.
+// on-self-* when by === player, on-opponent-* when by === opponent). Player-
+// applied curses on the enemy set target = "opponent". The `target` side is
+// forwarded to `applyEffect` as the `side` parameter so that per-piece
+// statuses, zone buffs, and other side-aware handlers write to the correct
+// side's state.
 
 import type { Card, Side, StatusEffect } from "../types";
 import { applyEffect } from "../cards/effectHandlers";
@@ -125,18 +125,18 @@ export function fireStatusEffects(
       continue;
     }
 
-    if (status.target !== "player") {
-      // Effect handlers are currently hard-coded to player-side flags; the
-      // first player → enemy curse will widen them. Until then, surface the
-      // limitation loudly rather than silently misbehaving.
-      throw new Error(
-        `Status effect '${status.defId}' has target '${status.target}' but only target='player' is wired up today.`,
-      );
-    }
-
     const def = getStatusEffectById(status.defId);
     const sourceCard = syntheticSourceCard(def.id, def.effect);
-    const result = applyEffect(def.effect, next, { kind: "none" }, ctx, rng, sourceCard, -1);
+    const result = applyEffect(
+      def.effect,
+      next,
+      { kind: "none" },
+      ctx,
+      rng,
+      sourceCard,
+      -1,
+      status.target,
+    );
     next = result.state;
     for (const se of result.sideEffects) sideEffects.push(se);
 

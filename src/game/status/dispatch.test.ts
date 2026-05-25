@@ -174,4 +174,25 @@ describe("fireStatusEffects", () => {
     res = fireStatusEffects(res.state, e1, emptyBoard, rng);
     expect(res.state.bossExtraMoves).toBe(1); // no second fire
   });
+
+  it("opponent-targeting status effects fire without throwing", () => {
+    const rng = makeRng(10);
+    let st = startPlayerTurn(createMatchCardState([], rng), rng);
+    const playerCurse: StatusEffect = {
+      defId: "throttled",
+      source: "player",
+      target: "opponent",
+      attachedOnTurn: 0,
+      oncePerTurn: true,
+    };
+    st = withStatuses(st, [playerCurse]);
+    const res = fireStatusEffects(
+      st,
+      { kind: "check", by: "opponent", turn: st.turn },
+      emptyBoard,
+      rng,
+    );
+    expect(res.state.mustNotCheckNextMove).toBe(true);
+    expect(res.state.statusEffects[0]?.lastFiredOnTurn).toBe(st.turn);
+  });
 });
