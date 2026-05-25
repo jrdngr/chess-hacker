@@ -327,8 +327,7 @@ export function applyEffect(
       let pieceType: PieceType;
       if (effect.pieceType === "copy-of-source") {
         const source = ctx.pieceAt(target.first);
-        // Validator guarantees source is a player non-king piece; cross-check
-        // defensively. King is excluded so Fork+ cannot summon a second king.
+        // King is excluded so Fork+ cannot summon a second king.
         if (!source || source.side !== "player" || source.type === "king") {
           return { state, sideEffects: [] };
         }

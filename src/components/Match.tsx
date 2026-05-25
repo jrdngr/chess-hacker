@@ -1004,6 +1004,8 @@ export function Match({
     resurrectPending,
     setResurrectPending,
     libraryFreePlayActive,
+    bonusMoveActive,
+    cancelBonusMove,
     tryPlay,
     tryResolveCard,
     cancelTargeting,
@@ -1092,7 +1094,7 @@ export function Match({
       }
       return out;
     }
-    if (targetKind === "own-non-king-piece-then-adjacent-empty") {
+    if (targetKind === "own-piece-then-adjacent-empty") {
       if (partialTarget) {
         // Phase 2: any king-step-adjacent empty, non-walled square.
         const f0 = partialTarget.charCodeAt(0) - "a".charCodeAt(0);
@@ -1113,10 +1115,9 @@ export function Match({
         }
         return out;
       }
-      // Phase 1: any own non-king piece.
+      // Phase 1: any own piece.
       for (const { square, piece } of allPieces) {
         if (piece.side !== "player") continue;
-        if (piece.type === "king") continue;
         out.add(square);
       }
       return out;
@@ -1296,10 +1297,10 @@ export function Match({
       hint = partialTarget
         ? `Pick the second enemy non-King piece for ${targetingCard.name}`
         : `Pick the first enemy non-King piece for ${targetingCard.name}`;
-    else if (k === "own-non-king-piece-then-adjacent-empty")
+    else if (k === "own-piece-then-adjacent-empty")
       hint = partialTarget
         ? `Pick an adjacent empty square for ${targetingCard.name}`
-        : `Pick one of your non-King pieces for ${targetingCard.name}`;
+        : `Pick one of your pieces for ${targetingCard.name}`;
     else if (k === "marionette")
       hint = partialTarget
         ? `Pick a destination for ${targetingCard.name}`
@@ -1700,6 +1701,11 @@ export function Match({
           discardsRemaining={cardState.discardsRemaining ?? 0}
           onVoluntaryDiscard={(i) => setCardState((prev) => voluntaryDiscard(prev, i))}
         />
+      )}
+      {bonusMoveActive && !aiThinking && !matchOver && (
+        <button className={styles.skipBonusMove} onClick={cancelBonusMove}>
+          Skip bonus move
+        </button>
       )}
       {scryPending && (
         <ScryModal

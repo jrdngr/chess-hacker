@@ -862,13 +862,12 @@ function validateTarget(
       if (a.type === "king" || b.type === "king") return "target-not-enemy-non-king-piece";
       return null;
     }
-    case "own-non-king-piece-then-adjacent-empty": {
-      // Fork: source = own non-king piece; spawn = adjacent empty (king-step).
+    case "own-piece-then-adjacent-empty": {
+      // Fork: source = own piece; spawn = adjacent empty (king-step).
       if (target.kind !== "two-squares") return "missing-target";
       if (target.first === target.second) return "target-not-distinct";
       const source = ctx.pieceAt(target.first);
       if (!source || source.side !== "player") return "target-not-own-piece";
-      if (source.type === "king") return "target-not-own-non-king-piece";
       if (ctx.pieceAt(target.second) !== null || ctx.hasWall(target.second)) {
         return "target-not-empty";
       }

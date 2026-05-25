@@ -13,6 +13,6 @@
     "kind": "resurrect-piece"
   },
   "upgrade": {
-    "description": "Resurrect a captured piece onto an empty square in your half. It enters with Shield."
+    "description": "Resurrect a captured piece in your half. It enters with Shield."
   }
 }

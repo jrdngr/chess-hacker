@@ -240,10 +240,10 @@ export function useBoardInteraction({
           cancelTargeting();
           return;
         }
-        if (k === "own-non-king-piece-then-adjacent-empty") {
+        if (k === "own-piece-then-adjacent-empty") {
           if (!partialTarget) {
             const piece = engine.pieceAt(sq);
-            if (piece && piece.side === "player" && piece.type !== "king") {
+            if (piece && piece.side === "player") {
               setPartialTarget(sq);
               return;
             }

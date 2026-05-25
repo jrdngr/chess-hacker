@@ -5,7 +5,7 @@
   "rarity": "rare",
   "archetype": "tempo",
   "consume": true,
-  "description": "Pawn acts as queen for one move this turn. Promotes permanently if it reaches the back rank.",
+  "description": "Pawn moves as queen this turn. Promotes if it reaches the back rank.",
   "target": {
     "kind": "own-pawn"
   },

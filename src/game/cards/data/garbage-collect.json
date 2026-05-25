@@ -5,7 +5,7 @@
   "rarity": "rare",
   "archetype": "burst",
   "consume": true,
-  "description": "Destroy every enemy non-King piece currently attacked by one of your pieces.",
+  "description": "Destroy every enemy non-King piece attacked by your pieces.",
   "target": {
     "kind": "none"
   },
@@ -14,7 +14,7 @@
     "recursive": false
   },
   "upgrade": {
-    "description": "Destroy every enemy non-King piece attacked by one of your pieces. Repeat until no new pieces are destroyed.",
+    "description": "Destroy every enemy non-King piece attacked by your pieces. Repeats until none remain.",
     "effect": {
       "kind": "garbage-collect",
       "recursive": true

@@ -4,16 +4,16 @@
   "cost": 6,
   "rarity": "uncommon",
   "archetype": "summon",
-  "description": "Choose one of your non-King pieces; summon a pawn on an empty square adjacent to it.",
+  "description": "Choose a piece; summon a pawn on an adjacent empty square.",
   "target": {
-    "kind": "own-non-king-piece-then-adjacent-empty"
+    "kind": "own-piece-then-adjacent-empty"
   },
   "effect": {
     "kind": "summon-adjacent",
     "pieceType": "pawn"
   },
   "upgrade": {
-    "description": "Choose one of your non-King pieces; summon a copy of it on an empty square adjacent to it.",
+    "description": "Choose a piece; summon a copy of it on an adjacent empty square.",
     "effect": {
       "kind": "summon-adjacent",
       "pieceType": "copy-of-source"

@@ -81,8 +81,8 @@ export type CardArchetype =
  *  - "own-non-king-piece":         same as own-piece, but the king is excluded.
  *  - "two-own-pieces":             two squares each holding a player piece (multi-step).
  *  - "two-enemy-non-king-pieces":  two distinct squares each holding an enemy non-king piece (Race Condition).
- *  - "own-non-king-piece-then-adjacent-empty":
- *                                  an own non-king piece, then an empty king-step-adjacent square (Fork).
+ *  - "own-piece-then-adjacent-empty":
+ *                                  an own piece, then an empty king-step-adjacent square (Fork).
  *  - "marionette":                 an enemy piece, then one of its legal destinations.
  *  - "rooted-enemy-and-own-piece": a rooted enemy piece, then one of your pieces (multi-step).
  *  - "enemy-and-own-piece":        any enemy non-king piece, then one of your pieces (multi-step).
@@ -106,7 +106,7 @@ export type CardTarget =
   | { kind: "own-non-king-piece" }
   | { kind: "two-own-pieces" }
   | { kind: "two-enemy-non-king-pieces" }
-  | { kind: "own-non-king-piece-then-adjacent-empty" }
+  | { kind: "own-piece-then-adjacent-empty" }
   | { kind: "marionette" }
   | { kind: "rooted-enemy-and-own-piece" }
   | { kind: "enemy-and-own-piece" }

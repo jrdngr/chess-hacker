@@ -49,7 +49,7 @@ export const VALID_TARGET_KINDS = [
   "own-non-king-piece",
   "two-own-pieces",
   "two-enemy-non-king-pieces",
-  "own-non-king-piece-then-adjacent-empty",
+  "own-piece-then-adjacent-empty",
   "marionette",
   "rooted-enemy-and-own-piece",
   "enemy-and-own-piece",
@@ -825,9 +825,9 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
         ? null
         : "'swap-enemy-pieces' effect requires target.kind 'two-enemy-non-king-pieces'";
     case "summon-adjacent":
-      return tk === "own-non-king-piece-then-adjacent-empty"
+      return tk === "own-piece-then-adjacent-empty"
         ? null
-        : "'summon-adjacent' effect requires target.kind 'own-non-king-piece-then-adjacent-empty'";
+        : "'summon-adjacent' effect requires target.kind 'own-piece-then-adjacent-empty'";
     case "sacrifice-blast-action":
       return tk === "own-non-king-piece"
         ? null

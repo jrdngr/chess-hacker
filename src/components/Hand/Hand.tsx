@@ -28,7 +28,7 @@ import styles from "./Hand.module.css";
 const NON_DRAGGABLE_TARGETS: ReadonlySet<CardTarget["kind"]> = new Set([
   "two-own-pieces",
   "two-enemy-non-king-pieces",
-  "own-non-king-piece-then-adjacent-empty",
+  "own-piece-then-adjacent-empty",
   "marionette",
   "hand-card",
 ]);
@@ -405,7 +405,7 @@ export function Hand({
                 onDragEnd={() => onCardDragEnd?.()}
                 aria-label={`${card.name}, cost ${card.cost}. ${card.description}${forbidden ? " — forbidden by boss modifier." : ""}${retained ? " — retained." : ""}`}
                 data-card-id={card.id}
-                title={forbidden ? "Forbidden by the active boss modifier" : undefined}
+                title={`${card.name} (${card.cost}E)\n${card.description}${forbidden ? "\n\nForbidden by the active boss modifier" : ""}`}
               >
                 <span className={styles.cost}>{card.cost}</span>
                 <span className={styles.name}>{card.name}</span>

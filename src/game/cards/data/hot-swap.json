@@ -4,7 +4,7 @@
   "cost": 3,
   "rarity": "common",
   "archetype": "tempo",
-  "description": "After your chess move, take a bonus move with a different piece (no capture).",
+  "description": "After your move, a different piece gets a bonus move (no capture).",
   "target": {
     "kind": "own-non-king-piece"
   },
@@ -12,7 +12,7 @@
     "kind": "hot-swap"
   },
   "upgrade": {
-    "description": "After your chess move, take a bonus move with a different piece (can capture).",
+    "description": "After your move, a different piece gets a bonus move (can capture).",
     "effect": {
       "kind": "hot-swap",
       "canCapture": true

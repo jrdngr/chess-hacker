@@ -105,6 +105,8 @@ type Result = {
   resurrectPending: boolean;
   setResurrectPending: (next: boolean) => void;
   libraryFreePlayActive: boolean;
+  bonusMoveActive: boolean;
+  cancelBonusMove: () => void;
   // Callbacks
   tryPlay: (
     from: AlgebraicSquare,
@@ -183,6 +185,7 @@ export function useCardPlay({
    */
   const libraryFreePlayRef = useRef<number | null>(null);
   const [libraryFreePlayActive, setLibraryFreePlayActive] = useState(false);
+  const [bonusMoveActive, setBonusMoveActive] = useState(false);
 
   /**
    * Try to play `target` from `selected`. Returns true if a move was made.
@@ -397,8 +400,12 @@ export function useCardPlay({
 
       if (consumeAndContinue) {
         engine.forceTurn("player");
-      } else if (cardState.continuationSquare) {
-        next = { ...next, continuationSquare: undefined };
+        setBonusMoveActive(true);
+      } else {
+        setBonusMoveActive(false);
+        if (cardState.continuationSquare) {
+          next = { ...next, continuationSquare: undefined };
+        }
       }
 
       // Player's chess move ended their turn (no Haste/Lightning/extra-move
@@ -487,6 +494,19 @@ export function useCardPlay({
       }));
     }
   }, [setCardState]);
+
+  const cancelBonusMove = useCallback(() => {
+    if (!bonusMoveActive) return;
+    setBonusMoveActive(false);
+    setSelected(null);
+    const next = discardHandAtTurnEnd({
+      ...cardState,
+      continuationSquare: undefined,
+      playerExtraMovesRemaining: undefined,
+    });
+    setCardState(next);
+    engine.forceTurn("opponent");
+  }, [bonusMoveActive, cardState, engine, setCardState, setSelected]);
 
   /**
    * Apply the side effects produced by `playCard`. Returns the (possibly
@@ -767,6 +787,7 @@ export function useCardPlay({
     setPromotionPending(null);
     libraryFreePlayRef.current = null;
     setLibraryFreePlayActive(false);
+    setBonusMoveActive(false);
   }, []);
 
   return {
@@ -787,6 +808,8 @@ export function useCardPlay({
     resurrectPending,
     setResurrectPending,
     libraryFreePlayActive,
+    bonusMoveActive,
+    cancelBonusMove,
     tryPlay,
     tryResolveCard,
     cancelTargeting,

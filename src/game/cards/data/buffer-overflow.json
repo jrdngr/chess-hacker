@@ -5,7 +5,7 @@
   "rarity": "rare",
   "archetype": "sacrifice",
   "consume": true,
-  "description": "Destroy one of your non-King pieces. Each friendly piece adjacent (king-step) gets 1 free action this turn.",
+  "description": "Destroy own non-King piece. Adjacent friendly pieces each get 1 free action.",
   "target": {
     "kind": "own-non-king-piece"
   },
@@ -15,7 +15,7 @@
     "actions": 1
   },
   "upgrade": {
-    "description": "Destroy one of your non-King pieces. Each friendly piece within king-step or knight-jump gets 1 free action this turn.",
+    "description": "Destroy own non-King piece. Friendly pieces within king-step or knight-jump each get 1 free action.",
     "effect": {
       "kind": "sacrifice-blast-action",
       "pattern": "king-step-and-knight",
