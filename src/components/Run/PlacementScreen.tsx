@@ -1,12 +1,22 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { Board, type BoardMode } from "../Board/Board";
 import { PieceGlyph } from "../Board/PieceGlyph";
+import { ChoseEngine, squareName, squareCoords, type LegalMove } from "../../game/chess/engine";
 import { validatePlacement } from "../../game/progression/placement";
 import {
   SKIRMISH_PIECE_VALUE,
   placementValue,
   skirmishValueCap,
 } from "../../game/progression/skirmish";
-import type { BoardSize, Piece, PieceType } from "../../game/types";
+import type {
+  AlgebraicSquare,
+  BoardSize,
+  FileIndex,
+  PieceType,
+  RankIndex,
+  Side,
+  Piece,
+} from "../../game/types";
 
 import styles from "./PlacementScreen.module.css";
 
@@ -17,405 +27,536 @@ type Props = {
   onConfirm: (backRank: (PieceType | null)[], pawnFiles: boolean[]) => void;
 };
 
-type DragSource =
-  | { kind: "roster"; index: number; pieceType: PieceType }
-  | { kind: "board"; file: number; pieceType: PieceType };
+const PLAYER_ONLY: ReadonlySet<Side> = new Set(["player"]);
 
-const DRAG_MIME = "application/x-chess-hacker-placement";
+function emptyBoardFen(size: BoardSize): string {
+  const row = String(size.files);
+  return Array(size.ranks).fill(row).join("/") + " w - - 0 1";
+}
 
 export function PlacementScreen({ roster, boardSize, matchNumber, onConfirm }: Props) {
   const { files, ranks } = boardSize;
   const valueCap = skirmishValueCap(matchNumber);
 
-  const nonPawnPieces = useMemo(
-    () => roster.filter((p) => p.type !== "pawn" && p.type !== "king"),
-    [roster],
+  const [engine] = useState(() => new ChoseEngine(emptyBoardFen(boardSize), boardSize));
+  const [version, setVersion] = useState(0);
+  const bumpVersion = useCallback(() => setVersion((v) => v + 1), []);
+
+  // Roster index → square on the board.
+  const [placedMap, setPlacedMap] = useState<Map<number, AlgebraicSquare>>(() => new Map());
+
+  const [selectedTrayIdx, setSelectedTrayIdx] = useState<number | null>(null);
+  const [selectedSquare, setSelectedSquare] = useState<AlgebraicSquare | null>(null);
+
+  const trayDragRef = useRef<{
+    rosterIdx: number;
+    pieceType: PieceType;
+  } | null>(null);
+  const [trayDragPieceType, setTrayDragPieceType] = useState<PieceType | null>(null);
+
+  const boardDragFromRef = useRef<AlgebraicSquare | null>(null);
+
+  // ---- Mirror helpers -------------------------------------------------------
+
+  const mirrorSq = useCallback(
+    (sq: AlgebraicSquare): AlgebraicSquare => {
+      const { file, rank } = squareCoords(sq);
+      return squareName(file, (ranks - 1 - rank) as RankIndex);
+    },
+    [ranks],
   );
-  const pawnCount = useMemo(() => roster.filter((p) => p.type === "pawn").length, [roster]);
 
-  const [backRank, setBackRank] = useState<(PieceType | null)[]>(() => new Array(files).fill(null));
-  const [pawnRank, setPawnRank] = useState<boolean[]>(() => {
-    const arr = new Array(files).fill(false);
-    for (let i = 0; i < Math.min(pawnCount, files); i++) arr[i] = true;
-    return arr;
-  });
-  const [selectedRosterIdx, setSelectedRosterIdx] = useState<number | null>(null);
-  const [placedIndices, setPlacedIndices] = useState<Set<number>>(() => new Set());
-  const [dragSource, setDragSource] = useState<DragSource | null>(null);
-  const [dragOverFile, setDragOverFile] = useState<number | null>(null);
+  const placePieceWithMirror = useCallback(
+    (sq: AlgebraicSquare, pieceType: PieceType) => {
+      engine.placePiece(sq, { type: pieceType, side: "player" });
+      engine.placePiece(mirrorSq(sq), { type: pieceType, side: "opponent" });
+      bumpVersion();
+    },
+    [engine, mirrorSq, bumpVersion],
+  );
 
-  const kingPlaced = backRank.includes("king");
+  const removePieceWithMirror = useCallback(
+    (sq: AlgebraicSquare) => {
+      engine.removePiece(sq);
+      engine.removePiece(mirrorSq(sq));
+      bumpVersion();
+    },
+    [engine, mirrorSq, bumpVersion],
+  );
 
-  const placedPawnCount = pawnRank.filter(Boolean).length;
-  const allPlacedTypes: PieceType[] = [
-    ...backRank.filter((t): t is PieceType => t !== null),
-    ...new Array(placedPawnCount).fill("pawn" as PieceType),
-  ];
-  const currentValue = placementValue(allPlacedTypes);
+  const movePieceWithMirror = useCallback(
+    (from: AlgebraicSquare, to: AlgebraicSquare) => {
+      const piece = engine.pieceAt(from);
+      if (!piece || from === to) return;
+      engine.removePiece(from);
+      engine.removePiece(mirrorSq(from));
+      engine.removePiece(to);
+      engine.removePiece(mirrorSq(to));
+      engine.placePiece(to, piece);
+      engine.placePiece(mirrorSq(to), { type: piece.type, side: "opponent" });
+      bumpVersion();
+    },
+    [engine, mirrorSq, bumpVersion],
+  );
+
+  // ---- Valid squares --------------------------------------------------------
+
+  const validSquaresFor = useCallback(
+    (pieceType: PieceType, excludeSquare?: AlgebraicSquare): Set<AlgebraicSquare> => {
+      const valid = new Set<AlgebraicSquare>();
+      const targetRank = pieceType === "pawn" ? 1 : 0;
+      for (let f = 0; f < files; f++) {
+        const sq = squareName(f as FileIndex, targetRank as RankIndex);
+        const occupied = engine.pieceAt(sq) !== null;
+        const isSource = sq === excludeSquare;
+        if (!occupied || isSource) valid.add(sq);
+      }
+      return valid;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [engine, files, version],
+  );
+
+  const isValidPlacement = useCallback(
+    (sq: AlgebraicSquare, pieceType: PieceType, excludeSquare?: AlgebraicSquare): boolean => {
+      const { rank } = squareCoords(sq);
+      const expectedRank = pieceType === "pawn" ? 1 : 0;
+      if (rank !== expectedRank) return false;
+      const occupied = engine.pieceAt(sq) !== null;
+      return !occupied || sq === excludeSquare;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [engine, version],
+  );
+
+  // ---- Derived state --------------------------------------------------------
+
+  const { backRank, pawnRank, currentValue, kingPlaced } = useMemo(() => {
+    const br: (PieceType | null)[] = [];
+    const pr: boolean[] = [];
+    const types: PieceType[] = [];
+    for (let f = 0; f < files; f++) {
+      const bSq = squareName(f as FileIndex, 0 as RankIndex);
+      const bPiece = engine.pieceAt(bSq);
+      const bType = bPiece?.side === "player" ? bPiece.type : null;
+      br.push(bType);
+      if (bType) types.push(bType);
+
+      const pSq = squareName(f as FileIndex, 1 as RankIndex);
+      const pPiece = engine.pieceAt(pSq);
+      const hasPawn = !!(pPiece?.side === "player" && pPiece.type === "pawn");
+      pr.push(hasPawn);
+      if (hasPawn) types.push("pawn");
+    }
+    return {
+      backRank: br,
+      pawnRank: pr,
+      currentValue: placementValue(types),
+      kingPlaced: br.includes("king"),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [engine, files, version]);
 
   const validation = useMemo(
     () => validatePlacement(backRank, pawnRank, files, matchNumber),
     [backRank, pawnRank, files, matchNumber],
   );
-
   const canStart = validation.valid && kingPlaced;
 
-  // Compute which back-rank files are valid drop/click targets.
-  const validBackRankFiles = useMemo(() => {
-    const valid = new Set<number>();
-    const hasActivePiece = selectedRosterIdx !== null || dragSource !== null;
-    const placingKing = !kingPlaced && !hasActivePiece;
+  const placedIndicesSet = useMemo(() => new Set(placedMap.keys()), [placedMap]);
 
-    if (!placingKing && !hasActivePiece) return valid;
+  // ---- Board mode & legal moves ---------------------------------------------
 
-    for (let f = 0; f < files; f++) {
-      const occupied = backRank[f] !== null;
-      // If dragging from this file, treat it as empty
-      const isDragOrigin = dragSource?.kind === "board" && dragSource.file === f;
-      if (!occupied || isDragOrigin) valid.add(f);
+  const boardMode: BoardMode = useMemo(() => {
+    if (selectedTrayIdx !== null) {
+      const piece = roster[selectedTrayIdx];
+      return {
+        kind: "target",
+        cardName: "",
+        hint: `Click a highlighted square to place your ${piece.type}.`,
+        valid: validSquaresFor(piece.type),
+      };
     }
-    return valid;
-  }, [backRank, files, selectedRosterIdx, dragSource, kingPlaced]);
+    if (trayDragPieceType !== null) {
+      return {
+        kind: "target",
+        cardName: "",
+        hint: `Drop your ${trayDragPieceType} on a highlighted square.`,
+        valid: validSquaresFor(trayDragPieceType),
+      };
+    }
+    return { kind: "play" };
+  }, [selectedTrayIdx, trayDragPieceType, roster, validSquaresFor]);
 
-  const handleDragStart = useCallback((e: React.DragEvent, source: DragSource) => {
-    e.dataTransfer.setData(DRAG_MIME, JSON.stringify(source));
-    e.dataTransfer.effectAllowed = "move";
-    setDragSource(source);
-    setSelectedRosterIdx(null);
-  }, []);
+  const legalMovesFromSelected: LegalMove[] = useMemo(() => {
+    if (!selectedSquare) return [];
+    const piece = engine.pieceAt(selectedSquare);
+    if (!piece || piece.side !== "player") return [];
+    const valid = validSquaresFor(piece.type, selectedSquare);
+    const moves: LegalMove[] = [];
+    for (const sq of valid) {
+      if (sq === selectedSquare) continue;
+      moves.push({
+        from: selectedSquare,
+        to: sq,
+        san: "",
+        isCapture: false,
+        isPromotion: false,
+        isCastle: false,
+      });
+    }
+    return moves;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSquare, engine, version, validSquaresFor]);
 
-  const handleDragOver = useCallback(
-    (e: React.DragEvent, file: number) => {
-      if (!e.dataTransfer.types.includes(DRAG_MIME)) return;
-      const occupied = backRank[file] !== null;
-      const isDragOrigin = dragSource?.kind === "board" && dragSource.file === file;
-      if (!occupied || isDragOrigin) {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = "move";
-        setDragOverFile(file);
+  // ---- Roster lookup helpers ------------------------------------------------
+
+  const findRosterIdxAtSquare = useCallback(
+    (sq: AlgebraicSquare): number | null => {
+      for (const [idx, placedSq] of placedMap) {
+        if (placedSq === sq) return idx;
       }
+      return null;
     },
-    [backRank, dragSource],
+    [placedMap],
   );
 
-  const handleDrop = useCallback(
-    (e: React.DragEvent, file: number) => {
+  // ---- Board interaction handlers -------------------------------------------
+
+  const handleBoardClick = useCallback(
+    (sq: AlgebraicSquare) => {
+      // Tray piece selected → place on valid square.
+      if (selectedTrayIdx !== null) {
+        const piece = roster[selectedTrayIdx];
+        if (isValidPlacement(sq, piece.type)) {
+          placePieceWithMirror(sq, piece.type);
+          setPlacedMap((m) => new Map(m).set(selectedTrayIdx, sq));
+          setSelectedTrayIdx(null);
+        }
+        return;
+      }
+
+      // Board piece selected → reposition or unplace.
+      if (selectedSquare !== null) {
+        if (sq === selectedSquare) {
+          const rosterIdx = findRosterIdxAtSquare(selectedSquare);
+          removePieceWithMirror(selectedSquare);
+          if (rosterIdx !== null) {
+            setPlacedMap((m) => {
+              const next = new Map(m);
+              next.delete(rosterIdx);
+              return next;
+            });
+          }
+          setSelectedSquare(null);
+          return;
+        }
+        const piece = engine.pieceAt(selectedSquare);
+        if (piece && isValidPlacement(sq, piece.type, selectedSquare)) {
+          const rosterIdx = findRosterIdxAtSquare(selectedSquare);
+          movePieceWithMirror(selectedSquare, sq);
+          if (rosterIdx !== null) {
+            setPlacedMap((m) => new Map(m).set(rosterIdx, sq));
+          }
+          setSelectedSquare(null);
+          return;
+        }
+        const clickedPiece = engine.pieceAt(sq);
+        if (clickedPiece?.side === "player") {
+          setSelectedSquare(sq);
+          return;
+        }
+        setSelectedSquare(null);
+        return;
+      }
+
+      // Nothing selected → select a player piece on the board.
+      const piece = engine.pieceAt(sq);
+      if (piece?.side === "player") {
+        setSelectedSquare(sq);
+        setSelectedTrayIdx(null);
+      }
+    },
+    [
+      selectedTrayIdx,
+      selectedSquare,
+      roster,
+      engine,
+      isValidPlacement,
+      placePieceWithMirror,
+      removePieceWithMirror,
+      movePieceWithMirror,
+      findRosterIdxAtSquare,
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      version,
+    ],
+  );
+
+  const handleBoardDragStart = useCallback(
+    (sq: AlgebraicSquare) => {
+      const piece = engine.pieceAt(sq);
+      if (!piece || piece.side !== "player") return;
+      boardDragFromRef.current = sq;
+      setSelectedSquare(sq);
+      setSelectedTrayIdx(null);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [engine, version],
+  );
+
+  const handleBoardDrop = useCallback(
+    (sq: AlgebraicSquare) => {
+      if (trayDragRef.current) {
+        const { rosterIdx, pieceType } = trayDragRef.current;
+        boardDragFromRef.current = null;
+        if (isValidPlacement(sq, pieceType)) {
+          placePieceWithMirror(sq, pieceType);
+          setPlacedMap((m) => new Map(m).set(rosterIdx, sq));
+        }
+        trayDragRef.current = null;
+        setTrayDragPieceType(null);
+        setSelectedTrayIdx(null);
+        return;
+      }
+
+      const from = boardDragFromRef.current;
+      boardDragFromRef.current = null;
+      if (from && from !== sq) {
+        const piece = engine.pieceAt(from);
+        if (piece && isValidPlacement(sq, piece.type, from)) {
+          const rosterIdx = findRosterIdxAtSquare(from);
+          movePieceWithMirror(from, sq);
+          if (rosterIdx !== null) {
+            setPlacedMap((m) => new Map(m).set(rosterIdx, sq));
+          }
+        }
+      }
+      setSelectedSquare(null);
+    },
+    [
+      engine,
+      isValidPlacement,
+      placePieceWithMirror,
+      movePieceWithMirror,
+      findRosterIdxAtSquare,
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      version,
+    ],
+  );
+
+  const handleDragCancel = useCallback(() => {
+    boardDragFromRef.current = null;
+    trayDragRef.current = null;
+    setTrayDragPieceType(null);
+    setSelectedSquare(null);
+  }, []);
+
+  // ---- Tray handlers --------------------------------------------------------
+
+  const handleTrayClick = useCallback(
+    (rosterIdx: number) => {
+      setSelectedSquare(null);
+      setSelectedTrayIdx(selectedTrayIdx === rosterIdx ? null : rosterIdx);
+    },
+    [selectedTrayIdx],
+  );
+
+  const handleTrayDragStart = useCallback(
+    (e: React.DragEvent, rosterIdx: number, pieceType: PieceType) => {
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", String(rosterIdx));
+      const img = e.currentTarget.querySelector("img");
+      if (img && typeof e.dataTransfer.setDragImage === "function") {
+        const rect = img.getBoundingClientRect();
+        e.dataTransfer.setDragImage(img, e.clientX - rect.left, e.clientY - rect.top);
+      }
+      trayDragRef.current = { rosterIdx, pieceType };
+      setTrayDragPieceType(pieceType);
+      setSelectedSquare(null);
+      setSelectedTrayIdx(null);
+    },
+    [],
+  );
+
+  const handleTrayDragEnd = useCallback(() => {
+    trayDragRef.current = null;
+    setTrayDragPieceType(null);
+  }, []);
+
+  // Tray accepts drops from the board (returning pieces to tray).
+  const handleTrayDragOver = useCallback((e: React.DragEvent) => {
+    if (boardDragFromRef.current) {
       e.preventDefault();
-      const raw = e.dataTransfer.getData(DRAG_MIME);
-      if (!raw) return;
-      const source: DragSource = JSON.parse(raw);
-
-      if (source.kind === "roster") {
-        const piece = nonPawnPieces[source.index];
-        setBackRank((br) => {
-          const next = [...br];
-          next[file] = piece.type;
-          return next;
-        });
-        setPlacedIndices((s) => new Set(s).add(source.index));
-      } else if (source.kind === "board") {
-        setBackRank((br) => {
-          const next = [...br];
-          next[source.file] = null;
-          next[file] = source.pieceType;
-          return next;
-        });
-      }
-
-      setDragSource(null);
-      setDragOverFile(null);
-    },
-    [nonPawnPieces],
-  );
-
-  const handleDragEnd = useCallback(() => {
-    setDragSource(null);
-    setDragOverFile(null);
+      e.dataTransfer.dropEffect = "move";
+    }
   }, []);
 
-  const handleSquareClick = useCallback(
-    (file: number, rank: number) => {
-      // Rank 0 = player back rank (rank 1 in chess notation)
-      if (rank === 0) {
-        // If square has a piece, pick it up
-        if (backRank[file] !== null) {
-          const pieceType = backRank[file]!;
-          if (pieceType === "king") {
-            // Remove king from the back rank
-            setBackRank((br) => {
-              const next = [...br];
-              next[file] = null;
-              return next;
-            });
-          } else {
-            // Find which roster index placed this piece and unplace it
-            const idx = findPlacedIndex(nonPawnPieces, pieceType, placedIndices, file, backRank);
-            setBackRank((br) => {
-              const next = [...br];
-              next[file] = null;
-              return next;
-            });
-            if (idx !== null) {
-              setPlacedIndices((s) => {
-                const next = new Set(s);
-                next.delete(idx);
-                return next;
-              });
-            }
-          }
-          return;
-        }
-        // Place the selected roster piece
-        if (selectedRosterIdx !== null) {
-          const piece = nonPawnPieces[selectedRosterIdx];
-          setBackRank((br) => {
-            const next = [...br];
-            next[file] = piece.type;
-            return next;
-          });
-          setPlacedIndices((s) => new Set(s).add(selectedRosterIdx));
-          setSelectedRosterIdx(null);
-          return;
-        }
-        // If king not placed and nothing selected, place king
-        if (!kingPlaced) {
-          setBackRank((br) => {
-            const next = [...br];
-            next[file] = "king";
+  const handleTrayDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      const from = boardDragFromRef.current;
+      boardDragFromRef.current = null;
+      if (from) {
+        const rosterIdx = findRosterIdxAtSquare(from);
+        removePieceWithMirror(from);
+        if (rosterIdx !== null) {
+          setPlacedMap((m) => {
+            const next = new Map(m);
+            next.delete(rosterIdx);
             return next;
           });
         }
       }
-      // Rank 1 = pawn rank (rank 2 in chess notation)
-      if (rank === 1) {
-        setPawnRank((pr) => {
-          const next = [...pr];
-          if (next[file]) {
-            next[file] = false;
-          } else {
-            const currentPawns = next.filter(Boolean).length;
-            if (currentPawns < pawnCount) {
-              next[file] = true;
-            }
-          }
-          return next;
-        });
-      }
+      setSelectedSquare(null);
     },
-    [backRank, selectedRosterIdx, nonPawnPieces, kingPlaced, placedIndices, pawnCount],
+    [findRosterIdxAtSquare, removePieceWithMirror],
   );
+
+  // ---- Auto-place -----------------------------------------------------------
 
   const handleAutoPlace = useCallback(() => {
-    const newBackRank: (PieceType | null)[] = new Array(files).fill(null);
-    const newPlaced = new Set<number>();
+    for (const { square } of engine.pieces()) engine.removePiece(square);
 
-    // Place king in a roughly central position
+    const newPlaced = new Map<number, AlgebraicSquare>();
+    const nonPawnIdxs: number[] = [];
+    const pawnIdxs: number[] = [];
+    let kingIdx = -1;
+    for (let i = 0; i < roster.length; i++) {
+      if (roster[i].type === "king") kingIdx = i;
+      else if (roster[i].type === "pawn") pawnIdxs.push(i);
+      else nonPawnIdxs.push(i);
+    }
+
     const kingFile = Math.floor(files / 2);
-    newBackRank[kingFile] = "king";
+    const kingSq = squareName(kingFile as FileIndex, 0 as RankIndex);
+    engine.placePiece(kingSq, { type: "king", side: "player" });
+    engine.placePiece(mirrorSq(kingSq), { type: "king", side: "opponent" });
+    if (kingIdx >= 0) newPlaced.set(kingIdx, kingSq);
 
-    // Place available non-pawn pieces left to right
-    let fileIdx = 0;
-    for (let i = 0; i < nonPawnPieces.length; i++) {
-      while (fileIdx < files && newBackRank[fileIdx] !== null) fileIdx++;
-      if (fileIdx >= files) break;
-      const piece = nonPawnPieces[i];
-      // Check if adding this piece would exceed the value cap
-      const alreadyPlaced = newBackRank.filter((t): t is PieceType => t !== null);
-      const pawnVal = Math.min(pawnCount, files);
-      const futureVal =
-        placementValue([...alreadyPlaced, piece.type]) + pawnVal * SKIRMISH_PIECE_VALUE.pawn;
-      if (futureVal > valueCap) continue;
-      newBackRank[fileIdx] = piece.type;
-      newPlaced.add(i);
-      fileIdx++;
+    let fi = 0;
+    for (const i of nonPawnIdxs) {
+      while (fi < files && engine.pieceAt(squareName(fi as FileIndex, 0 as RankIndex))) fi++;
+      if (fi >= files) break;
+      const piece = roster[i];
+      const placed: PieceType[] = [];
+      for (let f = 0; f < files; f++) {
+        const p = engine.pieceAt(squareName(f as FileIndex, 0 as RankIndex));
+        if (p?.side === "player") placed.push(p.type);
+      }
+      const pawnVal = Math.min(pawnIdxs.length, files) * SKIRMISH_PIECE_VALUE.pawn;
+      if (placementValue([...placed, piece.type]) + pawnVal > valueCap) continue;
+      const sq = squareName(fi as FileIndex, 0 as RankIndex);
+      engine.placePiece(sq, { type: piece.type, side: "player" });
+      engine.placePiece(mirrorSq(sq), { type: piece.type, side: "opponent" });
+      newPlaced.set(i, sq);
+      fi++;
     }
 
-    // Auto-place pawns left to right
-    const newPawnRank = new Array(files).fill(false);
-    for (let f = 0; f < Math.min(pawnCount, files); f++) {
-      newPawnRank[f] = true;
+    for (let pi = 0; pi < Math.min(pawnIdxs.length, files); pi++) {
+      const sq = squareName(pi as FileIndex, 1 as RankIndex);
+      engine.placePiece(sq, { type: "pawn", side: "player" });
+      engine.placePiece(mirrorSq(sq), { type: "pawn", side: "opponent" });
+      newPlaced.set(pawnIdxs[pi], sq);
     }
 
-    setBackRank(newBackRank);
-    setPawnRank(newPawnRank);
-    setPlacedIndices(newPlaced);
-    setSelectedRosterIdx(null);
-  }, [files, nonPawnPieces, pawnCount, valueCap]);
+    setPlacedMap(newPlaced);
+    setSelectedSquare(null);
+    setSelectedTrayIdx(null);
+    bumpVersion();
+  }, [engine, roster, files, valueCap, mirrorSq, bumpVersion]);
+
+  // ---- Subtitle -------------------------------------------------------------
+
+  const subtitle = useMemo(() => {
+    if (trayDragPieceType) return `Drop your ${trayDragPieceType} on a highlighted square.`;
+    if (selectedTrayIdx !== null)
+      return `Click a highlighted square to place your ${roster[selectedTrayIdx].type}.`;
+    if (selectedSquare) return "Click a dot to move, or click the piece again to remove it.";
+    return "Select or drag a piece from below to place it on the board.";
+  }, [trayDragPieceType, selectedTrayIdx, selectedSquare, roster]);
+
+  // ---- Render ---------------------------------------------------------------
 
   return (
     <div className={styles.container}>
       <header className={styles.header}>
         <h2 className={styles.title}>Place your army</h2>
-        <p className={styles.subtitle}>
-          {!kingPlaced
-            ? "Click a back-rank square to place your king."
-            : dragSource !== null
-              ? `Drop your ${dragSource.pieceType} on a highlighted square.`
-              : selectedRosterIdx !== null
-                ? `Click a back-rank square to place your ${nonPawnPieces[selectedRosterIdx].type}.`
-                : "Select or drag a piece from your roster, then place it on the board."}
-        </p>
+        <p className={styles.subtitle}>{subtitle}</p>
       </header>
 
-      <div className={styles.layout}>
-        <div className={styles.board} style={{ gridTemplateColumns: `repeat(${files}, 52px)` }}>
-          {Array.from({ length: ranks }, (_, visualRank) => {
-            const rank = ranks - 1 - visualRank;
-            return Array.from({ length: files }, (_, file) => {
-              const isLight = (file + rank) % 2 === 1;
-              const isBackRank = rank === 0;
-              const isPawnRank = rank === 1;
-              const isPlaceable = isBackRank || isPawnRank;
-              const piece = isBackRank
-                ? backRank[file]
-                  ? { type: backRank[file]!, side: "player" as const }
-                  : null
-                : isPawnRank && pawnRank[file]
-                  ? { type: "pawn" as const, side: "player" as const }
-                  : null;
+      <div className={styles.boardArea}>
+        <Board
+          engine={engine}
+          selected={selectedSquare}
+          legalMovesFromSelected={legalMovesFromSelected}
+          controllableSides={PLAYER_ONLY}
+          mode={boardMode}
+          onSquareClick={handleBoardClick}
+          onSquareDragStart={handleBoardDragStart}
+          onSquareDrop={handleBoardDrop}
+          onDragCancel={handleDragCancel}
+          acceptAnyDrop={trayDragPieceType !== null}
+          locked={false}
+        />
+      </div>
 
-              const isValidTarget = isBackRank && validBackRankFiles.has(file);
-              const isDragOver = isBackRank && dragOverFile === file;
-              const isBeingDragged =
-                isBackRank && dragSource?.kind === "board" && dragSource.file === file;
-
-              const canDrag = isBackRank && piece !== null && !isBeingDragged;
-
-              const squareClasses = [
-                styles.square,
-                isLight ? styles.light : styles.dark,
-                isPlaceable ? styles.placeable : styles.inactive,
-                isValidTarget ? styles.validTarget : "",
-                isDragOver ? styles.dragOver : "",
-                isBeingDragged ? styles.dragging : "",
-              ]
-                .filter(Boolean)
-                .join(" ");
-
-              return (
-                <div
-                  key={`${file}-${rank}`}
-                  className={squareClasses}
-                  onClick={() => isPlaceable && handleSquareClick(file, rank)}
-                  onDragOver={isBackRank ? (e) => handleDragOver(e, file) : undefined}
-                  onDragLeave={isBackRank ? () => setDragOverFile(null) : undefined}
-                  onDrop={isBackRank ? (e) => handleDrop(e, file) : undefined}
-                  role={isPlaceable ? "button" : undefined}
-                  aria-label={
-                    isPlaceable
-                      ? `${String.fromCharCode(97 + file)}${rank + 1}${piece ? ` (${piece.type})` : ""}`
-                      : undefined
-                  }
-                >
-                  {piece && !isBeingDragged && (
-                    <span
-                      className={styles.glyph}
-                      draggable={canDrag}
-                      onDragStart={
-                        canDrag
-                          ? (e) =>
-                              handleDragStart(e, {
-                                kind: "board",
-                                file,
-                                pieceType: piece.type,
-                              })
-                          : undefined
-                      }
-                      onDragEnd={handleDragEnd}
-                    >
-                      <PieceGlyph piece={piece} />
-                    </span>
-                  )}
-                </div>
-              );
-            });
-          }).flat()}
-        </div>
-
-        <div className={styles.roster}>
-          <span className={styles.rosterTitle}>{!kingPlaced ? "Place king first" : "Roster"}</span>
-          <div className={styles.rosterPieces}>
-            {nonPawnPieces.map((p, i) => {
-              const isPlaced = placedIndices.has(i);
-              if (isPlaced) return null;
-              return (
-                <button
-                  key={`${p.type}-${i}`}
-                  type="button"
-                  className={`${styles.rosterPiece} ${selectedRosterIdx === i ? styles.selected : ""}`}
-                  onClick={() => {
-                    if (!kingPlaced) return;
-                    setSelectedRosterIdx(selectedRosterIdx === i ? null : i);
-                  }}
-                  disabled={!kingPlaced}
-                  draggable={kingPlaced}
-                  onDragStart={
-                    kingPlaced
-                      ? (e) =>
-                          handleDragStart(e, {
-                            kind: "roster",
-                            index: i,
-                            pieceType: p.type,
-                          })
-                      : undefined
-                  }
-                  onDragEnd={handleDragEnd}
-                  aria-label={`${p.type} (${SKIRMISH_PIECE_VALUE[p.type]} value)`}
-                >
-                  <span className={styles.glyph}>
-                    <PieceGlyph piece={p} />
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          <span className={styles.rosterTitle}>
-            Pawns: {placedPawnCount} / {pawnCount} placed (click rank 2)
+      <div className={styles.tray} onDragOver={handleTrayDragOver} onDrop={handleTrayDrop}>
+        <div className={styles.trayTop}>
+          <span className={`${styles.valueMeter} ${currentValue > valueCap ? styles.overCap : ""}`}>
+            Value: {currentValue} / {valueCap}
           </span>
+          {validation.errors.length > 0 && (
+            <span className={styles.errors}>
+              {validation.errors.map((e, i) => (
+                <span key={i} className={styles.error}>
+                  {e}
+                </span>
+              ))}
+            </span>
+          )}
         </div>
-      </div>
 
-      <div className={styles.info}>
-        <span className={`${styles.valueMeter} ${currentValue > valueCap ? styles.overCap : ""}`}>
-          Value: {currentValue} / {valueCap}
-        </span>
-        {validation.errors.length > 0 && (
-          <ul className={styles.errors}>
-            {validation.errors.map((e, i) => (
-              <li key={i} className={styles.error}>
-                {e}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+        <div className={styles.trayPieces}>
+          {roster.map((p, i) => {
+            if (placedIndicesSet.has(i)) return null;
+            const isSelected = selectedTrayIdx === i;
+            return (
+              <button
+                key={`${p.type}-${i}`}
+                type="button"
+                className={`${styles.trayPiece} ${isSelected ? styles.selected : ""}`}
+                onClick={() => handleTrayClick(i)}
+                draggable
+                onDragStart={(e) => handleTrayDragStart(e, i, p.type)}
+                onDragEnd={handleTrayDragEnd}
+                aria-label={`${p.type} (${SKIRMISH_PIECE_VALUE[p.type]} value)`}
+              >
+                <span className={styles.trayGlyph}>
+                  <PieceGlyph piece={p} />
+                </span>
+                <span className={styles.trayLabel}>{p.type}</span>
+              </button>
+            );
+          })}
+          {placedIndicesSet.size === roster.length && (
+            <span className={styles.trayEmpty}>All pieces placed</span>
+          )}
+        </div>
 
-      <div className={styles.actions}>
-        <button type="button" className={styles.autoButton} onClick={handleAutoPlace}>
-          Auto-place
-        </button>
-        <button
-          type="button"
-          className={styles.startButton}
-          disabled={!canStart}
-          onClick={() => onConfirm(backRank, pawnRank)}
-        >
-          Start match
-        </button>
+        <div className={styles.actions}>
+          <button type="button" className={styles.autoButton} onClick={handleAutoPlace}>
+            Auto-place
+          </button>
+          <button
+            type="button"
+            className={styles.startButton}
+            disabled={!canStart}
+            onClick={() => onConfirm(backRank, pawnRank)}
+          >
+            Start match
+          </button>
+        </div>
       </div>
     </div>
   );
-}
-
-function findPlacedIndex(
-  nonPawnPieces: ReadonlyArray<Piece>,
-  pieceType: PieceType,
-  placedIndices: Set<number>,
-  _file: number,
-  _backRank: (PieceType | null)[],
-): number | null {
-  for (const idx of placedIndices) {
-    if (nonPawnPieces[idx]?.type === pieceType) return idx;
-  }
-  return null;
 }
