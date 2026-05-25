@@ -4,7 +4,7 @@ A rough ordering of work to get from "empty repo" to "playable prototype." Numbe
 
 The milestones are roughly sequential — each builds on the previous — but several can be parallelized.
 
-## Status as of 2026-05-05
+## Status as of 2026-05-25
 
 The chess core, card system, walls, dev sandbox, the full square-effect overlay set (sanctuaries / traps / zone-control buffs), the M5 run loop (3-match Royal mini-run + shop + reward), M6 artifacts (pool + shop offers + trigger system + sidebar), M7 zone-control buffs, the M8 first boss (Boss A — "The Firewall"), and M9 (full Standard run with Boss B "The Whale" and Boss C "The Singularity" wired end-to-end) are built. The remaining work is Skirmish (M10).
 
@@ -12,12 +12,12 @@ Already shipped:
 
 - **Chess board + rules.** `src/components/Board/Board.tsx` (click + drag-to-move, hover tooltips). Full chess rules — including checkmate / stalemate / 50-move / threefold — in a custom engine at `src/game/chess/rules.ts`. (chess.js was tried and replaced with our own engine because of wall-aware move generation.)
 - **Stockfish AI.** `src/ai/stockfish.ts`, depth-tuned (`easy=2 / normal=6 / hard=10`). AI moves are validated against our wall-aware legal-move set before being applied.
-- **Cards.** 37 cards in `src/game/cards/data/`. Hand / draw pile / consumed pile / energy state in `src/game/cards/match.ts`. 25 effect kinds spanning tempo, disruption, spatial, movement, summon, swap, sacrifice, revival, and generators. Card UI + targeting via `src/components/Hand` + `src/components/Board`.
+- **Cards.** 41 cards in `src/game/cards/data/`. Hand / draw pile / consumed pile / energy state in `src/game/cards/match.ts`. 40 effect kinds spanning tempo, disruption, spatial, movement, summon, swap, sacrifice, revival, zone-buffs, and generators. Card UI + targeting via `src/components/Hand` + `src/components/Board`.
 - **Walls.** Wall storage and lifetimes in the engine; ray-blocking in move generation; check evaluation respects walls.
-- **Dev sandbox.** Top-level "Sandbox" mode in `src/App.tsx`; full editor / library / energy controls / undo-redo in `src/components/Match/DevPanel.tsx`.
+- **Dev sandbox.** In-match panel toggled from `src/components/Match/DevPanel.tsx`; provides editor, library, energy controls, and action-granular undo / redo.
 - **Square effects.** Sanctuaries, traps, and zone-control buffs are all stored, triggered, and rendered with hover info on the board. Zone-buffs add a teal aura on every square in the buff's region (paler when the region is uncontrolled), an anchor ring on the source square, and a "Zone buffs" sidebar block listing each active buff and its remaining lifetime.
 - **Tooltips.** Square / piece tooltips on the board (commit `80d3ee7`).
-- **Run loop + shop (M5).** Top-level Royal mode kicks off a 3-match mini-run in `src/components/Run/`. State machine + reward generation in `src/game/progression/run.ts`; shop / reroll / removal / interest in `src/game/shop/shop.ts`. Post-match draft (1-of-3) with skip-for-gold, then a shop with rotating card / booster offers, reroll service (per-shop scaling), card removal (per-run scaling), and Balatro-style interest tally on shop close.
+- **Run loop + shop (M5).** Standard mode runs a 9-match, 3-act run via `src/components/Run/`. State machine + reward generation in `src/game/progression/run.ts`; shop / reroll / removal / interest in `src/game/shop/shop.ts`. Post-match draft (1-of-3) with skip-for-gold, then a shop with rotating card / booster offers, reroll service (per-shop scaling), card removal (per-run scaling), and Balatro-style interest tally on shop close.
 - **First boss (M8).** Boss A — "The Firewall" — runs end-to-end in Standard mode. Boss definitions and curse triggers live in `src/game/bosses/`; Match.tsx wires the modifier (no player walls), permanent hazard walls (c3 / c4), and the trigger-based curse scheduler. The Run shell prepends a boss-preview phase at act start and gates a 1-of-3 boss-tier artifact pick onto the post-boss reward step.
 - **Acts 2 + 3 bosses (M9).** Boss B — "The Whale" (7×7) — modifier `captures-grant-captured-energy` queues +1 energy for the player on the next turn after their pieces are captured; pre-placed `Server Farm` zone-buff at d1 grants +1 energy/turn while the player holds it; `Memory Leak` curse fires every 4 turns and bills 1 energy on the next turn unless the player captured. Boss C — "The Singularity" (8×8) — modifier `no-promotion` strips promotion candidates from legal moves; a 2x2 void at d4/d5/e4/e5 destroys any piece ending its turn there; three curses (`Hardened` on turn 1, `Echo` on player check, `Bit Rot` every 5 turns). Echo grants the boss an extra chess move via the `bossExtraMoves` counter; Bit Rot removes a random own minor piece. New `MatchRules.noPromotion` flag and turn-scoped state (`pendingEnergyLossOnNoCapture`, `capturedThisTurn`, `noZeroCostCardsThisTurn`, `bossExtraMoves`, `pendingPlayerEnergyOnTurnStart`) all reset on `startPlayerTurn`.
 
@@ -35,7 +35,7 @@ Built without chess.js — see `src/game/chess/rules.ts` and `src/components/Boa
 
 ## M3 — Card system foundation [done]
 
-37 cards, hand / draw / consumed piles, energy state, target prompts, and resolution all live. Goes well beyond the original M3 scope (the original list named ~5 starter cards).
+41 cards, hand / draw / consumed piles, energy state, target prompts, and resolution all live. Goes well beyond the original M3 scope (the original list named ~5 starter cards).
 
 ## M4 — Wall integration [done]
 
@@ -43,13 +43,13 @@ Wall-aware legal moves and check evaluation in `src/game/chess/rules.ts`. Lifeti
 
 ## Dev mode — testing sandbox [done]
 
-Live in `src/components/Match/DevPanel.tsx`. Provides editor, library, energy controls, and action-granular undo / redo. Selected from the App's mode menu alongside the (still-disabled) Royal and Skirmish options.
+Live in `src/components/Match/DevPanel.tsx`. Provides editor, library, energy controls, and action-granular undo / redo. Toggled from within the Match view.
 
 ---
 
 ## M5 — Preliminary Royal: run scaffolding + shop [done]
 
-Live in `src/components/Run/` + `src/game/progression/run.ts` + `src/game/shop/shop.ts`. Top-level Royal kicks off a 3-match mini-run; reward step offers a 1-of-3 card draft (or skip-for-gold); shop offers rotating cards + booster packs with reroll (per-shop scaling) and card removal (per-run scaling); +1 gold per 5 saved at shop close (capped +5). Boss / artifact pieces are stubbed for the milestones below.
+Live in `src/components/Run/` + `src/game/progression/run.ts` + `src/game/shop/shop.ts`. Originally powered a 3-match Royal mini-run; Standard mode (M9) now uses it for the full 9-match loop. Reward step offers a 1-of-3 card draft (or skip-for-gold); shop offers rotating cards + booster packs with reroll (per-shop scaling) and card removal (per-run scaling); +1 gold per 5 saved at shop close (capped +5).
 
 ## M6 — Artifacts [done]
 
@@ -59,8 +59,8 @@ Live in `src/game/artifacts/` (library + effect helpers) plus shop/Match/Run wir
   four effect domains: card cost discounts, hand size / starting energy /
   per-turn energy bonuses, gold-on-match-start, and capture / check
   triggers (draw, energy).
-- 11 starter artifacts (6 common, 3 uncommon, 2 rare) covering all those
-  domains in `src/game/artifacts/library.ts`.
+- 14 artifacts (5 common, 7 uncommon, 2 rare) covering all those
+  domains; definitions in `src/game/artifacts/data/`.
 - Artifact slots tracked in `RunState.artifacts`, cap 20 (`ARTIFACT_SLOT_CAP`).
   Buy is rejected at the cap; the displacement-pick modal from the design doc
   is deferred to polish (M11) since the prototype rarely fills the slots.
@@ -71,8 +71,6 @@ Live in `src/game/artifacts/` (library + effect helpers) plus shop/Match/Run wir
   player chess-move handler.
 - Artifacts shown as emoji badges in the run banner across all phases (match
   / reward / shop / summary); rarity-coloured borders, hover description.
-
-(Boss-reward artifact path is stubbed but unused until M8.)
 
 **Done when:** artifacts can be acquired from the shop, hold their slot,
 displace correctly past the cap, and fire their effects in matches. ✅
@@ -123,7 +121,7 @@ modifier+hazard+curse pattern for Boss B / C in M9.
 hazards are placed, curses fire on the right triggers, and beating it grants
 the boss-tier reward. ✅
 
-## M9 — Full Standard run [done in this PR — variable board + Chess960 + boss rebalance]
+## M9 — Full Standard run [done]
 
 Standard is the active default mode. Replaces the old "Full Royal run" milestone.
 
@@ -180,9 +178,8 @@ Artifact JSON files go in `src/game/artifacts/data/`. New effect kinds require t
 
 ## Parallelization opportunities
 
-- M6 (artifacts) and M7 (zone-buffs) are independent and can be done in parallel after M5.
-- Boss B and Boss C inside M9 can be built in parallel by two contributors once M8's pattern is in place.
-- M10 (Skirmish) has no real dependency on M9's bosses — once M5 / M6 ship, an enthusiastic contributor could prototype piece economy in parallel with the boss work, deferring boss-aware AI scaling to the very end.
+- M10 (Skirmish) and M11 (content expansion) are independent and can proceed in parallel.
+- Within M11, card gap fills (M11a) and artifact pool expansion (M11b) are independent of each other.
 
 ## What is explicitly NOT in any milestone
 
