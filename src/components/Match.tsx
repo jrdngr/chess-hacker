@@ -87,6 +87,7 @@ import {
   drawPileInAcquisitionOrder,
   hasWallOn,
   isCardEffectForbidden,
+  ENERGY_CAP,
   isInPlayerHalf,
   isRooted,
   setDeckTop,
@@ -114,11 +115,9 @@ import type {
 } from "../game/types";
 import {
   activeZoneBuffs,
-  zoneBuffEnergyPerTurn,
   zoneBuffSquares,
   type ZoneBoardContext,
 } from "../game/overlays/zoneBuffs";
-import { effectiveEnergyPerTurn } from "../game/artifacts/effects";
 
 import styles from "./Match.module.css";
 
@@ -1493,13 +1492,7 @@ export function Match({
     matchOver,
   };
 
-  const baseEnergyMax = effectiveEnergyPerTurn(artifacts);
-  const zoneCtx = zoneBoardContextOf(engine);
-  const zoneEnergyBonus = zoneBuffEnergyPerTurn(
-    activeZoneBuffs(cardState.zoneBuffs ?? [], zoneCtx),
-  );
-  const computedEnergyMax = baseEnergyMax + zoneEnergyBonus;
-  const energyMax = Math.max(cardState.energy, computedEnergyMax);
+  const energyMax = ENERGY_CAP;
 
   return (
     <div className={styles.match}>
