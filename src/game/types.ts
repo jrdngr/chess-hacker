@@ -1118,4 +1118,6 @@ export type MatchCardState = {
    */
   chosenCapturedIndex?: number;
   probeExpiresOnTurn?: number;
+  /** When true, the player must discard 1 card before acting this turn. */
+  pendingDiscard?: boolean;
 };

@@ -86,6 +86,10 @@ type Props = {
   /** Drag a targeted card from the hand onto a board square to play it. */
   onCardDragStart?: (index: number) => void;
   onCardDragEnd?: () => void;
+  /** When true, the hand is in mandatory discard mode. */
+  discardMode?: boolean;
+  /** Called when the player clicks a card to discard during discard mode. */
+  onDiscard?: (index: number) => void;
 };
 
 export function Hand({
@@ -98,6 +102,8 @@ export function Hand({
   onCardClick,
   onCardDragStart,
   onCardDragEnd,
+  discardMode,
+  onDiscard,
 }: Props) {
   // When the active targeting card asks for a hand-card target (Bookmark),
   // every hand slot except the playing one becomes a click target. We
@@ -317,17 +323,23 @@ export function Hand({
 
   return (
     <div className={styles.handArea} ref={handAreaRef}>
-      <div className={styles.energyRow} aria-label={`Energy: ${energy}`}>
-        <span className={styles.energyLabel}>ENERGY</span>
-        <span className={styles.energyValue}>
-          {energy}/{energyMax}
-        </span>
-        <div className={styles.energyBar}>
-          {Array.from({ length: Math.max(1, energyMax) }).map((_, i) => (
-            <span key={i} className={`${styles.energySeg} ${i < energy ? styles.energyLit : ""}`} />
-          ))}
+      {discardMode && <div className={styles.discardPrompt}>DISCARD 1 CARD</div>}
+      {!discardMode && (
+        <div className={styles.energyRow} aria-label={`Energy: ${energy}`}>
+          <span className={styles.energyLabel}>ENERGY</span>
+          <span className={styles.energyValue}>
+            {energy}/{energyMax}
+          </span>
+          <div className={styles.energyBar}>
+            {Array.from({ length: Math.max(1, energyMax) }).map((_, i) => (
+              <span
+                key={i}
+                className={`${styles.energySeg} ${i < energy ? styles.energyLit : ""}`}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
       <div className={styles.hand} role="list" aria-label="Hand">
         {hand.length === 0 ? (
           <div className={styles.emptyHand}>Hand is empty</div>
@@ -343,23 +355,25 @@ export function Hand({
             // clickable as a target if it isn't the playing slot and isn't
             // already retained.
             const isBookmarkTarget = targetingHandCard && !isTargeting && !slot.retained;
-            const clickable = playable || isBookmarkTarget;
+            const clickable = discardMode || playable || isBookmarkTarget;
             // Two-step cards (Switch Files, Remote Access) and hand-card targets
             // (Bookmark) still resolve via click; everything else can be dragged
             // onto the board.
-            const draggable = playable && !NON_DRAGGABLE_TARGETS.has(card.target.kind);
+            const draggable =
+              !discardMode && playable && !NON_DRAGGABLE_TARGETS.has(card.target.kind);
             const retained = slot.retained || card.retain === true;
             // Visually dim only for intrinsic, card-specific reasons (cost or
             // a boss/forbid rule). Turn-state reasons (AI thinking, AI's turn,
             // match over) leave the card looking normal — clicks/drag are
             // still blocked via the button's disabled attribute.
-            const visuallyDisabled = !affordable || forbidden;
+            const visuallyDisabled = !discardMode && (!affordable || forbidden);
             const cls = [
               styles.card,
               visuallyDisabled && styles.disabled,
               isTargeting && styles.targeting,
               isBookmarkTarget && styles.stashTarget,
               retained && styles.retained,
+              discardMode && styles.discardMode,
             ]
               .filter(Boolean)
               .join(" ");
@@ -373,7 +387,13 @@ export function Hand({
                   else slotElementsRef.current.delete(slotId);
                 }}
                 className={cls}
-                onClick={() => clickable && onCardClick(i)}
+                onClick={() => {
+                  if (discardMode) {
+                    onDiscard?.(i);
+                    return;
+                  }
+                  if (clickable) onCardClick(i);
+                }}
                 disabled={!clickable}
                 draggable={draggable}
                 onDragStart={(e) => {

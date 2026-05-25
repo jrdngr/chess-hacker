@@ -147,6 +147,7 @@ export function createMatchCardState(
     backdoors: [],
     capturedPieces: [],
     playerCaptureCount: 0,
+    pendingDiscard: startingHand.length > 1,
   };
 }
 
@@ -275,6 +276,23 @@ export function discardCardFromHand(state: MatchCardState, handIndex: number): M
 }
 
 /**
+ * Resolve the mandatory start-of-turn discard. Removes the chosen card from
+ * hand, places it in the discard pile, and clears the pendingDiscard flag.
+ */
+export function resolveDiscard(state: MatchCardState, handIndex: number): MatchCardState {
+  if (!state.pendingDiscard) return state;
+  if (handIndex < 0 || handIndex >= state.hand.length) return state;
+  const hand = state.hand.slice();
+  const [removed] = hand.splice(handIndex, 1);
+  return {
+    ...state,
+    hand,
+    discardPile: [...state.discardPile, removed.card],
+    pendingDiscard: false,
+  };
+}
+
+/**
  * @deprecated Legacy alias. In the new persistent-hand system, cards stay
  * between turns. This no-ops so callers that still reference it don't crash.
  */
@@ -391,7 +409,8 @@ export function startPlayerTurn(
   // Turn 0→1 is match start — the opening hand was already drawn by
   // createMatchCardState, so skip the per-turn draw.
   const refilled = state.turn === 0 ? next : refillHand(next, rng, ctx);
-  return applyStartOfTurnArtifactsAndPowers(refilled, ctx);
+  const result = applyStartOfTurnArtifactsAndPowers(refilled, ctx);
+  return { ...result, pendingDiscard: result.hand.length > 1 };
 }
 
 /**
