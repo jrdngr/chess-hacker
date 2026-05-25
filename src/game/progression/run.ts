@@ -14,6 +14,7 @@ import { CARD_LIBRARY, makeStarterDeck } from "../cards/library";
 import { makeRng, shuffle, type Rng } from "../cards/match";
 import { generateChess960Position } from "../chess/positions";
 import { resolvePieceSet, standardMatchConfig } from "./standard";
+import { SKIRMISH_STARTING_ROSTER, skirmishBoardSize } from "./skirmish";
 import { bossForMatch } from "../bosses/library";
 import { ARTIFACT_LIBRARY, pickRandomArtifacts } from "../artifacts/library";
 import type {
@@ -74,14 +75,14 @@ const DEFAULT_STARTING_ARTIFACTS: Record<RunMode, string[]> = {
 };
 
 export function createRun(opts: CreateRunOptions): RunState {
-  const config = opts.config ?? (opts.mode === "standard" ? STANDARD_RUN_CONFIG : MINI_RUN_CONFIG);
+  const isSkirmish = opts.mode === "skirmish";
+  const config =
+    opts.config ?? (opts.mode === "standard" || isSkirmish ? STANDARD_RUN_CONFIG : MINI_RUN_CONFIG);
   const startingIds = opts.startingArtifacts ?? DEFAULT_STARTING_ARTIFACTS[opts.mode];
   const artifacts: Artifact[] = [];
   for (const id of startingIds) {
     const a = ARTIFACT_LIBRARY[id];
     if (a) artifacts.push(a);
-    // Silently skip unknown ids — test fixtures sometimes pass a stale id;
-    // we don't want createRun() to throw and bring down the whole UI.
   }
   return {
     mode: opts.mode,
@@ -93,11 +94,12 @@ export function createRun(opts: CreateRunOptions): RunState {
     gold: 0,
     deck: opts.startingDeck ?? makeStarterDeck(),
     artifacts,
+    ...(isSkirmish ? { roster: [...SKIRMISH_STARTING_ROSTER] } : {}),
     rngSeed: opts.rngSeed ?? Math.floor(Math.random() * 0xffffffff),
     rngCursor: 0,
     removalsUsed: 0,
     smithUsed: 0,
-    phase: "match",
+    phase: isSkirmish ? "placement" : "match",
   };
 }
 
@@ -119,7 +121,12 @@ export function nextMatchSetup(state: RunState): {
     const generated = generateChess960Position(pieceSet, cfg.size, rng);
     return { fen: generated.fen, size: generated.size, next };
   }
-  // Royal / Skirmish / mini-run — standard 8x8 chess.
+  if (state.mode === "skirmish") {
+    // Skirmish FEN is produced by the placement screen, not here. We only
+    // return the board size so the placement UI knows the grid dimensions.
+    return { fen: undefined, size: skirmishBoardSize(state.matchNumber), next: state };
+  }
+  // Royal / mini-run — standard 8x8 chess.
   return { fen: undefined, size: { files: 8, ranks: 8 }, next: state };
 }
 
@@ -142,7 +149,7 @@ export function consumeRng(state: RunState, n: number = 1): { rng: Rng; next: Ru
  * mini-run has none.
  */
 export function isBossMatch(state: RunState): boolean {
-  if (state.mode === "standard") {
+  if (state.mode === "standard" || state.mode === "skirmish") {
     try {
       return standardMatchConfig(state.matchNumber).isBoss;
     } catch {
@@ -157,7 +164,7 @@ export function isBossMatch(state: RunState): boolean {
  * match (or the boss isn't defined yet — only Boss A is implemented in M8).
  */
 export function activeBossFor(state: RunState): BossDef | null {
-  if (state.mode !== "standard") return null;
+  if (state.mode !== "standard" && state.mode !== "skirmish") return null;
   return bossForMatch(state.matchNumber);
 }
 
@@ -169,6 +176,8 @@ export function activeBossFor(state: RunState): BossDef | null {
  * wins go through the reward phase for the boss-pick + boss-artifact picks
  * and then to the shop. Losing transitions to `phase: "lost"`.
  *
+ * Skirmish: ALL wins go through the reward phase (piece draft every match).
+ *
  * Winning the final match short-circuits straight to `won` — there's no
  * next match to spend on, so the reward + shop steps would be cosmetic.
  */
@@ -179,10 +188,15 @@ export function applyMatchOutcome(state: RunState, outcome: RunMatchOutcome): Ru
   const boss = isBossMatch(state);
   const winGold = boss ? WIN_BONUS_BOSS : WIN_BONUS_NORMAL;
   const isFinalMatch = state.matchNumber >= totalMatches(state);
+  if (isFinalMatch) {
+    return { ...state, gold: state.gold + winGold, phase: "won" };
+  }
+  // Skirmish: every win goes to reward for the piece draft.
+  const goToReward = boss || state.mode === "skirmish";
   return {
     ...state,
     gold: state.gold + winGold,
-    phase: isFinalMatch ? "won" : boss ? "reward" : "shop",
+    phase: goToReward ? "reward" : "shop",
   };
 }
 
@@ -382,7 +396,7 @@ export function leaveShop(state: RunState): RunState {
     act,
     matchInAct: matchInAct as 1 | 2 | 3,
     matchNumber: state.matchNumber + 1,
-    phase: "match",
+    phase: state.mode === "skirmish" ? "placement" : "match",
   };
 }
 
