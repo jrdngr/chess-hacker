@@ -178,24 +178,6 @@ Priority fills:
 
 Artifact JSON files go in `src/game/artifacts/data/`. New effect kinds require type + library + Match wiring updates.
 
-### M11c — Playtest balance pass (Boss A + economy)
-
-Before adding more content, validate what exists:
-
-- **Boss A ("The Firewall"):** play through multiple times on 6×6 with two central walls. The design doc notes "if Boss A becomes unwinnable, drop to a single wall pillar." Confirm or apply the fallback.
-- **Economy numbers:** performance bonuses, skip-bonus values, and reroll cost curve are all still TBD in `docs/roadmap/open-questions.md`. Set concrete numbers based on playtesting.
-- **Card removal pricing:** default curve is 50, 75, 100, 125, 150... — verify it feels fair across a full 9-match run.
-
-### M11d — Refactor status effects for side-symmetry [done]
-
-`applyEffect` now takes a `side: Side` parameter. Per-piece statuses, zone buffs, empowers, lightnings, mutex locks, backdoors, and downgrades all use `side` (or `opposite(side)` for debuffs) instead of hardcoded `"player"` / `"opponent"`. The dispatcher in `dispatch.ts` passes `status.target` as `side`; card-play passes `"player"`. The throw guard is removed. Player-cast curses, offensive status effects, and symmetrical boss abilities are now unblocked.
-
-### M11e — Polish pass
-
-- Animation pass on card play and piece moves.
-- Sound effects (basic).
-- Fix accumulated paper cuts.
-
 ## Parallelization opportunities
 
 - M6 (artifacts) and M7 (zone-buffs) are independent and can be done in parallel after M5.
