@@ -73,7 +73,34 @@
 .square .glyph {
   width: 42px;
   height: 42px;
-  pointer-events: none;
+  cursor: grab;
+}
+
+.square .glyph:active {
+  cursor: grabbing;
+}
+
+.square.validTarget {
+  outline: 2px solid var(--player);
+  outline-offset: -2px;
+  background: rgba(244, 162, 60, 0.15);
+}
+
+.square.validTarget.light {
+  background: rgba(244, 162, 60, 0.2);
+}
+
+.square.validTarget.dark {
+  background: rgba(244, 162, 60, 0.25);
+}
+
+.square.dragOver {
+  background: rgba(244, 162, 60, 0.45) !important;
+  outline-color: #fff;
+}
+
+.square.dragging {
+  opacity: 0.3;
 }
 
 .square.inactive {
@@ -112,13 +139,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
+  cursor: grab;
   transition:
     border-color 80ms ease,
     transform 80ms ease;
   padding: 0;
   font: inherit;
   color: inherit;
+}
+
+.rosterPiece:active {
+  cursor: grabbing;
 }
 
 .rosterPiece:hover {
