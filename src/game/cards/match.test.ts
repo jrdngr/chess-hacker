@@ -150,15 +150,14 @@ describe("shuffle / drawCards", () => {
 });
 
 describe("startPlayerTurn", () => {
-  it("draws DRAW_PER_TURN cards and adds ENERGY_PER_TURN on turn 1", () => {
+  it("does not draw extra cards on turn 1 (opening hand only)", () => {
     const rng = makeRng(4);
     const deck = makeStarterDeck();
     const st = startPlayerTurn(createMatchCardState(deck, rng), rng);
-    // createMatchCardState draws STARTING_HAND_SIZE (3), then startPlayerTurn draws DRAW_PER_TURN (2)
-    expect(st.hand).toHaveLength(STARTING_HAND_SIZE + DRAW_PER_TURN);
+    expect(st.hand).toHaveLength(STARTING_HAND_SIZE);
     expect(st.energy).toBe(ENERGY_PER_TURN);
     expect(st.turn).toBe(1);
-    expect(st.drawPile).toHaveLength(deck.length - STARTING_HAND_SIZE - DRAW_PER_TURN);
+    expect(st.drawPile).toHaveLength(deck.length - STARTING_HAND_SIZE);
   });
 
   it("expires walls, freezes, and other timed statuses whose expiresOnTurn <= the new turn", () => {
@@ -682,7 +681,7 @@ describe("status helpers", () => {
     const reordered = [top3[2], top3[0], top3[1]];
     st = setDeckTop(st, reordered);
     expect(st.drawPile.slice(0, 3)).toEqual(reordered);
-    expect(st.drawPile.length).toBe(makeStarterDeck().length - STARTING_HAND_SIZE - DRAW_PER_TURN);
+    expect(st.drawPile.length).toBe(makeStarterDeck().length - STARTING_HAND_SIZE);
   });
 
   it("isInPlayerHalf identifies ranks 1-4 only", () => {
@@ -765,13 +764,12 @@ describe("disposal: discard, consume, retain, cycle", () => {
     // 12-card deck so there's plenty to draw from.
     const deck = Array.from({ length: 12 }, () => FIREWALL);
     let st = startPlayerTurn(createMatchCardState(deck, rng), rng);
-    // After createMatchCardState (3 cards) + startPlayerTurn (draws 2) = 5 in hand.
-    expect(st.hand.length).toBe(STARTING_HAND_SIZE + DRAW_PER_TURN);
-    // Advance to next turn — cards persist, DRAW_PER_TURN more are drawn.
+    // Turn 1 skips the draw — hand stays at STARTING_HAND_SIZE.
+    expect(st.hand.length).toBe(STARTING_HAND_SIZE);
+    // Advance to turn 2 — cards persist, DRAW_PER_TURN more are drawn.
     st = startPlayerTurn(st, rng);
     expect(st.discardPile.length).toBe(0);
-    // Hand grows by DRAW_PER_TURN each turn, capped at HAND_SIZE (7).
-    expect(st.hand.length).toBe(STARTING_HAND_SIZE + DRAW_PER_TURN * 2);
+    expect(st.hand.length).toBe(STARTING_HAND_SIZE + DRAW_PER_TURN);
   });
 
   it("all hand cards survive between turns in the persistent-hand system", () => {

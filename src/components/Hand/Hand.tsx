@@ -71,6 +71,7 @@ type ExitGhost = {
 type Props = {
   hand: ReadonlyArray<HandCard>;
   energy: number;
+  energyMax: number;
   /** Hand index that is currently "in flight" waiting for a target, if any. */
   targetingIndex: number | null;
   /** Whether the player is allowed to interact with their hand right now. */
@@ -90,6 +91,7 @@ type Props = {
 export function Hand({
   hand,
   energy,
+  energyMax,
   targetingIndex,
   enabled,
   forbiddenIndexes,
@@ -315,8 +317,16 @@ export function Hand({
 
   return (
     <div className={styles.handArea} ref={handAreaRef}>
-      <div className={styles.handHeader}>
-        <span className={styles.handHeaderLeft}>▌HAND {hand.length}/5</span>
+      <div className={styles.energyRow} aria-label={`Energy: ${energy}`}>
+        <span className={styles.energyLabel}>ENERGY</span>
+        <span className={styles.energyValue}>
+          {energy}/{energyMax}
+        </span>
+        <div className={styles.energyBar}>
+          {Array.from({ length: Math.max(1, energyMax) }).map((_, i) => (
+            <span key={i} className={`${styles.energySeg} ${i < energy ? styles.energyLit : ""}`} />
+          ))}
+        </div>
       </div>
       <div className={styles.hand} role="list" aria-label="Hand">
         {hand.length === 0 ? (

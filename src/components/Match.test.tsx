@@ -301,7 +301,7 @@ function findCard(name: string): HTMLElement | undefined {
 }
 
 describe("Match (cards — M3)", () => {
-  it("starts with a hand of 5 and the per-turn baseline energy", () => {
+  it("starts with a hand of 3 and the per-turn baseline energy", () => {
     const ai = makeFakeAi([]);
     render(
       <Match
@@ -314,7 +314,7 @@ describe("Match (cards — M3)", () => {
     );
 
     const hand = screen.getByRole("list", { name: /^hand$/i });
-    expect(within(hand).getAllByRole("listitem")).toHaveLength(5);
+    expect(within(hand).getAllByRole("listitem")).toHaveLength(3);
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("1");
   });
 
@@ -343,7 +343,7 @@ describe("Match (cards — M3)", () => {
     // Stack Trace is non-Consume, so it lands in the discard pile.
     expect(screen.getByLabelText(/^discard pile/i)).toHaveTextContent("1");
     const hand = screen.getByRole("list", { name: /^hand$/i });
-    expect(within(hand).getAllByRole("listitem")).toHaveLength(4);
+    expect(within(hand).getAllByRole("listitem")).toHaveLength(2);
   });
 
   it("Sprint targets own piece and grants haste", async () => {
@@ -373,7 +373,7 @@ describe("Match (cards — M3)", () => {
 
     await user.click(squareCell("e2")!);
     const hand = screen.getByRole("list", { name: /^hand$/i });
-    expect(within(hand).getAllByRole("listitem")).toHaveLength(4);
+    expect(within(hand).getAllByRole("listitem")).toHaveLength(2);
   });
 
   it("Firewall enters targeting mode; clicking an empty square places a wall", async () => {
@@ -476,9 +476,9 @@ describe("Match (cards — M3)", () => {
 
     // Banking: ended turn 1 at 18 energy, turn 2 adds +1 → 19.
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("19");
-    // Persistent hand: 5 - 1 played = 4 carried over, +2 drawn = 6.
+    // Persistent hand: 3 - 1 played = 2 carried over, +2 drawn = 4.
     const hand = screen.getByRole("list", { name: /^hand$/i });
-    expect(within(hand).getAllByRole("listitem")).toHaveLength(6);
+    expect(within(hand).getAllByRole("listitem")).toHaveLength(4);
   });
 
   it("a frozen piece's freeze visual is cleared after the AI has had its turn", async () => {
@@ -529,9 +529,9 @@ describe("Match (cards — M3)", () => {
     await user.click(squareCell("e2")!);
     await user.click(squareCell("e4")!);
 
-    // The hand retains all 5 cards (persistent-hand: no end-of-turn discard).
+    // The hand retains all 3 cards (persistent-hand: no end-of-turn discard).
     const hand = screen.getByRole("list", { name: /^hand$/i });
-    expect(within(hand).getAllByRole("listitem")).toHaveLength(5);
+    expect(within(hand).getAllByRole("listitem")).toHaveLength(3);
 
     // Energy is unchanged (no card was played).
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent(String(ENERGY_CAP));
@@ -903,14 +903,14 @@ describe("Match — undo", () => {
 
     const hand = () => screen.getByRole("list", { name: /^hand$/i });
     const handSizeBefore = within(hand()).getAllByRole("listitem").length;
-    expect(handSizeBefore).toBe(5);
+    expect(handSizeBefore).toBe(3);
 
     // Play a Stack Trace and dismiss the modal — that moves a card from hand
-    // to discard, taking the hand size to 4.
+    // to discard, taking the hand size to 2.
     await user.click(findCard("Stack Trace")!);
     const confirm = await screen.findByRole("button", { name: /confirm/i });
     await user.click(confirm);
-    expect(within(hand()).getAllByRole("listitem")).toHaveLength(4);
+    expect(within(hand()).getAllByRole("listitem")).toHaveLength(2);
 
     // Make a chess move to end the turn.
     await user.click(squareCell("e2")!);
@@ -918,12 +918,12 @@ describe("Match — undo", () => {
     await waitFor(() => {
       expect(squareCell("e5")?.getAttribute("aria-label")).toBe("e5, opponent pawn");
     });
-    // Next turn: persistent hand (4 cards remain) + 2 drawn = 6.
-    expect(within(hand()).getAllByRole("listitem")).toHaveLength(6);
+    // Next turn: persistent hand (2 cards remain) + 2 drawn = 4.
+    expect(within(hand()).getAllByRole("listitem")).toHaveLength(4);
 
-    // Undo: hand goes back to 5 (start of turn 1, before the Stack Trace play).
+    // Undo: hand goes back to 3 (start of turn 1, before the Stack Trace play).
     await user.click(screen.getByRole("button", { name: /undo turn/i }));
-    expect(within(hand()).getAllByRole("listitem")).toHaveLength(5);
+    expect(within(hand()).getAllByRole("listitem")).toHaveLength(3);
     // And energy is the start-of-turn value.
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent(String(ENERGY_CAP));
   });
@@ -1199,12 +1199,12 @@ describe("Match — dev mode", () => {
       />,
     );
 
-    // Play Stack Trace (cost 0 cantrip) and dismiss the modal so hand size is 4.
+    // Play Stack Trace (cost 0 cantrip) and dismiss the modal so hand size is 2.
     await user.click(findCard("Stack Trace")!);
     await user.click(await screen.findByRole("button", { name: /confirm/i }));
 
     const hand = () => screen.getByRole("list", { name: /^hand$/i });
-    expect(within(hand()).getAllByRole("listitem")).toHaveLength(4);
+    expect(within(hand()).getAllByRole("listitem")).toHaveLength(2);
     // Stack Trace is now free; energy is unchanged at 2.
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("2");
 
@@ -1217,9 +1217,9 @@ describe("Match — dev mode", () => {
     await user.click(squareCell("e7")!);
     await user.click(squareCell("e5")!);
 
-    // Turn 2 begins: persistent hand (4 cards) + 2 drawn = 6; energy
+    // Turn 2 begins: persistent hand (2 cards) + 2 drawn = 4; energy
     // banks: 2 unspent + 1 per-turn = 3.
-    expect(within(hand()).getAllByRole("listitem")).toHaveLength(6);
+    expect(within(hand()).getAllByRole("listitem")).toHaveLength(4);
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("3");
   });
 
@@ -1238,13 +1238,10 @@ describe("Match — dev mode", () => {
       />,
     );
 
-    // Initial deck has 8 Stack Traces → drawPile starts at 0 (3 in starting
-    // hand + 2 drawn on turn 1 = 5, plus 3 more go to starting hand from
-    // createMatchCardState). Actually: the FEN has black to move, so the
-    // player turn hasn't started yet. createMatchCardState draws 3, leaving 5.
-    // But the Match component calls startPlayerTurn, drawing 2 more → 3 left.
+    // Initial deck has 8 Stack Traces. createMatchCardState draws 3 into the
+    // opening hand; startPlayerTurn (turn 1) skips the draw → 5 left.
     const drawPileText = () => screen.getByLabelText(/^draw pile/i).textContent ?? "";
-    expect(drawPileText()).toContain("3");
+    expect(drawPileText()).toContain("5");
 
     // Black captures the e4 pawn.
     await user.click(squareCell("d5")!);
@@ -1256,6 +1253,6 @@ describe("Match — dev mode", () => {
     // Draw pile size is unchanged — no Patch granted (it's the player's enemy
     // capturing). If we had passed the wrong side, the helper would have
     // shuffled a Pawn Patch into the draw pile, bumping the count.
-    expect(drawPileText()).toContain("3");
+    expect(drawPileText()).toContain("5");
   });
 });

@@ -8,7 +8,6 @@ import { describe, expect, it } from "vitest";
 import {
   HAND_SIZE,
   ENERGY_PER_TURN,
-  DRAW_PER_TURN,
   STARTING_HAND_SIZE,
   createMatchCardState,
   makeRng,
@@ -42,11 +41,12 @@ describe("artifact-driven match state", () => {
     const deck = makeStarterDeck();
     // Build up hand over several turns to reach the cap
     let st = startPlayerTurn(createMatchCardState(deck, rng, [hourglass]), rng);
-    // Turn 1: starting 3 + draw 2 = 5
-    expect(st.hand.length).toBe(STARTING_HAND_SIZE + DRAW_PER_TURN);
+    // Turn 1: opening hand only (no extra draw) = 3
+    expect(st.hand.length).toBe(STARTING_HAND_SIZE);
     // Keep advancing turns without playing cards — hand grows until cap
-    st = startPlayerTurn(st, rng); // Turn 2: 5 + 2 = 7
-    st = startPlayerTurn(st, rng); // Turn 3: 7 + 1 = 8 (cap is HAND_SIZE + 1 = 8)
+    st = startPlayerTurn(st, rng); // Turn 2: 3 + 2 = 5
+    st = startPlayerTurn(st, rng); // Turn 3: 5 + 2 = 7
+    st = startPlayerTurn(st, rng); // Turn 4: 7 + 1 = 8 (cap is HAND_SIZE + 1 = 8)
     expect(st.hand.length).toBe(HAND_SIZE + 1);
     // One more turn should not exceed cap
     st = startPlayerTurn(st, rng);

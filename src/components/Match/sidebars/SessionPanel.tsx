@@ -1,18 +1,14 @@
 // SESSION panel — turn (hex) / ply / to-move / opponent / dashed sep /
-// gold / interest / energy bar.
+// gold / interest.
 
 import type { ReactNode } from "react";
 
-import { effectiveEnergyPerTurn } from "../../../game/artifacts/effects";
-import { activeZoneBuffs, zoneBuffEnergyPerTurn } from "../../../game/overlays/zoneBuffs";
-import type { Artifact, BossDef, MatchCardState, Side } from "../../../game/types";
-import type { ZoneBoardContext } from "../../../game/overlays/zoneBuffs";
+import type { BossDef, MatchCardState, Side } from "../../../game/types";
 import { Panel } from "./Panel";
 import styles from "./SessionPanel.module.css";
 
 type Props = {
   cardState: MatchCardState;
-  artifacts: ReadonlyArray<Artifact>;
   /** Whose turn is it (chess engine.turn()). */
   toMove: Side;
   /** True if AI is mid-think — overrides toMove display. */
@@ -22,8 +18,6 @@ type Props = {
   /** Run gold + last interest. Both omitted when out-of-run (tests). */
   gold?: number;
   interest?: number;
-  /** Required for zone-buff energy bonus. */
-  zoneCtx?: ZoneBoardContext;
 };
 
 function Stat({
@@ -55,28 +49,9 @@ function Stat({
   );
 }
 
-export function SessionPanel({
-  cardState,
-  artifacts,
-  toMove,
-  aiThinking,
-  boss,
-  gold,
-  interest,
-  zoneCtx,
-}: Props) {
+export function SessionPanel({ cardState, toMove, aiThinking, boss, gold, interest }: Props) {
   const turn = cardState.turn;
   const ply = Math.max(1, turn * 2 - 1);
-
-  const baseEnergyMax = effectiveEnergyPerTurn(artifacts);
-  const zoneBonus = zoneCtx
-    ? zoneBuffEnergyPerTurn(activeZoneBuffs(cardState.zoneBuffs ?? [], zoneCtx))
-    : 0;
-  // Effective per-turn refill. Mid-turn boosts (Cache Warmup, etc.) can push
-  // the live energy past this; render whichever is higher so the bar still
-  // fills correctly.
-  const computedMax = baseEnergyMax + zoneBonus;
-  const energyMax = Math.max(cardState.energy, computedMax);
 
   return (
     <Panel title="SESSION">
@@ -102,22 +77,6 @@ export function SessionPanel({
           )}
         </>
       )}
-
-      <hr className={styles.dash} />
-      <div className={styles.energyHeader} aria-label={`Energy: ${cardState.energy}`}>
-        <span className={styles.statLabel}>ENERGY</span>
-        <span className={styles.energyValue}>
-          {cardState.energy}/{energyMax}
-        </span>
-      </div>
-      <div className={styles.energyBar}>
-        {Array.from({ length: Math.max(1, energyMax) }).map((_, i) => (
-          <span
-            key={i}
-            className={`${styles.energySeg} ${i < cardState.energy ? styles.energyLit : ""}`}
-          />
-        ))}
-      </div>
     </Panel>
   );
 }

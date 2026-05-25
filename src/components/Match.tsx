@@ -113,9 +113,11 @@ import type {
 } from "../game/types";
 import {
   activeZoneBuffs,
+  zoneBuffEnergyPerTurn,
   zoneBuffSquares,
   type ZoneBoardContext,
 } from "../game/overlays/zoneBuffs";
+import { effectiveEnergyPerTurn } from "../game/artifacts/effects";
 
 import styles from "./Match.module.css";
 
@@ -1490,6 +1492,14 @@ export function Match({
     matchOver,
   };
 
+  const baseEnergyMax = effectiveEnergyPerTurn(artifacts);
+  const zoneCtx = zoneBoardContextOf(engine);
+  const zoneEnergyBonus = zoneBuffEnergyPerTurn(
+    activeZoneBuffs(cardState.zoneBuffs ?? [], zoneCtx),
+  );
+  const computedEnergyMax = baseEnergyMax + zoneEnergyBonus;
+  const energyMax = Math.max(cardState.energy, computedEnergyMax);
+
   return (
     <div className={styles.match}>
       <Ticker
@@ -1514,13 +1524,11 @@ export function Match({
               {cardsEnabled && (
                 <SessionPanel
                   cardState={cardState}
-                  artifacts={artifacts}
                   toMove={turn}
                   aiThinking={aiThinking}
                   boss={activeBoss ?? null}
                   gold={runState?.gold}
                   interest={lastInterest}
-                  zoneCtx={zoneBoardContextOf(engine)}
                 />
               )}
               {cardsEnabled && (
@@ -1607,18 +1615,6 @@ export function Match({
               advantage={playerLead > 0 ? playerLead : undefined}
             />
           )}
-          {cardsEnabled && !displayOnly && (
-            <Hand
-              hand={cardState.hand}
-              energy={cardState.energy}
-              targetingIndex={targetingIndex}
-              enabled={!aiThinking && !matchOver && turn === HUMAN_SIDE && !libraryFreePlayActive}
-              forbiddenIndexes={forbiddenHandIndexes}
-              onCardClick={onCardClick}
-              onCardDragStart={onCardDragStart}
-              onCardDragEnd={onCardDragEnd}
-            />
-          )}
         </div>
 
         {!endOfRunPanel && cardsEnabled && (
@@ -1696,6 +1692,19 @@ export function Match({
           </button>
         )}
       </div>
+      {cardsEnabled && !displayOnly && (
+        <Hand
+          hand={cardState.hand}
+          energy={cardState.energy}
+          energyMax={energyMax}
+          targetingIndex={targetingIndex}
+          enabled={!aiThinking && !matchOver && turn === HUMAN_SIDE && !libraryFreePlayActive}
+          forbiddenIndexes={forbiddenHandIndexes}
+          onCardClick={onCardClick}
+          onCardDragStart={onCardDragStart}
+          onCardDragEnd={onCardDragEnd}
+        />
+      )}
       {scryPending && (
         <ScryModal
           cards={scryPending.cards}

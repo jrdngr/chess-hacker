@@ -15,9 +15,9 @@ describe("Run — Royal mini-run", () => {
     expect(screen.getByRole("banner")).toBeInTheDocument();
     // Act 1, match 1 of 3 — rendered as "ACT 1 M1/3" inside the ticker.
     expect(screen.getByText(/M1\/3/)).toBeInTheDocument();
-    // Starter deck = 12 cards. After the initial draw of 5 the draw pile has
-    // 7 cards left — we render that count on the DRAW pile button.
-    expect(screen.getByLabelText(/draw pile, 7 cards/i)).toBeInTheDocument();
+    // Starter deck = 12 cards. After the opening hand of 3 the draw pile has
+    // 9 cards left — we render that count on the DRAW pile button.
+    expect(screen.getByLabelText(/draw pile, 9 cards/i)).toBeInTheDocument();
   });
 
   it("Quit button in the ticker calls onExit", async () => {

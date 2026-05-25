@@ -388,7 +388,9 @@ export function startPlayerTurn(
     probeExpiresOnTurn:
       (state.probeExpiresOnTurn ?? 0) > turn ? state.probeExpiresOnTurn : undefined,
   };
-  const refilled = refillHand(next, rng, ctx);
+  // Turn 0→1 is match start — the opening hand was already drawn by
+  // createMatchCardState, so skip the per-turn draw.
+  const refilled = state.turn === 0 ? next : refillHand(next, rng, ctx);
   return applyStartOfTurnArtifactsAndPowers(refilled, ctx);
 }
 

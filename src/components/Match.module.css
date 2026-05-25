@@ -13,7 +13,7 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(260px, 300px) 1fr minmax(240px, 280px) auto;
+  grid-template-columns: minmax(220px, 260px) 1fr minmax(200px, 240px) auto;
   gap: 18px;
   padding: 18px 22px 12px;
   align-items: stretch;
