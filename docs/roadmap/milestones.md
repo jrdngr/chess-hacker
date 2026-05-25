@@ -150,17 +150,58 @@ Most of the run scaffolding (M5 / M6 / M9) is shared with Standard, so Skirmish 
 
 **Done when:** a complete Skirmish 9-match run is playable end-to-end, drafting pieces and placing them between matches.
 
-## M11 — Content expansion + polish [open-ended]
+## M11 — Content expansion + balance [open-ended]
 
-- Grow the card pool toward the archetypes' target sizes.
-- Grow the artifact pool to ~30 artifacts.
-- Tune card / artifact / boss balance.
+Ordered by impact on replayability.
+
+### M11a — Fill card cost gap + expand thin archetypes (4-6 new cards)
+
+The card pool has **zero 5-cost base cards** and four archetypes with only 2 cards each:
+
+| Archetype | Current | Gap |
+|-----------|---------|-----|
+| Defensive | Encrypted (2), Mutex Lock (7) | No cheap wards (1-3 cost) |
+| Power | Garrison Mode (10), Intrusion Detection (12) | No mid-cost persistent passive (5-6 cost) |
+| Sacrifice | Buffer Overflow (7), Self-Destruct (2) | No mid-cost sacrifice-for-value (3-4 cost) |
+| Tempo | Hot Swap (3), Overclock (4), Sudo (7) | Nothing in the 5-6 cost range |
+
+Target: add 4-6 cards filling these gaps. At least one should be a 5-cost card to close the cost distribution hole. Card JSON files go in `src/game/cards/data/`; new effect kinds (if any) require type + validator + handler updates. Each card needs a test in the appropriate `match.*.test.ts` file.
+
+### M11b — Expand artifact pool to ~24-28
+
+Current: 14 artifacts (5C, 7U, 2R). Target per `docs/design/artifacts.md`: 12-18C + 8-12U + 6-10R = ~30-40 total. The pool is at ~37% of target, meaning runs see the same artifacts repeatedly.
+
+Priority fills:
+- Rares: only 2 exist (Phalanx, Sniper Optics) vs 6-10 target. Add 4+ rares.
+- Commons: 5 exist vs 12-18 target. Add 7+.
+- Synergy targets: artifacts that reward defensive builds, sacrifice builds, or energy-on-capture play.
+
+Artifact JSON files go in `src/game/artifacts/data/`. New effect kinds require type + library + Match wiring updates.
+
+### M11c — Playtest balance pass (Boss A + economy)
+
+Before adding more content, validate what exists:
+
+- **Boss A ("The Firewall"):** play through multiple times on 6×6 with two central walls. The design doc notes "if Boss A becomes unwinnable, drop to a single wall pillar." Confirm or apply the fallback.
+- **Economy numbers:** performance bonuses, skip-bonus values, and reroll cost curve are all still TBD in `docs/roadmap/open-questions.md`. Set concrete numbers based on playtesting.
+- **Card removal pricing:** default curve is 50, 75, 100, 125, 150... — verify it feels fair across a full 9-match run.
+
+### M11d — Refactor status effects for side-symmetry
+
+`src/game/status/dispatch.ts` currently throws when `status.target !== "player"` because `applyEffect` handlers in `src/game/cards/effectHandlers.ts` are hard-coded to write player-side flags. This blocks an entire archetype: cards that place debuffs on the enemy.
+
+Change:
+1. Add a `side` parameter to `applyEffect` and the individual handler functions.
+2. Remove the `throw` guard in `dispatch.ts`.
+3. Audit each handler to ensure it writes to the correct side's state.
+
+This is a small architectural change but gates future content: player-cast curses, offensive status effects, and symmetrical boss abilities.
+
+### M11e — Polish pass
+
 - Animation pass on card play and piece moves.
 - Sound effects (basic).
-- Card hover descriptions.
 - Fix accumulated paper cuts.
-
-This phase is open-ended and driven by playtest feedback.
 
 ## Parallelization opportunities
 
