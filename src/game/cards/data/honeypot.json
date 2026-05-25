@@ -4,7 +4,7 @@
   "cost": 2,
   "rarity": "common",
   "archetype": "spatial",
-  "description": "First enemy to enter is frozen 1 turn. 3 turns.",
+  "description": "First enemy to enter is **Frozen** 1 turn. 3 turns.",
   "target": {
     "kind": "empty-square"
   },
@@ -14,7 +14,7 @@
     "durationTurns": 3
   },
   "upgrade": {
-    "description": "First enemy to enter is frozen 1 turn. 5 turns.",
+    "description": "First enemy to enter is **Frozen** 1 turn. 5 turns.",
     "effect": {
       "kind": "place-trap",
       "trapEffect": "freeze",

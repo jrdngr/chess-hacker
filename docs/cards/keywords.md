@@ -25,10 +25,10 @@ A rooted piece **cannot move except to capture an immediately adjacent piece**. 
 
 ### Disarm
 
-A disarmed piece **may move but may not capture**. Any move it makes must end on an empty square.
+A disarmed piece **may not capture**. Any move it makes must end on an empty square. Disarm can apply to any piece — your own or the opponent's.
 
-- **Duration:** opponent's next turn.
-- **Edge cases:** a disarmed piece still threatens squares for check purposes — it just cannot resolve those threats this turn.
+- **Duration:** card-specified. Resets at the end of the turn. When combined with Haste, Disarm restricts only the first of the two moves.
+- **Edge cases:** a disarmed piece still threatens squares for check purposes — it just cannot resolve those threats while disarmed.
 
 ### Compel
 
@@ -57,9 +57,10 @@ While a piece is shielded, **captures targeting it are not legal moves**. The op
 
 ### Haste
 
-A hasted piece **may move a second time on the same turn**. The **first move cannot capture**; the second move may. Both moves must be otherwise legal in the chess sense (no moving into check, etc.).
+A hasted piece **moves twice this turn**. Both moves must be otherwise legal in the chess sense (no moving into check, etc.). Whether the piece can capture on each move depends on whether it also has Disarm — Haste itself imposes no capture restriction.
 
 - **Duration:** the current turn only.
+- **Common pairing:** Overclock applies Haste with Disarm on the first move — the piece moves twice but can only capture on the second move. Overclock+ removes the Disarm, granting full Haste.
 - **Edge cases:** the second move counts as a normal move for any rules that count moves (e.g., en passant only off the immediately preceding move).
 
 ### Empower

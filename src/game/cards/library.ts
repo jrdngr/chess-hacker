@@ -260,7 +260,6 @@ export const OVERCLOCK: Card = pick("overclock");
 export const ENCRYPTED: Card = pick("encrypted");
 export const SWITCH_FILES: Card = pick("switch-files");
 export const REMOTE_ACCESS: Card = pick("remote-access");
-export const SPRINT: Card = pick("sprint");
 export const VANGUARD: Card = pick("vanguard");
 export const SELF_DESTRUCT: Card = pick("self-destruct");
 export const BACKDOOR: Card = pick("backdoor");

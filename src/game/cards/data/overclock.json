@@ -1,18 +1,21 @@
 {
   "id": "overclock",
   "name": "Overclock",
-  "cost": 5,
+  "cost": 4,
   "rarity": "common",
   "archetype": "tempo",
-  "description": "Own piece takes 2 actions this turn.",
+  "description": "**Haste** a piece. First move is **Disarmed**.",
   "target": {
     "kind": "own-piece"
   },
   "effect": {
-    "kind": "lightning-piece",
-    "actions": 2
+    "kind": "haste-piece"
   },
   "upgrade": {
-    "cost": 1
+    "description": "**Haste** a piece.",
+    "effect": {
+      "kind": "lightning-piece",
+      "actions": 2
+    }
   }
 }

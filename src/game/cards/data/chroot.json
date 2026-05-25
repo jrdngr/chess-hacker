@@ -4,7 +4,7 @@
   "cost": 2,
   "rarity": "common",
   "archetype": "disruption",
-  "description": "Root enemy piece (only adjacent captures next turn).",
+  "description": "**Root** enemy piece (only adjacent captures next turn).",
   "target": {
     "kind": "enemy-piece"
   },
@@ -12,7 +12,7 @@
     "kind": "root-piece"
   },
   "upgrade": {
-    "description": "Root enemy piece for 2 turns (only adjacent captures).",
+    "description": "**Root** enemy piece for 2 turns (only adjacent captures).",
     "effect": {
       "kind": "root-piece",
       "durationTurns": 2

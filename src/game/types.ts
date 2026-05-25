@@ -149,7 +149,6 @@ export type CardEffect =
   | { kind: "compel-piece" }
   | { kind: "shield-piece"; durationTurns?: number }
   | { kind: "haste-piece"; durationTurns?: number }
-  | { kind: "haste-all-of-type"; pieceType: PieceType; durationTurns?: number }
   | {
       kind: "empower-piece";
       pattern: EmpowerPattern;

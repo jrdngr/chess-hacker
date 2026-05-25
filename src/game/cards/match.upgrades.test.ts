@@ -1,7 +1,7 @@
 // Smoke tests for upgraded card variants (the `+` cards). The library tests
 // already validate the data shape; these tests verify that the runtime
 // resolver honors the new fields (durationTurns on freeze/disarm/shield;
-// keyword toggles; effect-kind swaps for Sprint+ → lightning).
+// keyword toggles; effect-kind swaps for Overclock+ → lightning).
 
 import { describe, expect, it } from "vitest";
 
@@ -72,10 +72,11 @@ describe("upgraded card runtime effects", () => {
     expect(r.state.shields[0].expiresOnTurn).toBe(r.state.turn + 2);
   });
 
-  it("Overclock+ costs less than base", () => {
+  it("Overclock+ upgrades from haste-piece to lightning-piece (removes Disarm)", () => {
     const base = getCardById("overclock");
     const upgraded = getCardById("overclock+");
-    expect(upgraded.cost).toBeLessThan(base.cost);
+    expect(base.effect.kind).toBe("haste-piece");
+    expect(upgraded.effect.kind).toBe("lightning-piece");
   });
 
   it.skip("Port Scan+ draws 3 cards — card removed in energy redesign", () => {});
@@ -94,19 +95,19 @@ describe("upgraded card runtime effects", () => {
     expect(r.state.discardPile.find((c) => c.id === "lateral-movement+")).toBeDefined();
   });
 
-  it("Sprint+ swaps haste for lightning (2 actions, captures allowed)", () => {
+  it("Overclock+ swaps haste for lightning (full actions, no Disarm)", () => {
     const rng = makeRng(6);
-    const upgraded = getCardById("sprint+");
+    const upgraded = getCardById("overclock+");
     let st = startPlayerTurn(createMatchCardState([upgraded], rng), rng);
     st = { ...st, energy: ENERGY_MAX };
     const ctx = withPieces({ e2: { type: "knight", side: "player" } });
     const r = playCard(st, 0, { kind: "square", square: "e2" }, ctx, rng);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    // Sprint+ uses lightning-piece (2 actions) instead of haste.
+    // Overclock+ uses lightning-piece (2 actions) instead of haste.
     const lightning = lightningAt(r.state, "e2");
     expect(lightning?.remaining).toBe(2);
-    // And no haste was added.
+    // And no haste was added (no Disarm on first move).
     expect(r.state.hastes.find((h) => h.square === "e2")).toBeUndefined();
   });
 });

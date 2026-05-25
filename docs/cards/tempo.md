@@ -2,15 +2,16 @@
 
 Tempo cards give pieces extra moves, chained moves, or free moves. They generate raw board-action without changing rules or geography.
 
-See [`keywords.md`](keywords.md) for keyword definitions.
+See [`keywords.md`](keywords.md) for keyword definitions, especially **Haste** and **Disarm**.
 
 ## Overclock
 
-- **Cost:** 5
+- **Cost:** 4
 - **Rarity:** Common
 - **Target:** own piece
-- **Effect:** Target own piece may take **2 actions** this turn (moves and captures).
-- **Design note:** the prototype's original "extra-action" card. Captures are allowed on either step — letting Overclock set up a fork and follow through, or capture twice through a thin defensive line.
+- **Effect:** **Haste** a piece. First move is **Disarmed** (can reposition but not capture; second move may capture).
+- **Upgrade (Overclock+):** **Haste** a piece (Disarm removed — both moves may capture).
+- **Design note:** the core "extra-action" card. The base version applies Haste with Disarm on the first move, forcing a reposition-then-strike pattern. The upgrade removes the Disarm restriction, letting the piece capture on either move. Vanguard is the pawn-only variant at lower cost.
 
 ## Sudo
 
@@ -27,6 +28,6 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 - **Cost:** 3
 - **Rarity:** Common
 - **Target:** own non-King piece
-- **Effect:** Play before your chess move. After your move resolves, take a bonus move with a **different** friendly piece. The bonus move cannot capture.
-- **Upgrade (Hot Swap+):** The bonus move **can** capture.
-- **Design note:** cheaper and less explosive than Overclock — two pieces each take one action instead of one piece taking two. The no-capture restriction on the bonus move keeps it as a repositioning tool rather than a second strike; the upgrade lifts that restriction for a kill-shot follow-up. The "different piece" constraint prevents doubling up on the same piece (that's Haste's job).
+- **Effect:** Play before your chess move. After your move resolves, take a bonus move with a **different** friendly piece. The bonus move is **Disarmed** (no capture).
+- **Upgrade (Hot Swap+):** The bonus move is no longer **Disarmed** — it **can** capture.
+- **Design note:** cheaper and less explosive than Overclock — two pieces each take one action instead of one piece taking two. The Disarm on the bonus move keeps it as a repositioning tool rather than a second strike; the upgrade lifts that restriction for a kill-shot follow-up. The "different piece" constraint prevents doubling up on the same piece (that's Haste's job).

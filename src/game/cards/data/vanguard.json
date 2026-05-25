@@ -4,7 +4,7 @@
   "cost": 2,
   "rarity": "common",
   "archetype": "movement",
-  "description": "Own pawn takes 2 actions this turn.",
+  "description": "**Haste** own pawn.",
   "target": {
     "kind": "own-piece"
   },

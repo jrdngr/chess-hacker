@@ -13,6 +13,10 @@
     "kind": "resurrect-piece"
   },
   "upgrade": {
-    "description": "Resurrect a captured piece in your half. It enters with Shield."
+    "description": "Resurrect a captured piece in your half. It enters with **Shield**.",
+    "effect": {
+      "kind": "compound",
+      "effects": [{ "kind": "resurrect-piece" }, { "kind": "shield-piece" }]
+    }
   }
 }

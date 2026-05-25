@@ -10,7 +10,7 @@ import {
   FREEZE_PROCESS,
   ENCRYPTED,
   LOGIC_BOMB,
-  SPRINT,
+  OVERCLOCK,
 } from "../game/cards/library";
 import { ENERGY_CAP, makeRng } from "../game/cards/match";
 
@@ -346,11 +346,10 @@ describe("Match (cards — M3)", () => {
     expect(within(hand).getAllByRole("listitem")).toHaveLength(2);
   });
 
-  it("Sprint targets own piece and grants haste", async () => {
+  it("Overclock targets own piece and grants haste", async () => {
     const user = userEvent.setup();
     const ai = makeFakeAi([]);
-    // Use a mixed deck so Sprint appears alongside filler.
-    const deck = [SPRINT, ...Array.from({ length: 7 }, () => FIREWALL)];
+    const deck = [OVERCLOCK, ...Array.from({ length: 7 }, () => FIREWALL)];
     render(
       <Match
         initialMode="vs-ai"
@@ -362,14 +361,13 @@ describe("Match (cards — M3)", () => {
       />,
     );
 
-    const card = findCard("Sprint");
+    const card = findCard("Overclock");
     if (!card) {
-      // Sprint may land in draw pile after shuffle; verify it's in the deck.
-      expect(true).toBe(true); // smoke test passes — card just isn't in hand this seed.
+      expect(true).toBe(true);
       return;
     }
     await user.click(card);
-    expect(screen.getByText(/Pick a piece for Sprint/i)).toBeInTheDocument();
+    expect(screen.getByText(/Pick a piece for Overclock/i)).toBeInTheDocument();
 
     await user.click(squareCell("e2")!);
     const hand = screen.getByRole("list", { name: /^hand$/i });

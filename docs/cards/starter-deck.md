@@ -26,20 +26,18 @@ Lock down enemy tempo, deny the opponent's plans, sweep with a clean exploit at 
 | 1 | Exploit | Rare | Destroy an attacked enemy non-King. |
 
 ### Hackathon — mobility + pawns
-Move twice, sprint forward, ship the pawn rush before the opponent can react. **Bundled artifact:** Build Pipeline (uncommon — movement cards cost 1 less).
+Move twice, push forward, ship the pawn rush before the opponent can react. **Bundled artifact:** Build Pipeline (uncommon — movement cards cost 1 less).
 
 | Count | Card | Rarity | Notes |
 |---|---|---|---|
-| 1 | Sprint | Common | Give a friendly piece Haste. |
-| 1 | Vanguard | Common | Pawn takes 2 actions this turn. |
-| 1 | Pawn Patch | Common | Empower a piece with pawn behavior. |
+| 2 | Overclock | Common | **Haste** a piece. First move is **Disarmed**. |
+| 2 | Vanguard | Common | **Haste** own pawn. |
+| 1 | Hot Swap | Common | **Disarmed** bonus move with a different piece. |
 | 1 | Side Channel | Common | Pawn steps 1 sq diagonally (no capture). |
 | 1 | Lateral Movement | Common | Pawn steps 1 sq horizontally. |
-| 1 | Overclock | Common | Own piece takes 2 actions this turn. |
-| 1 | Blitz | Uncommon | All your pawns gain Haste for 3 turns. |
 | 1 | Switch Files | Uncommon | Swap two of your own pieces. |
-| 1 | kill -9 | Uncommon | Sacrifice a piece for draw + energy. |
-| 1 | Pawn Storm | Rare | Power: pawns gain Haste each turn. |
+| 1 | Fork | Uncommon | Summon pawn adjacent to a piece. |
+| 1 | Polymorphism | Rare | Transform a piece one tier up. |
 
 ### Architect — spatial + zone control
 Turn squares into structure: walls, traps, sanctuaries, garrison. **Bundled artifact:** Map Editor (uncommon — spatial cards cost 1 less).
@@ -65,9 +63,8 @@ Spawn disposable pieces, trade them for explosive value, overwhelm. **Bundled ar
 | 1 | Port Scan | Common | Draw 2 cards. |
 | 1 | Stack Trace | Common | Scry top 3 of deck. |
 | 1 | Cache Warmup | Common | +2 energy on the next turn. |
-| 1 | Sprint | Common | Give a friendly piece Haste. |
-| 1 | Vanguard | Common | Pawn takes 2 actions this turn. |
-| 1 | Overclock | Common | Own piece takes 2 actions this turn. |
+| 2 | Overclock | Common | **Haste** a piece. First move is **Disarmed**. |
+| 1 | Vanguard | Common | **Haste** own pawn. |
 | 1 | Fork | Uncommon | Summon pawn adjacent to a non-King piece. |
 | 1 | kill -9 | Uncommon | Sacrifice a piece for draw + energy. |
 | 1 | Self-Destruct | Uncommon | Sacrifice a piece; destroy adjacent enemies. |

@@ -2,31 +2,15 @@
 
 Movement-extension cards give one of your pieces an additional movement pattern. They keep the piece's normal moveset and add a new option on top.
 
-See [`keywords.md`](keywords.md) for keyword definitions, especially **Empower**.
-
-## Sprint
-
-- **Cost:** 2
-- **Rarity:** Common
-- **Target:** own piece
-- **Effect:** Give Haste to a friendly piece (it may move twice this turn; the first move cannot capture, the second may).
-- **Design note:** First Haste card in the catalogue. The "first move can't capture" clause forces a reposition before the strike — Haste is move-then-capture, while Vanguard / Overclock allow either action in either slot.
+See [`keywords.md`](keywords.md) for keyword definitions, especially **Empower** and **Haste**.
 
 ## Vanguard
 
 - **Cost:** 2
 - **Rarity:** Common
 - **Target:** own piece (must be a pawn)
-- **Effect:** Target friendly **pawn** may take 2 actions this turn (moves and captures).
-- **Design note:** Pawn-only Overclock at lower cost. Reuses the existing `lightning-piece` resolver with a piece-type filter so the pawn gets the same multi-action treatment Overclock grants any piece. Combos with Pawn Storm artifact (chained double-pushes) and Promotion Engine.
-
-## Blitz
-
-- **Cost:** 6
-- **Rarity:** Uncommon
-- **Target:** none
-- **Effect:** All your pawns gain Haste for 3 turns.
-- **Design note:** Multi-turn pawn-swarm payoff. The Haste status applied here lasts longer than Sprint's single-turn application; combos with Pawn Storm artifact, Promotion Engine, and the Garrison Mode Power for a sustained pawn assault.
+- **Effect:** **Haste** own pawn (moves twice this turn, captures allowed on both moves).
+- **Design note:** Pawn-only Haste at lower cost than Overclock. Reuses the existing `lightning-piece` resolver with a piece-type filter. Combos with Pawn Storm artifact (chained double-pushes) and Promotion Engine.
 
 ## Side Channel
 

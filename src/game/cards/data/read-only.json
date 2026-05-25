@@ -4,7 +4,7 @@
   "cost": 2,
   "rarity": "common",
   "archetype": "disruption",
-  "description": "Disarm enemy piece (may move, no capture next turn).",
+  "description": "**Disarm** enemy piece (may move, no capture next turn).",
   "target": {
     "kind": "enemy-piece"
   },
@@ -12,7 +12,7 @@
     "kind": "disarm-piece"
   },
   "upgrade": {
-    "description": "Disarm enemy piece for 2 turns (may move, no capture).",
+    "description": "**Disarm** enemy piece for 2 turns (may move, no capture).",
     "effect": {
       "kind": "disarm-piece",
       "durationTurns": 2

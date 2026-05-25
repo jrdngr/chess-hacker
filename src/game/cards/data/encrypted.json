@@ -4,7 +4,7 @@
   "cost": 2,
   "rarity": "common",
   "archetype": "defensive",
-  "description": "Shield own piece until your next turn.",
+  "description": "**Shield** own piece until your next turn.",
   "target": {
     "kind": "own-piece"
   },
@@ -12,7 +12,7 @@
     "kind": "shield-piece"
   },
   "upgrade": {
-    "description": "Shield own piece for 2 turns.",
+    "description": "**Shield** own piece for 2 turns.",
     "effect": {
       "kind": "shield-piece",
       "durationTurns": 2

@@ -1,17 +1,16 @@
 {
   "name": "Hackathon",
-  "description": "Mobility + pawns. Move twice, sprint forward, ship the pawn rush before the opponent can react.",
+  "description": "Mobility + pawns. Move twice, push forward, ship the pawn rush before the opponent can react.",
   "artifactId": "build-pipeline",
   "cards": [
-    { "id": "sprint", "count": 1 },
+    { "id": "overclock", "count": 2 },
     { "id": "vanguard", "count": 1 },
     { "id": "hot-swap", "count": 1 },
     { "id": "side-channel", "count": 1 },
     { "id": "lateral-movement", "count": 1 },
-    { "id": "overclock", "count": 1 },
-    { "id": "blitz", "count": 1 },
     { "id": "switch-files", "count": 1 },
     { "id": "fork", "count": 1 },
+    { "id": "backdoor", "count": 1 },
     { "id": "polymorphism", "count": 1 }
   ]
 }

@@ -1,16 +1,15 @@
 {
   "name": "Starter",
-  "description": "Run-start deck: 12 cards, max cost 3. A focused disruption-and-tempo core (Encrypted, Read-Only, chroot, Firewall, Honeypot, Sprint, 2× Freeze Process, Phishing) plus one cost-3 destroy (Exploit) and two flagship 'fun' cards: Overclock (own piece takes 2 actions) and Remote Access (marionette an enemy piece). All other cards live in the shop. See docs/cards/starter-deck.md for rationale.",
+  "description": "Run-start deck: 12 cards. A focused disruption-and-tempo core (Encrypted, Read-Only, chroot, Firewall, Honeypot, 2× Overclock, 2× Freeze Process, Phishing) plus one cost-3 destroy (Exploit) and Remote Access (marionette an enemy piece). All other cards live in the shop. See docs/cards/starter-deck.md for rationale.",
   "cards": [
     { "id": "encrypted", "count": 1 },
     { "id": "read-only", "count": 1 },
     { "id": "chroot", "count": 1 },
     { "id": "firewall", "count": 1 },
     { "id": "honeypot", "count": 1 },
-    { "id": "sprint", "count": 1 },
+    { "id": "overclock", "count": 2 },
     { "id": "freeze-process", "count": 2 },
     { "id": "phishing", "count": 1 },
-    { "id": "overclock", "count": 1 },
     { "id": "exploit", "count": 1 },
     { "id": "remote-access", "count": 1 }
   ]

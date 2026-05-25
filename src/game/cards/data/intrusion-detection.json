@@ -5,7 +5,7 @@
   "rarity": "rare",
   "archetype": "power",
   "consume": true,
-  "description": "Power: each turn, Root enemies that entered your half.",
+  "description": "Power: each turn, **Root** enemies that entered your half.",
   "target": {
     "kind": "none"
   },
@@ -17,7 +17,7 @@
     }
   },
   "upgrade": {
-    "description": "Power: each turn, Root and Disarm enemies that entered your half.",
+    "description": "Power: each turn, **Root** and **Disarm** enemies that entered your half.",
     "effect": {
       "kind": "play-power",
       "effect": {

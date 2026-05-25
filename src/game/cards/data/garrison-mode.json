@@ -5,7 +5,7 @@
   "rarity": "rare",
   "archetype": "power",
   "consume": true,
-  "description": "Each turn-start, shield your rank-1 pieces (except king).",
+  "description": "Each turn-start, **Shield** your rank-1 pieces (except king).",
   "target": {
     "kind": "none"
   },

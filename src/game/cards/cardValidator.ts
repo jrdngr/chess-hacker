@@ -69,7 +69,6 @@ export const VALID_EFFECT_KINDS = [
   "compel-piece",
   "shield-piece",
   "haste-piece",
-  "haste-all-of-type",
   "empower-piece",
   "lightning-piece",
   "place-wall",
@@ -175,7 +174,7 @@ function isPositiveInt(v: unknown): v is number {
 
 /**
  * Validate the optional `durationTurns` field shared by status-applying card
- * effects (haste-piece, haste-all-of-type, empower-piece). Pushes an error
+ * effects (haste-piece, empower-piece). Pushes an error
  * and returns null on bad input; returns the value (or undefined if absent).
  */
 function validateDurationTurns(
@@ -277,23 +276,6 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
       const dt = validateDurationTurns(raw.durationTurns, "haste-piece", errors);
       if (dt === null) return null;
       const out: CardEffect & { kind: "haste-piece" } = { kind: "haste-piece" };
-      if (typeof dt === "number") out.durationTurns = dt;
-      return out;
-    }
-    case "haste-all-of-type": {
-      const pt = raw.pieceType;
-      if (typeof pt !== "string" || !(VALID_PIECE_TYPES as readonly string[]).includes(pt)) {
-        errors.push(
-          `'effect.pieceType' must be one of ${VALID_PIECE_TYPES.join(", ")} for kind 'haste-all-of-type'`,
-        );
-        return null;
-      }
-      const dt = validateDurationTurns(raw.durationTurns, "haste-all-of-type", errors);
-      if (dt === null) return null;
-      const out: CardEffect & { kind: "haste-all-of-type" } = {
-        kind: "haste-all-of-type",
-        pieceType: pt as PieceType,
-      };
       if (typeof dt === "number") out.durationTurns = dt;
       return out;
     }
@@ -782,13 +764,10 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
       return tk === "enemy-piece" || tk === "enemy-non-king-piece"
         ? null
         : "'root-piece' effect requires target.kind 'enemy-piece' or 'enemy-non-king-piece'";
-    case "shield-piece":
     case "haste-piece":
     case "empower-piece":
     case "lightning-piece":
       return tk === "own-piece" ? null : `'${effect.kind}' effect requires target.kind 'own-piece'`;
-    case "haste-all-of-type":
-      return tk === "none" ? null : "'haste-all-of-type' effect requires target.kind 'none'";
     case "place-wall":
     case "place-trap":
       return tk === "empty-square"
@@ -844,9 +823,11 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
         : "'destroy-piece' effect requires target.kind 'enemy-non-king-piece'";
     case "add-card-to-draw":
     case "revive":
+    case "shield-piece":
       // These effects don't read the target — they're target-agnostic. They
       // can appear on any card, including compound parents whose primary
-      // effect drives the target.
+      // effect drives the target. shield-piece handles two-squares targets
+      // (e.g. Git Revert+ applies Shield to the square where a piece was placed).
       return null;
     case "next-move-constraint":
       return tk === "none" ? null : "'next-move-constraint' effect requires target.kind 'none'";

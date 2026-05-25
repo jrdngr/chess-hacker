@@ -1,5 +1,4 @@
-// Resolver tests for the new movement / haste cards introduced by the
-// power-curve overhaul: Sprint, Vanguard, Blitz, Reinforce.
+// Resolver tests for movement / haste cards: Overclock, Vanguard, Reinforce.
 
 import { describe, expect, it } from "vitest";
 
@@ -12,8 +11,6 @@ import {
   type BoardContext,
 } from "./match";
 import { getCardById } from "./library";
-
-const noTarget = { kind: "none" } as const;
 
 function ctxFrom(pieces: Record<string, { side: "player" | "opponent"; type: string }>) {
   const ctx: BoardContext = {
@@ -31,19 +28,18 @@ function ctxFrom(pieces: Record<string, { side: "player" | "opponent"; type: str
   return ctx;
 }
 
-describe("Sprint", () => {
+describe("Overclock (Haste + Disarm)", () => {
   it("applies Haste to a friendly piece (1-turn)", () => {
     const rng = makeRng(1);
-    const sprint = getCardById("sprint");
-    let st = startPlayerTurn(createMatchCardState([sprint], rng), rng);
+    const overclock = getCardById("overclock");
+    let st = startPlayerTurn(createMatchCardState([overclock], rng), rng);
     st = { ...st, energy: ENERGY_MAX };
     const ctx = ctxFrom({ d4: { side: "player", type: "knight" } });
-    const idx = st.hand.findIndex((s) => s.card.id === "sprint");
+    const idx = st.hand.findIndex((s) => s.card.id === "overclock");
     const r = playCard(st, idx, { kind: "square", square: "d4" }, ctx, rng);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.state.hastes.find((h) => h.square === "d4")).toBeTruthy();
-    // Default duration = 1 turn → expires next turn-start.
     expect(r.state.hastes[0].expiresOnTurn).toBe(st.turn + 1);
   });
 });
@@ -74,34 +70,6 @@ describe("Vanguard (pawn-only Overclock)", () => {
     const lightning = r.state.lightnings.find((l) => l.square === "d2");
     expect(lightning).toBeDefined();
     expect(lightning?.remaining).toBe(2);
-  });
-});
-
-describe("Blitz (haste-all-of-type pawn, 3 turns)", () => {
-  it("hastes every player pawn on the board", () => {
-    const rng = makeRng(4);
-    const blitz = getCardById("blitz");
-    let st = startPlayerTurn(createMatchCardState([blitz], rng), rng);
-    st = { ...st, energy: ENERGY_MAX };
-    const ctx = ctxFrom({
-      a2: { side: "player", type: "pawn" },
-      d2: { side: "player", type: "pawn" },
-      g7: { side: "opponent", type: "pawn" }, // not affected
-      e1: { side: "player", type: "king" }, // not a pawn
-    });
-    const idx = st.hand.findIndex((s) => s.card.id === "blitz");
-    const r = playCard(st, idx, noTarget, ctx, rng);
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
-    const hasted = new Set(r.state.hastes.map((h) => h.square));
-    expect(hasted.has("a2")).toBe(true);
-    expect(hasted.has("d2")).toBe(true);
-    expect(hasted.has("g7")).toBe(false);
-    expect(hasted.has("e1")).toBe(false);
-    // Duration is 3 turns → expiresOnTurn = state.turn + 3.
-    for (const h of r.state.hastes) {
-      expect(h.expiresOnTurn).toBe(st.turn + 3);
-    }
   });
 });
 

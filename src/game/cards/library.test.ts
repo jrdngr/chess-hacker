@@ -75,8 +75,8 @@ describe("upgrade expansion", () => {
     expect(upgraded.consume).toBe(false);
   });
 
-  it("Sprint+ swaps haste-piece for lightning-piece (captures allowed)", () => {
-    const upgraded = CARD_LIBRARY["sprint+"];
+  it("Overclock+ swaps haste-piece for lightning-piece (no Disarm)", () => {
+    const upgraded = CARD_LIBRARY["overclock+"];
     expect(upgraded.effect.kind).toBe("lightning-piece");
     expect((upgraded.effect as { actions?: number }).actions).toBe(2);
   });

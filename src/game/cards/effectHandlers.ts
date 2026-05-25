@@ -150,41 +150,27 @@ export function applyEffect(
         state: addStatus(state, "compels", squareTarget(target), state.turn + 1, "opponent"),
         sideEffects: [],
       };
-    case "shield-piece":
+    case "shield-piece": {
+      // In a compound (e.g. Git Revert+), the target may be two-squares where
+      // the second square is where the piece was placed — shield that one.
+      const shieldSq = target.kind === "two-squares" ? target.second : squareTarget(target);
       return {
         state: addStatus(
           state,
           "shields",
-          squareTarget(target),
+          shieldSq,
           state.turn + (effect.durationTurns ?? 1),
           "player",
         ),
         sideEffects: [],
       };
+    }
     case "haste-piece": {
       const dur = effect.durationTurns ?? 1;
       return {
         state: addStatus(state, "hastes", squareTarget(target), state.turn + dur, "player"),
         sideEffects: [],
       };
-    }
-    case "haste-all-of-type": {
-      // Walk the board for player pieces of the given type and apply Haste.
-      const dur = effect.durationTurns ?? 1;
-      const expires = state.turn + dur;
-      const files = ctx.boardFiles ?? 8;
-      const ranks = ctx.boardRanks ?? 8;
-      const FILES = "abcdefgh";
-      let next = state;
-      for (let f = 0; f < files; f++) {
-        for (let r = 1; r <= ranks; r++) {
-          const sq = FILES[f] + String(r);
-          const p = ctx.pieceAt(sq);
-          if (!p || p.side !== "player" || p.type !== effect.pieceType) continue;
-          next = addStatus(next, "hastes", sq, expires, "player");
-        }
-      }
-      return { state: next, sideEffects: [] };
     }
     case "empower-piece": {
       const sq = squareTarget(target);

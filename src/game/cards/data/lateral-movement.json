@@ -5,7 +5,7 @@
   "rarity": "common",
   "archetype": "movement",
   "consume": true,
-  "description": "Empower a pawn: 1-sq horizontal step. Lost if another piece moves first.",
+  "description": "**Empower** a pawn: 1-sq horizontal step. Lost if another piece moves first.",
   "target": { "kind": "own-piece" },
   "effect": {
     "kind": "empower-piece",

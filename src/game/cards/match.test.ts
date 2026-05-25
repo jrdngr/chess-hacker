@@ -24,7 +24,6 @@ import {
   isShielded,
   hasSanctuary,
   hasteAt,
-  lightningAt,
   empowerAt,
   trapAt,
   isInPlayerHalf,
@@ -54,7 +53,6 @@ import {
   HONEYPOT,
   LOGIC_BOMB,
   SWITCH_FILES,
-  SPRINT,
   SELF_DESTRUCT,
   getCardById,
   makeStarterDeck,
@@ -118,7 +116,7 @@ describe("shuffle / drawCards", () => {
       ...st,
       hand: [],
       drawPile: [],
-      discardPile: [FIREWALL, SPRINT],
+      discardPile: [FIREWALL, OVERCLOCK],
     };
     const drawn = drawCards(st, 2, rng);
     expect(drawn.hand).toHaveLength(2);
@@ -134,7 +132,7 @@ describe("shuffle / drawCards", () => {
       hand: [],
       drawPile: [],
       discardPile: [],
-      consumedPile: [FIREWALL, SPRINT],
+      consumedPile: [FIREWALL, OVERCLOCK],
     };
     const drawn = drawCards(st, 2, rng);
     expect(drawn.hand).toHaveLength(0);
@@ -411,7 +409,7 @@ describe("playCard — buffs", () => {
     if (!r.ok) expect(r.reason).toBe("target-not-own-piece");
   });
 
-  it("Overclock grants 2 actions and discards the card", () => {
+  it("Overclock grants Haste (with Disarm) and discards the card", () => {
     const rng = makeRng(52);
     let st = startPlayerTurn(createMatchCardState([OVERCLOCK], rng), rng);
     st = { ...st, energy: ENERGY_MAX };
@@ -421,7 +419,7 @@ describe("playCard — buffs", () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     st = r.state;
-    expect(lightningAt(st, "d2")?.remaining).toBe(2);
+    expect(hasteAt(st, "d2")).not.toBeNull();
     // Non-Consume card → discard pile.
     expect(st.discardPile.some((c) => c.id === "overclock")).toBe(true);
   });
@@ -462,11 +460,11 @@ describe("playCard — sacrifice / summon / swap / marionette", () => {
     expect(st.consumedPile.some((c) => c.id === "self-destruct")).toBe(true);
   });
 
-  it("Sprint: applies haste to own piece", () => {
+  it("Overclock: applies haste to own piece", () => {
     const rng = makeRng(70);
-    let st = startPlayerTurn(createMatchCardState([SPRINT], rng), rng);
+    let st = startPlayerTurn(createMatchCardState([OVERCLOCK], rng), rng);
     st = { ...st, energy: 10 };
-    const idx = st.hand.findIndex((s) => s.card.id === "sprint");
+    const idx = st.hand.findIndex((s) => s.card.id === "overclock");
     const ctx = withPieces({
       e2: { type: "pawn", side: "player" },
       e7: { type: "pawn", side: "opponent" },
@@ -482,8 +480,8 @@ describe("playCard — sacrifice / summon / swap / marionette", () => {
     expect(r.sideEffects).toEqual([]);
     expect(hasteAt(r.state, "e2")).not.toBeNull();
     expect(r.state.hastes[0].expiresOnTurn).toBe(r.state.turn + 1);
-    // Sprint is not Consume, so it goes to the discard pile.
-    expect(r.state.discardPile.some((c) => c.id === "sprint")).toBe(true);
+    // Overclock is not Consume, so it goes to the discard pile.
+    expect(r.state.discardPile.some((c) => c.id === "overclock")).toBe(true);
   });
 
   it("Side Channel: empowers a pawn with the diagonal-step pattern; rejects non-pawn targets", () => {
@@ -555,9 +553,9 @@ describe("playCard — sacrifice / summon / swap / marionette", () => {
 
   it("Haste expires at the start of the next player turn", () => {
     const rng = makeRng(71);
-    let st = startPlayerTurn(createMatchCardState([SPRINT], rng), rng);
+    let st = startPlayerTurn(createMatchCardState([OVERCLOCK], rng), rng);
     st = { ...st, energy: 10 };
-    const idx = st.hand.findIndex((s) => s.card.id === "sprint");
+    const idx = st.hand.findIndex((s) => s.card.id === "overclock");
     const ctx = withPieces({ e2: { type: "pawn", side: "player" } });
     const r = playCard(st, idx, { kind: "square", square: "e2" }, ctx, rng);
     expect(r.ok).toBe(true);
@@ -985,7 +983,7 @@ describe("card-economy effects", () => {
 
   it("shuffleIntoDraw splices a card into a random slot of the draw pile", () => {
     const rng = makeRng(240);
-    const initialDeck = [FIREWALL, FREEZE_PROCESS, SPRINT];
+    const initialDeck = [FIREWALL, FREEZE_PROCESS, OVERCLOCK];
     let st = createMatchCardState(initialDeck, rng);
     const beforeLen = st.drawPile.length;
     st = shuffleIntoDraw(st, ENCRYPTED, () => 0.5);

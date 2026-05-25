@@ -4,7 +4,7 @@
   "cost": 4,
   "rarity": "uncommon",
   "archetype": "disruption",
-  "description": "Enemy piece moves as a pawn for 2 turns.",
+  "description": "**Downgrade** enemy piece for 2 turns (moves as a pawn).",
   "target": {
     "kind": "enemy-non-king-piece"
   },
@@ -13,7 +13,7 @@
     "durationTurns": 2
   },
   "upgrade": {
-    "description": "Enemy piece moves as a pawn for 3 turns.",
+    "description": "**Downgrade** enemy piece for 3 turns (moves as a pawn).",
     "effect": {
       "kind": "downgrade-piece",
       "durationTurns": 3
