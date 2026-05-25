@@ -1,17 +1,15 @@
-// Top-level shell. Opens on the Draft Deck flow; once the player commits
-// to a deck (either by picking a pre-made theme deck or by drafting one),
-// the chosen deck and starting artifact ids are handed off to <Run>.
-//
-// The draft flow lives in <DraftFlow> (`src/components/Draft/`). It owns
-// the deck-select + card-draft + artifact-draft state machine and only
-// fires `onComplete` once with the finished deck and artifact list.
+// Top-level shell. Opens on mode selection, then the Draft Deck flow;
+// once the player commits to a deck (either by picking a pre-made theme
+// deck or by drafting one), the chosen deck and starting artifact ids are
+// handed off to <Run> in the selected mode.
 
 import { useEffect, useState } from "react";
 
 import { DraftFlow } from "./components/Draft/DraftFlow";
+import { ModeSelect } from "./components/ModeSelect";
 import { Run } from "./components/Run/Run";
 import { Ticker } from "./components/Ticker/Ticker";
-import type { Card } from "./game/types";
+import type { Card, RunMode } from "./game/types";
 import {
   loadPalette,
   loadThreats,
@@ -24,16 +22,14 @@ import {
 
 import styles from "./App.module.css";
 
-type Route = "draft" | "standard";
+type Route = "modeSelect" | "draft" | "run";
 
 export function App() {
-  const [route, setRoute] = useState<Route>("draft");
+  const [route, setRoute] = useState<Route>("modeSelect");
+  const [selectedMode, setSelectedMode] = useState<RunMode>("standard");
   const [palette, setPalette] = useState<PaletteId>(() => loadPalette());
   const [vision, setVision] = useState<boolean>(() => loadVision());
   const [threats, setThreats] = useState<boolean>(() => loadThreats());
-  // Captured by <DraftFlow> on commit; consumed by <Run> on the next route.
-  // Kept at the top level so the route flip doesn't lose them, and so a
-  // future "play again with same deck" affordance has them on hand.
   const [startingDeck, setStartingDeck] = useState<Card[] | null>(null);
   const [startingArtifactIds, setStartingArtifactIds] = useState<string[] | null>(null);
 
@@ -66,10 +62,7 @@ export function App() {
 
   return (
     <div className={styles.app}>
-      {/* On the draft route the Ticker shows project name + palette + vision
-          only. Inside a run, Run renders its own Ticker with run + match
-          status, so we omit ours here to avoid stacking two strips. */}
-      {route === "draft" && (
+      {route !== "run" && (
         <Ticker
           palette={palette}
           onPaletteChange={onPaletteChange}
@@ -80,19 +73,27 @@ export function App() {
         />
       )}
       <main className={styles.main}>
+        {route === "modeSelect" && (
+          <ModeSelect
+            onSelect={(mode) => {
+              setSelectedMode(mode);
+              setRoute("draft");
+            }}
+          />
+        )}
         {route === "draft" && (
           <DraftFlow
             onComplete={(deck, artifactIds) => {
               setStartingDeck(deck);
               setStartingArtifactIds(artifactIds);
-              setRoute("standard");
+              setRoute("run");
             }}
           />
         )}
-        {route === "standard" && (
+        {route === "run" && (
           <Run
-            mode="standard"
-            onExit={() => setRoute("draft")}
+            mode={selectedMode}
+            onExit={() => setRoute("modeSelect")}
             startingDeck={startingDeck ?? undefined}
             startingArtifactIds={startingArtifactIds ?? undefined}
             palette={palette}
