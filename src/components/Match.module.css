@@ -121,7 +121,7 @@
 .skipBonusMove {
   position: absolute;
   bottom: 12px;
-  right: 22px;
+  left: 22px;
   padding: 6px 16px;
   font: inherit;
   font-size: 11px;
