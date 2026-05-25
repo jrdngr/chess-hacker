@@ -1,10 +1,5 @@
 // Run shell — owns the run state machine and routes between match, reward,
 // and shop phases.
-//
-// State management note: the run is small enough that useState is fine here.
-// Architecture doc earmarks zustand for "if cross-component state grows
-// painful" — the M5 mini-run touches at most three siblings (Match, Reward,
-// Shop), all owned by this shell.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 

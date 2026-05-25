@@ -18,8 +18,8 @@ import type { Card, CardId, CardRarity } from "../types";
 import { isPlainObject, validateCard } from "./cardValidator";
 import starterDeckJson from "./decks/starter.json";
 
-// Re-export the validation enums so call sites that previously imported them
-// from `library.ts` (e.g. `src/designer/schemas.ts`) continue to work.
+// Re-export the validation enums so downstream call sites can import from
+// a single module.
 export {
   VALID_ADD_CARD_DRAW_SOURCES,
   VALID_ARCHETYPES,

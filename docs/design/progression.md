@@ -32,7 +32,7 @@ SHOP STEP
 NEXT MATCH BEGINS
 ```
 
-Non-boss wins skip the reward step and go straight to the shop. **All cards are acquired in the shop** (singles + booster packs); there is no post-match card draft. Capturing an enemy piece during a match still grants the matching Patch card directly into your draw pile.
+Non-boss wins skip the reward step and go straight to the shop. **All cards are acquired in the shop** (singles + booster packs); there is no post-match card draft. Capturing an enemy piece during a match still grants energy equal to the piece's chess value.
 
 ## Single-elimination
 

@@ -469,7 +469,7 @@ function applyStartOfTurnArtifactsAndPowers(
       if (!type) continue;
 
       // piece-empower-all: append per (sq, pattern) without dropping any
-      // existing single-use empower (Patches stack independently).
+      // existing single-use empower (empowers stack independently).
       for (const spec of empowerSpecs) {
         if (spec.pieceType !== type) continue;
         const existing = (next.empowers ?? []).find(
@@ -1145,8 +1145,8 @@ export function dropOtherSingleUseEmpowers(
 // ---- Card-economy helpers ---------------------------------------------------
 
 /**
- * Splice `card` into the draw pile at a random index. Used by capture-grants-
- * Patch (see `grantPatchOnCapture`) and by the `add-card-to-draw` card effect.
+ * Splice `card` into the draw pile at a random index. Used by the
+ * `add-card-to-draw` card effect.
  */
 export function shuffleIntoDraw(
   state: MatchCardState,
@@ -1218,14 +1218,3 @@ export function grantEnergyOnCapture(
   if (value === 0) return state;
   return { ...state, energy: clampEnergy(state.energy + value) };
 }
-
-/**
- * @deprecated Legacy alias. Use `grantEnergyOnCapture` instead.
- * Kept so call sites compile during migration.
- */
-export const grantPatchOnCapture = (
-  state: MatchCardState,
-  captured: Piece | null,
-  by: Side,
-  _rng?: Rng,
-): MatchCardState => grantEnergyOnCapture(state, captured, by);

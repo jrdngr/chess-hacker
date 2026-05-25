@@ -23,7 +23,7 @@ import {
   discardHandAtTurnEnd,
   dropOtherSingleUseEmpowers,
   drawCards,
-  grantPatchOnCapture,
+  grantEnergyOnCapture,
   hasteAt,
   isCardEffectForbidden,
   lightningAt,
@@ -248,7 +248,7 @@ export function useCardPlay({
         // The helper filters by side itself (only player captures grant
         // energy). In dev mode the human can drive Black, so we pass the
         // actual mover side rather than hardcoding "player".
-        next = grantPatchOnCapture(next, captured, mover?.side ?? "player");
+        next = grantEnergyOnCapture(next, captured, mover?.side ?? "player");
       }
 
       // Resolve any trap triggered by this move (player pieces are not exempt).

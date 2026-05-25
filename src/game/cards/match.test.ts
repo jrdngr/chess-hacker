@@ -15,7 +15,6 @@ import {
   drawCards,
   dropOtherSingleUseEmpowers,
   grantEnergyOnCapture,
-  grantPatchOnCapture,
   hasWallOn,
   isCompelled,
   isDisarmed,
@@ -1025,13 +1024,5 @@ describe("capture-grants-energy", () => {
     const before = st.energy;
     const next = grantEnergyOnCapture(st, null, "player");
     expect(next.energy).toBe(before);
-  });
-
-  it("grantPatchOnCapture is a deprecated alias for grantEnergyOnCapture", () => {
-    const rng = makeRng(255);
-    const st = createMatchCardState(makeStarterDeck(), rng);
-    const a = grantEnergyOnCapture(st, { type: "rook", side: "opponent" }, "player");
-    const b = grantPatchOnCapture(st, { type: "rook", side: "opponent" }, "player");
-    expect(a.energy).toBe(b.energy);
   });
 });

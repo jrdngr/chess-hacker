@@ -29,7 +29,6 @@ When you start work, **read `docs/README.md` first** — it is the index for eve
 | Code architecture / state model                 | `docs/technical/architecture.md`                                  |
 | Chess engine (custom, wall-aware)               | `docs/technical/chess-integration.md`                             |
 | Dev sandbox mode                                | `docs/technical/dev-mode.md`                                      |
-| Content Designer (cards / artifacts / bosses)   | `docs/technical/content-designer.md`                              |
 | AI opponent (Stockfish.wasm + curse-AI layer)   | `docs/technical/ai.md`                                            |
 | Save / load                                     | `docs/technical/persistence.md`                                   |
 | Implementation milestones / what to build next  | `docs/roadmap/milestones.md`                                      |
@@ -59,7 +58,7 @@ This repo uses [Jujutsu (`jj`)](https://github.com/jj-vcs/jj), not plain `git`, 
 ## Tech reminders
 
 - Stack: TypeScript + React (Vite) + custom chess engine (`src/game/chess/`) + Stockfish.wasm + localStorage. See `docs/technical/stack.md` for rationale.
-- State management: per-match state in `src/components/Match.tsx` (+ sibling hooks under `src/components/Match/`); per-run state in `src/components/Run/Run.tsx`. Both are local `useState`. Zustand is still queued — adopt only when cross-component state grows painful.
+- State management: per-match state in `src/components/Match.tsx` (+ sibling hooks under `src/components/Match/`); per-run state in `src/components/Run/Run.tsx`. Both are local `useState`.
 - The game is single-player only; do not add multiplayer scaffolding (`docs/design/overview.md` records this).
 
 ## Pre-commit checks

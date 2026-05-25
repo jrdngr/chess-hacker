@@ -128,7 +128,7 @@ Two things this implies:
 
 ## Move extensions (cards changing piece behavior)
 
-Card-driven extra movement patterns (e.g., "your queen has knight moves this turn") are modeled as the **empowers** overlay — a per-square set of `EmpowerPattern` values. Move generation in `rules.ts` enumerates the native pattern *and* every empower pattern present on the from-square, then deduplicates. Empower entries are time-bounded (`expiresOnTurn`); single-use empowers (Patch cards) drop as soon as the player moves a different piece.
+Card-driven extra movement patterns (e.g., "your queen has knight moves this turn") are modeled as the **empowers** overlay — a per-square set of `EmpowerPattern` values. Move generation in `rules.ts` enumerates the native pattern *and* every empower pattern present on the from-square, then deduplicates. Empower entries are time-bounded (`expiresOnTurn`); single-use empowers drop as soon as the player moves a different piece.
 
 ## Square effects
 

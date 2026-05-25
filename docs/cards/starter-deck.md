@@ -102,7 +102,7 @@ Cards already drafted may show up again in later rounds — multiples in the dec
 - **Identity at run-start.** Every run begins with a clear strategic shape (control, aggro, structure, swarm, combo) instead of the same 12-card grab-bag. The pre-made decks teach the archetypes; the draft path lets a confident player roll their own.
 - **Power floor.** Both paths come with a starting artifact, so the run never opens artifact-empty. Pre-made decks ship a thematically aligned uncommon; the draft path ends in an uncommon-artifact pick from the full pool.
 - **No Cache Warmup or Bookmark in the curated decks (mostly).** Cache Warmup ships only with Architect (where +2-energy-next-turn buys a Garrison Mode setup turn) and Bookmark only with Sysadmin (banking Exploit across turns). The other decks are deliberately a touch pinched on tempo/banking so the shop's first purchase still matters.
-- **Patches come from captures, not the deck.** Capture-grants-Patch keeps every starting deck refreshing organically during play.
+- **Energy comes from captures, not the deck.** Capture-grants-energy provides a burst of resources to fuel bigger plays.
 
 ## Future shape
 

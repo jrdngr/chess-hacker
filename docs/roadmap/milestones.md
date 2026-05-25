@@ -21,8 +21,6 @@ Already shipped:
 - **First boss (M8).** Boss A — "The Firewall" — runs end-to-end in Standard mode. Boss definitions and curse triggers live in `src/game/bosses/`; Match.tsx wires the modifier (no player walls), permanent hazard walls (c3 / c4), and the trigger-based curse scheduler. The Run shell prepends a boss-preview phase at act start and gates a 1-of-3 boss-tier artifact pick onto the post-boss reward step.
 - **Acts 2 + 3 bosses (M9).** Boss B — "The Whale" (7×7) — modifier `captures-grant-captured-energy` queues +1 energy for the player on the next turn after their pieces are captured; pre-placed `Server Farm` zone-buff at d1 grants +1 energy/turn while the player holds it; `Memory Leak` curse fires every 4 turns and bills 1 energy on the next turn unless the player captured. Boss C — "The Singularity" (8×8) — modifier `no-promotion` strips promotion candidates from legal moves; a 2x2 void at d4/d5/e4/e5 destroys any piece ending its turn there; three curses (`Hardened` on turn 1, `Echo` on player check, `Bit Rot` every 5 turns). Echo grants the boss an extra chess move via the `bossExtraMoves` counter; Bit Rot removes a random own minor piece. New `MatchRules.noPromotion` flag and turn-scoped state (`pendingEnergyLossOnNoCapture`, `capturedThisTurn`, `noZeroCostCardsThisTurn`, `bossExtraMoves`, `pendingPlayerEnergyOnTurnStart`) all reset on `startPlayerTurn`.
 
-State management note: zustand was planned and skipped — match state currently lives in `Match.tsx` with `useState`. Adopt zustand only if cross-component state grows painful.
-
 ## M0 — Project bootstrap [done]
 
 Vite + React + TS scaffold. Stockfish.wasm wired. Vitest + ESLint + Prettier set up. Empty router-shell renders.

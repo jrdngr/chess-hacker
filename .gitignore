@@ -1,5 +1,6 @@
 node_modules
 dist
+dist-designer
 dist-ssr
 *.local
 tsconfig.tsbuildinfo
