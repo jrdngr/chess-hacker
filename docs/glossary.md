@@ -20,11 +20,11 @@ Terms used across the Chess Hacker design and technical docs.
 | **Empower**         | Buff keyword: own piece gains an additional movement pattern this turn.                 |
 | **Energy**          | Persistent resource for playing cards. +1 per turn passive, +piece value on captures. Caps at 20. Costs span 0–15. |
 | **Energy cap**      | Maximum energy the player can hold (20). Excess energy from captures or other sources is lost. Creates pressure to spend before big captures. |
-| **Forced discard**  | At the start of each player turn (after drawing), the player must discard exactly 1 card from hand. Skipped if hand has 0–1 cards. Ensures deck cycling with persistent hands. |
+| **Forced discard**  | At the end of each player turn, the player must discard exactly 1 card from hand. Ensures deck cycling with persistent hands. |
 | **Power**           | Card archetype: Slay-the-Spire-style match-scoped passives. The card is consumed on play; its effect persists for the rest of the match. |
 | **Boon pick**       | Monster-Train-style 3-option boss reward (+1 energy/turn, +1 draw/turn, delete 2 cards). Resolves before the artifact pick and card draft on every boss win. Run-permanent, not meta-progression. |
 | **Consume**         | Card-flow keyword: a played card with Consume is removed from the match (lands in the consumed pile) and is not eligible for revival. |
-| **Discard pile**    | Where played cards without Consume land at the moment they're played, plus the start-of-turn forced discard. Reshuffles into the draw pile when it empties mid-draw. |
+| **Discard pile**    | Where played cards without Consume land at the moment they're played, plus the end-of-turn forced discard. Reshuffles into the draw pile when it empties mid-draw. |
 | **Consumed pile**   | Where Consume-keyworded cards land when played. Cards here never re-enter the cycle. |
 | **Revive**          | A card effect that returns a card from the discard pile to your hand (Restore from Backup). Cannot reach into the consumed pile. |
 | **Rooted**          | Status keyword: enemy piece cannot move on its next turn except to capture (alias for Root). Also used by Extract as a target filter. |

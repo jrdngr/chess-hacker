@@ -44,7 +44,9 @@ export const ENERGY_PER_TURN = 1;
 /** Energy at match start (before first turn). */
 export const STARTING_ENERGY = 0;
 /** Cards drawn at the start of each player turn. */
-export const DRAW_PER_TURN = 2;
+export const DRAW_PER_TURN = 1;
+/** Voluntary discards allowed per player turn. */
+export const DISCARDS_PER_TURN = 1;
 /** Cards drawn as the opening hand at match start. */
 export const STARTING_HAND_SIZE = 3;
 
@@ -147,7 +149,7 @@ export function createMatchCardState(
     backdoors: [],
     capturedPieces: [],
     playerCaptureCount: 0,
-    pendingDiscard: startingHand.length > 1,
+    discardsRemaining: DISCARDS_PER_TURN,
   };
 }
 
@@ -276,11 +278,12 @@ export function discardCardFromHand(state: MatchCardState, handIndex: number): M
 }
 
 /**
- * Resolve the mandatory start-of-turn discard. Removes the chosen card from
- * hand, places it in the discard pile, and clears the pendingDiscard flag.
+ * Voluntary discard: the player drags a card to the discard area. Decrements
+ * discardsRemaining. Returns unchanged state if no discards left or invalid index.
  */
-export function resolveDiscard(state: MatchCardState, handIndex: number): MatchCardState {
-  if (!state.pendingDiscard) return state;
+export function voluntaryDiscard(state: MatchCardState, handIndex: number): MatchCardState {
+  const remaining = state.discardsRemaining ?? 0;
+  if (remaining <= 0) return state;
   if (handIndex < 0 || handIndex >= state.hand.length) return state;
   const hand = state.hand.slice();
   const [removed] = hand.splice(handIndex, 1);
@@ -288,7 +291,7 @@ export function resolveDiscard(state: MatchCardState, handIndex: number): MatchC
     ...state,
     hand,
     discardPile: [...state.discardPile, removed.card],
-    pendingDiscard: false,
+    discardsRemaining: remaining - 1,
   };
 }
 
@@ -403,14 +406,14 @@ export function startPlayerTurn(
     sudoSquare: undefined,
     pendingHotSwap: undefined,
     playerExtraMovesRemaining: powerExtraMoves(tickedState),
+    discardsRemaining: DISCARDS_PER_TURN,
     probeExpiresOnTurn:
       (state.probeExpiresOnTurn ?? 0) > turn ? state.probeExpiresOnTurn : undefined,
   };
   // Turn 0→1 is match start — the opening hand was already drawn by
   // createMatchCardState, so skip the per-turn draw.
   const refilled = state.turn === 0 ? next : refillHand(next, rng, ctx);
-  const result = applyStartOfTurnArtifactsAndPowers(refilled, ctx);
-  return { ...result, pendingDiscard: result.hand.length > 1 };
+  return applyStartOfTurnArtifactsAndPowers(refilled, ctx);
 }
 
 /**

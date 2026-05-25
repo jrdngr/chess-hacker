@@ -112,7 +112,7 @@ The Trap dissolves on trigger. It does not affect your own pieces.
 
 ## Card-flow keywords
 
-Cards persist in hand between turns. The player draws 2 cards at the start of each turn (up to hand limit 7) and must discard exactly 1 card immediately after drawing (before acting). Skipped if hand has 0–1 cards. The discard pile reshuffles into the draw pile when the draw pile is empty mid-draw.
+Cards persist in hand between turns. The player draws 2 cards at the start of each turn (up to hand limit 7) and must discard exactly 1 card at end of turn. The discard pile reshuffles into the draw pile when the draw pile is empty mid-draw.
 
 ### Consume
 
@@ -123,7 +123,7 @@ A card with **Consume** is removed from the match when played — it lands in th
 
 ### Discard & cycle
 
-Played cards without Consume go to the **discard pile**. At start of turn (after drawing), the forced discard sends 1 card from hand to the discard pile. When the draw pile is empty mid-draw, the discard pile is shuffled to form a new draw pile and drawing continues.
+Played cards without Consume go to the **discard pile**. At end of turn, the forced discard sends 1 card from hand to the discard pile. When the draw pile is empty mid-draw, the discard pile is shuffled to form a new draw pile and drawing continues.
 
 ### Revive
 

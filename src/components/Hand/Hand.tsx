@@ -86,10 +86,10 @@ type Props = {
   /** Drag a targeted card from the hand onto a board square to play it. */
   onCardDragStart?: (index: number) => void;
   onCardDragEnd?: () => void;
-  /** When true, the hand is in mandatory discard mode. */
-  discardMode?: boolean;
-  /** Called when the player clicks a card to discard during discard mode. */
-  onDiscard?: (index: number) => void;
+  /** How many voluntary discards the player has remaining this turn. */
+  discardsRemaining?: number;
+  /** Called when the player drags a card to the discard zone. */
+  onVoluntaryDiscard?: (index: number) => void;
 };
 
 export function Hand({
@@ -102,9 +102,11 @@ export function Hand({
   onCardClick,
   onCardDragStart,
   onCardDragEnd,
-  discardMode,
-  onDiscard,
+  discardsRemaining = 0,
+  onVoluntaryDiscard,
 }: Props) {
+  const [discardDragOver, setDiscardDragOver] = useState(false);
+
   // When the active targeting card asks for a hand-card target (Bookmark),
   // every hand slot except the playing one becomes a click target. We
   // surface that mode so the slots can be highlighted.
@@ -323,23 +325,17 @@ export function Hand({
 
   return (
     <div className={styles.handArea} ref={handAreaRef}>
-      {discardMode && <div className={styles.discardPrompt}>DISCARD 1 CARD</div>}
-      {!discardMode && (
-        <div className={styles.energyRow} aria-label={`Energy: ${energy}`}>
-          <span className={styles.energyLabel}>ENERGY</span>
-          <span className={styles.energyValue}>
-            {energy}/{energyMax}
-          </span>
-          <div className={styles.energyBar}>
-            {Array.from({ length: Math.max(1, energyMax) }).map((_, i) => (
-              <span
-                key={i}
-                className={`${styles.energySeg} ${i < energy ? styles.energyLit : ""}`}
-              />
-            ))}
-          </div>
+      <div className={styles.energyRow} aria-label={`Energy: ${energy}`}>
+        <span className={styles.energyLabel}>ENERGY</span>
+        <span className={styles.energyValue}>
+          {energy}/{energyMax}
+        </span>
+        <div className={styles.energyBar}>
+          {Array.from({ length: Math.max(1, energyMax) }).map((_, i) => (
+            <span key={i} className={`${styles.energySeg} ${i < energy ? styles.energyLit : ""}`} />
+          ))}
         </div>
-      )}
+      </div>
       <div className={styles.hand} role="list" aria-label="Hand">
         {hand.length === 0 ? (
           <div className={styles.emptyHand}>Hand is empty</div>
@@ -355,25 +351,25 @@ export function Hand({
             // clickable as a target if it isn't the playing slot and isn't
             // already retained.
             const isBookmarkTarget = targetingHandCard && !isTargeting && !slot.retained;
-            const clickable = discardMode || playable || isBookmarkTarget;
+            const clickable = playable || isBookmarkTarget;
             // Two-step cards (Switch Files, Remote Access) and hand-card targets
             // (Bookmark) still resolve via click; everything else can be dragged
-            // onto the board.
-            const draggable =
-              !discardMode && playable && !NON_DRAGGABLE_TARGETS.has(card.target.kind);
+            // onto the board. Cards are also draggable for discard if discards remain.
+            const draggableToPlay = playable && !NON_DRAGGABLE_TARGETS.has(card.target.kind);
+            const draggableToDiscard = enabled && discardsRemaining > 0;
+            const draggable = draggableToPlay || draggableToDiscard;
             const retained = slot.retained || card.retain === true;
             // Visually dim only for intrinsic, card-specific reasons (cost or
             // a boss/forbid rule). Turn-state reasons (AI thinking, AI's turn,
             // match over) leave the card looking normal — clicks/drag are
             // still blocked via the button's disabled attribute.
-            const visuallyDisabled = !discardMode && (!affordable || forbidden);
+            const visuallyDisabled = !affordable || forbidden;
             const cls = [
               styles.card,
               visuallyDisabled && styles.disabled,
               isTargeting && styles.targeting,
               isBookmarkTarget && styles.stashTarget,
               retained && styles.retained,
-              discardMode && styles.discardMode,
             ]
               .filter(Boolean)
               .join(" ");
@@ -387,13 +383,7 @@ export function Hand({
                   else slotElementsRef.current.delete(slotId);
                 }}
                 className={cls}
-                onClick={() => {
-                  if (discardMode) {
-                    onDiscard?.(i);
-                    return;
-                  }
-                  if (clickable) onCardClick(i);
-                }}
+                onClick={() => clickable && onCardClick(i)}
                 disabled={!clickable}
                 draggable={draggable}
                 onDragStart={(e) => {
@@ -427,6 +417,33 @@ export function Hand({
           })
         )}
       </div>
+
+      {enabled && discardsRemaining > 0 && (
+        <div
+          className={`${styles.discardZone} ${discardDragOver ? styles.discardZoneActive : ""}`}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+            setDiscardDragOver(true);
+          }}
+          onDragEnter={(e) => {
+            e.preventDefault();
+            setDiscardDragOver(true);
+          }}
+          onDragLeave={() => setDiscardDragOver(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDiscardDragOver(false);
+            const idx = parseInt(e.dataTransfer.getData("text/plain"), 10);
+            if (!isNaN(idx)) onVoluntaryDiscard?.(idx);
+          }}
+          aria-label={`Discard zone, ${discardsRemaining} discards remaining`}
+        >
+          <span className={styles.discardZoneText}>
+            {discardsRemaining} {discardsRemaining === 1 ? "discard" : "discards"} remaining
+          </span>
+        </div>
+      )}
 
       {ghosts.length > 0 && (
         <div className={styles.ghostLayer} aria-hidden="true">

@@ -20,16 +20,6 @@ function squareCell(aria: string): HTMLElement | undefined {
     .find((el) => (el.getAttribute("aria-label") ?? "").startsWith(aria));
 }
 
-/** Dismiss the mandatory start-of-turn discard by clicking the first card. */
-async function dismissDiscard(user: ReturnType<typeof userEvent.setup>) {
-  await waitFor(() => {
-    expect(screen.queryByText("DISCARD 1 CARD")).not.toBeNull();
-  });
-  const hand = screen.getByRole("list", { name: /^hand$/i });
-  const cards = within(hand).getAllByRole("listitem");
-  if (cards.length > 0) await user.click(cards[0]);
-}
-
 /**
  * Simulate an HTML5 drag-and-drop sequence between two squares. We share a
  * single DataTransfer-like object across the events so handlers that read
@@ -205,7 +195,6 @@ describe("Match (vs AI)", () => {
     const user = userEvent.setup();
     const ai = makeFakeAi(["e7e5"]);
     render(<Match initialMode="vs-ai" createAi={() => ai} aiMinThinkMs={0} />);
-    await dismissDiscard(user);
 
     // Human plays e2 -> e4
     await user.click(squareCell("e2")!);
@@ -238,7 +227,6 @@ describe("Match (vs AI)", () => {
     const user = userEvent.setup();
     const ai = makeFakeAi(["e7e5"]);
     render(<Match initialMode="vs-ai" createAi={() => ai} aiMinThinkMs={300} />);
-    await dismissDiscard(user);
 
     await user.click(squareCell("e2")!);
     const t0 = performance.now();
@@ -264,7 +252,6 @@ describe("Match (vs AI)", () => {
       destroy: () => {},
     };
     render(<Match initialMode="vs-ai" createAi={() => ai as StockfishEngine} aiMinThinkMs={0} />);
-    await dismissDiscard(user);
 
     await user.click(squareCell("e2")!);
     await user.click(squareCell("e4")!);
@@ -286,7 +273,6 @@ describe("Match (vs AI)", () => {
     const ai = makeFakeAi([]);
     const spy = vi.spyOn(ai, "getBestMove");
     render(<Match initialMode="vs-ai" createAi={() => ai} aiMinThinkMs={0} />);
-    await dismissDiscard(user);
 
     await user.selectOptions(screen.getByLabelText(/stockfish depth/i), "hard");
 
@@ -315,8 +301,7 @@ function findCard(name: string): HTMLElement | undefined {
 }
 
 describe("Match (cards — M3)", () => {
-  it("starts with a hand of 3, requires discard, then shows baseline energy", async () => {
-    const user = userEvent.setup();
+  it("starts with a hand of 3 and the per-turn baseline energy", () => {
     const ai = makeFakeAi([]);
     render(
       <Match
@@ -330,10 +315,6 @@ describe("Match (cards — M3)", () => {
 
     const hand = screen.getByRole("list", { name: /^hand$/i });
     expect(within(hand).getAllByRole("listitem")).toHaveLength(3);
-    // Opening hand triggers mandatory discard.
-    expect(screen.getByText("DISCARD 1 CARD")).toBeInTheDocument();
-    await dismissDiscard(user);
-    expect(within(hand).getAllByRole("listitem")).toHaveLength(2);
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("1");
   });
 
@@ -349,7 +330,6 @@ describe("Match (cards — M3)", () => {
         rng={makeRng(2)}
       />,
     );
-    await dismissDiscard(user);
 
     const foresight = findCard("Stack Trace");
     expect(foresight).toBeDefined();
@@ -361,10 +341,9 @@ describe("Match (cards — M3)", () => {
     // Stack Trace is now free; energy stays at the per-turn baseline (1).
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("1");
     // Stack Trace is non-Consume, so it lands in the discard pile.
-    // Discard pile has 2: 1 from mandatory discard + 1 from playing Stack Trace.
-    expect(screen.getByLabelText(/^discard pile/i)).toHaveTextContent("2");
+    expect(screen.getByLabelText(/^discard pile/i)).toHaveTextContent("1");
     const hand = screen.getByRole("list", { name: /^hand$/i });
-    expect(within(hand).getAllByRole("listitem")).toHaveLength(1);
+    expect(within(hand).getAllByRole("listitem")).toHaveLength(2);
   });
 
   it("Sprint targets own piece and grants haste", async () => {
@@ -382,8 +361,6 @@ describe("Match (cards — M3)", () => {
         initialEnergy={10}
       />,
     );
-
-    await dismissDiscard(user);
 
     const card = findCard("Sprint");
     if (!card) {
@@ -413,8 +390,6 @@ describe("Match (cards — M3)", () => {
       />,
     );
 
-    await dismissDiscard(user);
-
     await user.click(findCard("Firewall")!);
     expect(screen.getByText(/Pick an empty square for Firewall/i)).toBeInTheDocument();
 
@@ -438,7 +413,6 @@ describe("Match (cards — M3)", () => {
         initialEnergy={ENERGY_CAP}
       />,
     );
-    await dismissDiscard(user);
 
     await user.click(findCard("Firewall")!);
     // e2 is the player's pawn — invalid for Firewall.
@@ -462,7 +436,6 @@ describe("Match (cards — M3)", () => {
         initialEnergy={5}
       />,
     );
-    await dismissDiscard(user);
 
     await user.click(findCard("Freeze Process")!);
     expect(screen.getByText(/Pick an enemy piece for Freeze Process/i)).toBeInTheDocument();
@@ -487,7 +460,6 @@ describe("Match (cards — M3)", () => {
         initialEnergy={ENERGY_CAP}
       />,
     );
-    await dismissDiscard(user);
 
     // Play Firewall on a3 — costs 2 energy, leaves us at 18.
     await user.click(findCard("Firewall")!);
@@ -502,13 +474,11 @@ describe("Match (cards — M3)", () => {
       expect(squareCell("e5")?.getAttribute("aria-label")).toBe("e5, opponent pawn");
     });
 
-    // Turn 2 starts: persistent hand (2 - 1 discard - 1 played = 1) + 2 drawn = 3; discard pending.
+    // Banking: ended turn 1 at 18 energy, turn 2 adds +1 → 19.
+    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("19");
+    // Persistent hand: 3 - 1 played = 2 carried over, +1 drawn = 3.
     const hand = screen.getByRole("list", { name: /^hand$/i });
     expect(within(hand).getAllByRole("listitem")).toHaveLength(3);
-    await dismissDiscard(user);
-    // After discard: 2 cards. Banking: ended turn 1 at 18 energy, turn 2 adds +1 → 19.
-    expect(within(hand).getAllByRole("listitem")).toHaveLength(2);
-    expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("19");
   });
 
   it("a frozen piece's freeze visual is cleared after the AI has had its turn", async () => {
@@ -524,7 +494,6 @@ describe("Match (cards — M3)", () => {
         initialEnergy={ENERGY_CAP}
       />,
     );
-    await dismissDiscard(user);
 
     await user.click(findCard("Freeze Process")!);
     await user.click(squareCell("e7")!);
@@ -555,20 +524,19 @@ describe("Match (cards — M3)", () => {
         initialEnergy={ENERGY_CAP}
       />,
     );
-    await dismissDiscard(user);
 
     // Make a chess move — in the persistent-hand system, cards stay in hand.
     await user.click(squareCell("e2")!);
     await user.click(squareCell("e4")!);
 
-    // The hand retains all 2 cards (3 opening - 1 mandatory discard).
+    // The hand retains all 3 cards (persistent-hand: no end-of-turn discard).
     const hand = screen.getByRole("list", { name: /^hand$/i });
-    expect(within(hand).getAllByRole("listitem")).toHaveLength(2);
+    expect(within(hand).getAllByRole("listitem")).toHaveLength(3);
 
     // Energy is unchanged (no card was played).
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent(String(ENERGY_CAP));
-    // Discard pile has the 1 card from the mandatory discard.
-    expect(screen.getByLabelText(/^discard pile/i)).toHaveTextContent("1");
+    // Discard pile remains empty.
+    expect(screen.getByLabelText(/^discard pile/i)).toHaveTextContent("0");
   });
 
   it("clicking the same selected card again cancels targeting", async () => {
@@ -584,7 +552,6 @@ describe("Match (cards — M3)", () => {
         initialEnergy={ENERGY_CAP}
       />,
     );
-    await dismissDiscard(user);
 
     const card = findCard("Firewall")!;
     await user.click(card);
@@ -617,8 +584,6 @@ describe("Match (cards — M3)", () => {
         initialEnergy={ENERGY_CAP}
       />,
     );
-
-    await dismissDiscard(user);
 
     // Drop a wall on e3 — this would cut off any black move that tries to slide
     // through e3 (none exist immediately, but the wall is on the board).
@@ -657,8 +622,6 @@ describe("Match (cards — M3)", () => {
         initialEnergy={ENERGY_CAP}
       />,
     );
-
-    await dismissDiscard(user);
 
     // Freeze the black knight on g8.
     await user.click(findCard("Freeze Process")!);
@@ -700,8 +663,6 @@ describe("Match (cards — M3)", () => {
         initialEnergy={ENERGY_CAP}
       />,
     );
-
-    await dismissDiscard(user);
 
     // Cast Encrypted on the c3 knight.
     await user.click(findCard("Encrypted")!);
@@ -745,8 +706,6 @@ describe("Match — trap mechanics", () => {
       />,
     );
 
-    await dismissDiscard(user);
-
     // Place a Logic Bomb on h4 so the rook would slide through it on its way down.
     await user.click(findCard("Logic Bomb")!);
     await user.click(squareCell("h4")!);
@@ -782,7 +741,6 @@ describe("Match — trap mechanics", () => {
         initialEnergy={ENERGY_CAP}
       />,
     );
-    await dismissDiscard(user);
 
     // Place a Logic Bomb on e4.
     await user.click(findCard("Logic Bomb")!);
@@ -812,7 +770,6 @@ describe("Match — undo", () => {
         rng={makeRng(200)}
       />,
     );
-    await dismissDiscard(user);
 
     // Initially undo is disabled — no completed turn yet.
     expect(screen.getByRole("button", { name: /undo turn/i })).toBeDisabled();
@@ -850,7 +807,6 @@ describe("Match — undo", () => {
         rng={makeRng(201)}
       />,
     );
-    await dismissDiscard(user);
 
     // Play three full turns: e4/e5, d4/d5, Nc3/Nf6.
     await user.click(squareCell("e2")!);
@@ -858,13 +814,11 @@ describe("Match — undo", () => {
     await waitFor(() => {
       expect(squareCell("e5")?.getAttribute("aria-label")).toBe("e5, opponent pawn");
     });
-    await dismissDiscard(user);
     await user.click(squareCell("d2")!);
     await user.click(squareCell("d4")!);
     await waitFor(() => {
       expect(squareCell("d5")?.getAttribute("aria-label")).toBe("d5, opponent pawn");
     });
-    await dismissDiscard(user);
     await user.click(squareCell("b1")!);
     await user.click(squareCell("c3")!);
     await waitFor(() => {
@@ -899,7 +853,6 @@ describe("Match — undo", () => {
         rng={makeRng(202)}
       />,
     );
-    await dismissDiscard(user);
 
     const redoBtn = screen.getByRole("button", { name: /redo turn/i });
     expect(redoBtn).toBeDisabled(); // nothing to redo yet
@@ -925,7 +878,6 @@ describe("Match — undo", () => {
     // Undo and play a different move: redo should be cleared once the AI replies.
     await user.click(screen.getByRole("button", { name: /undo turn/i }));
     expect(redoBtn).not.toBeDisabled();
-    await dismissDiscard(user);
     await user.click(squareCell("d2")!);
     await user.click(squareCell("d4")!);
     await waitFor(() => {
@@ -948,18 +900,17 @@ describe("Match — undo", () => {
         initialEnergy={ENERGY_CAP}
       />,
     );
-    await dismissDiscard(user);
 
     const hand = () => screen.getByRole("list", { name: /^hand$/i });
     const handSizeBefore = within(hand()).getAllByRole("listitem").length;
-    expect(handSizeBefore).toBe(2);
+    expect(handSizeBefore).toBe(3);
 
     // Play a Stack Trace and dismiss the modal — that moves a card from hand
-    // to discard, taking the hand size to 1.
+    // to discard, taking the hand size to 2.
     await user.click(findCard("Stack Trace")!);
     const confirm = await screen.findByRole("button", { name: /confirm/i });
     await user.click(confirm);
-    expect(within(hand()).getAllByRole("listitem")).toHaveLength(1);
+    expect(within(hand()).getAllByRole("listitem")).toHaveLength(2);
 
     // Make a chess move to end the turn.
     await user.click(squareCell("e2")!);
@@ -967,17 +918,13 @@ describe("Match — undo", () => {
     await waitFor(() => {
       expect(squareCell("e5")?.getAttribute("aria-label")).toBe("e5, opponent pawn");
     });
-    // Next turn: persistent hand (1 card remains) + 2 drawn = 3, with discard pending.
+    // Next turn: persistent hand (2 cards remain) + 1 drawn = 3.
     expect(within(hand()).getAllByRole("listitem")).toHaveLength(3);
-    await dismissDiscard(user);
-    expect(within(hand()).getAllByRole("listitem")).toHaveLength(2);
 
-    // Undo: hand goes back to 3 (start of turn 1, before mandatory discard).
+    // Undo: hand goes back to 3 (start of turn 1, before the Stack Trace play).
     await user.click(screen.getByRole("button", { name: /undo turn/i }));
     expect(within(hand()).getAllByRole("listitem")).toHaveLength(3);
-    // Discard prompt reappears; dismiss it to verify energy.
-    await dismissDiscard(user);
-    expect(within(hand()).getAllByRole("listitem")).toHaveLength(2);
+    // And energy is the start-of-turn value.
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent(String(ENERGY_CAP));
   });
 });
@@ -1100,10 +1047,9 @@ describe("Match — dev mode", () => {
         initialEnergy={ENERGY_CAP}
       />,
     );
-    await dismissDiscard(user);
 
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent(String(ENERGY_CAP));
-    expect(screen.getByLabelText(/^discard pile/i)).toHaveTextContent("1");
+    expect(screen.getByLabelText(/^discard pile/i)).toHaveTextContent("0");
 
     // Library lives behind a button in sandbox; open the overlay first.
     await user.click(screen.getByRole("button", { name: /^library$/i }));
@@ -1121,8 +1067,7 @@ describe("Match — dev mode", () => {
 
     // Energy and the discard pile are unchanged after a free library play.
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent(String(ENERGY_CAP));
-    // Discard pile still has 1 (from the mandatory discard only).
-    expect(screen.getByLabelText(/^discard pile/i)).toHaveTextContent("1");
+    expect(screen.getByLabelText(/^discard pile/i)).toHaveTextContent("0");
   });
 
   it("library targeted card freezes a target without charging energy", async () => {
@@ -1138,7 +1083,6 @@ describe("Match — dev mode", () => {
         initialEnergy={ENERGY_CAP}
       />,
     );
-    await dismissDiscard(user);
 
     // Library lives behind a button in sandbox; open the overlay first.
     await user.click(screen.getByRole("button", { name: /^library$/i }));
@@ -1173,7 +1117,6 @@ describe("Match — dev mode", () => {
         initialEnergy={ENERGY_CAP}
       />,
     );
-    await dismissDiscard(user);
 
     // Playing Freeze Process from the hand: cost 4 → energy goes from 20 to 16.
     await user.click(findCard("Freeze Process")!);
@@ -1196,7 +1139,6 @@ describe("Match — dev mode", () => {
         initialEnergy={ENERGY_CAP}
       />,
     );
-    await dismissDiscard(user);
 
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent(String(ENERGY_CAP));
 
@@ -1205,7 +1147,6 @@ describe("Match — dev mode", () => {
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent(String(ENERGY_CAP));
 
     await user.click(screen.getByRole("button", { name: /undo turn/i }));
-    await dismissDiscard(user);
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent(String(ENERGY_CAP));
   });
 
@@ -1225,7 +1166,6 @@ describe("Match — dev mode", () => {
         rng={makeRng(306)}
       />,
     );
-    await dismissDiscard(user);
 
     // Move a White pawn first so it's Black's turn.
     await user.click(squareCell("e2")!);
@@ -1258,14 +1198,13 @@ describe("Match — dev mode", () => {
         initialEnergy={2}
       />,
     );
-    await dismissDiscard(user);
 
-    // Play Stack Trace (cost 0 cantrip) and dismiss the modal so hand size is 1.
+    // Play Stack Trace (cost 0 cantrip) and dismiss the modal so hand size is 2.
     await user.click(findCard("Stack Trace")!);
     await user.click(await screen.findByRole("button", { name: /confirm/i }));
 
     const hand = () => screen.getByRole("list", { name: /^hand$/i });
-    expect(within(hand()).getAllByRole("listitem")).toHaveLength(1);
+    expect(within(hand()).getAllByRole("listitem")).toHaveLength(2);
     // Stack Trace is now free; energy is unchanged at 2.
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("2");
 
@@ -1278,11 +1217,9 @@ describe("Match — dev mode", () => {
     await user.click(squareCell("e7")!);
     await user.click(squareCell("e5")!);
 
-    // Turn 2 begins: persistent hand (1 card) + 2 drawn = 3; discard pending.
+    // Turn 2 begins: persistent hand (2 cards) + 1 drawn = 3; energy
+    // banks: 2 unspent + 1 per-turn = 3.
     expect(within(hand()).getAllByRole("listitem")).toHaveLength(3);
-    await dismissDiscard(user);
-    // After discard: 2 cards; energy banks: 2 unspent + 1 per-turn = 3.
-    expect(within(hand()).getAllByRole("listitem")).toHaveLength(2);
     expect(screen.getByLabelText(/^energy:/i)).toHaveTextContent("3");
   });
 
@@ -1300,7 +1237,6 @@ describe("Match — dev mode", () => {
         initialFen="4k3/8/8/3p4/4P3/8/8/4K3 b - - 0 1"
       />,
     );
-    await dismissDiscard(user);
 
     // Initial deck has 8 Stack Traces. createMatchCardState draws 3 into the
     // opening hand; startPlayerTurn (turn 1) skips the draw → 5 left.

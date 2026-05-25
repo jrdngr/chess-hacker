@@ -58,44 +58,41 @@
   box-shadow: 0 0 5px rgba(var(--p-primary-rgb) / 0.55);
 }
 
-.discardPrompt {
+.discardZone {
+  position: absolute;
+  right: 10px;
+  top: 28px;
+  bottom: 8px;
+  width: 90px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 2px;
-  font-size: 12px;
+  border: 2px dashed var(--p-opp);
+  border-radius: 0;
+  background: rgba(var(--p-opp-rgb) / 0.06);
+  transition:
+    background 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.discardZone.discardZoneActive {
+  background: rgba(var(--p-opp-rgb) / 0.18);
+  border-color: var(--p-opp);
+  box-shadow:
+    inset 0 0 12px rgba(var(--p-opp-rgb) / 0.3),
+    0 0 8px rgba(var(--p-opp-rgb) / 0.25);
+}
+
+.discardZoneText {
+  font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--p-opp);
-  text-shadow: 0 0 8px rgba(var(--p-opp-rgb) / 0.6);
-  animation: discardPulse 1.6s ease-in-out infinite;
-}
-
-@keyframes discardPulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.6;
-  }
-}
-
-.card.discardMode {
-  border-color: var(--p-opp);
-  box-shadow:
-    inset 0 0 0 1px var(--amber-bg2),
-    inset 0 0 0 3px rgba(var(--p-opp-rgb) / 0.35),
-    0 0 6px rgba(var(--p-opp-rgb) / 0.18);
-}
-
-.card.discardMode:hover:not(:disabled) {
-  border-color: var(--p-opp);
-  box-shadow:
-    inset 0 0 0 1px var(--amber-bg2),
-    inset 0 0 0 3px rgba(var(--p-opp-rgb) / 0.55),
-    0 0 12px rgba(var(--p-opp-rgb) / 0.5);
+  text-align: center;
+  line-height: 1.4;
+  padding: 4px;
 }
 
 /* Layer that holds exit-ghost cards (cards that left the hand and are

@@ -65,7 +65,6 @@ type Params = {
   setCardState: (next: MatchCardState | ((prev: MatchCardState) => MatchCardState)) => void;
   backdoorPending: AlgebraicSquare | null;
   setBackdoorPending: (sq: AlgebraicSquare | null) => void;
-  discardPending: boolean;
 };
 
 type Result = {
@@ -108,7 +107,6 @@ export function useBoardInteraction({
   setCardState,
   backdoorPending,
   setBackdoorPending,
-  discardPending,
 }: Params): Result {
   /** Select a square iff it has a piece the human controls right now. */
   const trySelect = useCallback(
@@ -132,8 +130,8 @@ export function useBoardInteraction({
       // active — a click places / overwrites / erases the piece on the square
       // per the current brush. The brush is consumed by the placement: the
       // user clicks the palette piece again for each new placement.
-      // Bypasses matchOver and discardPending: invalid positions register as
-      // stalemate, and the user needs to keep editing precisely to fix that.
+      // Bypasses matchOver: invalid positions register as stalemate, and the
+      // user needs to keep editing precisely to fix that.
       if (devPanelEnabled && editorPiece !== null) {
         applyEditorEdit(sq, editorPiece);
         setEditorPiece(null);
@@ -158,7 +156,7 @@ export function useBoardInteraction({
         return;
       }
 
-      if (matchOver || discardPending) return;
+      if (matchOver) return;
 
       // Backdoor activation: if a backdoor-pending square is set, the next
       // click picks the piece to teleport. If the player clicks a piece of
@@ -368,7 +366,6 @@ export function useBoardInteraction({
     [
       matchOver,
       aiThinking,
-      discardPending,
       devPanelEnabled,
       editorPiece,
       editMode,
@@ -402,21 +399,20 @@ export function useBoardInteraction({
       if (aiThinking || targetingIndex !== null) return;
       // Edit mode: any piece can be picked up regardless of side or turn.
       // Stash the origin so the drop handler can resolve a reposition (or
-      // a delete, if dropped on the Erase button). Bypasses matchOver and
-      // discardPending so the user can recover from invalid positions.
+      // a delete, if dropped on the Erase button). Bypasses matchOver so
+      // the user can recover from invalid positions.
       if (devPanelEnabled && editMode) {
         if (!engine.pieceAt(sq)) return;
         editDragFromRef.current = sq;
         setSelected(sq);
         return;
       }
-      if (matchOver || discardPending) return;
+      if (matchOver) return;
       trySelect(sq);
     },
     [
       matchOver,
       aiThinking,
-      discardPending,
       targetingIndex,
       devPanelEnabled,
       editMode,
@@ -434,7 +430,7 @@ export function useBoardInteraction({
       // any other in-flight selection. We clear editorPiece here too — the
       // dragend handler also clears it, but dragend is unreliable across
       // browsers, so don't depend on it for the visible highlight.
-      // Bypasses matchOver and discardPending so editor edits can recover.
+      // Bypasses matchOver so editor edits can recover from invalid positions.
       if (paletteDragRef.current !== null) {
         applyEditorEdit(sq, paletteDragRef.current);
         onPaletteDragEnd();
@@ -450,7 +446,7 @@ export function useBoardInteraction({
         setSelected(null);
         return;
       }
-      if (matchOver || discardPending) return;
+      if (matchOver) return;
       if (targetingIndex !== null) {
         // A targeted card was dragged from the hand onto this square. Reuse
         // the same resolution path as a click on the square.
@@ -468,7 +464,6 @@ export function useBoardInteraction({
     [
       matchOver,
       aiThinking,
-      discardPending,
       targetingIndex,
       selected,
       tryPlay,

@@ -6,8 +6,8 @@ The card system is the central self-expression mechanic. Cards augment chess; th
 
 - **Hand size limit:** 7 cards.
 - **Starting hand:** 3 cards drawn at match start.
-- **Draw timing:** at the **start of each player turn**, draw 2 cards (stopping early if the hand reaches 7).
-- **Discard timing:** at the **start of each player turn** (immediately after drawing), the player must discard exactly 1 card from hand. This lets the player curate their hand before acting. Skipped if hand has 0–1 cards after drawing.
+- **Draw timing:** at the **start of each player turn**, draw 1 card (stopping early if the hand reaches 7).
+- **Voluntary discard:** the player may optionally discard up to 1 card per turn by dragging it to the discard zone. This is not mandatory. Future cards/artifacts may increase the number of allowed discards.
 - **Cards persist** between turns — unplayed cards stay in hand.
 - **Run-start deck:** 10 cards. The pre-game draft flow lets the player either pick one of three pre-made themed decks (Sysadmin, Hackathon, Architect — each 6 commons / 3 uncommons / 1 rare with a bundled artifact) or build a deck from scratch by drafting 1-of-3 ten times (also 6 commons / 3 uncommons / 1 rare) followed by an uncommon-artifact pick. See [`../cards/starter-deck.md`](../cards/starter-deck.md) for the composition of each pre-made deck and the rationale.
 - **Adding to your deck:** the shop is the only source of new cards between matches — single-card offers and booster packs (open the pack, pick 1 from its contents).
@@ -62,20 +62,20 @@ A card may have multiple targets in sequence (e.g., choose own piece, then choos
 
 ## Disposal: discard, consume, cycle
 
-Cards persist in hand between turns. After drawing at the start of each turn, the player must discard 1 card (forced discard) before playing cards or making a chess move. Cards may also be consumed during the turn.
+Cards persist in hand between turns. The player may voluntarily discard up to 1 card per turn (by dragging to the discard zone), and may play cards to consume them during the turn.
 
 - **Consume** — a played card is removed from the match (lands in the *consumed pile*). It is not eligible for revival.
-- **Forced discard** — at the start of every player turn (after drawing), the player must discard exactly 1 card from hand. Skipped if hand has 0–1 cards. This ensures steady deck cycling even with persistent hands.
+- **Voluntary discard** — once per turn, the player may drag a card from hand to the discard zone. This is optional and helps with deck cycling and hand curation. The number of allowed discards per turn (currently 1) may be increased by future cards or artifacts.
 
 Cycle rules:
 
 1. Played cards without Consume go to the **discard pile**.
-2. Start-of-turn forced discard goes to the discard pile.
+2. Voluntary discards go to the discard pile.
 3. When the draw pile is empty mid-draw, the discard pile is shuffled to form a new draw pile and drawing continues. The consumed pile never re-enters the cycle.
 
 UI piles: **Draw: N | Discard: N | Consumed: N**. The discard pile is the active rotation; the consumed pile is the graveyard.
 
-With draw 2 per turn, a 10-card deck cycles through itself roughly every 5 turns. Consume cards thin the deck permanently, causing remaining cards to appear more frequently — deck-thinning is a deliberate strategy.
+With draw 1 per turn, a 10-card deck cycles through itself roughly every 10 turns (faster if the player discards voluntarily or plays non-Consume cards). Consume cards thin the deck permanently, causing remaining cards to appear more frequently — deck-thinning is a deliberate strategy.
 
 ## Card economy
 
@@ -187,8 +187,8 @@ and `effect.kind` values for the prototype.
 |------------------------------|------------------------------------------------------|
 | Hand size limit              | 7                                                    |
 | Starting hand                | 3 cards drawn at match start                         |
-| Draw per turn                | 2 cards at start of turn (up to hand limit)          |
-| Forced discard               | 1 card at start of turn, after drawing (player's choice; skipped if hand ≤ 1) |
+| Draw per turn                | 1 card at start of turn (up to hand limit)           |
+| Voluntary discard            | Up to 1 card per turn (optional, drag to discard zone) |
 | Card persistence             | Unplayed cards stay in hand between turns             |
 | Starting energy              | 0 per match                                          |
 | Passive energy               | +1 per turn                                          |
@@ -197,6 +197,6 @@ and `effect.kind` values for the prototype.
 | Energy banking               | Yes — energy persists between turns                  |
 | Card cost range              | 0 – 15                                               |
 | Cards-per-turn cap           | None beyond energy/hand                              |
-| Disposal                     | Discard pile cycles into draw on empty; Consume removes for the match; forced discard 1/turn at start of turn |
+| Disposal                     | Discard pile cycles into draw on empty; Consume removes for the match; voluntary discard up to 1/turn |
 | Reactions on opponent turn   | None (may revisit)                                   |
 | Card upgrades                | Shop Smith service; one `+` tier per card. See `economy.md`. |

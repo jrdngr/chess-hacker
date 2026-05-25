@@ -7,11 +7,10 @@
 //
 // Player turn (vs-ai):
 //   1. startPlayerTurn refills hand + resets energy + ticks overlays.
-//   2. Player must discard 1 card (mandatory, skipped if hand ≤ 1).
-//   3. Player may play any number of cards using their energy.
-//   4. Player makes their chess move — this ends their turn and immediately
+//   2. Player may play any number of cards using their energy.
+//   3. Player makes their chess move — this ends their turn and immediately
 //      hands control to the AI. (Cards must be played BEFORE moving a piece.)
-//   5. After the AI move, we kick off the next player turn.
+//   4. After the AI move, we kick off the next player turn.
 //
 // The chess engine and the card state are deliberately separate. The card
 // state lives as React state here; pure helpers in `game/cards/match.ts`
@@ -90,9 +89,9 @@ import {
   isCardEffectForbidden,
   isInPlayerHalf,
   isRooted,
-  resolveDiscard,
   setDeckTop,
   startPlayerTurn,
+  voluntaryDiscard,
   type BoardContext,
   type MatchRules,
   type Rng,
@@ -920,9 +919,6 @@ export function Match({
     triggerAnimation,
   });
 
-  // ---- Discard phase -----------------------------------------------------------
-  const discardPending = cardState.pendingDiscard === true;
-
   // ---- Player analysis (Insert Probe + dev toggles) -------------------------
   const probeActive = (cardState.probeExpiresOnTurn ?? 0) > cardState.turn;
   const showEval = probeActive || devShowEval;
@@ -1410,7 +1406,6 @@ export function Match({
     setCardState,
     backdoorPending,
     setBackdoorPending,
-    discardPending,
   });
 
   /**
@@ -1658,11 +1653,7 @@ export function Match({
             aiSingleMoveDisabled={devAiOn || aiThinking || matchOver || turn !== AI_SIDE}
             onTriggerAiSingleMove={triggerAiSingleMove}
             libraryDisabled={
-              turn !== HUMAN_SIDE ||
-              aiThinking ||
-              matchOver ||
-              libraryFreePlayActive ||
-              discardPending
+              turn !== HUMAN_SIDE || aiThinking || matchOver || libraryFreePlayActive
             }
             onPlayLibraryCard={playLibraryCard}
             onLibraryCardDragStart={dragStartLibraryCard}
@@ -1708,21 +1699,13 @@ export function Match({
           energy={cardState.energy}
           energyMax={energyMax}
           targetingIndex={targetingIndex}
-          enabled={
-            !aiThinking &&
-            !matchOver &&
-            turn === HUMAN_SIDE &&
-            !libraryFreePlayActive &&
-            !discardPending
-          }
+          enabled={!aiThinking && !matchOver && turn === HUMAN_SIDE && !libraryFreePlayActive}
           forbiddenIndexes={forbiddenHandIndexes}
           onCardClick={onCardClick}
           onCardDragStart={onCardDragStart}
           onCardDragEnd={onCardDragEnd}
-          discardMode={discardPending}
-          onDiscard={(i) => {
-            setCardState((prev) => resolveDiscard(prev, i));
-          }}
+          discardsRemaining={cardState.discardsRemaining ?? 0}
+          onVoluntaryDiscard={(i) => setCardState((prev) => voluntaryDiscard(prev, i))}
         />
       )}
       {scryPending && (

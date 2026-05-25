@@ -44,9 +44,11 @@ describe("artifact-driven match state", () => {
     // Turn 1: opening hand only (no extra draw) = 3
     expect(st.hand.length).toBe(STARTING_HAND_SIZE);
     // Keep advancing turns without playing cards — hand grows until cap
-    st = startPlayerTurn(st, rng); // Turn 2: 3 + 2 = 5
-    st = startPlayerTurn(st, rng); // Turn 3: 5 + 2 = 7
-    st = startPlayerTurn(st, rng); // Turn 4: 7 + 1 = 8 (cap is HAND_SIZE + 1 = 8)
+    st = startPlayerTurn(st, rng); // Turn 2: 3 + 1 = 4
+    st = startPlayerTurn(st, rng); // Turn 3: 4 + 1 = 5
+    st = startPlayerTurn(st, rng); // Turn 4: 5 + 1 = 6
+    st = startPlayerTurn(st, rng); // Turn 5: 6 + 1 = 7
+    st = startPlayerTurn(st, rng); // Turn 6: 7 + 1 = 8 (cap is HAND_SIZE + 1 = 8)
     expect(st.hand.length).toBe(HAND_SIZE + 1);
     // One more turn should not exceed cap
     st = startPlayerTurn(st, rng);
@@ -115,11 +117,9 @@ describe("artifact-driven match state", () => {
       size: { files: 8, ranks: 8 },
       pieceSideAt: (sq: string) => (sq === "d4" ? ("player" as const) : null),
     };
-    // Build up to cap over multiple turns
+    // Build up to cap over multiple turns (draw 1/turn)
     let st = startPlayerTurn(createMatchCardState(makeStarterDeck(), rng, [banner]), rng, ctx);
-    st = startPlayerTurn(st, rng, ctx);
-    st = startPlayerTurn(st, rng, ctx);
-    st = startPlayerTurn(st, rng, ctx);
+    for (let i = 0; i < 5; i++) st = startPlayerTurn(st, rng, ctx);
     // Cap is HAND_SIZE + 1 = 8
     expect(st.hand.length).toBe(HAND_SIZE + 1);
   });
@@ -128,10 +128,9 @@ describe("artifact-driven match state", () => {
     const rng = makeRng(1);
     const banner = getArtifactById("foothold");
     const ctx = { size: { files: 8, ranks: 8 }, pieceSideAt: () => null };
-    // Build up to cap over multiple turns
+    // Build up to cap over multiple turns (draw 1/turn)
     let st = startPlayerTurn(createMatchCardState(makeStarterDeck(), rng, [banner]), rng, ctx);
-    st = startPlayerTurn(st, rng, ctx);
-    st = startPlayerTurn(st, rng, ctx);
+    for (let i = 0; i < 4; i++) st = startPlayerTurn(st, rng, ctx);
     // Cap is HAND_SIZE = 7 (no zone buff)
     expect(st.hand.length).toBe(HAND_SIZE);
   });
