@@ -56,49 +56,62 @@ When Royal is re-enabled post-prototype, it will default to **Chess960** startin
 - **Shop:** identical to other modes.
 - **Mental model:** "chess + spells, full armies."
 
-## Skirmish (post-prototype, currently disabled)
+## Skirmish (M10 — active)
 
-The roguelite-army experience. The player starts the run with a tiny army and grows their roster across the 9 matches by drafting pieces between matches. Disabled in the menu while Standard is the active default.
+The roguelite-army experience. The player starts the run with a tiny army and grows their roster across the 9 matches by drafting pieces between matches. Selectable from the mode menu alongside Standard.
 
-- **Starting roster (run start):** king + 2 pawns + 2 minor pieces (knight or bishop). Exact starter composition is a tuning knob; see `roadmap/open-questions.md`.
-- **Opponent army:** the AI's army scales over the 9 matches. Early matches use a deliberately weakened army; the act-3 boss faces the player at full standard chess force or stronger. Exact scaling curve TBD; see `roadmap/open-questions.md`.
-- **Roster management:** persistent across the run. Pieces do not reset between matches in Skirmish — the army you finish a match with (alive plus draft additions) is the army you bring to the next match.
-
-  - Pieces lost during a match come back at full strength for the next match. (Death is not permanent within a run; a captured knight returns next match. Subject to playtest — we may want to introduce permanent loss as a difficulty modifier later.)
-
-- **Post-match rewards:** card draft (1 of 3) + gold + **piece draft (1 of 3)**.
-- **Piece draft:** see [`pieces.md`](pieces.md). Tiered rarity (pawns common, queens very rare). Soft caps per piece type encourage variety.
-- **Placement:** **player-placed** before each match. The player chooses which squares within an allowed region (typically their own back two ranks) each piece occupies. Castling is still available when the king and a rook end up on standard squares and other castling conditions are met (see `chess-rules.md`).
+- **Starting roster (run start):** king + 2 pawns + 1 knight + 1 bishop. The roster grows via piece drafts between matches.
+- **Opponent army:** mirrors the player's placed composition each match (same piece types, independent Chess960 layout). Boss matches use their canonical hand-crafted armies instead.
+- **Roster management:** persistent across the run. No roster size cap — the player collects pieces freely. A per-match placement value cap (scaling from 10 on M1 to 42 on M9) determines how many pieces can be placed each match.
+- **Post-match rewards:** gold + **piece draft (1 of 3)**. Cards remain shop-only (no card draft in reward).
+- **Piece draft:** after every match win, pick 1-of-3 pieces (P, N, B, R, or Q). Rarity-weighted (pawns common, queens rare). Hard cap of 8 pawns; no other per-type caps. Skip for gold available.
+- **Board size:** variable per act (6×6, 7×7, 8×8), same as Standard.
+- **Placement:** player-placed before each match. Back-rank pieces (K/N/B/R/Q) go on rank 1 following Chess960 rules (bishops on opposite colors, king between rooks). Pawns go on rank 2 (free arrangement, player chooses layout). Both consume from the placement value cap.
 - **Mental model:** "chess + army builder + spells".
 
-### Why two modes
+### Placement value cap
 
-The dimensions are:
+Piece values: P=1, N=3, B=3, R=5, Q=9, K=0 (king is free). The per-match cap scales:
 
-| Dimension                        | Royal                          | Skirmish                       |
-|----------------------------------|--------------------------------|--------------------------------|
-| Starting roster                  | Standard 16 (fixed)            | Small (5), grows by drafting   |
-| Roster persistence between games | None (resets)                  | Persistent across run          |
-| Piece drafts                     | No                             | Yes (1-of-3 each match)        |
-| Placement                        | Standard chess setup           | Player chooses                 |
-| AI army                          | Standard chess army            | Scales across run              |
-| Variety source                   | Cards + artifacts only         | Cards + artifacts + roster     |
-| Difficulty to balance            | Easier                         | Harder                         |
+| Match | Board | Cap |
+|-------|-------|-----|
+| 1 | 6×6 | 10 |
+| 2 | 6×6 | 14 |
+| 3 | 6×6 | 18 |
+| 4 | 7×7 | 22 |
+| 5 | 7×7 | 26 |
+| 6 | 7×7 | 30 |
+| 7 | 8×8 | 34 |
+| 8 | 8×8 | 38 |
+| 9 | 8×8 | 42 |
 
-Royal is for players who want the cleanest "chess + spells" experience. Skirmish is for players who want the maximum roguelite power-curve dopamine — drafting a queen on Match 3 should feel like getting a Pandora's Box in Slay the Spire.
+The cap creates a natural progression: early matches are space-limited (few pieces on a small board), mid-game the value cap starts constraining, and late-game forces meaningful tradeoffs between power and coverage.
+
+### Why three modes (two active)
+
+| Dimension                        | Standard                       | Royal (disabled)               | Skirmish                       |
+|----------------------------------|--------------------------------|--------------------------------|--------------------------------|
+| Starting roster                  | Per-match curve (auto)         | Standard 16 (fixed)            | Small (5), grows by drafting   |
+| Roster persistence between games | None (resets per match)        | None (resets)                  | Persistent across run          |
+| Piece drafts                     | No                             | No                             | Yes (1-of-3 each match)        |
+| Placement                        | Chess960 (auto)                | Standard chess setup           | Player chooses (Chess960 rules)|
+| AI army                          | Same as player (per curve)     | Standard chess army            | Mirrors player's placement     |
+| Variety source                   | Cards + artifacts only         | Cards + artifacts only         | Cards + artifacts + roster     |
+
+Standard is the streamlined "chess + spells with a ramp." Skirmish is the maximum roguelite power-curve experience — drafting a queen early should feel like getting a Pandora's Box in Slay the Spire.
 
 ## What is identical between modes
 
 - The match loop (energy, cards, hand size, draws).
-- The card pool, draft, and shop.
-- The board (always 8x8, no portals, card-spawned overlays — see `board.md`).
+- The card pool and shop.
+- The board sizes (6×6, 7×7, 8×8 per act).
 - The economy (gold, interest, reroll/removal pricing).
 - The artifact pool.
 - The 3-act, 9-match run structure with three hand-crafted bosses.
 - Win conditions and chess rules (see `chess-rules.md`).
 - Ascension difficulty modifiers.
 
-The only differences are roster management and placement.
+The differences are roster management, placement, and AI army sourcing.
 
 ## Sandbox (developer-only)
 

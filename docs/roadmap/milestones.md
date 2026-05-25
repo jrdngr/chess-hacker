@@ -6,7 +6,7 @@ The milestones are roughly sequential — each builds on the previous — but se
 
 ## Status as of 2026-05-25
 
-The chess core, card system, walls, dev sandbox, the full square-effect overlay set (sanctuaries / traps / zone-control buffs), the M5 run loop (3-match Royal mini-run + shop + reward), M6 artifacts (pool + shop offers + trigger system + sidebar), M7 zone-control buffs, the M8 first boss (Boss A — "The Firewall"), and M9 (full Standard run with Boss B "The Whale" and Boss C "The Singularity" wired end-to-end) are built. The remaining work is Skirmish (M10).
+The chess core, card system, walls, dev sandbox, the full square-effect overlay set (sanctuaries / traps / zone-control buffs), the M5 run loop (3-match Royal mini-run + shop + reward), M6 artifacts (pool + shop offers + trigger system + sidebar), M7 zone-control buffs, the M8 first boss (Boss A — "The Firewall"), M9 (full Standard run with Boss B "The Whale" and Boss C "The Singularity" wired end-to-end), and M10 (Skirmish mode) are built. The remaining work is content expansion (M11).
 
 Already shipped:
 
@@ -136,17 +136,19 @@ Standard is the active default mode. Replaces the old "Full Royal run" milestone
 
 Royal stays disabled in the menu — when re-enabled it will default to Chess960 with a "standard start" opt-in. Save/resume (was M9 scope) moves to a follow-up milestone.
 
-## M10 — Skirmish [3d]
+## M10 — Skirmish [done]
 
-Most of the run scaffolding (M5 / M6 / M9) is shared with Standard, so Skirmish is mostly piece-economy work on top of the existing shell.
+Live in `src/game/progression/skirmish.ts` + `src/game/progression/placement.ts` + `src/components/Run/PlacementScreen.tsx` + `src/components/Run/PieceDraft.tsx` + `src/components/ModeSelect.tsx`.
 
-- Skirmish mode toggle in mode select (re-enable the disabled menu entry).
-- Skirmish starting roster (king + 2 pawns + 2 minors).
-- Piece-draft post-match (1 of 3, tiered rarity, soft caps).
-- Placement screen: drag-and-drop pieces onto ranks 1–2 before each match.
-- AI starting army scaling across the run.
+- Mode selection screen (Standard + Skirmish selectable, Royal disabled).
+- Skirmish starting roster (K + 2P + N + B), persistent across the run.
+- Piece-draft post-match (1 of 3, rarity-weighted P/N/B/R/Q, pawn hard cap 8).
+- Per-match placement value cap scaling 10→42 across 9 matches.
+- Placement screen: player places back-rank pieces on rank 1 (Chess960 rules) and pawns on rank 2 (free arrangement). Real-time validation.
+- Enemy mirrors the player's placed composition (independent Chess960 layout). Boss matches use canonical armies.
+- Board sizes scale per act (6×6, 7×7, 8×8), same as Standard.
 
-**Done when:** a complete Skirmish 9-match run is playable end-to-end, drafting pieces and placing them between matches.
+**Done when:** a complete Skirmish 9-match run is playable end-to-end, drafting pieces and placing them between matches. ✅
 
 ## M11 — Content expansion + balance [open-ended]
 
