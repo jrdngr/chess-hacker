@@ -10,6 +10,7 @@
 
 import type { ChoseEngine } from "../../game/chess/engine";
 import { movePath } from "../../game/chess/engine";
+import { promotionRank, squareCoords } from "../../game/chess/rules";
 import {
   addToHand,
   clearStatusesOn,
@@ -173,6 +174,16 @@ export function applyCardSideEffects(
       next = relocateStatuses(next, fx.b, fx.a);
       next = relocateStatuses(next, "__swap_tmp__", fx.b);
       engine.swapPieces(fx.a, fx.b);
+      // Promote any pawn that landed on its back rank after the swap.
+      for (const sq of [fx.a, fx.b] as AlgebraicSquare[]) {
+        const p = engine.pieceAt(sq);
+        if (p?.type === "pawn") {
+          const { rank } = squareCoords(sq);
+          if (rank === promotionRank(engine.size(), p.side)) {
+            onTransformPrompt?.(sq, ["queen", "rook", "bishop", "knight"]);
+          }
+        }
+      }
     } else if (fx.kind === "foreign-move") {
       const mover = engine.pieceAt(fx.from);
       const captured = engine.pieceAt(fx.to);

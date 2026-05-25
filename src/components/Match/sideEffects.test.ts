@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { ChoseEngine } from "../../game/chess/engine";
 import { createMatchCardState, makeRng } from "../../game/cards/match";
@@ -344,5 +344,47 @@ describe("Rollback + dev-panel undo interaction", () => {
     expect(e.pieceAt("e4")?.side).toBe("player");
     expect(e.pieceAt("f3")).toBeNull();
     expect(e.turn()).toBe("player");
+  });
+});
+
+describe("swap-pieces promotion", () => {
+  it("triggers onTransformPrompt when a pawn lands on its promotion rank", () => {
+    // White pawn on e7, white rook on e1. Swapping puts the pawn on e1
+    // (no promotion) and the rook on e7 (not a pawn — no promotion).
+    // White pawn on a1, white knight on a8. Swapping puts the pawn on
+    // a8 (rank 8 = promotion rank for player).
+    const e = new ChoseEngine("4k3/8/8/8/8/8/8/P3K3 w - - 0 1");
+    e.placePiece("a8", { type: "knight", side: "player" });
+
+    const onTransform = vi.fn();
+    applyCardSideEffects(
+      e,
+      freshState(),
+      [{ kind: "swap-pieces", a: "a1", b: "a8" }],
+      Math.random,
+      () => {},
+      onTransform,
+    );
+
+    expect(onTransform).toHaveBeenCalledWith("a8", ["queen", "rook", "bishop", "knight"]);
+  });
+
+  it("does not trigger promotion for non-pawn pieces on the back rank", () => {
+    // White rook on a1, white bishop on a8. Swap puts non-pawn pieces
+    // on back ranks — no promotion should fire.
+    const e = new ChoseEngine("4k3/8/8/8/8/8/8/R3K3 w - - 0 1");
+    e.placePiece("a8", { type: "bishop", side: "player" });
+
+    const onTransform = vi.fn();
+    applyCardSideEffects(
+      e,
+      freshState(),
+      [{ kind: "swap-pieces", a: "a1", b: "a8" }],
+      Math.random,
+      () => {},
+      onTransform,
+    );
+
+    expect(onTransform).not.toHaveBeenCalled();
   });
 });
