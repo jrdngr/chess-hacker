@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 
 import { getUpgradedCard, groupCardsByArchetype } from "../../../game/cards/library";
 import type { Card } from "../../../game/types";
+import { FormattedText } from "../../FormattedText";
 
 import styles from "./DevPanel.module.css";
 
@@ -114,7 +115,9 @@ export function LibraryOverlay({
                 >
                   <span className={styles.libraryCardCost}>{card.cost}</span>
                   <span className={styles.libraryCardName}>{card.name}</span>
-                  <span className={styles.libraryCardDesc}>{card.description}</span>
+                  <span className={styles.libraryCardDesc}>
+                    <FormattedText text={card.description} />
+                  </span>
                 </button>
                 <button
                   type="button"

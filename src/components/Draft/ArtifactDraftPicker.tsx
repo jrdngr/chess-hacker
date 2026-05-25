@@ -12,6 +12,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type { Artifact } from "../../game/types";
 import { allArtifacts, artifactEmoji } from "../../game/artifacts/library";
+import { FormattedText } from "../FormattedText";
 
 import styles from "./Draft.module.css";
 
@@ -193,7 +194,9 @@ export function ArtifactDraftPicker({ onComplete, onCancel }: Props) {
                 >
                   <span className={styles.artifactEmoji}>{artifactEmoji(artifact.id)}</span>
                   <span className={styles.artifactName}>{artifact.name}</span>
-                  <span className={styles.description}>{artifact.description}</span>
+                  <span className={styles.description}>
+                    <FormattedText text={artifact.description} />
+                  </span>
                   <span className={styles.rarity}>{artifact.rarity}</span>
                 </button>
               );

@@ -19,6 +19,7 @@ import { createPortal } from "react-dom";
 
 import type { Card } from "../../game/types";
 import { CardKeywords } from "./CardKeywords";
+import { FormattedText } from "../FormattedText";
 import styles from "./CardListModal.module.css";
 
 type Props = {
@@ -145,7 +146,9 @@ function CardTooltip({ card, anchorTop, anchorLeft, anchorRight, anchorHeight }:
       <div className={styles.tooltipMeta}>
         Cost {card.cost} · {card.archetype} · {card.rarity}
       </div>
-      <div className={styles.tooltipDescription}>{card.description}</div>
+      <div className={styles.tooltipDescription}>
+        <FormattedText text={card.description} />
+      </div>
     </div>,
     document.body,
   );

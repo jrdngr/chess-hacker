@@ -3,6 +3,7 @@ import { useMemo, useRef, useState } from "react";
 import { allArtifacts } from "../../../game/artifacts/library";
 import { ARTIFACT_SLOT_CAP } from "../../../game/types";
 import type { Artifact } from "../../../game/types";
+import { FormattedText } from "../../FormattedText";
 
 import styles from "./DevPanel.module.css";
 
@@ -123,7 +124,9 @@ export function ArtifactEditorOverlay({ artifacts, onSave, onClose }: Props) {
               >
                 <span className={styles.deckEntryBody}>
                   <span className={styles.libraryCardName}>{entry.artifact.name}</span>
-                  <span className={styles.libraryCardDesc}>{entry.artifact.description}</span>
+                  <span className={styles.libraryCardDesc}>
+                    <FormattedText text={entry.artifact.description} />
+                  </span>
                 </span>
                 <span className={`${styles.deckEntryTag} ${styles[`deckEntryTag_${tag}`] ?? ""}`}>
                   {entry.kind === "new" ? "new" : entry.artifact.rarity}
@@ -158,7 +161,9 @@ export function ArtifactEditorOverlay({ artifacts, onSave, onClose }: Props) {
                     data-artifact-id={a.id}
                   >
                     <span className={styles.libraryCardName}>{a.name}</span>
-                    <span className={styles.libraryCardDesc}>{a.description}</span>
+                    <span className={styles.libraryCardDesc}>
+                      <FormattedText text={a.description} />
+                    </span>
                   </button>
                 );
               })}

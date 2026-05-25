@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 
 import { groupCardsByArchetype } from "../../../game/cards/library";
 import type { Card } from "../../../game/types";
+import { FormattedText } from "../../FormattedText";
 
 import styles from "./DevPanel.module.css";
 
@@ -195,7 +196,9 @@ export function DeckEditorOverlay({
                 <span className={styles.libraryCardCost}>{entry.card.cost}</span>
                 <span className={styles.deckEntryBody}>
                   <span className={styles.libraryCardName}>{entry.card.name}</span>
-                  <span className={styles.libraryCardDesc}>{entry.card.description}</span>
+                  <span className={styles.libraryCardDesc}>
+                    <FormattedText text={entry.card.description} />
+                  </span>
                 </span>
                 <span className={`${styles.deckEntryTag} ${styles[`deckEntryTag_${tag}`] ?? ""}`}>
                   {tag}
@@ -228,7 +231,9 @@ export function DeckEditorOverlay({
                 >
                   <span className={styles.libraryCardCost}>{card.cost}</span>
                   <span className={styles.libraryCardName}>{card.name}</span>
-                  <span className={styles.libraryCardDesc}>{card.description}</span>
+                  <span className={styles.libraryCardDesc}>
+                    <FormattedText text={card.description} />
+                  </span>
                 </button>
               ))}
             </div>

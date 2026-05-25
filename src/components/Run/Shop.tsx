@@ -7,6 +7,7 @@ import { useState } from "react";
 
 import { CardListModal } from "../Hand/CardListModal";
 import { CardKeywords } from "../Hand/CardKeywords";
+import { FormattedText } from "../FormattedText";
 import { PackPicker } from "./PackPicker";
 import {
   addPickedPackCard,
@@ -226,7 +227,9 @@ export function Shop({ run, shop, onUpdate, onLeave, onAction }: Props) {
                   {offer.card.archetype} · {offer.card.rarity}
                 </span>
                 <CardKeywords card={offer.card} />
-                <span className={styles.description}>{offer.card.description}</span>
+                <span className={styles.description}>
+                  <FormattedText text={offer.card.description} />
+                </span>
                 <span className={styles.price}>{offer.sold ? "sold" : `${offer.price}g`}</span>
               </button>
             )}
@@ -267,7 +270,9 @@ export function Shop({ run, shop, onUpdate, onLeave, onAction }: Props) {
                 <span className={styles.packBadge}>Artifact</span>
                 <span className={styles.name}>{offer.artifact.name}</span>
                 <span className={styles.archetype}>{offer.artifact.rarity}</span>
-                <span className={styles.description}>{offer.artifact.description}</span>
+                <span className={styles.description}>
+                  <FormattedText text={offer.artifact.description} />
+                </span>
                 <span className={styles.price}>
                   {offer.sold ? "sold" : atArtifactCap ? "full" : `${offer.price}g`}
                 </span>
@@ -351,7 +356,9 @@ export function Shop({ run, shop, onUpdate, onLeave, onAction }: Props) {
                   <span className={styles.smithPreview}>
                     <span className={styles.smithPreviewArrow}>→</span>
                     <span className={styles.smithPreviewCost}>{upgraded.cost}</span>
-                    <span className={styles.smithPreviewDescription}>{upgraded.description}</span>
+                    <span className={styles.smithPreviewDescription}>
+                      <FormattedText text={upgraded.description} />
+                    </span>
                   </span>
                 )}
                 <button

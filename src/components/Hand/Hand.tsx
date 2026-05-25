@@ -18,6 +18,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Card, CardTarget, HandCard } from "../../game/types";
 
 import { CardKeywords } from "./CardKeywords";
+import { FormattedText } from "../FormattedText";
 import styles from "./Hand.module.css";
 
 // Two-step targeting cards (pick A, then pick B) don't fit a single drag-and-
@@ -411,7 +412,9 @@ export function Hand({
                 <span className={styles.name}>{card.name}</span>
                 <span className={styles.archetype}>{card.archetype}</span>
                 <CardKeywords card={card} retained={retained} />
-                <span className={styles.description}>{card.description}</span>
+                <span className={styles.description}>
+                  <FormattedText text={card.description} />
+                </span>
               </button>
             );
           })
@@ -521,7 +524,9 @@ function ExitGhostCard({ ghost, onDone }: { ghost: ExitGhost; onDone: () => void
       <span className={styles.name}>{card.name}</span>
       <span className={styles.archetype}>{card.archetype}</span>
       <CardKeywords card={card} retained={retained} />
-      <span className={styles.description}>{card.description}</span>
+      <span className={styles.description}>
+        <FormattedText text={card.description} />
+      </span>
     </div>
   );
 }

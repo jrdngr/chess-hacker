@@ -17,6 +17,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Card, CardRarity } from "../../game/types";
 import { getCardsByRarity } from "../../game/cards/library";
 
+import { FormattedText } from "../FormattedText";
 import styles from "./Draft.module.css";
 
 const ENTER_DURATION_MS = 400;
@@ -246,7 +247,9 @@ export function CardDraftPicker({ onComplete, onCancel }: Props) {
                   <span className={styles.cost}>{card.cost}</span>
                   <span className={styles.archetype}>{card.archetype}</span>
                   <span className={styles.name}>{card.name}</span>
-                  <span className={styles.description}>{card.description}</span>
+                  <span className={styles.description}>
+                    <FormattedText text={card.description} />
+                  </span>
                   <span className={styles.rarity}>{card.rarity}</span>
                 </button>
               );

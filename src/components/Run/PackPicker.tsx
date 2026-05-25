@@ -6,6 +6,7 @@
 import { useState } from "react";
 
 import { CardKeywords } from "../Hand/CardKeywords";
+import { FormattedText } from "../FormattedText";
 import type { BoosterPack, Card } from "../../game/types";
 
 import styles from "./PackPicker.module.css";
@@ -48,7 +49,9 @@ export function PackPicker({ pack, onConfirm }: Props) {
                     {card.archetype} · {card.rarity}
                   </span>
                   <CardKeywords card={card} />
-                  <span className={styles.description}>{card.description}</span>
+                  <span className={styles.description}>
+                    <FormattedText text={card.description} />
+                  </span>
                 </button>
               </li>
             );

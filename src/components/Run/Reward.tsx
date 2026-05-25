@@ -4,6 +4,7 @@
 // Non-boss wins skip this phase entirely (match → shop directly).
 
 import { CardListModal } from "../Hand/CardListModal";
+import { FormattedText } from "../FormattedText";
 import type {
   Artifact,
   BossArtifactOffer,
@@ -56,7 +57,9 @@ export function Reward({
             >
               <span className={styles.archetype}>boon</span>
               <span className={styles.name}>{bossOptionName(opt)}</span>
-              <span className={styles.description}>{describeBossOption(opt)}</span>
+              <span className={styles.description}>
+                <FormattedText text={describeBossOption(opt)} />
+              </span>
             </button>
           ))}
         </div>
@@ -118,7 +121,9 @@ export function Reward({
             >
               <span className={styles.archetype}>{a.rarity}</span>
               <span className={styles.name}>{a.name}</span>
-              <span className={styles.description}>{a.description}</span>
+              <span className={styles.description}>
+                <FormattedText text={a.description} />
+              </span>
             </button>
           ))}
           {bossArtifactOffer.artifacts.length === 0 && (

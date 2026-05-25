@@ -4,6 +4,7 @@
 // EMPTY SLOT up to a cap of 5.
 
 import type { Artifact, CardRarity } from "../../../game/types";
+import { FormattedText } from "../../FormattedText";
 
 import { Panel } from "./Panel";
 import styles from "./ArtifactsPanel.module.css";
@@ -35,7 +36,9 @@ export function ArtifactsPanel({ artifacts }: Props) {
             <span className={styles.name}>{a.name.toUpperCase()}</span>
             <span className={styles.tooltip} role="tooltip">
               <span className={styles.tooltipName}>{a.name}</span>
-              <span className={styles.tooltipDesc}>{a.description}</span>
+              <span className={styles.tooltipDesc}>
+                <FormattedText text={a.description} />
+              </span>
             </span>
           </div>
         ))}
