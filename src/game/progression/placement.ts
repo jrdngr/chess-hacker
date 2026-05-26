@@ -77,13 +77,8 @@ export function buildSkirmishFen(
     aiBackRank = placeBackRank(aiPieceSet, files, rng);
     aiPawnCount = aiPieceSet.pawns;
   } else {
-    const playerTypes = playerBackRank.filter((t): t is PieceType => t !== null);
-    const mirrorSet: PieceSet = {
-      backRank: playerTypes,
-      pawns: playerPawnFiles.filter(Boolean).length,
-    };
-    aiBackRank = placeBackRank(mirrorSet, files, rng);
-    aiPawnCount = mirrorSet.pawns;
+    aiBackRank = [...playerBackRank];
+    aiPawnCount = playerPawnFiles.filter(Boolean).length;
   }
 
   const pieces = new Map<string, { type: PieceType; side: Side }>();
@@ -107,11 +102,19 @@ export function buildSkirmishFen(
   }
 
   const bPawnRank = pawnStartRank(boardSize, "opponent");
-  const aiPawnFiles: number[] = [];
-  for (let f = 0; f < files; f++) aiPawnFiles.push(f);
-  const pawnFileCount = Math.min(aiPawnCount, files);
-  for (let f = 0; f < pawnFileCount; f++) {
-    pieces.set(sq(aiPawnFiles[f], bPawnRank), { type: "pawn", side: "opponent" });
+  if (aiPieceSet) {
+    const aiPawnFiles: number[] = [];
+    for (let f = 0; f < files; f++) aiPawnFiles.push(f);
+    const pawnFileCount = Math.min(aiPawnCount, files);
+    for (let f = 0; f < pawnFileCount; f++) {
+      pieces.set(sq(aiPawnFiles[f], bPawnRank), { type: "pawn", side: "opponent" });
+    }
+  } else {
+    for (let f = 0; f < files; f++) {
+      if (playerPawnFiles[f]) {
+        pieces.set(sq(f, bPawnRank), { type: "pawn", side: "opponent" });
+      }
+    }
   }
 
   const position: Position = {
