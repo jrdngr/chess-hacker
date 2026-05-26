@@ -5,7 +5,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Match } from "../Match";
 import { MatchWonPanel } from "./MatchWonPanel";
-import { PlacementScreen } from "./PlacementScreen";
 import { Reward } from "./Reward";
 import { RunHistoryModal } from "./RunHistoryModal";
 import { Shop, type ShopAction } from "./Shop";
@@ -34,7 +33,7 @@ import {
   skirmishBoardSize,
   PIECE_SKIP_GOLD,
 } from "../../game/progression/skirmish";
-import { buildSkirmishFen } from "../../game/progression/placement";
+import { buildSkirmishFen, emptyBoardFen } from "../../game/progression/placement";
 import { resolvePieceSet, standardMatchConfig } from "../../game/progression/standard";
 import { makeRng } from "../../game/cards/match";
 import { applyInterest, generateShop } from "../../game/shop/shop";
@@ -691,11 +690,29 @@ export function Run({
           />
         )}
       {run.phase === "placement" && run.roster && (
-        <PlacementScreen
-          roster={run.roster}
-          boardSize={skirmishBoardSize(run.matchNumber)}
-          matchNumber={run.matchNumber}
-          onConfirm={onPlacementConfirm}
+        <Match
+          key={`placement-${run.matchNumber}`}
+          runMode="run"
+          initialDeck={[]}
+          initialArtifacts={run.artifacts}
+          initialFen={emptyBoardFen(skirmishBoardSize(run.matchNumber))}
+          initialBoardSize={skirmishBoardSize(run.matchNumber)}
+          runState={run}
+          palette={palette}
+          onPaletteChange={onPaletteChange}
+          vision={vision}
+          onToggleVision={onToggleVision}
+          threats={threats}
+          onToggleThreats={onToggleThreats}
+          onShowRunLog={() => setHistoryOpen(true)}
+          runLogCount={runHistory.length}
+          onExit={onExit}
+          placementConfig={{
+            roster: run.roster,
+            boardSize: skirmishBoardSize(run.matchNumber),
+            matchNumber: run.matchNumber,
+            onConfirm: onPlacementConfirm,
+          }}
         />
       )}
       {run.phase === "reward" && (

@@ -69,6 +69,7 @@ import { useBoardInteraction } from "./Match/useBoardInteraction";
 import { useDevEditor } from "./Match/useDevEditor";
 import { useDevSandbox } from "./Match/useDevSandbox";
 import { usePlayerAnalysis } from "./Match/usePlayerAnalysis";
+import { usePlacement, type PlacementConfig } from "./Match/usePlacement";
 import { useUndoRedo } from "./Match/useUndoRedo";
 import { ChoseEngine, type EngineSnapshot, type LegalMove } from "../game/chess/engine";
 import {
@@ -298,6 +299,12 @@ type Props = {
   onShowRunLog?: () => void;
   /** Run-level history entry count — surfaced in the ticker LOG button. */
   runLogCount?: number;
+  /**
+   * Skirmish placement mode. When set, the board starts empty and the Hand
+   * area is replaced by a piece tray. Board interactions are overridden to
+   * handle piece placement with live mirroring.
+   */
+  placementConfig?: PlacementConfig | null;
 };
 
 const DEFAULT_AI_MIN_THINK_MS = 500;
@@ -361,6 +368,7 @@ export function Match({
   onToggleThreats,
   onShowRunLog,
   runLogCount,
+  placementConfig,
 }: Props = {}) {
   // Dev mode forces the card system on (mode = "vs-ai"); the per-match
   // vs-AI / Local-PvP toggle is hidden in the side panel (its UI was removed
@@ -378,6 +386,8 @@ export function Match({
   const [version, setVersion] = useState(0);
   const bumpVersion = useCallback(() => setVersion((v) => v + 1), []);
   const resetVersion = useCallback(() => setVersion(0), []);
+
+  const placement = usePlacement(placementConfig ?? null, engine, bumpVersion, version);
 
   // Move animation: piece on `to` slides in from `from`'s visual position over
   // 200ms. Set after every animated move (all opponent moves; player click
@@ -1314,10 +1324,12 @@ export function Match({
           )}
           <Board
             engine={engine}
-            selected={selected}
-            animatingMove={animatingMove}
-            legalMovesFromSelected={legalFromSelected}
-            controllableSides={controllableSides}
+            selected={placement.active ? placement.selected : selected}
+            animatingMove={placement.active ? null : animatingMove}
+            legalMovesFromSelected={
+              placement.active ? placement.legalMovesFromSelected : legalFromSelected
+            }
+            controllableSides={placement.active ? placement.controllableSides : controllableSides}
             walledSquares={walledSet}
             frozenSquares={frozenSet}
             sanctuarySquares={sanctuarySet}
@@ -1330,14 +1342,18 @@ export function Match({
             squareEffects={squareEffectsMap}
             attackedByPlayer={attackedByPlayer}
             attackedByOpponent={attackedByOpponent}
-            mode={boardMode}
-            onSquareClick={onSquareClick}
-            onSquareDragStart={onSquareDragStart}
-            onSquareDrop={onSquareDrop}
-            onDragCancel={onDragCancel}
-            locked={boardLocked}
-            acceptAnyDrop={paletteDragActive || (devPanelEnabled && editMode)}
-            editMode={devPanelEnabled && editMode}
+            mode={placement.active ? placement.boardMode : boardMode}
+            onSquareClick={placement.active ? placement.onSquareClick : onSquareClick}
+            onSquareDragStart={placement.active ? placement.onSquareDragStart : onSquareDragStart}
+            onSquareDrop={placement.active ? placement.onSquareDrop : onSquareDrop}
+            onDragCancel={placement.active ? placement.onDragCancel : onDragCancel}
+            locked={placement.active ? false : boardLocked}
+            acceptAnyDrop={
+              placement.active
+                ? placement.acceptAnyDrop
+                : paletteDragActive || (devPanelEnabled && editMode)
+            }
+            editMode={!placement.active && devPanelEnabled && editMode}
             invalidSquares={invalidSquares}
             invalidBoard={validation !== null && !validation.ok}
             evalScore={evalScore}
@@ -1427,21 +1443,24 @@ export function Match({
           </button>
         )}
       </div>
-      {cardsEnabled && !displayOnly && (
-        <Hand
-          hand={cardState.hand}
-          energy={cardState.energy}
-          energyMax={energyMax}
-          targetingIndex={targetingIndex}
-          enabled={!aiThinking && !matchOver && turn === HUMAN_SIDE && !libraryFreePlayActive}
-          forbiddenIndexes={forbiddenHandIndexes}
-          onCardClick={onCardClick}
-          onCardDragStart={onCardDragStart}
-          onCardDragEnd={onCardDragEnd}
-          discardsRemaining={cardState.discardsRemaining ?? 0}
-          onVoluntaryDiscard={(i) => setCardState((prev) => voluntaryDiscard(prev, i))}
-        />
-      )}
+      {placement.active
+        ? placement.trayNode
+        : cardsEnabled &&
+          !displayOnly && (
+            <Hand
+              hand={cardState.hand}
+              energy={cardState.energy}
+              energyMax={energyMax}
+              targetingIndex={targetingIndex}
+              enabled={!aiThinking && !matchOver && turn === HUMAN_SIDE && !libraryFreePlayActive}
+              forbiddenIndexes={forbiddenHandIndexes}
+              onCardClick={onCardClick}
+              onCardDragStart={onCardDragStart}
+              onCardDragEnd={onCardDragEnd}
+              discardsRemaining={cardState.discardsRemaining ?? 0}
+              onVoluntaryDiscard={(i) => setCardState((prev) => voluntaryDiscard(prev, i))}
+            />
+          )}
       {bonusMoveActive && !aiThinking && !matchOver && (
         <button className={styles.skipBonusMove} onClick={cancelBonusMove}>
           Skip bonus move

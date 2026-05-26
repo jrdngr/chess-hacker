@@ -1,7 +1,13 @@
-import { useCallback, useMemo, useRef, useState } from "react";
-import { Board, type BoardMode } from "../Board/Board";
-import { PieceGlyph } from "../Board/PieceGlyph";
-import { ChoseEngine, squareName, squareCoords, type LegalMove } from "../../game/chess/engine";
+// Placement mode — lets the player drag-and-drop roster pieces onto the board
+// before a skirmish match begins.  Lives as a hook inside Match so the full
+// match UI (ticker, sidebars, board) is visible during placement.  When active,
+// its returned board overrides replace useBoardInteraction's handlers, and its
+// trayNode replaces the Hand.
+
+import { createElement, useCallback, useMemo, useRef, useState } from "react";
+
+import type { ChoseEngine, LegalMove } from "../../game/chess/engine";
+import { squareCoords, squareName } from "../../game/chess/engine";
 import { validatePlacement } from "../../game/progression/placement";
 import {
   SKIRMISH_PIECE_VALUE,
@@ -12,49 +18,73 @@ import type {
   AlgebraicSquare,
   BoardSize,
   FileIndex,
+  Piece,
   PieceType,
   RankIndex,
   Side,
-  Piece,
 } from "../../game/types";
+import type { BoardMode } from "../Board/Board";
 
-import styles from "./PlacementScreen.module.css";
+import { PlacementTray } from "./PlacementTray";
 
-type Props = {
+// ---- Public types -----------------------------------------------------------
+
+export type PlacementConfig = {
   roster: ReadonlyArray<Piece>;
   boardSize: BoardSize;
   matchNumber: number;
   onConfirm: (backRank: (PieceType | null)[], pawnFiles: boolean[]) => void;
 };
 
+export type PlacementActive = {
+  active: true;
+  selected: AlgebraicSquare | null;
+  legalMovesFromSelected: LegalMove[];
+  boardMode: BoardMode;
+  acceptAnyDrop: boolean;
+  controllableSides: ReadonlySet<Side>;
+  onSquareClick: (sq: AlgebraicSquare) => void;
+  onSquareDragStart: (sq: AlgebraicSquare) => void;
+  onSquareDrop: (sq: AlgebraicSquare) => void;
+  onDragCancel: () => void;
+  trayNode: React.ReactNode;
+};
+
+export type PlacementResult = PlacementActive | { active: false };
+
+// ---- Constants --------------------------------------------------------------
+
 const PLAYER_ONLY: ReadonlySet<Side> = new Set(["player"]);
 
-function emptyBoardFen(size: BoardSize): string {
-  const row = String(size.files);
-  return Array(size.ranks).fill(row).join("/") + " w - - 0 1";
-}
+// ---- Hook -------------------------------------------------------------------
 
-export function PlacementScreen({ roster, boardSize, matchNumber, onConfirm }: Props) {
-  const { files, ranks } = boardSize;
-  const valueCap = skirmishValueCap(matchNumber);
+export function usePlacement(
+  config: PlacementConfig | null,
+  engine: ChoseEngine,
+  bumpVersion: () => void,
+  version: number,
+): PlacementResult {
+  // All hooks must be called unconditionally (React rules).
 
-  const [engine] = useState(() => new ChoseEngine(emptyBoardFen(boardSize), boardSize));
-  const [version, setVersion] = useState(0);
-  const bumpVersion = useCallback(() => setVersion((v) => v + 1), []);
-
-  // Roster index → square on the board.
   const [placedMap, setPlacedMap] = useState<Map<number, AlgebraicSquare>>(() => new Map());
-
   const [selectedTrayIdx, setSelectedTrayIdx] = useState<number | null>(null);
   const [selectedSquare, setSelectedSquare] = useState<AlgebraicSquare | null>(null);
-
   const trayDragRef = useRef<{
     rosterIdx: number;
     pieceType: PieceType;
   } | null>(null);
   const [trayDragPieceType, setTrayDragPieceType] = useState<PieceType | null>(null);
-
   const boardDragFromRef = useRef<AlgebraicSquare | null>(null);
+
+  // ---- Early exit (inactive) ------------------------------------------------
+
+  // Wrap config values for stable references when inactive.
+  const roster = config?.roster ?? EMPTY_ROSTER;
+  const files = config?.boardSize.files ?? 8;
+  const ranks = config?.boardSize.ranks ?? 8;
+  const matchNumber = config?.matchNumber ?? 1;
+  const valueCap = config ? skirmishValueCap(matchNumber) : 0;
+  const onConfirmCb = config?.onConfirm;
 
   // ---- Mirror helpers -------------------------------------------------------
 
@@ -168,6 +198,7 @@ export function PlacementScreen({ roster, boardSize, matchNumber, onConfirm }: P
   // ---- Board mode & legal moves ---------------------------------------------
 
   const boardMode: BoardMode = useMemo(() => {
+    if (!config) return { kind: "play" };
     if (selectedTrayIdx !== null) {
       const piece = roster[selectedTrayIdx];
       return {
@@ -186,12 +217,12 @@ export function PlacementScreen({ roster, boardSize, matchNumber, onConfirm }: P
       };
     }
     return { kind: "play" };
-  }, [selectedTrayIdx, trayDragPieceType, roster, validSquaresFor]);
+  }, [config, selectedTrayIdx, trayDragPieceType, roster, validSquaresFor]);
 
   const legalMovesFromSelected: LegalMove[] = useMemo(() => {
-    if (!selectedSquare) return [];
+    if (!config || !selectedSquare) return EMPTY_LEGAL;
     const piece = engine.pieceAt(selectedSquare);
-    if (!piece || piece.side !== "player") return [];
+    if (!piece || piece.side !== "player") return EMPTY_LEGAL;
     const valid = validSquaresFor(piece.type, selectedSquare);
     const moves: LegalMove[] = [];
     for (const sq of valid) {
@@ -207,9 +238,9 @@ export function PlacementScreen({ roster, boardSize, matchNumber, onConfirm }: P
     }
     return moves;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSquare, engine, version, validSquaresFor]);
+  }, [config, selectedSquare, engine, version, validSquaresFor]);
 
-  // ---- Roster lookup helpers ------------------------------------------------
+  // ---- Roster lookup --------------------------------------------------------
 
   const findRosterIdxAtSquare = useCallback(
     (sq: AlgebraicSquare): number | null => {
@@ -223,9 +254,10 @@ export function PlacementScreen({ roster, boardSize, matchNumber, onConfirm }: P
 
   // ---- Board interaction handlers -------------------------------------------
 
-  const handleBoardClick = useCallback(
+  const onSquareClick = useCallback(
     (sq: AlgebraicSquare) => {
-      // Tray piece selected → place on valid square.
+      if (!config) return;
+
       if (selectedTrayIdx !== null) {
         const piece = roster[selectedTrayIdx];
         if (isValidPlacement(sq, piece.type)) {
@@ -236,7 +268,6 @@ export function PlacementScreen({ roster, boardSize, matchNumber, onConfirm }: P
         return;
       }
 
-      // Board piece selected → reposition or unplace.
       if (selectedSquare !== null) {
         if (sq === selectedSquare) {
           const rosterIdx = findRosterIdxAtSquare(selectedSquare);
@@ -270,7 +301,6 @@ export function PlacementScreen({ roster, boardSize, matchNumber, onConfirm }: P
         return;
       }
 
-      // Nothing selected → select a player piece on the board.
       const piece = engine.pieceAt(sq);
       if (piece?.side === "player") {
         setSelectedSquare(sq);
@@ -278,6 +308,7 @@ export function PlacementScreen({ roster, boardSize, matchNumber, onConfirm }: P
       }
     },
     [
+      config,
       selectedTrayIdx,
       selectedSquare,
       roster,
@@ -292,8 +323,9 @@ export function PlacementScreen({ roster, boardSize, matchNumber, onConfirm }: P
     ],
   );
 
-  const handleBoardDragStart = useCallback(
+  const onSquareDragStart = useCallback(
     (sq: AlgebraicSquare) => {
+      if (!config) return;
       const piece = engine.pieceAt(sq);
       if (!piece || piece.side !== "player") return;
       boardDragFromRef.current = sq;
@@ -301,11 +333,13 @@ export function PlacementScreen({ roster, boardSize, matchNumber, onConfirm }: P
       setSelectedTrayIdx(null);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [engine, version],
+    [config, engine, version],
   );
 
-  const handleBoardDrop = useCallback(
+  const onSquareDrop = useCallback(
     (sq: AlgebraicSquare) => {
+      if (!config) return;
+
       if (trayDragRef.current) {
         const { rosterIdx, pieceType } = trayDragRef.current;
         boardDragFromRef.current = null;
@@ -334,6 +368,7 @@ export function PlacementScreen({ roster, boardSize, matchNumber, onConfirm }: P
       setSelectedSquare(null);
     },
     [
+      config,
       engine,
       isValidPlacement,
       placePieceWithMirror,
@@ -344,7 +379,7 @@ export function PlacementScreen({ roster, boardSize, matchNumber, onConfirm }: P
     ],
   );
 
-  const handleDragCancel = useCallback(() => {
+  const onDragCancel = useCallback(() => {
     boardDragFromRef.current = null;
     trayDragRef.current = null;
     setTrayDragPieceType(null);
@@ -383,7 +418,6 @@ export function PlacementScreen({ roster, boardSize, matchNumber, onConfirm }: P
     setTrayDragPieceType(null);
   }, []);
 
-  // Tray accepts drops from the board (returning pieces to tray).
   const handleTrayDragOver = useCallback((e: React.DragEvent) => {
     if (boardDragFromRef.current) {
       e.preventDefault();
@@ -415,6 +449,7 @@ export function PlacementScreen({ roster, boardSize, matchNumber, onConfirm }: P
   // ---- Auto-place -----------------------------------------------------------
 
   const handleAutoPlace = useCallback(() => {
+    if (!config) return;
     for (const { square } of engine.pieces()) engine.removePiece(square);
 
     const newPlaced = new Map<number, AlgebraicSquare>();
@@ -463,7 +498,7 @@ export function PlacementScreen({ roster, boardSize, matchNumber, onConfirm }: P
     setSelectedSquare(null);
     setSelectedTrayIdx(null);
     bumpVersion();
-  }, [engine, roster, files, valueCap, mirrorSq, bumpVersion]);
+  }, [config, engine, roster, files, valueCap, mirrorSq, bumpVersion]);
 
   // ---- Subtitle -------------------------------------------------------------
 
@@ -475,88 +510,50 @@ export function PlacementScreen({ roster, boardSize, matchNumber, onConfirm }: P
     return "Select or drag a piece from below to place it on the board.";
   }, [trayDragPieceType, selectedTrayIdx, selectedSquare, roster]);
 
-  // ---- Render ---------------------------------------------------------------
+  // ---- Confirm wrapper ------------------------------------------------------
 
-  return (
-    <div className={styles.container}>
-      <header className={styles.header}>
-        <h2 className={styles.title}>Place your army</h2>
-        <p className={styles.subtitle}>{subtitle}</p>
-      </header>
+  const handleConfirm = useCallback(() => {
+    onConfirmCb?.(backRank, pawnRank);
+  }, [onConfirmCb, backRank, pawnRank]);
 
-      <div className={styles.boardArea}>
-        <Board
-          engine={engine}
-          selected={selectedSquare}
-          legalMovesFromSelected={legalMovesFromSelected}
-          controllableSides={PLAYER_ONLY}
-          mode={boardMode}
-          onSquareClick={handleBoardClick}
-          onSquareDragStart={handleBoardDragStart}
-          onSquareDrop={handleBoardDrop}
-          onDragCancel={handleDragCancel}
-          acceptAnyDrop={trayDragPieceType !== null}
-          locked={false}
-        />
-      </div>
+  // ---- Return ---------------------------------------------------------------
 
-      <div className={styles.tray} onDragOver={handleTrayDragOver} onDrop={handleTrayDrop}>
-        <div className={styles.trayTop}>
-          <span className={`${styles.valueMeter} ${currentValue > valueCap ? styles.overCap : ""}`}>
-            Value: {currentValue} / {valueCap}
-          </span>
-          {validation.errors.length > 0 && (
-            <span className={styles.errors}>
-              {validation.errors.map((e, i) => (
-                <span key={i} className={styles.error}>
-                  {e}
-                </span>
-              ))}
-            </span>
-          )}
-        </div>
+  if (!config) return { active: false } as const;
 
-        <div className={styles.trayPieces}>
-          {roster.map((p, i) => {
-            if (placedIndicesSet.has(i)) return null;
-            const isSelected = selectedTrayIdx === i;
-            return (
-              <button
-                key={`${p.type}-${i}`}
-                type="button"
-                className={`${styles.trayPiece} ${isSelected ? styles.selected : ""}`}
-                onClick={() => handleTrayClick(i)}
-                draggable
-                onDragStart={(e) => handleTrayDragStart(e, i, p.type)}
-                onDragEnd={handleTrayDragEnd}
-                aria-label={`${p.type} (${SKIRMISH_PIECE_VALUE[p.type]} value)`}
-              >
-                <span className={styles.trayGlyph}>
-                  <PieceGlyph piece={p} />
-                </span>
-                <span className={styles.trayLabel}>{p.type}</span>
-              </button>
-            );
-          })}
-          {placedIndicesSet.size === roster.length && (
-            <span className={styles.trayEmpty}>All pieces placed</span>
-          )}
-        </div>
+  const trayNode = createElement(PlacementTray, {
+    roster,
+    placedIndicesSet,
+    selectedTrayIdx,
+    currentValue,
+    valueCap,
+    validationErrors: validation.errors,
+    canStart,
+    subtitle,
+    onTrayClick: handleTrayClick,
+    onTrayDragStart: handleTrayDragStart,
+    onTrayDragEnd: handleTrayDragEnd,
+    onTrayDragOver: handleTrayDragOver,
+    onTrayDrop: handleTrayDrop,
+    onAutoPlace: handleAutoPlace,
+    onConfirm: handleConfirm,
+  });
 
-        <div className={styles.actions}>
-          <button type="button" className={styles.autoButton} onClick={handleAutoPlace}>
-            Auto-place
-          </button>
-          <button
-            type="button"
-            className={styles.startButton}
-            disabled={!canStart}
-            onClick={() => onConfirm(backRank, pawnRank)}
-          >
-            Start match
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+  return {
+    active: true,
+    selected: selectedSquare,
+    legalMovesFromSelected,
+    boardMode,
+    acceptAnyDrop: trayDragPieceType !== null,
+    controllableSides: PLAYER_ONLY,
+    onSquareClick,
+    onSquareDragStart,
+    onSquareDrop,
+    onDragCancel,
+    trayNode,
+  };
 }
+
+// ---- Module-level constants -------------------------------------------------
+
+const EMPTY_ROSTER: ReadonlyArray<Piece> = [];
+const EMPTY_LEGAL: LegalMove[] = [];

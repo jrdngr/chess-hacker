@@ -6,6 +6,11 @@ import { pawnStartRank, serializeFen, type Position } from "../chess/rules";
 import type { BoardSize, PieceSet, PieceType, Side } from "../types";
 import { SKIRMISH_PIECE_VALUE, skirmishValueCap } from "./skirmish";
 
+export function emptyBoardFen(size: BoardSize): string {
+  const row = String(size.files);
+  return Array(size.ranks).fill(row).join("/") + " w - - 0 1";
+}
+
 export type PlacementResult = {
   valid: boolean;
   errors: string[];
