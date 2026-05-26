@@ -777,6 +777,7 @@ export function Match({
   useEffect(() => {
     if (runMode !== "run") return;
     if (!onMatchEnd) return;
+    if (placement.active) return;
     if (!matchOver) {
       matchEndedRef.current = false;
       return;
@@ -794,7 +795,16 @@ export function Match({
     });
     // engine is mutable; depend on version so we re-snapshot the latest state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runMode, onMatchEnd, onCaptureFinalSnapshot, matchOver, outcome, cardState, version]);
+  }, [
+    runMode,
+    onMatchEnd,
+    onCaptureFinalSnapshot,
+    matchOver,
+    outcome,
+    cardState,
+    version,
+    placement.active,
+  ]);
   // In sandbox + run modes, the AI is gated by `devAiOn` (defaults: off in
   // sandbox, on in run). Prototype always fires. This lets the dev panel
   // disable the AI in a real Royal run for debugging without changing the
