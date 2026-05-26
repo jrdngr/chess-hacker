@@ -8,6 +8,7 @@
 import { CardListModal } from "../Hand/CardListModal";
 import { FormattedText } from "../FormattedText";
 import { PieceDraft } from "./PieceDraft";
+import { skirmishValueCap } from "../../game/progression/skirmish";
 import type {
   Artifact,
   BossArtifactOffer,
@@ -47,10 +48,14 @@ export function Reward({
 }: Props) {
   // Piece draft comes first in Skirmish — gates boss rewards.
   if (pieceDraftOffer) {
+    const totalMatches = run.config.actCount * run.config.matchesPerAct;
+    const isLastMatch = run.matchNumber >= totalMatches;
+    const nextCap = isLastMatch ? null : skirmishValueCap(run.matchNumber + 1);
     return (
       <PieceDraft
         offer={pieceDraftOffer}
         roster={run.roster ?? []}
+        nextMatchValueCap={nextCap}
         onPick={onPickPiece}
         onSkip={onSkipPieceDraft}
       />

@@ -479,6 +479,23 @@ export function Run({
     setExtras((e) => ({ ...e, pieceDraftOffer: null }));
   };
 
+  // ---- Placement skip (Skirmish dev panel) -----------------------------------
+
+  const onPlacementMatchEnd = useCallback(
+    (outcome: RunMatchOutcome) => {
+      pushRunEvent({
+        kind: "match-end",
+        matchNumber: matchNumberRef.current,
+        won: outcome.won,
+        outcome: outcome.outcome,
+        turnsPlayed: outcome.turnsPlayed,
+      });
+      setRun((r) => applyMatchOutcome(r, outcome));
+      setExtras((e) => ({ ...e, finalOutcome: outcome }));
+    },
+    [pushRunEvent],
+  );
+
   // ---- Placement handler (Skirmish) -----------------------------------------
 
   const onPlacementConfirm = (backRank: (PieceType | null)[], pawnFiles: boolean[]) => {
@@ -697,6 +714,7 @@ export function Run({
           initialArtifacts={run.artifacts}
           initialFen={emptyBoardFen(skirmishBoardSize(run.matchNumber))}
           initialBoardSize={skirmishBoardSize(run.matchNumber)}
+          onMatchEnd={onPlacementMatchEnd}
           runState={run}
           palette={palette}
           onPaletteChange={onPaletteChange}

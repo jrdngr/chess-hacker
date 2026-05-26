@@ -450,26 +450,44 @@ export function usePlacement(
 
   const handleAutoPlace = useCallback(() => {
     if (!config) return;
-    for (const { square } of engine.pieces()) engine.removePiece(square);
 
-    const newPlaced = new Map<number, AlgebraicSquare>();
-    const nonPawnIdxs: number[] = [];
-    const pawnIdxs: number[] = [];
-    let kingIdx = -1;
+    const newPlaced = new Map(placedMap);
+
+    let totalPawns = 0;
+    for (const p of roster) if (p.type === "pawn") totalPawns++;
+
+    let unplacedKingIdx = -1;
+    const unplacedNonPawns: number[] = [];
+    const unplacedPawns: number[] = [];
     for (let i = 0; i < roster.length; i++) {
-      if (roster[i].type === "king") kingIdx = i;
-      else if (roster[i].type === "pawn") pawnIdxs.push(i);
-      else nonPawnIdxs.push(i);
+      if (newPlaced.has(i)) continue;
+      if (roster[i].type === "king") unplacedKingIdx = i;
+      else if (roster[i].type === "pawn") unplacedPawns.push(i);
+      else unplacedNonPawns.push(i);
     }
 
-    const kingFile = Math.floor(files / 2);
-    const kingSq = squareName(kingFile as FileIndex, 0 as RankIndex);
-    engine.placePiece(kingSq, { type: "king", side: "player" });
-    engine.placePiece(mirrorSq(kingSq), { type: "king", side: "opponent" });
-    if (kingIdx >= 0) newPlaced.set(kingIdx, kingSq);
+    if (unplacedKingIdx >= 0) {
+      const center = Math.floor(files / 2);
+      let kingFile = -1;
+      for (let d = 0; d < files; d++) {
+        for (const f of d === 0 ? [center] : [center - d, center + d]) {
+          if (f >= 0 && f < files && !engine.pieceAt(squareName(f as FileIndex, 0 as RankIndex))) {
+            kingFile = f;
+            break;
+          }
+        }
+        if (kingFile >= 0) break;
+      }
+      if (kingFile >= 0) {
+        const kingSq = squareName(kingFile as FileIndex, 0 as RankIndex);
+        engine.placePiece(kingSq, { type: "king", side: "player" });
+        engine.placePiece(mirrorSq(kingSq), { type: "king", side: "opponent" });
+        newPlaced.set(unplacedKingIdx, kingSq);
+      }
+    }
 
     let fi = 0;
-    for (const i of nonPawnIdxs) {
+    for (const i of unplacedNonPawns) {
       while (fi < files && engine.pieceAt(squareName(fi as FileIndex, 0 as RankIndex))) fi++;
       if (fi >= files) break;
       const piece = roster[i];
@@ -478,7 +496,7 @@ export function usePlacement(
         const p = engine.pieceAt(squareName(f as FileIndex, 0 as RankIndex));
         if (p?.side === "player") placed.push(p.type);
       }
-      const pawnVal = Math.min(pawnIdxs.length, files) * SKIRMISH_PIECE_VALUE.pawn;
+      const pawnVal = Math.min(totalPawns, files) * SKIRMISH_PIECE_VALUE.pawn;
       if (placementValue([...placed, piece.type]) + pawnVal > valueCap) continue;
       const sq = squareName(fi as FileIndex, 0 as RankIndex);
       engine.placePiece(sq, { type: piece.type, side: "player" });
@@ -487,18 +505,22 @@ export function usePlacement(
       fi++;
     }
 
-    for (let pi = 0; pi < Math.min(pawnIdxs.length, files); pi++) {
-      const sq = squareName(pi as FileIndex, 1 as RankIndex);
+    let pf = 0;
+    for (const idx of unplacedPawns) {
+      while (pf < files && engine.pieceAt(squareName(pf as FileIndex, 1 as RankIndex))) pf++;
+      if (pf >= files) break;
+      const sq = squareName(pf as FileIndex, 1 as RankIndex);
       engine.placePiece(sq, { type: "pawn", side: "player" });
       engine.placePiece(mirrorSq(sq), { type: "pawn", side: "opponent" });
-      newPlaced.set(pawnIdxs[pi], sq);
+      newPlaced.set(idx, sq);
+      pf++;
     }
 
     setPlacedMap(newPlaced);
     setSelectedSquare(null);
     setSelectedTrayIdx(null);
     bumpVersion();
-  }, [config, engine, roster, files, valueCap, mirrorSq, bumpVersion]);
+  }, [config, engine, roster, files, valueCap, mirrorSq, bumpVersion, placedMap]);
 
   // ---- Subtitle -------------------------------------------------------------
 

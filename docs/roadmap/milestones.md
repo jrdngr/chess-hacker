@@ -141,9 +141,9 @@ Royal stays disabled in the menu — when re-enabled it will default to Chess960
 Live in `src/game/progression/skirmish.ts` + `src/game/progression/placement.ts` + `src/components/Run/PlacementScreen.tsx` + `src/components/Run/PieceDraft.tsx` + `src/components/ModeSelect.tsx`.
 
 - Mode selection screen (Standard + Skirmish selectable, Royal disabled).
-- Skirmish starting roster (K + 2P + N + B), persistent across the run.
+- Skirmish starting roster (K + 3P + N + B), persistent across the run.
 - Piece-draft post-match (1 of 3, rarity-weighted P/N/B/R/Q, pawn hard cap 8).
-- Per-match placement value cap scaling 10→42 across 9 matches.
+- Per-match placement value cap scaling 8→40 across 9 matches.
 - Placement screen: player places back-rank pieces on rank 1 (Chess960 rules) and pawns on rank 2 (free arrangement). Real-time validation.
 - Enemy mirrors the player's placed composition (independent Chess960 layout). Boss matches use canonical armies.
 - Board sizes scale per act (6×6, 7×7, 8×8), same as Standard.

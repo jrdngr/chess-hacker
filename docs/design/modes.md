@@ -60,7 +60,7 @@ When Royal is re-enabled post-prototype, it will default to **Chess960** startin
 
 The roguelite-army experience. The player starts the run with a tiny army and grows their roster across the 9 matches by drafting pieces between matches. Selectable from the mode menu alongside Standard.
 
-- **Starting roster (run start):** king + 2 pawns + 1 knight + 1 bishop. The roster grows via piece drafts between matches.
+- **Starting roster (run start):** king + 3 pawns + 1 knight + 1 bishop. The roster grows via piece drafts between matches.
 - **Opponent army:** mirrors the player's placed composition each match (same piece types, independent Chess960 layout). Boss matches use their canonical hand-crafted armies instead.
 - **Roster management:** persistent across the run. No roster size cap — the player collects pieces freely. A per-match placement value cap (scaling from 10 on M1 to 42 on M9) determines how many pieces can be placed each match.
 - **Post-match rewards:** gold + **piece draft (1 of 3)**. Cards remain shop-only (no card draft in reward).
@@ -75,15 +75,15 @@ Piece values: P=1, N=3, B=3, R=5, Q=9, K=0 (king is free). The per-match cap sca
 
 | Match | Board | Cap |
 |-------|-------|-----|
-| 1 | 6×6 | 10 |
-| 2 | 6×6 | 14 |
-| 3 | 6×6 | 18 |
-| 4 | 7×7 | 22 |
-| 5 | 7×7 | 26 |
-| 6 | 7×7 | 30 |
-| 7 | 8×8 | 34 |
-| 8 | 8×8 | 38 |
-| 9 | 8×8 | 42 |
+| 1 | 6×6 | 8 |
+| 2 | 6×6 | 12 |
+| 3 | 6×6 | 16 |
+| 4 | 7×7 | 20 |
+| 5 | 7×7 | 24 |
+| 6 | 7×7 | 28 |
+| 7 | 8×8 | 32 |
+| 8 | 8×8 | 36 |
+| 9 | 8×8 | 40 |
 
 The cap creates a natural progression: early matches are space-limited (few pieces on a small board), mid-game the value cap starts constraining, and late-game forces meaningful tradeoffs between power and coverage.
 
@@ -91,7 +91,7 @@ The cap creates a natural progression: early matches are space-limited (few piec
 
 | Dimension                        | Standard                       | Royal (disabled)               | Skirmish                       |
 |----------------------------------|--------------------------------|--------------------------------|--------------------------------|
-| Starting roster                  | Per-match curve (auto)         | Standard 16 (fixed)            | Small (5), grows by drafting   |
+| Starting roster                  | Per-match curve (auto)         | Standard 16 (fixed)            | Small (6), grows by drafting   |
 | Roster persistence between games | None (resets per match)        | None (resets)                  | Persistent across run          |
 | Piece drafts                     | No                             | No                             | Yes (1-of-3 each match)        |
 | Placement                        | Chess960 (auto)                | Standard chess setup           | Player chooses (Chess960 rules)|

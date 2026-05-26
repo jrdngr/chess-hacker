@@ -26,15 +26,15 @@ export const SKIRMISH_PIECE_VALUE: Readonly<Record<PieceType, number>> = {
 // ---- Per-match placement value cap -------------------------------------------
 
 const VALUE_CAP_TABLE: ReadonlyArray<number> = [
-  10, // M1  (6x6)
-  14, // M2  (6x6)
-  18, // M3  (6x6, Boss A)
-  22, // M4  (7x7)
-  26, // M5  (7x7)
-  30, // M6  (7x7, Boss B)
-  34, // M7  (8x8)
-  38, // M8  (8x8)
-  42, // M9  (8x8, Boss C)
+  8, // M1  (6x6)
+  12, // M2  (6x6)
+  16, // M3  (6x6, Boss A)
+  20, // M4  (7x7)
+  24, // M5  (7x7)
+  28, // M6  (7x7, Boss B)
+  32, // M7  (8x8)
+  36, // M8  (8x8)
+  40, // M9  (8x8, Boss C)
 ];
 
 export function skirmishValueCap(matchNumber: number): number {
@@ -69,6 +69,7 @@ export const PIECE_SKIP_GOLD = 5;
 
 export const SKIRMISH_STARTING_ROSTER: ReadonlyArray<Piece> = [
   { type: "king", side: "player" },
+  { type: "pawn", side: "player" },
   { type: "pawn", side: "player" },
   { type: "pawn", side: "player" },
   { type: "knight", side: "player" },

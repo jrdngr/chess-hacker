@@ -28,10 +28,10 @@ function makeSkirmishRun(overrides?: Partial<RunState>): RunState {
 }
 
 describe("Skirmish constants", () => {
-  it("starting roster has 5 pieces: K + 2P + N + B", () => {
-    expect(SKIRMISH_STARTING_ROSTER).toHaveLength(5);
+  it("starting roster has 6 pieces: K + 3P + N + B", () => {
+    expect(SKIRMISH_STARTING_ROSTER).toHaveLength(6);
     const types = SKIRMISH_STARTING_ROSTER.map((p) => p.type).sort();
-    expect(types).toEqual(["bishop", "king", "knight", "pawn", "pawn"]);
+    expect(types).toEqual(["bishop", "king", "knight", "pawn", "pawn", "pawn"]);
   });
 
   it("board sizes scale per act", () => {
@@ -43,9 +43,9 @@ describe("Skirmish constants", () => {
     expect(skirmishBoardSize(9)).toEqual({ files: 8, ranks: 8 });
   });
 
-  it("value cap scales from 10 to 42", () => {
-    expect(skirmishValueCap(1)).toBe(10);
-    expect(skirmishValueCap(9)).toBe(42);
+  it("value cap scales from 8 to 40", () => {
+    expect(skirmishValueCap(1)).toBe(8);
+    expect(skirmishValueCap(9)).toBe(40);
     for (let m = 1; m <= 8; m++) {
       expect(skirmishValueCap(m + 1)).toBeGreaterThan(skirmishValueCap(m));
     }
@@ -121,7 +121,7 @@ describe("draftPiece / skipPieceDraft", () => {
 
 describe("rosterPawnCount", () => {
   it("counts only pawns", () => {
-    expect(rosterPawnCount(SKIRMISH_STARTING_ROSTER)).toBe(2);
+    expect(rosterPawnCount(SKIRMISH_STARTING_ROSTER)).toBe(3);
   });
 });
 
@@ -129,7 +129,7 @@ describe("createRun for Skirmish", () => {
   it("starts with the correct roster and placement phase", () => {
     const run = createRun({ mode: "skirmish" });
     expect(run.phase).toBe("placement");
-    expect(run.roster).toHaveLength(5);
+    expect(run.roster).toHaveLength(6);
     expect(run.config).toEqual({ actCount: 3, matchesPerAct: 3 });
   });
 });
@@ -169,12 +169,12 @@ describe("validatePlacement", () => {
 
   it("passes when king is between rooks", () => {
     const backRank: (PieceType | null)[] = ["rook", null, "king", null, "rook", null];
-    const result = validatePlacement(backRank, [false, false, false, false, false, false], 6, 1);
+    const result = validatePlacement(backRank, [false, false, false, false, false, false], 6, 3);
     expect(result.valid).toBe(true);
   });
 
   it("fails when value exceeds cap", () => {
-    // Queen (9) + rook (5) + king (0) + 2 pawns (2) = 16, cap for M1 = 10
+    // Queen (9) + rook (5) + king (0) + 2 pawns (2) = 16, cap for M1 = 8
     const backRank: (PieceType | null)[] = ["rook", null, "king", null, "queen", null];
     const pawnRank = [true, true, false, false, false, false];
     const result = validatePlacement(backRank, pawnRank, 6, 1);

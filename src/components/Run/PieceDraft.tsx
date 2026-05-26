@@ -7,6 +7,7 @@ import styles from "./PieceDraft.module.css";
 type Props = {
   offer: PieceDraftOffer;
   roster: ReadonlyArray<Piece>;
+  nextMatchValueCap: number | null;
   onPick: (pieceType: PieceType) => void;
   onSkip: () => void;
 };
@@ -20,7 +21,7 @@ const PIECE_NAMES: Record<PieceType, string> = {
   king: "King",
 };
 
-export function PieceDraft({ offer, roster, onPick, onSkip }: Props) {
+export function PieceDraft({ offer, roster, nextMatchValueCap, onPick, onSkip }: Props) {
   const rosterTypes = roster.map((p) => p.type);
   const totalValue = placementValue(rosterTypes);
 
@@ -59,6 +60,7 @@ export function PieceDraft({ offer, roster, onPick, onSkip }: Props) {
       </div>
       <p className={styles.rosterInfo}>
         Roster: {roster.length} pieces, {totalValue} total value
+        {nextMatchValueCap !== null && ` · Next match budget: ${nextMatchValueCap}`}
       </p>
 
       <div className={styles.actions}>
