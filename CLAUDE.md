@@ -37,11 +37,19 @@ When you start work, **read `docs/README.md` first** — it is the index for eve
 
 ## Working principles
 
-- **The docs in `docs/` are the source of truth for design intent.** If code disagrees with docs, treat docs as canonical and update the code. If a doc disagrees with a more recent decision, update the doc and call it out in the commit.
+- **The docs in `docs/` capture design intent, but any disagreement between code and docs MUST be resolved by the user.** When you find code and docs in conflict, do not assume either one is canonical and do not silently "fix" one to match the other. Stop and ask the user how to proceed every time, and apply only the resolution they choose.
 - Before adding a new design rule or mechanic, search `docs/` to see if it's already specified or contradicted.
 - Open questions live in `docs/roadmap/open-questions.md`. Don't quietly invent answers in code — record decisions in the relevant design doc.
 - Prefer editing the smallest, most specific doc. Cross-cutting changes should update both the local doc and `docs/glossary.md` if a term changes.
 - This is a **prototype**. Favor simplicity, working code, and fast iteration over architectural purity.
+
+## Issue tracker
+
+`ISSUES.md` is the index of known issues for the repo; each issue links to a dedicated file under `issues/` with full context (locations, problem, recommendation, related issues).
+
+- When working from the tracker, open the linked `issues/` file first and follow its working instructions.
+- **Resolve every issue in its own separate commit, even when resolving several issues in one sitting.** Do not bundle multiple issue fixes into a single commit.
+- After resolving an issue, mark its **Status** as `Done` both in `ISSUES.md` and in the issue's own file as part of that issue's commit.
 
 ## Branch policy
 
