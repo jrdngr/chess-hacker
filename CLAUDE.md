@@ -49,7 +49,7 @@ When you start work, **read `docs/README.md` first** — it is the index for eve
 
 - When working from the tracker, open the linked `issues/` file first and follow its working instructions.
 - **Resolve every issue in its own separate commit, even when resolving several issues in one sitting.** Do not bundle multiple issue fixes into a single commit.
-- After resolving an issue, mark its **Status** as `Done` both in `ISSUES.md` and in the issue's own file as part of that issue's commit.
+- After resolving an issue, delete it entirely as part of that issue's commit: remove its entry from `ISSUES.md` and delete its file under `issues/`. Don't mark it as done — remove it.
 
 ## Branch policy
 

@@ -2,9 +2,9 @@
 
 Issues derived from the comprehensive review in `docs/reviews/2026-05-29-comprehensive-review.md`. Each issue has a dedicated file in `issues/`.
 
-**Working instructions for the agent:** Work issues **one at a time**. Open the linked file for full context (locations, problem, recommendation, related issues). After completing an issue, run the pre-commit checks in `CLAUDE.md` (`npm run format`, `npm run lint`, `npx tsc --noEmit`, `npm test`, `npm run build`), then commit with `jj commit` and mark the issue's **Status** as `Done` here and in its file. Prefer the recommended ordering below (severity-first within each section).
+**Working instructions for the agent:** Work issues **one at a time**. Open the linked file for full context (locations, problem, recommendation, related issues). After completing an issue, run the pre-commit checks in `CLAUDE.md` (`npm run format`, `npm run lint`, `npx tsc --noEmit`, `npm test`, `npm run build`), then commit with `jj commit`. As part of that commit, delete the resolved issue entirely: remove its row here and delete its file under `issues/`. Prefer the recommended ordering below (severity-first within each section).
 
-**Total open issues:** 33
+**Total open issues:** 32
 
 _The Code — Correctness, Tests — Coverage, Tests — Validity (CH-001…024), and Refactor — Duplication (CH-025…030) sections are all resolved and have been removed from this index; their resolution notes live in the individual `issues/` files._
 
@@ -14,7 +14,6 @@ Legend: 🔴 critical · 🟠 high · 🟡 medium · 🔵 low · ⚪ nit
 
 | #      | Sev | Issue                                                                                                           | Status |
 | ------ | --- | --------------------------------------------------------------------------------------------------------------- | ------ |
-| CH-031 | 🔴  | [AI difficulty is flat across the entire run](issues/031-bal-ai-difficulty-flat.md)                             | Done   |
 | CH-032 | 🟠  | [Ascension/heat system is stored but entirely unimplemented](issues/032-bal-ascension-unimplemented.md)         | Open   |
 | CH-033 | 🟠  | [Performance/feat gold bonuses are documented but never awarded](issues/033-bal-feat-gold-not-awarded.md)       | Open   |
 | CH-034 | 🟡  | [Skirmish enemy-mirroring is gameable and removes opponent variety](issues/034-bal-skirmish-mirror-gameable.md) | Open   |
