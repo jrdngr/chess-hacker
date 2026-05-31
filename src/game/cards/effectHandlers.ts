@@ -604,16 +604,24 @@ export function applyEffect(
     }
     case "resurrect-piece": {
       if (target.kind !== "two-squares") return { state, sideEffects: [] };
-      const captured = (state.capturedPieces ?? []).filter((p) => p.side === "player");
+      const all = state.capturedPieces ?? [];
+      const captured = all.filter((p) => p.side === "player");
+      // `chosenCapturedIndex` is an index into the player-filtered list (the UI
+      // shows player-side captures only). Map it back to a position in the
+      // unfiltered array so the right entry is removed even when non-player
+      // entries are interleaved (CH-004).
       const idx = state.chosenCapturedIndex ?? captured.length - 1;
       if (idx < 0 || idx >= captured.length) return { state, sideEffects: [] };
       const entry = captured[idx];
+      let seenPlayer = -1;
+      const removeAt = all.findIndex((p) => {
+        if (p.side === "player") seenPlayer += 1;
+        return p.side === "player" && seenPlayer === idx;
+      });
       return {
         state: {
           ...state,
-          capturedPieces: (state.capturedPieces ?? []).filter(
-            (p, i) => !(p.side === "player" && i === idx),
-          ),
+          capturedPieces: all.filter((_, i) => i !== removeAt),
           chosenCapturedIndex: undefined,
         },
         sideEffects: [{ kind: "place-piece", square: target.second, pieceType: entry.type }],
