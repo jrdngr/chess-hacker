@@ -14,7 +14,7 @@ Legend: 🔴 critical · 🟠 high · 🟡 medium · 🔵 low · ⚪ nit
 
 | #      | Sev | Issue                                                                                                           | Status |
 | ------ | --- | --------------------------------------------------------------------------------------------------------------- | ------ |
-| CH-031 | 🔴  | [AI difficulty is flat across the entire run](issues/031-bal-ai-difficulty-flat.md)                             | Open   |
+| CH-031 | 🔴  | [AI difficulty is flat across the entire run](issues/031-bal-ai-difficulty-flat.md)                             | Done   |
 | CH-032 | 🟠  | [Ascension/heat system is stored but entirely unimplemented](issues/032-bal-ascension-unimplemented.md)         | Open   |
 | CH-033 | 🟠  | [Performance/feat gold bonuses are documented but never awarded](issues/033-bal-feat-gold-not-awarded.md)       | Open   |
 | CH-034 | 🟡  | [Skirmish enemy-mirroring is gameable and removes opponent variety](issues/034-bal-skirmish-mirror-gameable.md) | Open   |

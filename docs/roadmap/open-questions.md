@@ -25,7 +25,8 @@ Loosely grouped by topic.
 - **Stacking limits.** Currently: 1 wall per square, 1 square effect per square (overwrites), unlimited zone buffs. Verify after playtest.
 - **Wall durability.** Currently most walls are timed (2–4 turns). Should permanent walls be more or less common?
 - **"Hazard" squares vs "buff" squares.** Should the design distinguish these explicitly in the UI? Currently they're both "square effects" with different colors.
-- **Pre-placed terrain in normal matches.** Currently only bosses use pre-placed hazards. Should occasional normal matches also feature them as variety? (Would require a "match modifier" pool similar to bosses.)
+- **Pre-placed terrain in normal matches.** Currently only bosses use pre-placed hazards. Should occasional normal matches also feature them as variety? (Would require a "match modifier" pool similar to bosses.) CH-031 decision: non-boss difficulty escalates via engine strength + composition only; *abilities and rule-modifiers stay boss-exclusive* to protect the "boss = special rules" identity. Light, telegraphed *terrain* (terrain only, no abilities) on later normal matches remains the one open avenue here — deferred, not adopted.
+- **Elites / branching map.** No STS-style elite tier exists because the run is a rigid 9-match line with no branching map (`progression.md`). Adding an elite slot (harder-than-normal, easier-than-boss, optionally with its own ability layer) would need a map redesign. Deferred to post-MVP.
 
 ## Artifacts
 
@@ -63,7 +64,6 @@ Loosely grouped by topic.
 
 ## Technical
 
-- **Stockfish skill levels vs depth.** Default: depth-tuned only. Skill-level option is an additional knob if depth scaling is too coarse.
 - **Save format versioning.** Default: simple `version: number` integer. Migration policy: forward-only, fail-soft on incompatibility (drop saved run, preserve meta).
 - **Web Worker placement of curse-AI.** Default main-thread. Move to worker only if profiling shows a problem.
 

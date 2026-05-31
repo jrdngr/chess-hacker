@@ -56,20 +56,51 @@ function variantFor(size: BoardSize): string;
 
 ### Difficulty tuning
 
-| Match type             | Stockfish setting (starting values)  |
-|------------------------|--------------------------------------|
-| Normal early           | Depth 4                              |
-| Normal mid             | Depth 6                              |
-| Normal late (act 3)    | Depth 8                              |
-| Boss A                 | Depth 8                              |
-| Boss B                 | Depth 10                             |
-| Boss C (finale)        | Depth 12                             |
-| Ascension scaling      | +1 depth at certain Ascension levels |
+Difficulty scales across a run via an **`AiStrength` profile**, not a bare
+depth. Depth alone is a lumpy, board-coupled lever (a given depth sees
+relatively further on the smaller early boards), and it only makes the engine
+*shallower*, never *beatably weak* — it still never hangs a piece to a short
+tactic. So the early game leans on Fairy-Stockfish's **`Skill Level`** (0–20),
+which injects deliberate, human-like suboptimal move selection, and the late
+game leans on **depth**. `UCI_LimitStrength` + `UCI_Elo` are also wired in the
+wrapper (`setStrength`) as an alternative cap, though the run schedule uses
+Skill Level.
 
-Depth values are starting points; tune from playtesting.
+The per-match schedule lives in `src/game/progression/aiStrength.ts`
+(`aiStrengthForMatch(matchNumber, ascension)`) and is shared by Standard and
+Skirmish (both run 9 matches with bosses at 3/6/9):
 
-For the M2 free-play screen (no run / shop / cards yet), the user picks
-between three depths via a Difficulty selector:
+| Match            | Skill Level | Depth |
+|------------------|-------------|-------|
+| 1                | 3           | 6     |
+| 2                | 6           | 6     |
+| 3 — Boss A       | 12          | 8     |
+| 4                | 9           | 7     |
+| 5                | 13          | 7     |
+| 6 — Boss B       | 16          | 10    |
+| 7                | 16          | 8     |
+| 8                | 18          | 9     |
+| 9 — Boss C       | 20          | 12    |
+
+Each new act resets the non-boss baseline below the prior boss, then climbs;
+bosses spike above their neighbours (the engine plays "for real" on top of the
+boss's modifier/hazard/status layers). **Ascension** sharpens the engine: +2
+Skill Level per level (cap 20) and +1 depth per two levels (cap 16) — the
+"Sharper Mind" axis from `progression.md`. Numbers are first-pass; tune from
+playtesting.
+
+**Why non-boss matches don't get abilities.** The escalation between bosses
+comes from engine strength (this schedule) plus the composition/board-size
+curve in `standard.ts` — *not* from giving normal enemies status effects or
+rule-modifiers. Active/passive ability kits and match-modifiers stay
+boss-exclusive so "boss = special rules" remains the boss identity. (Whether
+*later* normal matches should get light, telegraphed board *terrain* — terrain
+only, no abilities — is still open; see `roadmap/open-questions.md`.)
+
+For the M2 free-play screen (no run / shop / cards yet), the user instead picks
+between three depths via a Difficulty selector, which maps to a depth-only
+`AiStrength` (`strengthForDifficulty`). The per-run schedule overrides this
+selector and hides it in run mode.
 
 | Difficulty | Depth |
 |------------|-------|
@@ -175,13 +206,13 @@ Curse insertion happens at end of the player's turn so that the curse appears in
 
 ## Future: AI difficulty modulation
 
-Beyond depth, we may explore:
+`Skill Level` is now part of the per-match schedule (see Difficulty tuning).
+Knobs we may still explore:
 
-- **Skill level:** Fairy-Stockfish has a `Skill Level` UCI option (0–20) that intentionally weakens play.
-- **Move time vs depth:** time-bounded search caps unpredictability.
-- **Temperature / random suboptimal selection:** for the lowest difficulty, occasionally pick a non-optimal move from the top-K.
+- **Move time vs depth:** time-bounded search caps unpredictability. `AiStrength` already supports `movetimeMs` as an alternative to `depth`; the schedule doesn't use it yet.
+- **Temperature / random suboptimal selection:** for the lowest difficulty, occasionally pick a non-optimal move from the top-K (beyond what Skill Level already does).
 
-These are tuning knobs we can reach for if depth alone produces too steep a curve. Don't pre-build them — add when needed.
+Reach for these only if the Skill-Level + depth schedule produces too steep or too flat a curve in playtesting.
 
 ## Testing
 

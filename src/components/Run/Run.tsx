@@ -1,7 +1,7 @@
 // Run shell — owns the run state machine and routes between match, reward,
 // and shop phases.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Match } from "../Match";
 import { MatchWonPanel } from "./MatchWonPanel";
@@ -35,6 +35,7 @@ import {
 } from "../../game/progression/skirmish";
 import { buildSkirmishFen, emptyBoardFen } from "../../game/progression/placement";
 import { resolvePieceSet, standardMatchConfig } from "../../game/progression/standard";
+import { aiStrengthForMatch } from "../../game/progression/aiStrength";
 import { makeRng } from "../../game/cards/match";
 import { applyInterest, generateShop } from "../../game/shop/shop";
 import { goldOnMatchStart } from "../../game/artifacts/effects";
@@ -665,6 +666,13 @@ export function Run({
     });
   };
 
+  // Per-match engine strength (CH-031): scaled by match number + Ascension so
+  // the AI ramps across the run instead of sitting at a flat depth 6.
+  const aiStrength = useMemo(
+    () => aiStrengthForMatch(run.matchNumber, run.ascension),
+    [run.matchNumber, run.ascension],
+  );
+
   // ---- Render -------------------------------------------------------------
 
   return (
@@ -681,6 +689,7 @@ export function Run({
             onLoadDeck={(deck) => setRun((r) => ({ ...r, deck: deck.slice() }))}
             initialFen={extras.matchSetup.fen}
             initialBoardSize={extras.matchSetup.size}
+            aiStrength={aiStrength}
             activeBoss={activeBossFor(run)}
             onMatchEnd={onMatchEnd}
             onCaptureFinalSnapshot={onCaptureFinalSnapshot}

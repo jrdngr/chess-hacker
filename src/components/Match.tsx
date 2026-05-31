@@ -74,9 +74,11 @@ import { usePlacement, type PlacementConfig } from "./Match/usePlacement";
 import { useUndoRedo } from "./Match/useUndoRedo";
 import { ChoseEngine, type EngineSnapshot, type LegalMove } from "../game/chess/engine";
 import {
+  type AiStrength,
   type Difficulty,
   type StockfishEngine,
   type StockfishOptions,
+  strengthForDifficulty,
   uciToMove,
 } from "../ai/stockfish";
 import { parseFen } from "../game/chess/rules";
@@ -159,6 +161,11 @@ type Props = {
   /** Default mode. Defaults to "vs-ai". Tests pass "local-pvp" to skip AI. */
   initialMode?: MatchMode;
   initialDifficulty?: Difficulty;
+  /**
+   * Per-match engine strength from the run schedule (CH-031). When provided it
+   * overrides the free-play difficulty selector, which is hidden in run mode.
+   */
+  aiStrength?: AiStrength;
   /** Optional starting FEN. Used by tests to set up specific positions. */
   initialFen?: string;
   /**
@@ -340,6 +347,7 @@ export function Match({
   onMatchEnd,
   initialMode = "vs-ai",
   initialDifficulty = "normal",
+  aiStrength,
   initialFen,
   initialBoardSize,
   createAi,
@@ -377,6 +385,12 @@ export function Match({
   // of the Match. The AI itself is gated separately by `devAiOn` below.
   const mode: MatchMode = runMode === "dev" ? "vs-ai" : initialMode;
   const [difficulty, setDifficulty] = useState<Difficulty>(initialDifficulty);
+  // Run mode passes a scheduled strength (CH-031); free-play derives one from
+  // the manual difficulty selector. The run schedule always wins when present.
+  const effectiveStrength = useMemo<AiStrength>(
+    () => aiStrength ?? strengthForDifficulty(difficulty),
+    [aiStrength, difficulty],
+  );
   const [engine, setEngine] = useState(() => {
     const e = new ChoseEngine(initialFen, initialBoardSize);
     if (initialEngineSnapshot) e.restore(initialEngineSnapshot);
@@ -927,7 +941,7 @@ export function Match({
     engine,
     mode,
     cardsEnabled,
-    difficulty,
+    aiStrength: effectiveStrength,
     aiMinThinkMs,
     displayOnly,
     createAi,
@@ -1390,8 +1404,9 @@ export function Match({
             {runState && <RunPathPanel run={runState} />}
             <ThreatPanel
               boss={activeBoss ?? null}
-              difficulty={difficulty}
-              onDifficultyChange={setDifficulty}
+              {...(aiStrength
+                ? { strength: aiStrength }
+                : { difficulty, onDifficultyChange: setDifficulty })}
             />
           </aside>
         )}

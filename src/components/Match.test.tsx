@@ -181,6 +181,7 @@ function makeFakeAi(moves: string[], searchMovesLog?: ReadonlyArray<string>[]): 
     ready: () => Promise.resolve(),
     setVariant: () => {},
     setPosition: () => {},
+    setStrength: () => {},
     getBestMove: (opts) => {
       if (searchMovesLog) searchMovesLog.push(opts.searchMoves ?? []);
       return Promise.resolve(moves[idx++] ?? "");
@@ -248,6 +249,7 @@ describe("Match (vs AI)", () => {
       ready: () => Promise.resolve(),
       setVariant: () => {},
       setPosition: () => {},
+      setStrength: () => {},
       getBestMove: () => Promise.reject(new Error("simulated engine failure")),
       stop: () => {},
       destroy: () => {},
@@ -284,6 +286,34 @@ describe("Match (vs AI)", () => {
       expect(spy).toHaveBeenCalled();
     });
     expect(spy.mock.calls[0][0]).toMatchObject({ depth: 10 });
+  });
+
+  it("uses the run-schedule aiStrength and hides the manual selector", async () => {
+    const user = userEvent.setup();
+    const ai = makeFakeAi([]);
+    const moveSpy = vi.spyOn(ai, "getBestMove");
+    const strengthSpy = vi.spyOn(ai, "setStrength");
+    render(
+      <Match
+        initialMode="vs-ai"
+        aiStrength={{ skillLevel: 4, depth: 8 }}
+        createAi={() => ai}
+        aiMinThinkMs={0}
+      />,
+    );
+
+    // Run mode drives strength from the schedule; the free-play depth selector
+    // is not rendered.
+    expect(screen.queryByLabelText(/stockfish depth/i)).not.toBeInTheDocument();
+
+    await user.click(squareCell("e2")!);
+    await user.click(squareCell("e4")!);
+
+    await waitFor(() => {
+      expect(moveSpy).toHaveBeenCalled();
+    });
+    expect(strengthSpy).toHaveBeenCalledWith({ skillLevel: 4, depth: 8 });
+    expect(moveSpy.mock.calls[0][0]).toMatchObject({ depth: 8 });
   });
 });
 

@@ -8,9 +8,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   StockfishEngine,
-  type Difficulty,
+  type AiStrength,
   type StockfishOptions,
-  depthForDifficulty,
+  goBoundsForStrength,
   legalMoveToUci,
   uciToMove,
   variantFor,
@@ -39,7 +39,8 @@ type Params = {
   /** Match's per-mode flag — drives the spawn-effect mount/unmount. */
   mode: "vs-ai" | "local-pvp";
   cardsEnabled: boolean;
-  difficulty: Difficulty;
+  /** Engine strength for this match — per-match run schedule or free-play selector. */
+  aiStrength: AiStrength;
   aiMinThinkMs: number;
   /** True when the match shouldn't run the AI (history scrub / final replay). */
   displayOnly: boolean;
@@ -83,7 +84,7 @@ export function useAiLoop({
   engine,
   mode,
   cardsEnabled,
-  difficulty,
+  aiStrength,
   aiMinThinkMs,
   displayOnly,
   createAi,
@@ -157,6 +158,9 @@ export function useAiLoop({
       await ai.ready();
       if (isCancelled() || generationRef.current !== myGen) return;
       ai.setPosition(engine.fen());
+      // Apply the per-match strength (persistent setoptions) right before the
+      // search so the schedule / free-play selector takes effect immediately.
+      ai.setStrength(aiStrength);
       const candidates = engine.legalMoves().map(legalMoveToUci);
       // Engine reply, watchdog'd so a freak hang falls back to a random move
       // instead of locking the game on "thinking…" forever. On rejection we
@@ -167,7 +171,7 @@ export function useAiLoop({
       try {
         [uci] = await Promise.all([
           ai.getBestMove({
-            depth: depthForDifficulty(difficulty),
+            ...goBoundsForStrength(aiStrength),
             searchMoves: candidates,
             watchdogMs: AI_WATCHDOG_MS,
           }),
@@ -307,7 +311,7 @@ export function useAiLoop({
     },
     [
       engine,
-      difficulty,
+      aiStrength,
       aiMinThinkMs,
       cardsEnabled,
       cardState,

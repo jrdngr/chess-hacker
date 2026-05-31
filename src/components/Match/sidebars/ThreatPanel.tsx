@@ -1,21 +1,30 @@
-// THREAT panel — boss intel + Stockfish depth dropdown. With a boss active
+// THREAT panel — boss intel + Stockfish strength readout. With a boss active
 // the panel switches to a red accent and shows the modifier description; in
 // regular matches it falls back to a "NO HOSTILE INTEL // ENGAGE.AI"
-// placeholder. The depth dropdown lives in both states.
+// placeholder.
+//
+// Free-play exposes a manual depth dropdown (`difficulty`/`onDifficultyChange`).
+// Run mode instead drives strength from the per-match schedule (CH-031) and
+// passes `strength` for a read-only readout — the player can't hand-pick depth
+// mid-run.
 
 import type { BossDef } from "../../../game/types";
-import type { Difficulty } from "../../../ai/stockfish";
+import type { AiStrength, Difficulty } from "../../../ai/stockfish";
 
 import { Panel } from "./Panel";
 import styles from "./ThreatPanel.module.css";
 
 type Props = {
   boss?: BossDef | null;
-  difficulty: Difficulty;
-  onDifficultyChange: (d: Difficulty) => void;
+  /** Free-play manual selector. Omit in run mode. */
+  difficulty?: Difficulty;
+  onDifficultyChange?: (d: Difficulty) => void;
+  /** Run-mode read-only strength readout. Omit in free-play. */
+  strength?: AiStrength;
 };
 
-export function ThreatPanel({ boss, difficulty, onDifficultyChange }: Props) {
+export function ThreatPanel({ boss, difficulty, onDifficultyChange, strength }: Props) {
+  const showSelector = difficulty != null && onDifficultyChange != null;
   return (
     <Panel
       title="THREAT"
@@ -38,21 +47,30 @@ export function ThreatPanel({ boss, difficulty, onDifficultyChange }: Props) {
           </div>
         </>
       )}
-      <div className={styles.depthRow}>
-        <label htmlFor="threat-depth" className={styles.depthLabel}>
-          STOCKFISH DEPTH
-        </label>
-        <select
-          id="threat-depth"
-          className={styles.depthSelect}
-          value={difficulty}
-          onChange={(e) => onDifficultyChange(e.target.value as Difficulty)}
-        >
-          <option value="easy">EASY · D2</option>
-          <option value="normal">NORMAL · D6</option>
-          <option value="hard">HARD · D10</option>
-        </select>
-      </div>
+      {showSelector ? (
+        <div className={styles.depthRow}>
+          <label htmlFor="threat-depth" className={styles.depthLabel}>
+            STOCKFISH DEPTH
+          </label>
+          <select
+            id="threat-depth"
+            className={styles.depthSelect}
+            value={difficulty}
+            onChange={(e) => onDifficultyChange(e.target.value as Difficulty)}
+          >
+            <option value="easy">EASY · D2</option>
+            <option value="normal">NORMAL · D6</option>
+            <option value="hard">HARD · D10</option>
+          </select>
+        </div>
+      ) : strength ? (
+        <div className={styles.depthRow}>
+          <span className={styles.depthLabel}>STOCKFISH</span>
+          <span className={styles.depthSelect}>
+            SKILL {strength.skillLevel ?? 20} · D{strength.depth ?? 6}
+          </span>
+        </div>
+      ) : null}
     </Panel>
   );
 }

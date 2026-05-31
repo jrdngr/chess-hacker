@@ -9,7 +9,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   StockfishEngine,
   depthForDifficulty,
+  goBoundsForStrength,
   legalMoveToUci,
+  strengthForDifficulty,
   uciToMove,
   variantFor,
 } from "./stockfish";
@@ -79,6 +81,23 @@ describe("depthForDifficulty", () => {
   });
 });
 
+describe("strengthForDifficulty", () => {
+  it("maps a free-play difficulty to a depth-only strength profile", () => {
+    expect(strengthForDifficulty("easy")).toEqual({ depth: 2 });
+    expect(strengthForDifficulty("hard")).toEqual({ depth: 10 });
+  });
+});
+
+describe("goBoundsForStrength", () => {
+  it("prefers movetime when present", () => {
+    expect(goBoundsForStrength({ movetimeMs: 250, depth: 8 })).toEqual({ movetimeMs: 250 });
+  });
+  it("falls back to depth, defaulting to 6", () => {
+    expect(goBoundsForStrength({ skillLevel: 4, depth: 8 })).toEqual({ depth: 8 });
+    expect(goBoundsForStrength({ skillLevel: 4 })).toEqual({ depth: 6 });
+  });
+});
+
 describe("StockfishEngine", () => {
   it("sends 'uci' on construction and points at the variants.ini after uciok", () => {
     new StockfishEngine({ workerUrl: "/fake.js", variantPath: "/v/test.ini" });
@@ -110,6 +129,36 @@ describe("StockfishEngine", () => {
     const w = FakeWorker.instances[0]!;
     sf.setVariant("chess-hacker6x6");
     expect(w.posted.at(-1)).toBe("setoption name UCI_Variant value chess-hacker6x6");
+  });
+
+  it("setStrength forwards Skill Level and disables Elo limiting by default", () => {
+    const sf = new StockfishEngine({ workerUrl: "/fake.js" });
+    const w = FakeWorker.instances[0]!;
+    sf.setStrength({ skillLevel: 4 });
+    expect(w.posted.slice(-2)).toEqual([
+      "setoption name Skill Level value 4",
+      "setoption name UCI_LimitStrength value false",
+    ]);
+  });
+
+  it("setStrength clamps Skill Level to 0..20 and defaults to full strength", () => {
+    const sf = new StockfishEngine({ workerUrl: "/fake.js" });
+    const w = FakeWorker.instances[0]!;
+    sf.setStrength({ skillLevel: 99 });
+    expect(w.posted.at(-2)).toBe("setoption name Skill Level value 20");
+    sf.setStrength({});
+    expect(w.posted.at(-2)).toBe("setoption name Skill Level value 20");
+  });
+
+  it("setStrength enables UCI_LimitStrength + UCI_Elo when an Elo is given", () => {
+    const sf = new StockfishEngine({ workerUrl: "/fake.js" });
+    const w = FakeWorker.instances[0]!;
+    sf.setStrength({ elo: 1200 });
+    expect(w.posted.slice(-3)).toEqual([
+      "setoption name Skill Level value 20",
+      "setoption name UCI_LimitStrength value true",
+      "setoption name UCI_Elo value 1200",
+    ]);
   });
 
   it("setPosition forwards a position fen command", () => {

@@ -225,6 +225,32 @@ export class StockfishEngine {
   }
 
   /**
+   * Apply an {@link AiStrength} profile via persistent UCI setoptions. The
+   * options stick on this engine instance until changed, so call it before a
+   * search whenever the desired strength may have shifted (per-match schedule,
+   * free-play selector).
+   *
+   * - `skillLevel` (0–20) drives Fairy-Stockfish's `Skill Level`, which injects
+   *   deliberate, human-like suboptimal move selection at low values. Omitted
+   *   (or 20) means full strength.
+   * - `elo` enables `UCI_LimitStrength` and targets `UCI_Elo`. When omitted we
+   *   explicitly disable limiting so a prior cap doesn't linger on the instance.
+   *
+   * Depth / movetime are NOT set here — they're per-search `go` bounds passed
+   * to {@link getBestMove} (see {@link goBoundsForStrength}).
+   */
+  setStrength(s: AiStrength): void {
+    const skill = Math.max(0, Math.min(20, Math.round(s.skillLevel ?? 20)));
+    this.send(`setoption name Skill Level value ${skill}`);
+    if (s.elo != null) {
+      this.send("setoption name UCI_LimitStrength value true");
+      this.send(`setoption name UCI_Elo value ${Math.round(s.elo)}`);
+    } else {
+      this.send("setoption name UCI_LimitStrength value false");
+    }
+  }
+
+  /**
    * Ask the engine for the best move at the current position.
    * Resolves with a UCI move string. Rejects if a search is already running.
    *
@@ -484,4 +510,35 @@ export function depthForDifficulty(d: Difficulty): number {
     case "hard":
       return 10;
   }
+}
+
+/**
+ * A full AI strength profile. Combines the persistent weakening knobs
+ * (`skillLevel`, `elo` — applied via {@link StockfishEngine.setStrength}) with
+ * the per-search bound (`depth` xor `movetimeMs` — applied via
+ * {@link goBoundsForStrength}). Scaling these together across a run is the
+ * fix for the flat-difficulty problem (CH-031): depth alone is a lumpy,
+ * board-coupled lever, whereas Skill Level produces a smoother, more beatable
+ * early game.
+ */
+export type AiStrength = {
+  /** Fairy-Stockfish `Skill Level` (0–20). Omitted (or 20) = full strength. */
+  skillLevel?: number;
+  /** Target Elo via `UCI_LimitStrength` + `UCI_Elo`. Omitted = no Elo cap. */
+  elo?: number;
+  /** Search depth bound (plies). Mutually exclusive with `movetimeMs`. */
+  depth?: number;
+  /** Search time bound (ms). Mutually exclusive with `depth`. */
+  movetimeMs?: number;
+};
+
+/** Derive the per-search `go` bound from a strength profile (depth default 6). */
+export function goBoundsForStrength(s: AiStrength): { depth: number } | { movetimeMs: number } {
+  if (s.movetimeMs != null) return { movetimeMs: s.movetimeMs };
+  return { depth: s.depth ?? 6 };
+}
+
+/** Adapt a free-play difficulty selection to a strength profile (depth only). */
+export function strengthForDifficulty(d: Difficulty): AiStrength {
+  return { depth: depthForDifficulty(d) };
 }
