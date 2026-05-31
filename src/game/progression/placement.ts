@@ -1,7 +1,7 @@
 // Skirmish placement validation and FEN generation.
 
 import type { Rng } from "../cards/match";
-import { placeBackRank } from "../chess/positions";
+import { backRankLegalityErrors, placeBackRank } from "../chess/positions";
 import { pawnStartRank, serializeFen, type Position } from "../chess/rules";
 import { squareName } from "../chess/coords";
 import type { BoardSize, PieceSet, PieceType, Side } from "../types";
@@ -30,23 +30,9 @@ export function validatePlacement(
     errors.push("King must be placed on the back rank.");
   }
 
-  const bishops = backRank.map((t, f) => (t === "bishop" ? f : -1)).filter((f) => f >= 0);
-  if (bishops.length >= 2) {
-    const parities = new Set(bishops.map((f) => f % 2));
-    if (parities.size === 1) {
-      errors.push("Bishops must be on opposite-colored squares.");
-    }
-  }
-
-  const rooks = backRank.map((t, f) => (t === "rook" ? f : -1)).filter((f) => f >= 0);
-  const kingFile = backRank.indexOf("king");
-  if (rooks.length >= 2 && kingFile >= 0) {
-    const minRook = Math.min(...rooks);
-    const maxRook = Math.max(...rooks);
-    if (kingFile <= minRook || kingFile >= maxRook) {
-      errors.push("King must be placed between the rooks.");
-    }
-  }
+  // Bishop-color and king-between-rooks geometry — shared with the Chess960
+  // generator so the two never drift.
+  errors.push(...backRankLegalityErrors(backRank));
 
   const allPlaced: PieceType[] = [...placed];
   for (let f = 0; f < files; f++) {

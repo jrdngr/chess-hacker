@@ -32,7 +32,14 @@ import type {
   RankIndex,
   Side,
 } from "../types";
-import { squareCoords, squareName } from "./coords";
+import {
+  DIAGONAL_OFFSETS,
+  HORIZONTAL_OFFSETS,
+  KNIGHT_OFFSETS,
+  ORTHOGONAL_OFFSETS,
+  squareCoords,
+  squareName,
+} from "./coords";
 
 // `squareName` / `squareCoords` are the canonical coordinate helpers (now in
 // `./coords`). Re-exported here because the engine surface has exposed them
@@ -316,28 +323,11 @@ export function serializeFen(pos: Position): string {
 
 // ---- Move geometry ---------------------------------------------------------
 
-const KNIGHT_DELTAS: ReadonlyArray<readonly [number, number]> = [
-  [1, 2],
-  [2, 1],
-  [-1, 2],
-  [-2, 1],
-  [1, -2],
-  [2, -1],
-  [-1, -2],
-  [-2, -1],
-];
-const ROOK_DIRS: ReadonlyArray<readonly [number, number]> = [
-  [1, 0],
-  [-1, 0],
-  [0, 1],
-  [0, -1],
-];
-const BISHOP_DIRS: ReadonlyArray<readonly [number, number]> = [
-  [1, 1],
-  [-1, 1],
-  [1, -1],
-  [-1, -1],
-];
+// Move-direction tables live in `./coords` (shared with the card / overlay
+// geometry). Aliased to the engine's historical names; ordering is preserved.
+const KNIGHT_DELTAS = KNIGHT_OFFSETS;
+const ROOK_DIRS = ORTHOGONAL_OFFSETS;
+const BISHOP_DIRS = DIAGONAL_OFFSETS;
 const QUEEN_DIRS: ReadonlyArray<readonly [number, number]> = [...ROOK_DIRS, ...BISHOP_DIRS];
 const KING_DIRS = QUEEN_DIRS;
 
@@ -917,10 +907,7 @@ function addEmpowerMoves(
   }
 }
 
-const HORIZONTAL_DELTAS: ReadonlyArray<readonly [number, number]> = [
-  [1, 0],
-  [-1, 0],
-];
+const HORIZONTAL_DELTAS = HORIZONTAL_OFFSETS;
 
 function addEmpowerPawnMoves(
   out: RuleMove[],

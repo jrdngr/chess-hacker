@@ -30,7 +30,14 @@ import {
   type Rng,
 } from "./match";
 import { getCardById } from "./library";
-import { FILES, KING_OFFSETS, fileOf, kingAdjacentSquares, rankNumberOf } from "../chess/coords";
+import {
+  FILES,
+  KING_OFFSETS,
+  KNIGHT_OFFSETS,
+  fileOf,
+  kingAdjacentSquares,
+  rankNumberOf,
+} from "../chess/coords";
 
 function opposite(s: Side): Side {
   return s === "player" ? "opponent" : "player";
@@ -683,17 +690,7 @@ function friendlySquaresInBlast(
 ): AlgebraicSquare[] {
   const cf = fileOf(center);
   const cr = rankNumberOf(center);
-  const knightSteps: ReadonlyArray<readonly [number, number]> = [
-    [-2, -1],
-    [-2, 1],
-    [-1, -2],
-    [-1, 2],
-    [1, -2],
-    [1, 2],
-    [2, -1],
-    [2, 1],
-  ];
-  const offsets = pattern === "king-step" ? KING_OFFSETS : [...KING_OFFSETS, ...knightSteps];
+  const offsets = pattern === "king-step" ? KING_OFFSETS : [...KING_OFFSETS, ...KNIGHT_OFFSETS];
   const out: AlgebraicSquare[] = [];
   for (const [df, dr] of offsets) {
     const f = cf + df;

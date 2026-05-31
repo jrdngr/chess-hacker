@@ -2,7 +2,7 @@
 
 - **Category:** Refactor — Duplication
 - **Severity:** low
-- **Status:** Open
+- **Status:** Done
 
 ## Locations
 
@@ -23,6 +23,31 @@ A cluster of smaller duplications: private `squareName`/`sq` helpers duplicated 
 ## Recommendation
 
 Consolidate each into a single shared export. Export the rules.ts offset tables; pick one shuffle; share one Chess960 legality predicate; reuse `PIECE_NAMES`.
+
+## Resolution
+
+- **Private `squareName`/`sq` helpers** (positions.ts, placement.ts) — already
+  removed under CH-026; both call the canonical `squareName`.
+- **Offset tables** — `KNIGHT_OFFSETS`, `ORTHOGONAL_OFFSETS`,
+  `DIAGONAL_OFFSETS`, `HORIZONTAL_OFFSETS` now live in `chess/coords.ts`
+  (alongside `KING_OFFSETS` from CH-028). `rules.ts` aliases its
+  `KNIGHT_DELTAS` / `ROOK_DIRS` / `BISHOP_DIRS` / `HORIZONTAL_DELTAS` to them
+  (orders unchanged, so move generation is identical); `effectHandlers.ts`
+  (`friendlySquaresInBlast` knight table) and `zoneBuffs.ts`
+  (`ORTHOGONAL_OFFSETS`) import the shared tables instead of redefining them.
+- **Shuffle** — `positions.ts` `shuffleInPlace` removed; it now uses
+  `shuffle` from `cards/match.ts`. Both are the same Fisher-Yates loop, so the
+  seeded permutation is unchanged. (The distinct `pickK` partial shuffle is
+  left as-is.)
+- **Chess960 legality** — extracted `backRankLegalityErrors(backRank)` in
+  `positions.ts` (bishop-opposite-color + king-between-rooks); `placement.ts`
+  `validatePlacement` calls it instead of re-implementing the checks.
+- **Piece-name title-casing** — added `components/Board/pieceNames.ts`
+  (`PIECE_NAMES` + `pieceLabel`); `PieceDraft.tsx` imports `PIECE_NAMES` and
+  `Match.tsx`'s three `type.charAt(0).toUpperCase() + type.slice(1)` sites use
+  `pieceLabel`.
+
+All 576 tests pass.
 
 ## Related Issues
 

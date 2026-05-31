@@ -1,4 +1,5 @@
 import { PieceGlyph } from "../Board/PieceGlyph";
+import { PIECE_NAMES } from "../Board/pieceNames";
 import { SKIRMISH_PIECE_VALUE, placementValue } from "../../game/progression/skirmish";
 import type { Piece, PieceDraftOffer, PieceType } from "../../game/types";
 
@@ -10,15 +11,6 @@ type Props = {
   nextMatchValueCap: number | null;
   onPick: (pieceType: PieceType) => void;
   onSkip: () => void;
-};
-
-const PIECE_NAMES: Record<PieceType, string> = {
-  pawn: "Pawn",
-  knight: "Knight",
-  bishop: "Bishop",
-  rook: "Rook",
-  queen: "Queen",
-  king: "King",
 };
 
 export function PieceDraft({ offer, roster, nextMatchValueCap, onPick, onSkip }: Props) {

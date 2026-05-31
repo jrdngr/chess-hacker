@@ -72,6 +72,46 @@ export function withinBounds(size: BoardSize, file: number, rank: number): boole
   return file >= 0 && file < size.files && rank >= 0 && rank < size.ranks;
 }
 
+// ---- Geometry: piece move-direction tables --------------------------------
+//
+// `[df, dr]` deltas shared by the rule engine (move generation) and the card /
+// overlay geometry. Orders match the rule engine's historical move-generation
+// order, so move lists — and the tests that assert them — are unchanged.
+
+/** Knight move offsets. */
+export const KNIGHT_OFFSETS: ReadonlyArray<readonly [number, number]> = [
+  [1, 2],
+  [2, 1],
+  [-1, 2],
+  [-2, 1],
+  [1, -2],
+  [2, -1],
+  [-1, -2],
+  [-2, -1],
+];
+
+/** Orthogonal (rook) directions. */
+export const ORTHOGONAL_OFFSETS: ReadonlyArray<readonly [number, number]> = [
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+  [0, -1],
+];
+
+/** Diagonal (bishop) directions. */
+export const DIAGONAL_OFFSETS: ReadonlyArray<readonly [number, number]> = [
+  [1, 1],
+  [-1, 1],
+  [1, -1],
+  [-1, -1],
+];
+
+/** Horizontal (left/right) single steps. */
+export const HORIZONTAL_OFFSETS: ReadonlyArray<readonly [number, number]> = [
+  [1, 0],
+  [-1, 0],
+];
+
 /**
  * The king-step-adjacent squares around `center` that lie on a `size` board.
  * Excludes `center` itself unless `includeCenter` is set (the 3×3 region used

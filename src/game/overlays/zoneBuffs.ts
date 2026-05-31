@@ -12,7 +12,7 @@
 // Pure TypeScript — no React. The pattern matches the rest of `game/`.
 
 import type { AlgebraicSquare, BoardSize, PieceType, Side, ZoneBuff, ZoneRegion } from "../types";
-import { FILES, KING_OFFSETS, fileOf, rankNumberOf } from "../chess/coords";
+import { FILES, KING_OFFSETS, ORTHOGONAL_OFFSETS, fileOf, rankNumberOf } from "../chess/coords";
 
 /** Just enough of the chess board to evaluate zone-buff control. */
 export type ZoneBoardContext = {
@@ -82,13 +82,6 @@ export function centerCoords(size: BoardSize): Array<[number, number]> {
   for (const f of fs) for (const r of rs) out.push([f, r]);
   return out;
 }
-
-const ORTHOGONAL_OFFSETS: ReadonlyArray<[number, number]> = [
-  [0, 1],
-  [0, -1],
-  [1, 0],
-  [-1, 0],
-];
 
 /**
  * True iff the buff's controlling side has at least one piece on any square

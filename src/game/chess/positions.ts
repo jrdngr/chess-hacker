@@ -18,13 +18,44 @@
 // arrangements may be lopsided on small boards). Tuning targets across the run
 // rely on the piece curve, not on per-match position equality.
 
-import type { Rng } from "../cards/match";
+import { shuffle, type Rng } from "../cards/match";
 import type { BoardSize, PieceSet, PieceType, Side } from "../types";
 import { pawnStartRank, serializeFen, type Position } from "./rules";
 import { squareName } from "./coords";
 
 /** A generated starting position bundled with the board size it lives on. */
 export type GeneratedPosition = { fen: string; size: BoardSize };
+
+/**
+ * Chess960 back-rank geometry checks, shared by this generator and the
+ * Skirmish placement validator (`progression/placement.ts`). Returns
+ * human-readable errors; an empty array means the back rank is legal. Only the
+ * bishop-opposite-color and king-between-rooks constraints are checked here —
+ * king presence and the placement value cap are the validator's own concern.
+ */
+export function backRankLegalityErrors(backRank: ReadonlyArray<PieceType | null>): string[] {
+  const errors: string[] = [];
+
+  const bishops = backRank.map((t, f) => (t === "bishop" ? f : -1)).filter((f) => f >= 0);
+  if (bishops.length >= 2) {
+    const parities = new Set(bishops.map((f) => f % 2));
+    if (parities.size === 1) {
+      errors.push("Bishops must be on opposite-colored squares.");
+    }
+  }
+
+  const rooks = backRank.map((t, f) => (t === "rook" ? f : -1)).filter((f) => f >= 0);
+  const kingFile = backRank.indexOf("king");
+  if (rooks.length >= 2 && kingFile >= 0) {
+    const minRook = Math.min(...rooks);
+    const maxRook = Math.max(...rooks);
+    if (kingFile <= minRook || kingFile >= maxRook) {
+      errors.push("King must be placed between the rooks.");
+    }
+  }
+
+  return errors;
+}
 
 /**
  * Place the back-rank pieces randomly, respecting the bishop and rook
@@ -77,10 +108,10 @@ export function placeBackRank(pieceSet: PieceSet, files: number, rng: Rng): (Pie
   //    drop into the remaining empty slots in order.
   const leftover: PieceType[] = [];
   for (const [t, n] of counts) for (let i = 0; i < n; i++) leftover.push(t);
-  shuffleInPlace(leftover, rng);
+  const shuffledLeftover = shuffle(leftover, rng);
   const empties = remainingFiles();
-  for (let i = 0; i < empties.length && i < leftover.length; i++) {
-    slots[empties[i]] = leftover[i];
+  for (let i = 0; i < empties.length && i < shuffledLeftover.length; i++) {
+    slots[empties[i]] = shuffledLeftover[i];
   }
 
   return slots;
@@ -115,8 +146,9 @@ export function generateChess960Position(
   const pawnFileCount = Math.min(pieceSet.pawns, size.files);
   const allFiles: number[] = [];
   for (let f = 0; f < size.files; f++) allFiles.push(f);
-  shuffleInPlace(allFiles, rng);
-  const pawnFiles = allFiles.slice(0, pawnFileCount).sort((a, b) => a - b);
+  const pawnFiles = shuffle(allFiles, rng)
+    .slice(0, pawnFileCount)
+    .sort((a, b) => a - b);
   for (const f of pawnFiles) {
     pieces.set(squareName(f, wPawnRank), { type: "pawn", side: "player" });
     pieces.set(squareName(f, bPawnRank), { type: "pawn", side: "opponent" });
@@ -155,11 +187,4 @@ function pickK<T>(arr: readonly T[], k: number, rng: Rng): T[] {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a.slice(0, k);
-}
-
-function shuffleInPlace<T>(arr: T[], rng: Rng): void {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
 }

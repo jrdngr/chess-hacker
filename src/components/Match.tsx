@@ -35,6 +35,7 @@ import { Board } from "./Board/Board";
 import { CapturedPieces } from "./Board/CapturedPieces";
 import { materialAdvantage } from "./Board/material";
 import { PieceChoiceModal } from "./Board/PieceChoiceModal";
+import { pieceLabel } from "./Board/pieceNames";
 import type { PieceType } from "../game/types";
 import { DevPanel } from "./Match/DevPanel";
 import { StatusEffectsList } from "./Match/StatusEffectsList";
@@ -1506,7 +1507,7 @@ export function Match({
           options={(["queen", "rook", "bishop", "knight"] as PieceType[]).map((type) => ({
             type,
             side: promotionPending.side,
-            label: type.charAt(0).toUpperCase() + type.slice(1),
+            label: pieceLabel(type),
           }))}
           onPick={(index) => {
             const codes = ["q", "r", "b", "n"] as const;
@@ -1526,7 +1527,7 @@ export function Match({
           options={transformPending.options.map((type) => ({
             type,
             side: "player" as const,
-            label: type.charAt(0).toUpperCase() + type.slice(1),
+            label: pieceLabel(type),
           }))}
           onPick={(index) => {
             const type = transformPending.options[index];
@@ -1546,7 +1547,7 @@ export function Match({
             .map((p) => ({
               type: p.type,
               side: "player" as const,
-              label: p.type.charAt(0).toUpperCase() + p.type.slice(1),
+              label: pieceLabel(p.type),
             }))}
           onPick={(index) => {
             setCardState((prev) => ({ ...prev, chosenCapturedIndex: index }));
