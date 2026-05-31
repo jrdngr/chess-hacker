@@ -2,7 +2,16 @@
 
 - **Category:** Tests — Coverage
 - **Severity:** medium
-- **Status:** Open
+- **Status:** Done
+
+## Resolution
+
+Behavioral coverage added for both mechanics: a `<Match>` render test moves a
+player rook onto a void square and asserts it is destroyed (useCardPlay path),
+and a pure `startPlayerTurn` test asserts the captures-grant-captured-energy
+queue (`pendingPlayerEnergyOnTurnStart`) is applied to energy and cleared
+(match.ts). The AI-side void/capture-energy queuing branches are covered
+separately by CH-012.
 
 ## Locations
 

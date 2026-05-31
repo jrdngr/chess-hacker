@@ -13,6 +13,7 @@ import {
   OVERCLOCK,
 } from "../game/cards/library";
 import { ENERGY_CAP, makeRng } from "../game/cards/match";
+import type { BossDef } from "../game/types";
 
 function squareCell(aria: string): HTMLElement | undefined {
   return screen
@@ -283,6 +284,47 @@ describe("Match (vs AI)", () => {
       expect(spy).toHaveBeenCalled();
     });
     expect(spy.mock.calls[0][0]).toMatchObject({ depth: 10 });
+  });
+});
+
+const VOID_BOSS: BossDef = {
+  id: "test-void" as BossDef["id"],
+  name: "Void Test",
+  matchNumber: 3,
+  modifier: { kind: "no-player-walls" },
+  modifierDescription: "",
+  hazardWalls: [],
+  voidSquares: ["d4"],
+  statusEffects: [],
+  description: "",
+};
+
+describe("Match — boss void squares (CH-019)", () => {
+  it("destroys a player piece that ends its move on a void square", async () => {
+    const user = userEvent.setup();
+    // White rook on d1 can slide up to the void square d4.
+    render(
+      <Match
+        initialMode="local-pvp"
+        initialFen="7k/8/8/8/8/8/8/K2R4 w - - 0 1"
+        activeBoss={VOID_BOSS}
+      />,
+    );
+
+    await user.click(squareCell("d1")!);
+    // d4 is offered as a legal move target.
+    expect(squareCell("d4")?.getAttribute("aria-label")).toMatch(/move/);
+    await user.click(squareCell("d4")!);
+
+    // The rook ends its turn on the void square and is destroyed: d4 is empty
+    // and no rook remains on the board.
+    await waitFor(() => {
+      expect(squareCell("d4")?.getAttribute("aria-label")).toBe("d4");
+    });
+    const rookCell = screen
+      .getAllByRole("gridcell")
+      .find((el) => /rook/.test(el.getAttribute("aria-label") ?? ""));
+    expect(rookCell).toBeUndefined();
   });
 });
 

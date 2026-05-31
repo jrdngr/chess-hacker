@@ -21,6 +21,22 @@ const twoSquares = (first: string, second: string): PlayTarget => ({
   second,
 });
 
+describe("captures-grant-captured-energy: start-of-turn application (CH-019)", () => {
+  it("adds the queued captured-energy to the player's energy and clears it", () => {
+    const rng = makeRng(1);
+    const queued = { ...baseState(), energy: 4, pendingPlayerEnergyOnTurnStart: 5 };
+    const control = { ...queued, pendingPlayerEnergyOnTurnStart: 0 };
+
+    const withQueue = startPlayerTurn(queued, rng);
+    const withoutQueue = startPlayerTurn(control, rng);
+
+    // The only difference is the queued capture energy.
+    expect(withQueue.energy - withoutQueue.energy).toBe(5);
+    // The queue is consumed (reset to 0) so it doesn't double-apply.
+    expect(withQueue.pendingPlayerEnergyOnTurnStart).toBe(0);
+  });
+});
+
 describe("pending-energy-loss-on-no-capture (CH-005)", () => {
   it("stores the validated amount rather than a fixed flag", () => {
     const r = applyEffect(
