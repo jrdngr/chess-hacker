@@ -163,6 +163,34 @@ describe("rules — isSquareAttacked direct", () => {
   });
 });
 
+describe("rules — Root suppresses all Empower moves (CH-010)", () => {
+  // Player bishop on d4 with an enemy pawn on c5 (an adjacent diagonal — a
+  // legal native bishop capture). Empower the bishop with a knight pattern,
+  // which grants non-capturing L-shape moves (e.g. to e6).
+  const fen = "4k3/8/8/2p5/3B4/8/8/4K3 w - - 0 1";
+  const empowerKnight = new Map([["d4", new Set(["knight" as const])]]);
+
+  it("without Root, the empowered bishop has its knight (non-capture) moves", () => {
+    const pos = parseFen(fen);
+    const ov = { ...NO_OVERLAYS, empowers: empowerKnight };
+    const moves = legalMoves(pos, ov, "d4").map((m) => m.to);
+    expect(moves).toContain("e6"); // knight-pattern move
+    expect(moves).toContain("c5"); // native diagonal capture
+  });
+
+  it("with Root, every empower (non-capture) move is dropped; only adjacent captures remain", () => {
+    const pos = parseFen(fen);
+    const ov = {
+      ...NO_OVERLAYS,
+      empowers: empowerKnight,
+      roots: new Set<AlgebraicSquare>(["d4"]),
+    };
+    const moves = legalMoves(pos, ov, "d4").map((m) => m.to);
+    expect(moves).not.toContain("e6"); // empower move suppressed by Root
+    expect(moves).toContain("c5"); // adjacent capture still legal
+  });
+});
+
 describe("rules — Shield/Sanctuary protect the en-passant victim (CH-003)", () => {
   // White just played e2-e4 (en-passant target e3). Black pawn on d4 can
   // capture en passant, landing on e3 and removing the white pawn on e4.

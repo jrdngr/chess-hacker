@@ -22,6 +22,7 @@ A rooted piece **cannot move except to capture an immediately adjacent piece**. 
 - **Duration:** opponent's next turn.
 - **Contrast with Freeze:** Freeze stops captures; Root permits them but only at melee range.
 - **Contrast with Disarm:** Disarm forbids captures and permits non-capturing moves; Root is the inverse, and further restricts the captures it permits to adjacent ones.
+- **Interaction with Empower:** because Empower-granted moves are never captures (see Empower below), a piece that is both rooted and empowered loses **all** of its empowered moves — Root drops every non-capturing move, and the granted pattern only ever produces non-captures. The piece keeps only its native adjacent captures. This is the intended, consistent application of Root (it suppresses the bonus pattern exactly as it suppresses the native non-capturing moves).
 
 ### Disarm
 

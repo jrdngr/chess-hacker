@@ -2,7 +2,15 @@
 
 - **Category:** Code — Correctness
 - **Severity:** nit
-- **Status:** Open
+- **Status:** Done
+
+## Resolution
+
+Confirmed as intended: Empower-granted moves are always non-captures, and Root
+drops all non-capturing moves, so a rooted+empowered piece keeps only its
+native adjacent captures. Documented the interaction under Root in
+`docs/cards/keywords.md` and pinned it with `rules.test.ts` (empower move
+present without Root, suppressed with Root; adjacent capture survives).
 
 ## Locations
 
