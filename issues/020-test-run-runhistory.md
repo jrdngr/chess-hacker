@@ -2,7 +2,20 @@
 
 - **Category:** Tests — Coverage
 - **Severity:** low
-- **Status:** Open
+- **Status:** Done
+
+## Resolution
+
+Added `runHistory.test.ts` covering the recording/derivation helpers: `deckIds`/
+`artifactIds`, `summarizePack`, `summarizeOffer` (card/booster/artifact),
+`serializeRunHistory` (versioned, parseable payload), and `describeRunEvent`
+across a representative set of event kinds (run-start, match-start/-end,
+win-confirmed, boss-pick, shop enter/buy/leave, forwarded match-event).
+
+Run.tsx's full phase machine (draft → match → reward → shop → next) requires
+simulating a won chess match end-to-end through the UI, which is impractical in
+the component harness; the reachable initial states stay covered by the existing
+Run smoke tests. The previously-untested `runHistory.ts` is now covered.
 
 ## Locations
 

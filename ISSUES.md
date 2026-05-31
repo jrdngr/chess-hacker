@@ -34,7 +34,7 @@ Legend: 🔴 critical · 🟠 high · 🟡 medium · 🔵 low · ⚪ nit
 | CH-018 | 🟡  | [targeting.ts (computeValidTargetSquares / computeBoardMode) is pure but untested](issues/018-test-targeting-untested.md)     | Done   |
 | CH-019 | 🟡  | [Boss in-match mechanics (void squares, capture-energy) validated only statically](issues/019-test-boss-mechanics-runtime.md) | Done   |
 | CH-016 | 🔵  | [status/validate.ts has no direct tests](issues/016-test-status-validate-untested.md)                                         | Done   |
-| CH-020 | 🔵  | [Run.tsx phase machine and runHistory.ts are under-tested](issues/020-test-run-runhistory.md)                                 | Open   |
+| CH-020 | 🔵  | [Run.tsx phase machine and runHistory.ts are under-tested](issues/020-test-run-runhistory.md)                                 | Done   |
 | CH-024 | 🔵  | [Save/load persistence is fully specced but unimplemented and untested](issues/024-test-persistence-unimplemented.md)         | Open   |
 
 ## Tests — Validity
