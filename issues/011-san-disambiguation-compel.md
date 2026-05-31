@@ -2,7 +2,16 @@
 
 - **Category:** Code — Correctness
 - **Severity:** nit
-- **Status:** Open
+- **Status:** Done
+
+## Resolution
+
+`disambiguator` now computes candidates from a geometry-only overlay set that
+strips the turn-scoped piece-restriction overlays (Compel/Root/Disarm/Freeze/
+Mutex) while keeping board geometry (walls) and movement-granting overlays. SAN
+disambiguation therefore reflects which same-type pieces could geometrically
+reach the square, independent of which piece is allowed to move this turn.
+Added an engine test (Compel on one of two rooks still yields "Rad1").
 
 ## Locations
 

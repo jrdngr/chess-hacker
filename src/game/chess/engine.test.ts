@@ -73,6 +73,17 @@ describe("ChoseEngine", () => {
     expect(whiteKingMissing.outcome()).toEqual({ kind: "king-captured", winner: "opponent" });
   });
 
+  it("SAN disambiguation ignores the Compel filter (CH-011)", () => {
+    // Two white rooks on a1 and h1 can both reach d1 along the empty back rank.
+    // A Compel on the a1 rook restricts the legal move set to that rook, but
+    // SAN must still disambiguate against the h1 rook ("Rad1"), not collapse to
+    // an ambiguous "Rd1".
+    const e = new ChoseEngine("4k3/8/8/8/4K3/8/8/R6R w - - 0 1");
+    e.setOverlays(new Set(), new Set(), { compels: new Set(["a1"]) });
+    const move = e.legalMoves("a1").find((m) => m.to === "d1");
+    expect(move?.san).toBe("Rad1");
+  });
+
   it("does not report stalemate for a king-less board with no moves (CH-008)", () => {
     // The empty placement board: both sides king-less, no pieces, no legal
     // moves. This must NOT be a false stalemate (draw) — it is an in-progress

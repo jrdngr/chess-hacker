@@ -545,7 +545,23 @@ function pieceLetter(t: PieceType): string {
 }
 
 function disambiguator(pos: Position, overlays: Overlays, m: RuleMove, type: PieceType): string {
-  const candidates = rulesLegalMoves(pos, overlays).filter(
+  // SAN disambiguation must reflect which same-type pieces could legally reach
+  // the destination by the board's geometry, NOT which pieces happen to be
+  // allowed to move this turn. Stripping the turn-scoped piece-restriction
+  // overlays (Compel/Root/Disarm/Freeze/Mutex) prevents under-disambiguation:
+  // e.g. a Compel that restricts the move set to one piece would otherwise hide
+  // a second same-type piece and drop the needed file/rank. Board geometry
+  // (walls) and movement-granting overlays (Empower/Sudo/Downgrade/pawn rules)
+  // are kept. (CH-011 — display-only.)
+  const geometryOverlays: Overlays = {
+    ...overlays,
+    freezes: new Set(),
+    roots: new Set(),
+    disarms: new Set(),
+    compels: new Set(),
+    forbiddenForOpponent: undefined,
+  };
+  const candidates = rulesLegalMoves(pos, geometryOverlays).filter(
     (c) => c.from !== m.from && c.to === m.to && pos.pieces.get(c.from)?.type === type,
   );
   if (candidates.length === 0) return "";

@@ -22,7 +22,7 @@ Legend: 🔴 critical · 🟠 high · 🟡 medium · 🔵 low · ⚪ nit
 | CH-009 | 🔵  | [promotionRank opponent-side mirror formula is likely inverted (dead code)](issues/009-promotion-rank-mirror-inverted.md)                  | Done   |
 | CH-007 | ⚪  | [place-zone-buff autoPlace whiffs with no refund when all candidate squares are walled](issues/007-zone-buff-autoplace-whiff.md)           | Done   |
 | CH-010 | ⚪  | [Root + Empower stacking silently loses all empower moves](issues/010-root-empower-stacking.md)                                            | Done   |
-| CH-011 | ⚪  | [SAN disambiguation runs the Compel filter and can under-disambiguate](issues/011-san-disambiguation-compel.md)                            | Open   |
+| CH-011 | ⚪  | [SAN disambiguation runs the Compel filter and can under-disambiguate](issues/011-san-disambiguation-compel.md)                            | Done   |
 
 ## Tests — Coverage
 
