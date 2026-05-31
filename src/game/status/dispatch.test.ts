@@ -98,11 +98,14 @@ describe("fireStatusEffects", () => {
   it("every-n-turns fires on turns N, 2N, 3N…", () => {
     const rng = makeRng(4);
     const baseSt = startPlayerTurn(createMatchCardState([], rng), rng);
-    const stWith = withStatuses(baseSt, [bossCurse("memory-leak")]);
 
-    for (const turn of [1, 2, 3]) {
+    // Below the first firing turn (1,2,3) AND non-multiple turns ABOVE it
+    // (5,6,7,9,10,11) must not fire. The latter catches a "fires every turn
+    // >= N" regression that the original test (only 1,2,3 + 4,8,12) missed.
+    for (const turn of [1, 2, 3, 5, 6, 7, 9, 10, 11]) {
+      const fresh = withStatuses(baseSt, [bossCurse("memory-leak")]);
       const res = fireStatusEffects(
-        stWith,
+        fresh,
         { kind: "turn-start", side: "player", turn },
         emptyBoard,
         rng,

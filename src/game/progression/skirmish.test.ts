@@ -73,8 +73,15 @@ describe("generatePieceDraftOffer", () => {
   it("produces the expected number of choices", () => {
     const run = makeSkirmishRun();
     const { offer } = generatePieceDraftOffer(run);
-    expect(offer.pieces).toHaveLength(PIECE_DRAFT_SIZE);
-    expect(offer.skipGold).toBe(PIECE_SKIP_GOLD);
+    // Assert against independent literal expectations (3 choices, 5 skip gold)
+    // rather than the constants used to build the offer, so a regression that
+    // changes both the constant and the output in lockstep is still caught.
+    expect(offer.pieces).toHaveLength(3);
+    expect(offer.skipGold).toBe(5);
+    // Keep the constants pinned to those literals too, so an intentional change
+    // surfaces here as a deliberate update rather than silently passing.
+    expect(PIECE_DRAFT_SIZE).toBe(3);
+    expect(PIECE_SKIP_GOLD).toBe(5);
   });
 
   it("only offers draftable types (no king)", () => {

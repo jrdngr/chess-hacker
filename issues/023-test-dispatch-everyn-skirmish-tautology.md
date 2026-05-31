@@ -2,7 +2,15 @@
 
 - **Category:** Tests — Validity
 - **Severity:** low
-- **Status:** Open
+- **Status:** Done
+
+## Resolution
+
+every-n-turns: added non-multiple turns above N (5,6,7,9,10,11) to the
+non-firing assertions, so a "fires every turn >= N" regression is now caught.
+Skirmish: the offer test now asserts against independent literals (3 choices,
+5 skip gold) instead of the constants used to build the offer, and separately
+pins the constants to those literals so an intentional change surfaces here.
 
 ## Locations
 
