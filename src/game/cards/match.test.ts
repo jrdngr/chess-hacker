@@ -190,23 +190,12 @@ describe("playCard — resource", () => {
 
   it("Self Destruct: sacrifice own non-king piece, draw 2, gain 2 energy", () => {
     const rng = makeRng(9);
-    const deck = [
-      SELF_DESTRUCT,
-      FIREWALL,
-      FIREWALL,
-      FIREWALL,
-      FIREWALL,
-      FIREWALL,
-      FIREWALL,
-      FIREWALL,
-    ];
-    let st = startPlayerTurn(createMatchCardState(deck, rng), rng);
-    st = { ...st, energy: ENERGY_MAX };
-    const idx = st.hand.findIndex((s) => s.card.id === "self-destruct");
-    if (idx === -1) {
-      expect(st.drawPile.some((c) => c.id === "self-destruct")).toBe(true);
-      return;
-    }
+    // Force the card into hand directly so the test always exercises playCard
+    // (the old seed left an opening hand without Self Destruct, so the test
+    // silently no-opped — CH-013).
+    let st = startPlayerTurn(createMatchCardState([SELF_DESTRUCT], rng), rng);
+    st = { ...st, energy: ENERGY_MAX, hand: [{ card: SELF_DESTRUCT, retained: false }] };
+    const idx = 0;
     const ctx = withPieces({ a2: { type: "pawn", side: "player" } });
     const res = playCard(st, idx, { kind: "square", square: "a2" }, ctx, rng);
     expect(res.ok).toBe(true);
@@ -217,10 +206,9 @@ describe("playCard — resource", () => {
 
   it("Stack Trace: free 0-cost cantrip (UI does the reorder via setDeckTop)", () => {
     const rng = makeRng(20);
-    const deck = [STACK_TRACE, FIREWALL, FIREWALL, FIREWALL, FIREWALL, FIREWALL];
-    let st = startPlayerTurn(createMatchCardState(deck, rng), rng);
-    const idx = st.hand.findIndex((s) => s.card.id === "stack-trace");
-    if (idx === -1) return;
+    let st = startPlayerTurn(createMatchCardState([STACK_TRACE], rng), rng);
+    st = { ...st, hand: [{ card: STACK_TRACE, retained: false }] };
+    const idx = 0;
     const energyBefore = st.energy;
     const res = playCard(st, idx, noTarget(), emptyBoard, rng);
     expect(res.ok).toBe(true);
@@ -423,20 +411,9 @@ describe("playCard — buffs", () => {
 describe("playCard — sacrifice / summon / swap / marionette", () => {
   it("Self Destruct: rejects king target, accepts non-king, emits remove-piece", () => {
     const rng = makeRng(60);
-    const deck = [
-      SELF_DESTRUCT,
-      FIREWALL,
-      FIREWALL,
-      FIREWALL,
-      FIREWALL,
-      FIREWALL,
-      FIREWALL,
-      FIREWALL,
-    ];
-    let st = startPlayerTurn(createMatchCardState(deck, rng), rng);
-    st = { ...st, energy: ENERGY_MAX };
-    const idx = st.hand.findIndex((s) => s.card.id === "self-destruct");
-    if (idx === -1) return;
+    let st = startPlayerTurn(createMatchCardState([SELF_DESTRUCT], rng), rng);
+    st = { ...st, energy: ENERGY_MAX, hand: [{ card: SELF_DESTRUCT, retained: false }] };
+    const idx = 0;
     const ctx = withPieces({
       e1: { type: "king", side: "player" },
       a2: { type: "pawn", side: "player" },

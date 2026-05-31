@@ -2,7 +2,14 @@
 
 - **Category:** Tests — Validity
 - **Severity:** high
-- **Status:** Open
+- **Status:** Done
+
+## Resolution
+
+Both Self Destruct tests and the sibling Stack Trace test now force the card
+into hand directly (single-card deck + explicit `st.hand`) and removed the
+`if (idx === -1) return` escape hatch, so they always exercise `playCard` and
+its assertions instead of silently no-opping on the seed.
 
 ## Locations
 
