@@ -347,6 +347,46 @@ describe("Rollback + dev-panel undo interaction", () => {
   });
 });
 
+describe("move-piece (SSH Tunnel teleport)", () => {
+  it("relocates the piece without recording a destroyed piece", () => {
+    const e = new ChoseEngine("4k3/8/8/8/8/8/8/B3K3 w - - 0 1");
+    expect(e.pieceAt("a1")).toEqual({ type: "bishop", side: "player" });
+
+    const next = applyCardSideEffects(
+      e,
+      freshState(),
+      [{ kind: "move-piece", from: "a1", to: "d4" }],
+      Math.random,
+      () => {},
+    );
+
+    expect(e.pieceAt("a1")).toBeNull();
+    expect(e.pieceAt("d4")).toEqual({ type: "bishop", side: "player" });
+    // The teleported piece must NOT be recorded as destroyed (regression:
+    // remove+place used to push a phantom captured entry, see CH-001).
+    expect(next.capturedPieces ?? []).toEqual([]);
+  });
+
+  it("carries the piece's statuses (Shield) to the destination square", () => {
+    const e = new ChoseEngine("4k3/8/8/8/8/8/8/B3K3 w - - 0 1");
+    const state: MatchCardState = {
+      ...freshState(),
+      shields: [{ square: "a1", side: "player", expiresOnTurn: 99 }],
+    };
+
+    const next = applyCardSideEffects(
+      e,
+      state,
+      [{ kind: "move-piece", from: "a1", to: "d4" }],
+      Math.random,
+      () => {},
+    );
+
+    // Shield travels with the piece — not stripped, not left on the origin.
+    expect(next.shields).toEqual([{ square: "d4", side: "player", expiresOnTurn: 99 }]);
+  });
+});
+
 describe("swap-pieces promotion", () => {
   it("triggers onTransformPrompt when a pawn lands on its promotion rank", () => {
     // White pawn on e7, white rook on e1. Swapping puts the pawn on e1

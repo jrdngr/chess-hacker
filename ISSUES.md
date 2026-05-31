@@ -12,7 +12,7 @@ Legend: 🔴 critical · 🟠 high · 🟡 medium · 🔵 low · ⚪ nit
 
 | #      | Sev | Issue                                                                                                                                      | Status |
 | ------ | --- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
-| CH-001 | 🟠  | [SSH Tunnel teleport records own piece as destroyed and drops its buffs](issues/001-ssh-tunnel-teleport-phantom.md)                        | Open   |
+| CH-001 | 🟠  | [SSH Tunnel teleport records own piece as destroyed and drops its buffs](issues/001-ssh-tunnel-teleport-phantom.md)                        | Done   |
 | CH-002 | 🟡  | [Bit Flip (convert-piece) keeps enemy-applied statuses on the converted piece](issues/002-bit-flip-keeps-enemy-statuses.md)                | Open   |
 | CH-003 | 🟡  | [Sanctuary/Shield protection is bypassed by en passant](issues/003-sanctuary-shield-en-passant.md)                                         | Open   |
 | CH-004 | 🔵  | [resurrect-piece removes by an index into the unfiltered capturedPieces array](issues/004-resurrect-piece-index-mismatch.md)               | Open   |

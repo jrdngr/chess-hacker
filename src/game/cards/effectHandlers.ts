@@ -582,16 +582,12 @@ export function applyEffect(
     }
     case "teleport-piece": {
       if (target.kind !== "two-squares") return { state, sideEffects: [] };
+      // SSH Tunnel relocates the player's own piece. Use a dedicated
+      // move-piece side effect so the piece is not recorded as destroyed and
+      // its statuses (Shield/Haste/Empower/...) travel with it.
       return {
         state,
-        sideEffects: [
-          { kind: "remove-piece", square: target.first },
-          {
-            kind: "place-piece",
-            square: target.second,
-            pieceType: ctx.pieceAt(target.first)?.type ?? "pawn",
-          },
-        ],
+        sideEffects: [{ kind: "move-piece", from: target.first, to: target.second }],
       };
     }
     case "insert-probe": {

@@ -123,6 +123,7 @@ export function resolveTrapForMove(
 type CardSideEffect =
   | { kind: "place-piece"; square: AlgebraicSquare; pieceType: PieceType }
   | { kind: "remove-piece"; square: AlgebraicSquare }
+  | { kind: "move-piece"; from: AlgebraicSquare; to: AlgebraicSquare }
   | { kind: "swap-pieces"; a: AlgebraicSquare; b: AlgebraicSquare }
   | { kind: "foreign-move"; from: AlgebraicSquare; to: AlgebraicSquare }
   | { kind: "add-card-to-hand"; card: Card }
@@ -169,6 +170,11 @@ export function applyCardSideEffects(
       }
       engine.removePiece(fx.square);
       next = clearStatusesOn(next, fx.square);
+    } else if (fx.kind === "move-piece") {
+      // Teleport (SSH Tunnel): relocate the piece to an empty square carrying
+      // its statuses. Not recorded as a capture/destruction.
+      engine.displacePiece(fx.from, fx.to);
+      next = relocateStatuses(next, fx.from, fx.to);
     } else if (fx.kind === "swap-pieces") {
       next = relocateStatuses(next, fx.a, "__swap_tmp__");
       next = relocateStatuses(next, fx.b, fx.a);

@@ -628,6 +628,12 @@ export type BoardContext = {
 export type CardSideEffect =
   | { kind: "place-piece"; square: AlgebraicSquare; pieceType: PieceType }
   | { kind: "remove-piece"; square: AlgebraicSquare }
+  /**
+   * Teleport: relocate a piece from one square to an empty square, carrying
+   * its per-piece statuses. Unlike remove-piece + place-piece this neither
+   * records a destroyed piece nor strips buffs (used by SSH Tunnel).
+   */
+  | { kind: "move-piece"; from: AlgebraicSquare; to: AlgebraicSquare }
   | { kind: "swap-pieces"; a: AlgebraicSquare; b: AlgebraicSquare }
   | { kind: "foreign-move"; from: AlgebraicSquare; to: AlgebraicSquare }
   | { kind: "add-card-to-hand"; card: Card }
