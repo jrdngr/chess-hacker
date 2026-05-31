@@ -1073,6 +1073,21 @@ export function relocateStatuses(
 }
 
 /**
+ * Record one or more enemy pieces destroyed by a CARD effect (Garbage Collect,
+ * Self Destruct, Heartbleed, …) rather than by a chess move.
+ *
+ * This feeds the capture-payoff counter (`playerCaptureCount`, read by
+ * gain-energy-per-capture / Heartbleed) but DELIBERATELY does not fire the
+ * on-capture artifacts (Keylogger draw, Bug Bounty energy). Those trigger only
+ * on actual chess-move captures — see docs/design/artifacts.md. Keeping every
+ * card-destruction increment behind this single helper makes the
+ * card-vs-chess-capture distinction explicit and intentional (CH-006).
+ */
+export function recordCardDestruction(state: MatchCardState, count = 1): MatchCardState {
+  return { ...state, playerCaptureCount: (state.playerCaptureCount ?? 0) + count };
+}
+
+/**
  * Drop any per-square statuses sitting on `square` (e.g., after the piece
  * there is captured or removed by Sacrifice).
  */

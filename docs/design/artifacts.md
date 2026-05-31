@@ -100,6 +100,14 @@ Artifacts live as **emoji badges in the top banner** of the run, persistent acro
 
 The prototype's artifact pool sits at 12 entries — under the target above; this is acknowledged technical debt that the next content pass will close. The full list:
 
+> **"Capture" for on-capture artifacts means a chess-move capture only.** Bug
+> Bounty and Keylogger fire when one of your pieces captures by moving onto an
+> enemy piece. Destroying enemy pieces with a *card* (Garbage Collect, Self
+> Destruct, Heartbleed, …) does **not** trigger them — card kills still count
+> toward capture-payoff effects like Heartbleed's `gain-energy-per-capture`,
+> but never toward on-capture artifacts. (Implemented via
+> `recordCardDestruction` in `src/game/cards/match.ts`; see CH-006.)
+
 **Common (5)**
 - *Bug Bounty:* When you capture an enemy piece, gain 1 energy this turn.
 - *Keylogger:* When you capture an enemy piece, draw 1 card.

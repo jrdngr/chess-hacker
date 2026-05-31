@@ -14,6 +14,7 @@ import { promotionRank, squareCoords } from "../../game/chess/rules";
 import {
   addToHand,
   clearStatusesOn,
+  recordCardDestruction,
   relocateStatuses,
   shuffleIntoDraw,
   type Rng,
@@ -166,7 +167,9 @@ export function applyCardSideEffects(
           ],
         };
       } else if (removed?.side === "opponent") {
-        next = { ...next, playerCaptureCount: (next.playerCaptureCount ?? 0) + 1 };
+        // Card-destruction counts toward the capture-payoff counter, but does
+        // not fire on-capture artifacts (those are chess-move-only). CH-006.
+        next = recordCardDestruction(next);
       }
       engine.removePiece(fx.square);
       next = clearStatusesOn(next, fx.square);
@@ -271,10 +274,7 @@ export function applyCardSideEffects(
           victims.push(square);
         }
         if (victims.length === 0) break;
-        next = {
-          ...next,
-          playerCaptureCount: (next.playerCaptureCount ?? 0) + victims.length,
-        };
+        next = recordCardDestruction(next, victims.length);
         for (const sq of victims) {
           engine.removePiece(sq);
           next = clearStatusesOn(next, sq);

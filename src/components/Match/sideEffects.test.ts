@@ -387,6 +387,45 @@ describe("move-piece (SSH Tunnel teleport)", () => {
   });
 });
 
+describe("card-destruction capture counter (CH-006)", () => {
+  it("remove-piece on an enemy piece increments playerCaptureCount by 1", () => {
+    const e = new ChoseEngine("4k3/8/8/8/3n4/8/8/4K3 w - - 0 1");
+    const next = applyCardSideEffects(
+      e,
+      freshState(),
+      [{ kind: "remove-piece", square: "d4" }],
+      Math.random,
+      () => {},
+    );
+    expect(next.playerCaptureCount).toBe(1);
+  });
+
+  it("garbage-collect increments playerCaptureCount by the number of victims", () => {
+    // Two black pawns (a5, h5) attacked by white rooks; both destroyed.
+    const e = new ChoseEngine("4k3/8/8/p6p/8/8/8/R3K2R w - - 0 1");
+    const next = applyCardSideEffects(
+      e,
+      freshState(),
+      [{ kind: "garbage-collect", recursive: false }],
+      Math.random,
+      () => {},
+    );
+    expect(next.playerCaptureCount).toBe(2);
+  });
+
+  it("removing an own piece does not increment the capture counter", () => {
+    const e = new ChoseEngine("4k3/8/8/8/3N4/8/8/4K3 w - - 0 1");
+    const next = applyCardSideEffects(
+      e,
+      freshState(),
+      [{ kind: "remove-piece", square: "d4" }],
+      Math.random,
+      () => {},
+    );
+    expect(next.playerCaptureCount ?? 0).toBe(0);
+  });
+});
+
 describe("convert-piece (Bit Flip)", () => {
   it("converts the enemy piece to the player's side", () => {
     const e = new ChoseEngine("4k3/8/8/8/3n4/8/8/4K3 w - - 0 1");

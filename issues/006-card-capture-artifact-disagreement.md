@@ -2,7 +2,16 @@
 
 - **Category:** Code — Correctness
 - **Severity:** low
-- **Status:** Open
+- **Status:** Done
+
+## Resolution
+
+Decision (user, 2026-05-31): on-capture artifacts (Keylogger, Bug Bounty) stay
+**chess-move-only**. Card-destruction still counts toward capture-payoff
+effects (`gain-energy-per-capture` / Heartbleed) but never fires on-capture
+artifacts. The card-destruction increment is now unified behind a single
+`recordCardDestruction` helper in `src/game/cards/match.ts`, and the
+distinction is documented in `docs/design/artifacts.md`.
 
 ## Locations
 
