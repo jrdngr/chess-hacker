@@ -29,7 +29,7 @@ Legend: 🔴 critical · 🟠 high · 🟡 medium · 🔵 low · ⚪ nit
 | #      | Sev | Issue                                                                                                                         | Status |
 | ------ | --- | ----------------------------------------------------------------------------------------------------------------------------- | ------ |
 | CH-012 | 🟠  | [useAiLoop boss/Echo/void/fallback branches are untested](issues/012-test-useailoop-boss-branches.md)                         | Open   |
-| CH-015 | 🟡  | [cardValidator.ts (1077 lines) has no direct tests](issues/015-test-cardvalidator-untested.md)                                | Open   |
+| CH-015 | 🟡  | [cardValidator.ts (1077 lines) has no direct tests](issues/015-test-cardvalidator-untested.md)                                | Done   |
 | CH-017 | 🟡  | [Chess draw rules & special-move execution are under-tested](issues/017-test-chess-draw-special-moves.md)                     | Open   |
 | CH-018 | 🟡  | [targeting.ts (computeValidTargetSquares / computeBoardMode) is pure but untested](issues/018-test-targeting-untested.md)     | Open   |
 | CH-019 | 🟡  | [Boss in-match mechanics (void squares, capture-energy) validated only statically](issues/019-test-boss-mechanics-runtime.md) | Open   |

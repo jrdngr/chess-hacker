@@ -2,7 +2,16 @@
 
 - **Category:** Tests — Coverage
 - **Severity:** medium
-- **Status:** Open
+- **Status:** Done
+
+## Resolution
+
+Added `cardValidator.test.ts`: a minimal valid card (plus consume/retain and a
+none-target resource card) is accepted, and a table of malformed inputs is
+rejected — out-of-set cost/rarity/archetype, empty id, missing name, non-string
+description, unknown target/effect kinds, a missing required effect field
+(place-wall durationTurns), an invalid zone-buff pattern, and a target/effect
+mismatch.
 
 ## Locations
 
