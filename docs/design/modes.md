@@ -61,8 +61,8 @@ When Royal is re-enabled post-prototype, it will default to **Chess960** startin
 The roguelite-army experience. The player starts the run with a tiny army and grows their roster across the 9 matches by drafting pieces between matches. Selectable from the mode menu alongside Standard.
 
 - **Starting roster (run start):** king + 3 pawns + 1 knight + 1 bishop. The roster grows via piece drafts between matches.
-- **Opponent army:** mirrors the player's placed composition each match (same piece types, independent Chess960 layout). Boss matches use their canonical hand-crafted armies instead.
-- **Roster management:** persistent across the run. No roster size cap — the player collects pieces freely. A per-match placement value cap (scaling from 10 on M1 to 42 on M9) determines how many pieces can be placed each match.
+- **Opponent army (Conscription):** the enemy's core is an exact file-for-file mirror of the player's placement (same piece types, same files). When the player places **under** the value cap, the enemy **conscripts filler pieces up to the cap** — so under-placing only weakens the player, never the enemy. Filler types are drawn weighted by the player's placed composition ("more of what you brought"; the king is never filler), and are slotted into the enemy's empty files while keeping the back rank legal (bishops opposite-color, king between rooks), falling back to pawns when a piece won't fit. At full placement (no gap) the position is a perfectly symmetric mirror. Boss matches use their canonical hand-crafted armies instead.
+- **Roster management:** persistent across the run. No roster size cap — the player collects pieces freely. A per-match placement value cap (see table below) determines how much value can be placed each match.
 - **Post-match rewards:** gold + **piece draft (1 of 3)**. Cards remain shop-only (no card draft in reward).
 - **Piece draft:** after every match win, pick 1-of-3 pieces (P, N, B, R, or Q). Rarity-weighted (pawns common, queens rare). Hard cap of 8 pawns; no other per-type caps. Skip for gold available.
 - **Board size:** variable per act (6×6, 7×7, 8×8), same as Standard.
@@ -95,7 +95,7 @@ The cap creates a natural progression: early matches are space-limited (few piec
 | Roster persistence between games | None (resets per match)        | None (resets)                  | Persistent across run          |
 | Piece drafts                     | No                             | No                             | Yes (1-of-3 each match)        |
 | Placement                        | Chess960 (auto)                | Standard chess setup           | Player chooses (Chess960 rules)|
-| AI army                          | Same as player (per curve)     | Standard chess army            | Mirrors player's placement     |
+| AI army                          | Same as player (per curve)     | Standard chess army            | Mirror core + conscription filler to cap |
 | Variety source                   | Cards + artifacts only         | Cards + artifacts only         | Cards + artifacts + roster     |
 
 Standard is the streamlined "chess + spells with a ramp." Skirmish is the maximum roguelite power-curve experience — drafting a queen early should feel like getting a Pandora's Box in Slay the Spire.

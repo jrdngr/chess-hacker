@@ -118,6 +118,55 @@ export function placeBackRank(pieceSet: PieceSet, files: number, rng: Rng): (Pie
 }
 
 /**
+ * Slot Skirmish "conscription" filler pieces into the empty files of an
+ * already-mirrored enemy back rank, keeping the combined rank legal per
+ * `backRankLegalityErrors` (bishops opposite-color, king between rooks).
+ *
+ * When the player under-places, the enemy mirrors the player's placed back rank
+ * exactly and then tops up to the value cap (`progression/placement.ts`). The
+ * extra non-pawn pieces are placed here. Filler is processed bishops → rooks →
+ * others so the parity and king-between-rooks constraints resolve
+ * deterministically; the passed `rng` shuffles the candidate files so the result
+ * is varied but reproducible. Any piece that fits no empty file legally (e.g. a
+ * second bishop whose only opposite-color squares are taken, or a rook that
+ * would trap the king) is returned in `leftover` so the caller can substitute
+ * pawns of equal value. This module stays value-agnostic — the value math lives
+ * with the caller.
+ */
+export function placeConscriptionFiller(
+  mirroredBackRank: ReadonlyArray<PieceType | null>,
+  fillerTypes: ReadonlyArray<PieceType>,
+  files: number,
+  rng: Rng,
+): { backRank: (PieceType | null)[]; leftover: PieceType[] } {
+  const backRank: (PieceType | null)[] = [...mirroredBackRank];
+  while (backRank.length < files) backRank.push(null);
+
+  const order = (t: PieceType): number => (t === "bishop" ? 0 : t === "rook" ? 1 : 2);
+  const queue = [...fillerTypes].sort((a, b) => order(a) - order(b));
+
+  const leftover: PieceType[] = [];
+  for (const piece of queue) {
+    const emptyFiles = shuffle(
+      backRank.map((t, f) => (t === null ? f : -1)).filter((f) => f >= 0),
+      rng,
+    );
+    let placed = false;
+    for (const f of emptyFiles) {
+      backRank[f] = piece;
+      if (backRankLegalityErrors(backRank).length === 0) {
+        placed = true;
+        break;
+      }
+      backRank[f] = null;
+    }
+    if (!placed) leftover.push(piece);
+  }
+
+  return { backRank, leftover };
+}
+
+/**
  * Generate a Chess960-style starting position for the given piece set and
  * board size. Returns a FEN paired with the board size — callers persist both
  * because standard FEN is implicitly 8x8.

@@ -507,7 +507,7 @@ export function Run({
       const cfg = standardMatchConfig(run.matchNumber);
       aiPieceSet = resolvePieceSet(cfg, rng);
     }
-    const fen = buildSkirmishFen(backRank, pawnFiles, size, rng, aiPieceSet);
+    const fen = buildSkirmishFen(backRank, pawnFiles, size, run.matchNumber, rng, aiPieceSet);
     const matchStartGold = goldOnMatchStart(run.artifacts);
     if (matchStartGold > 0) {
       setRun((r) => ({ ...r, gold: r.gold + matchStartGold }));

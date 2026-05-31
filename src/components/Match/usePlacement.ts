@@ -548,6 +548,7 @@ export function usePlacement(
     selectedTrayIdx,
     currentValue,
     valueCap,
+    conscriptValue: Math.max(0, valueCap - currentValue),
     validationErrors: validation.errors,
     canStart,
     subtitle,

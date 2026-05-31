@@ -34,6 +34,14 @@
   color: var(--amber-opp, #e74c3c);
 }
 
+.conscripts {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--amber-opp, #e74c3c);
+}
+
 .errors {
   display: flex;
   gap: 12px;

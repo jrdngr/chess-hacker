@@ -10,6 +10,7 @@ type Props = {
   selectedTrayIdx: number | null;
   currentValue: number;
   valueCap: number;
+  conscriptValue: number;
   validationErrors: string[];
   canStart: boolean;
   subtitle: string;
@@ -28,6 +29,7 @@ export function PlacementTray({
   selectedTrayIdx,
   currentValue,
   valueCap,
+  conscriptValue,
   validationErrors,
   canStart,
   subtitle,
@@ -46,6 +48,14 @@ export function PlacementTray({
         <span className={`${styles.valueMeter} ${currentValue > valueCap ? styles.overCap : ""}`}>
           Value: {currentValue} / {valueCap}
         </span>
+        {conscriptValue > 0 && (
+          <span
+            className={styles.conscripts}
+            title="The enemy conscripts the value you leave unplaced."
+          >
+            Enemy conscripts: +{conscriptValue}
+          </span>
+        )}
         {validationErrors.length > 0 && (
           <span className={styles.errors}>
             {validationErrors.map((e, i) => (

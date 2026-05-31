@@ -13,7 +13,7 @@ Loosely grouped by topic.
 ## Pieces / Skirmish
 
 - **Exact starter roster composition.** Currently "king + 2 pawns + 2 minors" — should the 2 minors be (KN+B), (2 KN), (2 B), or player-chosen? Default: knight + bishop. Revisit after first-Skirmish playtests.
-- **AI army scaling curve.** How does the opponent's army grow across the 9 matches in Skirmish? Need a concrete curve. Starting suggestion: match 1 = 8 pieces, match 9 = 16 pieces. Tune through play.
+- ~~**AI army scaling curve.**~~ **Resolved (Conscription).** The opponent does not follow a separate scaling curve. It mirrors the player's placement and conscripts filler up to the per-match value cap, so its strength tracks the placement cap automatically. See `design/modes.md` (Skirmish → Opponent army).
 - **Pieces in shop.** Currently NOT sold in shop. Reconsider if drafts feel too random.
 - **Permanent piece death.** Currently captured pieces revive next match. Persistent piece loss is filed as a candidate future difficulty modifier.
 - **Pawn-only restriction on rank 2.** Strictly required, or relaxable? Default: pawns on rank 2 only.

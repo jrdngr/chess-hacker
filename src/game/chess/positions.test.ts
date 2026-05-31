@@ -3,9 +3,14 @@
 import { describe, expect, it } from "vitest";
 
 import { makeRng } from "../cards/match";
-import { generateChess960Position, placeBackRank } from "./positions";
+import {
+  backRankLegalityErrors,
+  generateChess960Position,
+  placeBackRank,
+  placeConscriptionFiller,
+} from "./positions";
 import { parseFen, serializeFen } from "./rules";
-import type { PieceSet } from "../types";
+import type { PieceSet, PieceType } from "../types";
 
 const SET_8x8: PieceSet = {
   backRank: ["king", "queen", "rook", "rook", "bishop", "bishop", "knight", "knight"],
@@ -58,6 +63,39 @@ describe("placeBackRank", () => {
         makeRng(1),
       ),
     ).toThrow();
+  });
+});
+
+describe("placeConscriptionFiller", () => {
+  it("slots filler into empty files and keeps the rank legal", () => {
+    // Mirror core: king on file 1, rook on file 0; filler adds a knight.
+    const core: (PieceType | null)[] = ["rook", "king", null, null, null, null];
+    const { backRank, leftover } = placeConscriptionFiller(core, ["knight"], 6, makeRng(1));
+    expect(leftover).toEqual([]);
+    expect(backRank.filter((t) => t === "knight")).toHaveLength(1);
+    expect(backRankLegalityErrors(backRank)).toEqual([]);
+    // Core pieces are untouched.
+    expect(backRank[0]).toBe("rook");
+    expect(backRank[1]).toBe("king");
+  });
+
+  it("reports filler that cannot be placed legally as leftover", () => {
+    // A full rank with no empty files: the filler has nowhere to go.
+    const core: (PieceType | null)[] = ["bishop", "bishop", "king", "knight"]; // 4 files, 0 empty
+    const { backRank, leftover } = placeConscriptionFiller(core, ["rook"], 4, makeRng(1));
+    expect(leftover).toEqual(["rook"]);
+    expect(backRankLegalityErrors(backRank)).toEqual([]);
+  });
+
+  it("places a second rook so the king stays between the rooks", () => {
+    // Core has king (file 1) and one rook (file 0). A filler rook must land on a
+    // file > 1 to keep the king enclosed.
+    const core: (PieceType | null)[] = ["rook", "king", null, null, null, null];
+    for (let seed = 1; seed <= 20; seed++) {
+      const { backRank, leftover } = placeConscriptionFiller(core, ["rook"], 6, makeRng(seed));
+      expect(leftover).toEqual([]);
+      expect(backRankLegalityErrors(backRank)).toEqual([]);
+    }
   });
 });
 

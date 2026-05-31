@@ -98,9 +98,9 @@ Before each match, the player enters a **placement screen**:
 - Pawns may be placed on rank 2 only. (Tuning knob — we may relax this.)
 - All other pieces (knight, bishop, rook, queen) may be placed on rank 1 or 2.
 - No two pieces share a square.
-- The player may place fewer pieces than they own (skipping placement of a piece leaves that piece off the board for that match). This may be useful with very large rosters.
+- The player may place fewer pieces than they own (skipping placement of a piece leaves that piece off the board for that match) — but the enemy conscripts the unplaced value, so under-placing weakens only the player (see below).
 
-The AI's army is placed by the engine following its own rules per match (see `bosses.md` and `roadmap/open-questions.md` for AI placement details — placement is generally standard chess, but in some Skirmish matches the AI's force may be smaller and centered).
+In regular matches the enemy mirrors the player's placement file-for-file and then **conscripts filler pieces up to the match value cap** when the player places under it (filler weighted by the player's placed composition, slotted legally into the enemy's empty files, pawn fallback). The enemy is therefore always at the cap; full placement yields a symmetric mirror. See `modes.md` (Conscription) for the full rule. Boss matches instead use their canonical hand-crafted armies (`bosses.md`).
 
 ### Castling in Skirmish
 
