@@ -2,7 +2,16 @@
 
 - **Category:** Tests — Coverage
 - **Severity:** low
-- **Status:** Open
+- **Status:** Done (deferral recorded)
+
+## Resolution
+
+No persistence code exists to test — save/resume is intentionally deferred to a
+follow-up milestone (`docs/roadmap/milestones.md`). Per the recommendation, the
+deferral is now recorded explicitly: added a "Status: deferred / not yet
+implemented" banner to `docs/technical/persistence.md` so the spec is not
+mistaken for shipped code, with a note to add `persistence.ts` + colocated
+round-trip / ID-rehydration / version-mismatch tests when the feature is built.
 
 ## Locations
 

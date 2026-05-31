@@ -1,5 +1,12 @@
 # Persistence
 
+> **Status: deferred / not yet implemented.** This document is a forward-looking
+> spec. Save/resume was descoped from M9 and moved to a follow-up milestone (see
+> `docs/roadmap/milestones.md`). No `SavedRun`/`MetaState` type or save/load/
+> migrate code exists yet; the only current localStorage use is palette toggles
+> (`src/state/palette.ts`). When this is built, add `persistence.ts` with
+> colocated round-trip / ID-rehydration / version-mismatch tests (CH-024).
+
 The prototype uses **browser localStorage** as the only persistence layer. No backend, no IndexedDB, no service workers.
 
 ## What gets persisted
