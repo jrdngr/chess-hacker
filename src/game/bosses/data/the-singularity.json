@@ -6,6 +6,6 @@
   "modifierDescription": "Your pawns cannot promote.",
   "hazardWalls": [],
   "voidSquares": ["d4", "d5", "e4", "e5"],
-  "statusEffects": ["hardened", "echo", "bit-rot"],
+  "statusEffects": ["hardened", "bit-rot"],
   "description": "Memory falls away at the center. Your pawns won't promote — find your move now, or lose it to the void."
 }

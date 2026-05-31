@@ -13,8 +13,8 @@
 //   Boss C (8×8) — modifier: pawn promotion disabled;
 //                  hazards: 2x2 void at d4/d5/e4/e5 (any piece ending on
 //                  one of these squares is destroyed);
-//                  status effects: Hardened (turn 1), Echo (on player check),
-//                  Bit Rot (every 5 turns).
+//                  status effects: Hardened (turn 1), Bit Rot (every 5 turns).
+//                  (Echo was dropped to soften the difficulty cliff — CH-038.)
 //
 // `statusEffects` ids are validated lazily (at first lookup, via
 // `getStatusEffectById`) to avoid module-init ordering between status and

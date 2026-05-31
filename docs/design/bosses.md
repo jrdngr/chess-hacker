@@ -49,7 +49,7 @@ Properties:
 
 - Status effects fire **automatically** the moment their trigger fires; they never sit "waiting to be played" in the player's hand.
 - They are **persistent** for the whole match unless they declare a `remainingTriggers` cap (one-shot statuses) or an `expiresOnTurn` (timed statuses).
-- They are **per-status once-per-turn**: each status fires at most once per target-side turn. Multiple statuses can fire on the same turn — Boss C's Echo and Bit Rot can both land on a single turn if the player checks during a turn divisible by 5.
+- They are **per-status once-per-turn**: each status fires at most once per target-side turn. Multiple statuses can fire on the same turn — an on-check status and a turn-counter status can both land if their triggers coincide.
 - Triggers are **deterministic**: a check always fires `on-self-check`, never RNG-gated, so the player can plan around them.
 - The system is **side-symmetric**: today only boss → player statuses ship, but the same machinery will host future cards that apply status effects to the enemy.
 
@@ -93,8 +93,9 @@ Teaches: not all captures are good. Pressure piece economy.
 - **Hazards:** A 2x2 "void" in the center (e4, e5, d4, d5) that destroys any piece ending its turn there.
 - **Status effects:**
    - *Hardened* — fires once on turn 1, blocking all 0-cost card plays for the rest of that turn.
-   - *Echo* — fires the moment you check, granting the boss one extra chess move this turn.
    - *Bit Rot* — fires every 5 turns at turn start, destroying one of your minor pieces (knight or bishop) at random.
+
+   *(Echo — a boss-extra-move fired on player check — was dropped from this boss to soften the finale's difficulty cliff. The effect still exists in the status library for future use.)*
 
 Teaches: the finale stresses every system. Decks must be tuned to handle multiple constraints simultaneously.
 

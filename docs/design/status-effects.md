@@ -40,15 +40,16 @@ A live `StatusEffect` instance attached to a match adds runtime metadata (source
 
 A status effect's `effect` field is a regular `CardEffect` from `src/game/types.ts`. The dispatcher passes it straight to the existing handler set in `src/game/cards/effectHandlers.ts`. This means anything a card can do, a status effect can do — and vice versa.
 
-The five boss curses today reuse five existing effect kinds:
+The four boss curses today reuse four existing effect kinds:
 
 | Boss             | Status        | Effect kind                          |
 | ---------------- | ------------- | ------------------------------------ |
 | The Firewall (A) | `throttled`   | `next-move-constraint: must-not-check` |
 | The Whale (B)    | `memory-leak` | `pending-energy-loss-on-no-capture`  |
 | The Singularity (C) | `hardened` | `forbid-zero-cost-this-turn`         |
-| The Singularity (C) | `echo`     | `boss-extra-move`                    |
 | The Singularity (C) | `bit-rot`  | `capture-random-own-minor`           |
+
+(`echo` → `boss-extra-move` still exists as a status effect but is no longer attached to any boss — Echo was dropped from The Singularity to soften the finale, CH-038.)
 
 ## Lifetime fields
 

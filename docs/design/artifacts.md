@@ -98,7 +98,7 @@ Artifacts live as **emoji badges in the top banner** of the run, persistent acro
 
 ## Current pool (post power-curve overhaul)
 
-The prototype's artifact pool sits at 12 entries — under the target above; this is acknowledged technical debt that the next content pass will close. The full list:
+The prototype's artifact pool sits at 14 entries — under the target above; this is acknowledged technical debt that the next content pass will close. The full list:
 
 > **"Capture" for on-capture artifacts means a chess-move capture only.** Bug
 > Bounty and Keylogger fire when one of your pieces captures by moving onto an
@@ -115,12 +115,14 @@ The prototype's artifact pool sits at 12 entries — under the target above; thi
 - *Pawn Storm:* Your pawns may double-push from any rank, not just the start rank.
 - *Drill Sergeant:* Your pawns may move 1 square backward (no capture).
 
-**Uncommon (5)**
+**Uncommon (7)**
 - *Threat Detector:* When you put the opponent in check, draw 1 card.
 - *Foothold:* Hand size +1 while you have a friendly piece on a center square (d4 / e4 / d5 / e5 on 8×8; the central 2×2 on even-sized boards, the single middle square on odd).
 - *Map Editor:* Spatial cards cost 25% less (round down, minimum 0).
 - *Cavalry Doctrine:* Your knights may also step 1 square in any direction in addition to the L-shape. The granted king-step is non-capturing — knights still capture only on the L-shape.
 - *Promotion Engine:* Your pawns promote at rank 7 instead of rank 8.
+- *Build Pipeline:* Movement cards cost 1 less (minimum 0).
+- *Sysadmin Token:* Disruption cards cost 1 less (minimum 0).
 
 **Rare (2)**
 - *Sniper Optics:* Your rooks may capture an enemy piece even with one wall in the path between attacker and target. Movement to empty squares past a wall is still blocked.

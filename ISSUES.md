@@ -4,17 +4,11 @@ Issues derived from the comprehensive review in `docs/reviews/2026-05-29-compreh
 
 **Working instructions for the agent:** Work issues **one at a time**. Open the linked file for full context (locations, problem, recommendation, related issues). After completing an issue, run the pre-commit checks in `CLAUDE.md` (`npm run format`, `npm run lint`, `npx tsc --noEmit`, `npm test`, `npm run build`), then commit with `jj commit`. As part of that commit, delete the resolved issue entirely: remove its row here and delete its file under `issues/`. Prefer the recommended ordering below (severity-first within each section).
 
-**Total open issues:** 26
+**Total open issues:** 25
 
-_The Code — Correctness, Tests — Coverage, Tests — Validity (CH-001…024), and Refactor — Duplication (CH-025…030) sections are all resolved and have been removed from this index; their resolution notes live in the individual `issues/` files._
+_The Code — Correctness, Tests — Coverage, Tests — Validity (CH-001…024), Refactor — Duplication (CH-025…030), and Game Design — Balance (CH-031…038) sections are all resolved and have been removed from this index; their resolution notes live in the individual `issues/` files._
 
 Legend: 🔴 critical · 🟠 high · 🟡 medium · 🔵 low · ⚪ nit
-
-## Game Design — Balance
-
-| #      | Sev | Issue                                                                                                         | Status |
-| ------ | --- | ------------------------------------------------------------------------------------------------------------- | ------ |
-| CH-038 | 🔵  | [Lower-severity balance items (doc drift, Boss C cliff, interest cap)](issues/038-bal-low-severity-bundle.md) | Open   |
 
 ## Game Design — Design Hole
 
