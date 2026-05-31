@@ -2,7 +2,16 @@
 
 - **Category:** Tests — Coverage
 - **Severity:** low
-- **Status:** Open
+- **Status:** Done
+
+## Resolution
+
+Added `src/game/status/validate.test.ts`: a valid minimal def (and every-n-turns
+
+- flavor variants) passes, and a table of malformed inputs is rejected
+  (non-object, missing/empty id/name/description, unknown trigger kind,
+  every-n-turns without/invalid n, invalid firstOnTurn, missing/empty effect kind,
+  invalid flavor).
 
 ## Locations
 

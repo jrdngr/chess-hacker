@@ -33,7 +33,7 @@ Legend: 🔴 critical · 🟠 high · 🟡 medium · 🔵 low · ⚪ nit
 | CH-017 | 🟡  | [Chess draw rules & special-move execution are under-tested](issues/017-test-chess-draw-special-moves.md)                     | Open   |
 | CH-018 | 🟡  | [targeting.ts (computeValidTargetSquares / computeBoardMode) is pure but untested](issues/018-test-targeting-untested.md)     | Open   |
 | CH-019 | 🟡  | [Boss in-match mechanics (void squares, capture-energy) validated only statically](issues/019-test-boss-mechanics-runtime.md) | Open   |
-| CH-016 | 🔵  | [status/validate.ts has no direct tests](issues/016-test-status-validate-untested.md)                                         | Open   |
+| CH-016 | 🔵  | [status/validate.ts has no direct tests](issues/016-test-status-validate-untested.md)                                         | Done   |
 | CH-020 | 🔵  | [Run.tsx phase machine and runHistory.ts are under-tested](issues/020-test-run-runhistory.md)                                 | Open   |
 | CH-024 | 🔵  | [Save/load persistence is fully specced but unimplemented and untested](issues/024-test-persistence-unimplemented.md)         | Open   |
 
