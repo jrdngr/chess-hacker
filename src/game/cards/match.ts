@@ -36,6 +36,7 @@ import {
   type ZoneBoardContext,
 } from "../overlays/zoneBuffs";
 import { applyEffect } from "./effectHandlers";
+import { CLASSICAL_PIECE_VALUE } from "../pieceValues";
 
 /** Per `docs/design/cards.md`. */
 export const HAND_SIZE = 7;
@@ -60,14 +61,7 @@ export function clampEnergy(n: number): number {
 }
 
 /** Standard chess piece values for capture-grants-energy. */
-export const PIECE_ENERGY_VALUES: Record<PieceType, number> = {
-  pawn: 1,
-  knight: 3,
-  bishop: 3,
-  rook: 5,
-  queen: 9,
-  king: 0,
-};
+export const PIECE_ENERGY_VALUES = CLASSICAL_PIECE_VALUE;
 
 /**
  * Sentinel value used by tests that want "more than enough energy to play

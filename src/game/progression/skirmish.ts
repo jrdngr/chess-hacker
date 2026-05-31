@@ -11,17 +11,11 @@
 import type { Rng } from "../cards/match";
 import { consumeRng } from "./run";
 import type { BoardSize, Piece, PieceDraftOffer, PieceType, RunState } from "../types";
+import { CLASSICAL_PIECE_VALUE } from "../pieceValues";
 
 // ---- Piece values (for placement cap) ----------------------------------------
 
-export const SKIRMISH_PIECE_VALUE: Readonly<Record<PieceType, number>> = {
-  pawn: 1,
-  knight: 3,
-  bishop: 3,
-  rook: 5,
-  queen: 9,
-  king: 0,
-};
+export const SKIRMISH_PIECE_VALUE = CLASSICAL_PIECE_VALUE;
 
 // ---- Per-match placement value cap -------------------------------------------
 

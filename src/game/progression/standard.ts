@@ -18,16 +18,10 @@
 
 import type { Rng } from "../cards/match";
 import type { BoardSize, PieceSet, PieceType } from "../types";
+import { STANDARD_BUDGET_VALUE } from "../pieceValues";
 
-/** Standard chess piece values, used by the random-roll budget. */
-export const PIECE_VALUE: Readonly<Record<PieceType, number>> = {
-  pawn: 0,
-  knight: 3,
-  bishop: 3,
-  rook: 5,
-  queen: 9,
-  king: 0,
-};
+/** Standard chess piece values, used by the random-roll budget (pawns free). */
+export const PIECE_VALUE = STANDARD_BUDGET_VALUE;
 
 /**
  * Chess960-legal per-side caps. The roll skips a piece type once its count
