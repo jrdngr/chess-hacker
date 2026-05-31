@@ -84,6 +84,64 @@ describe("ChoseEngine", () => {
     expect(move?.san).toBe("Rad1");
   });
 
+  it("declares a fifty-move draw when the halfmove clock reaches 100 (CH-017)", () => {
+    // Halfmove clock at 99; a quiet (non-pawn, non-capture) move pushes it to
+    // 100. Kings are far apart so the move is neither check nor stalemate.
+    const e = new ChoseEngine("4k3/8/8/8/8/8/8/R3K3 w - - 99 1");
+    expect(e.outcome().kind).toBe("ongoing");
+    e.move({ from: "a1", to: "a2" });
+    expect(e.outcome()).toEqual({ kind: "draw", reason: "fifty-move" });
+  });
+
+  it("declares a threefold-repetition draw after the start position recurs 3x (CH-017)", () => {
+    const e = new ChoseEngine();
+    // Knight shuffle returns to the start position twice (3 total occurrences).
+    const shuffle = [
+      ["g1", "f3"],
+      ["g8", "f6"],
+      ["f3", "g1"],
+      ["f6", "g8"],
+    ] as const;
+    for (let cycle = 0; cycle < 2; cycle++) {
+      for (const [from, to] of shuffle) {
+        e.move({ from, to });
+      }
+    }
+    expect(e.outcome()).toEqual({ kind: "draw", reason: "threefold-repetition" });
+  });
+
+  it("enumerates and executes en passant, removing the passed pawn (CH-017)", () => {
+    // Black just played d7-d5 (ep target d6); white pawn on e5 can capture ep.
+    const e = new ChoseEngine("4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1");
+    const ep = e.legalMoves("e5").find((m) => m.to === "d6");
+    expect(ep).toBeTruthy();
+
+    e.move({ from: "e5", to: "d6" });
+    expect(e.pieceAt("d6")).toEqual({ type: "pawn", side: "player" });
+    expect(e.pieceAt("d5")).toBeNull(); // the passed pawn is removed
+    expect(e.pieceAt("e5")).toBeNull();
+  });
+
+  it("supports underpromotion to a knight or rook via engine.move (CH-017)", () => {
+    const toKnight = new ChoseEngine("4k3/P7/8/8/8/8/8/4K3 w - - 0 1");
+    toKnight.move({ from: "a7", to: "a8", promotion: "n" });
+    expect(toKnight.pieceAt("a8")).toEqual({ type: "knight", side: "player" });
+
+    const toRook = new ChoseEngine("4k3/P7/8/8/8/8/8/4K3 w - - 0 1");
+    toRook.move({ from: "a7", to: "a8", promotion: "r" });
+    expect(toRook.pieceAt("a8")).toEqual({ type: "rook", side: "player" });
+  });
+
+  it("promotes at an overridden rank (Promotion Engine) through engine.move (CH-017)", () => {
+    // Player pawn on a6; with the rank-7 override it promotes on a7.
+    const e = new ChoseEngine("4k3/8/P7/8/8/8/8/4K3 w - - 0 1");
+    e.setOverlays(new Set(), new Set(), { pawnPromotionRanks: { player: 7 } });
+    const promo = e.legalMoves("a6").find((m) => m.to === "a7");
+    expect(promo?.promotion).toBeTruthy();
+    e.move({ from: "a6", to: "a7" }); // default queen
+    expect(e.pieceAt("a7")).toEqual({ type: "queen", side: "player" });
+  });
+
   it("does not report stalemate for a king-less board with no moves (CH-008)", () => {
     // The empty placement board: both sides king-less, no pieces, no legal
     // moves. This must NOT be a false stalemate (draw) — it is an in-progress

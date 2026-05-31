@@ -2,7 +2,15 @@
 
 - **Category:** Tests — Coverage
 - **Severity:** medium
-- **Status:** Open
+- **Status:** Done
+
+## Resolution
+
+Added engine tests for: fifty-move draw (halfmove clock reaching 100),
+threefold repetition (start position recurring 3× via a knight shuffle), en
+passant enumeration + execution (the passed pawn is removed), underpromotion to
+knight and rook via `engine.move`, and override-rank promotion (Promotion
+Engine rank 7) executed through `engine.move`.
 
 ## Locations
 
