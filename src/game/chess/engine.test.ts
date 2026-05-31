@@ -73,6 +73,21 @@ describe("ChoseEngine", () => {
     expect(whiteKingMissing.outcome()).toEqual({ kind: "king-captured", winner: "opponent" });
   });
 
+  it("does not report stalemate for a king-less board with no moves (CH-008)", () => {
+    // The empty placement board: both sides king-less, no pieces, no legal
+    // moves. This must NOT be a false stalemate (draw) — it is an in-progress
+    // placement state, reported as ongoing.
+    const empty = new ChoseEngine("8/8/8/8/8/8/8/8 w - - 0 1");
+    expect(empty.outcome()).toEqual({ kind: "ongoing" });
+  });
+
+  it("still reports stalemate when the side to move HAS a king (CH-008)", () => {
+    // Guard against over-correcting: a genuine stalemate (side to move has a
+    // king, not in check, no legal moves) is still a stalemate.
+    const stalemate = new ChoseEngine("k7/8/1QK5/8/8/8/8/8 b - - 0 1");
+    expect(stalemate.outcome()).toEqual({ kind: "stalemate" });
+  });
+
   it("capturedPieces() partitions captures by captor side", () => {
     const e = new ChoseEngine();
     expect(e.capturedPieces()).toEqual({ byPlayer: [], byOpponent: [] });

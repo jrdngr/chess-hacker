@@ -450,7 +450,13 @@ export class ChoseEngine {
         const winner: Side = loser === "player" ? "opponent" : "player";
         return { kind: "checkmate", winner };
       }
-      return { kind: "stalemate" };
+      // Genuine stalemate requires the side to move to HAVE a king — you can't
+      // be stalemated without one. A king-less side with no moves only arises
+      // when both sides are king-less (e.g. the empty placement board); that is
+      // not a draw, so report it as ongoing rather than a false stalemate.
+      const sideToMoveKing = this.position.turn === "player" ? playerKing : opponentKing;
+      if (sideToMoveKing) return { kind: "stalemate" };
+      return { kind: "ongoing" };
     }
     if (isInsufficientMaterial(this.position)) {
       return { kind: "draw", reason: "insufficient-material" };

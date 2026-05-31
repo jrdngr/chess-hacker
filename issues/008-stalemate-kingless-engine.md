@@ -2,7 +2,16 @@
 
 - **Category:** Code — Correctness
 - **Severity:** low
-- **Status:** Open
+- **Status:** Done
+
+## Resolution
+
+Fixed at the engine root: `outcome()` only reports stalemate when the side to
+move actually has a king; a king-less side with no moves (both sides king-less,
+e.g. the empty placement board) now returns `ongoing`. The Match.tsx
+`placement.active` guard is retained because it still protects against
+mid-placement king asymmetry (one side's king placed before the other's, which
+reads as a king-capture); its comment was updated to say so.
 
 ## Locations
 

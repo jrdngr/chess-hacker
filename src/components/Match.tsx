@@ -777,6 +777,11 @@ export function Match({
   useEffect(() => {
     if (runMode !== "run") return;
     if (!onMatchEnd) return;
+    // During placement the board is mid-construction: one side may have a king
+    // placed while the other doesn't yet, which engine.outcome() reports as a
+    // king-capture. (The empty-board false-stalemate is fixed at the engine
+    // level — CH-008 — but this guard still protects against mid-placement
+    // king asymmetry.)
     if (placement.active) return;
     if (!matchOver) {
       matchEndedRef.current = false;

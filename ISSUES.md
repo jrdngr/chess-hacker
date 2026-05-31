@@ -18,7 +18,7 @@ Legend: 🔴 critical · 🟠 high · 🟡 medium · 🔵 low · ⚪ nit
 | CH-004 | 🔵  | [resurrect-piece removes by an index into the unfiltered capturedPieces array](issues/004-resurrect-piece-index-mismatch.md)               | Done   |
 | CH-005 | 🔵  | [pending-energy-loss-on-no-capture ignores its validated amount and hardcodes a penalty of 1](issues/005-pending-energy-loss-hardcoded.md) | Done   |
 | CH-006 | 🔵  | [Card-destroyed enemy pieces don't fire on-capture artifacts](issues/006-card-capture-artifact-disagreement.md)                            | Done   |
-| CH-008 | 🔵  | [outcome() reports stalemate (draw) for any king-less side with no moves](issues/008-stalemate-kingless-engine.md)                         | Open   |
+| CH-008 | 🔵  | [outcome() reports stalemate (draw) for any king-less side with no moves](issues/008-stalemate-kingless-engine.md)                         | Done   |
 | CH-009 | 🔵  | [promotionRank opponent-side mirror formula is likely inverted (dead code)](issues/009-promotion-rank-mirror-inverted.md)                  | Open   |
 | CH-007 | ⚪  | [place-zone-buff autoPlace whiffs with no refund when all candidate squares are walled](issues/007-zone-buff-autoplace-whiff.md)           | Open   |
 | CH-010 | ⚪  | [Root + Empower stacking silently loses all empower moves](issues/010-root-empower-stacking.md)                                            | Open   |
