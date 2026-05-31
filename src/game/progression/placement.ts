@@ -3,6 +3,7 @@
 import type { Rng } from "../cards/match";
 import { placeBackRank } from "../chess/positions";
 import { pawnStartRank, serializeFen, type Position } from "../chess/rules";
+import { squareName } from "../chess/coords";
 import type { BoardSize, PieceSet, PieceType, Side } from "../types";
 import { SKIRMISH_PIECE_VALUE, skirmishValueCap } from "./skirmish";
 
@@ -85,20 +86,20 @@ export function buildSkirmishFen(
 
   for (let f = 0; f < files; f++) {
     const t = playerBackRank[f];
-    if (t) pieces.set(sq(f, 0), { type: t, side: "player" });
+    if (t) pieces.set(squareName(f, 0), { type: t, side: "player" });
   }
 
   const wPawnRank = pawnStartRank(boardSize, "player");
   for (let f = 0; f < files; f++) {
     if (playerPawnFiles[f]) {
-      pieces.set(sq(f, wPawnRank), { type: "pawn", side: "player" });
+      pieces.set(squareName(f, wPawnRank), { type: "pawn", side: "player" });
     }
   }
 
   const blackBack = ranks - 1;
   for (let f = 0; f < files; f++) {
     const t = aiBackRank[f];
-    if (t) pieces.set(sq(f, blackBack), { type: t, side: "opponent" });
+    if (t) pieces.set(squareName(f, blackBack), { type: t, side: "opponent" });
   }
 
   const bPawnRank = pawnStartRank(boardSize, "opponent");
@@ -107,12 +108,12 @@ export function buildSkirmishFen(
     for (let f = 0; f < files; f++) aiPawnFiles.push(f);
     const pawnFileCount = Math.min(aiPawnCount, files);
     for (let f = 0; f < pawnFileCount; f++) {
-      pieces.set(sq(aiPawnFiles[f], bPawnRank), { type: "pawn", side: "opponent" });
+      pieces.set(squareName(aiPawnFiles[f], bPawnRank), { type: "pawn", side: "opponent" });
     }
   } else {
     for (let f = 0; f < files; f++) {
       if (playerPawnFiles[f]) {
-        pieces.set(sq(f, bPawnRank), { type: "pawn", side: "opponent" });
+        pieces.set(squareName(f, bPawnRank), { type: "pawn", side: "opponent" });
       }
     }
   }
@@ -128,8 +129,4 @@ export function buildSkirmishFen(
   };
 
   return serializeFen(position);
-}
-
-function sq(file: number, rank: number): string {
-  return `${"abcdefgh"[file]}${rank + 1}`;
 }

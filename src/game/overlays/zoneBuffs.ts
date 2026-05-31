@@ -12,7 +12,7 @@
 // Pure TypeScript — no React. The pattern matches the rest of `game/`.
 
 import type { AlgebraicSquare, BoardSize, PieceType, Side, ZoneBuff, ZoneRegion } from "../types";
-import { fileOf, rankNumberOf } from "../chess/coords";
+import { FILES, fileOf, rankNumberOf } from "../chess/coords";
 
 /** Just enough of the chess board to evaluate zone-buff control. */
 export type ZoneBoardContext = {
@@ -32,11 +32,11 @@ export function regionSquares(region: ZoneRegion, size: BoardSize): Set<Algebrai
   const out = new Set<AlgebraicSquare>();
   if (region.kind === "rank") {
     if (region.rank < 1 || region.rank > size.ranks) return out;
-    for (let f = 0; f < size.files; f++) out.add("abcdefgh"[f] + region.rank);
+    for (let f = 0; f < size.files; f++) out.add(FILES[f] + region.rank);
     return out;
   }
   if (region.kind === "center") {
-    for (const [f, r] of centerCoords(size)) out.add("abcdefgh"[f] + r);
+    for (const [f, r] of centerCoords(size)) out.add(FILES[f] + r);
     return out;
   }
   // Anchor-based patterns share the same expansion logic, just different
@@ -59,7 +59,7 @@ export function regionSquares(region: ZoneRegion, size: BoardSize): Set<Algebrai
     const r = rank + dr;
     if (f < 0 || f >= size.files) continue;
     if (r < 1 || r > size.ranks) continue;
-    out.add("abcdefgh"[f] + r);
+    out.add(FILES[f] + r);
   }
   return out;
 }

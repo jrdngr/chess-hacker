@@ -21,6 +21,7 @@
 import type { Rng } from "../cards/match";
 import type { BoardSize, PieceSet, PieceType, Side } from "../types";
 import { pawnStartRank, serializeFen, type Position } from "./rules";
+import { squareName } from "./coords";
 
 /** A generated starting position bundled with the board size it lives on. */
 export type GeneratedPosition = { fen: string; size: BoardSize };
@@ -144,10 +145,6 @@ export function generateChess960Position(
     throw new Error("pawnStartRank disagrees with generator");
   }
   return { fen: serializeFen(position), size };
-}
-
-function squareName(file: number, rank: number): string {
-  return `${"abcdefgh"[file]}${rank + 1}`;
 }
 
 function pickK<T>(arr: readonly T[], k: number, rng: Rng): T[] {

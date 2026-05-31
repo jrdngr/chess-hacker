@@ -1,7 +1,7 @@
 import type { ChoseEngine, LegalMove } from "../../game/chess/engine";
 import type { AlgebraicSquare, Card, MatchCardState } from "../../game/types";
 import { isInPlayerHalf } from "../../game/cards/match";
-import { fileOf, rankNumberOf } from "../../game/chess/coords";
+import { FILES, fileOf, rankNumberOf } from "../../game/chess/coords";
 import type { BoardMode } from "../Board/Board";
 
 export function computeValidTargetSquares(
@@ -69,7 +69,7 @@ export function computeValidTargetSquares(
           const r = r0 + dr;
           if (f < 0 || f >= files) continue;
           if (r < 1 || r > ranks) continue;
-          const sq = "abcdefgh"[f] + r;
+          const sq = FILES[f] + r;
           if (engine.pieceAt(sq)) continue;
           if (walledSet.has(sq)) continue;
           out.add(sq);
@@ -94,7 +94,7 @@ export function computeValidTargetSquares(
     const { files, ranks } = engine.size();
     for (let r = 1; r <= ranks; r++) {
       for (let f = 0; f < files; f++) {
-        const sq = "abcdefgh"[f] + r;
+        const sq = FILES[f] + r;
         if (!allowOccupied && engine.pieceAt(sq)) continue;
         if (walledSet.has(sq)) continue;
         if (ownHalfOnly && !isInPlayerHalf(sq, ranks)) continue;
@@ -177,7 +177,7 @@ export function computeValidTargetSquares(
       const { files, ranks } = engine.size();
       for (let r = 1; r <= ranks; r++) {
         for (let f = 0; f < files; f++) {
-          const sq = "abcdefgh"[f] + String(r);
+          const sq = FILES[f] + String(r);
           if (engine.pieceAt(sq)) continue;
           if (walledSet.has(sq)) continue;
           out.add(sq);
@@ -195,7 +195,7 @@ export function computeValidTargetSquares(
       const { files, ranks } = engine.size();
       for (let r = 1; r <= ranks; r++) {
         for (let f = 0; f < files; f++) {
-          const sq = "abcdefgh"[f] + String(r);
+          const sq = FILES[f] + String(r);
           if (engine.pieceAt(sq)) continue;
           if (walledSet.has(sq)) continue;
           out.add(sq);
@@ -214,7 +214,7 @@ export function computeValidTargetSquares(
       const halfRank = Math.floor(ranks / 2);
       for (let r = 1; r <= halfRank; r++) {
         for (let f = 0; f < files; f++) {
-          const sq = "abcdefgh"[f] + String(r);
+          const sq = FILES[f] + String(r);
           if (engine.pieceAt(sq)) continue;
           if (walledSet.has(sq)) continue;
           out.add(sq);
@@ -227,7 +227,7 @@ export function computeValidTargetSquares(
       const halfRank = Math.floor(ranks / 2);
       for (let r = 1; r <= halfRank; r++) {
         for (let f = 0; f < files; f++) {
-          const sq = "abcdefgh"[f] + String(r);
+          const sq = FILES[f] + String(r);
           if (engine.pieceAt(sq)) continue;
           if (walledSet.has(sq)) continue;
           out.add(sq);

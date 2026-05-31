@@ -37,7 +37,7 @@ import {
 } from "../overlays/zoneBuffs";
 import { applyEffect } from "./effectHandlers";
 import { CLASSICAL_PIECE_VALUE } from "../pieceValues";
-import { fileOf, rankNumberOf } from "../chess/coords";
+import { FILES, fileOf, rankNumberOf } from "../chess/coords";
 
 /** Per `docs/design/cards.md`. */
 export const HAND_SIZE = 7;
@@ -432,7 +432,6 @@ function applyStartOfTurnArtifactsAndPowers(
   const pieceTypeAt = ctx.pieceTypeAt;
   const pieceSideAt = ctx.pieceSideAt;
   const { files, ranks } = ctx.size;
-  const FILES = "abcdefgh";
 
   const empowerSpecs = pieceEmpowerAll(state.artifacts ?? []);
   const phalanx = hasPhalanxShield(state.artifacts ?? []);
@@ -535,7 +534,6 @@ function hasOrthFriend(
   f: number,
   r: number,
 ): boolean {
-  const FILES = "abcdefgh";
   const offsets: ReadonlyArray<[number, number]> = [
     [1, 0],
     [-1, 0],

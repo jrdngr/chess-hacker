@@ -13,7 +13,7 @@ import {
   pawnPromotionRank,
   rookAttackThroughWalls,
 } from "../../game/artifacts/effects";
-import { fileOf, rankNumberOf } from "../../game/chess/coords";
+import { FILES, fileOf, rankNumberOf } from "../../game/chess/coords";
 
 /**
  * Wall, freeze, root, disarm, compel, shield, sanctuary, trap, empower —
@@ -105,7 +105,7 @@ function kingStepAdjacentSquares(center: AlgebraicSquare): AlgebraicSquare[] {
       const r = r0 + dr;
       if (f < 0 || f > 7) continue;
       if (r < 1 || r > 8) continue;
-      out.push("abcdefgh"[f] + String(r));
+      out.push(FILES[f] + String(r));
     }
   }
   return out;

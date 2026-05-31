@@ -15,7 +15,7 @@ Legend: 🔴 critical · 🟠 high · 🟡 medium · 🔵 low · ⚪ nit
 | #      | Sev | Issue                                                                                                  | Status |
 | ------ | --- | ------------------------------------------------------------------------------------------------------ | ------ |
 | CH-025 | 🟡  | [Square coordinate parsing reimplemented inline in 7+ files](issues/025-dup-square-coord-parsing.md)   | Done   |
-| CH-026 | 🟡  | [FILES / "abcdefgh" / FILE_LETTERS constant redefined in ~7 modules](issues/026-dup-files-constant.md) | Open   |
+| CH-026 | 🟡  | [FILES / "abcdefgh" / FILE_LETTERS constant redefined in ~7 modules](issues/026-dup-files-constant.md) | Done   |
 | CH-027 | 🟡  | [PIECE_VALUE defined 4 times with pawn=0/1 drift](issues/027-dup-piece-value.md)                       | Done   |
 | CH-028 | 🔵  | [3x3 king-adjacent enumeration is hand-rolled in multiple places](issues/028-dup-king-adjacency.md)    | Open   |
 | CH-029 | 🔵  | [Rarity-weighted distinct-pick loop copy-pasted](issues/029-dup-rarity-pick-loop.md)                   | Done   |

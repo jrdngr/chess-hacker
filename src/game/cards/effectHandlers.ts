@@ -30,7 +30,7 @@ import {
   type Rng,
 } from "./match";
 import { getCardById } from "./library";
-import { fileOf, rankNumberOf } from "../chess/coords";
+import { FILES, fileOf, rankNumberOf } from "../chess/coords";
 
 function opposite(s: Side): Side {
   return s === "player" ? "opponent" : "player";
@@ -559,7 +559,7 @@ export function applyEffect(
           const nf = f + df;
           const nr = r + dr;
           if (nf < 0 || nf >= files || nr < 1 || nr > ranks) continue;
-          const adjSq = FILE_LETTERS[nf] + String(nr);
+          const adjSq = FILES[nf] + String(nr);
           const p = ctx.pieceAt(adjSq);
           if (p && p.side === "opponent" && p.type !== "king") {
             sideEffects.push({ kind: "remove-piece", square: adjSq });
@@ -675,8 +675,6 @@ function squareTarget(t: PlayTarget): AlgebraicSquare {
   throw new Error(`expected square target, got ${t.kind}`);
 }
 
-const FILE_LETTERS = "abcdefgh";
-
 /**
  * Collect player-controlled squares inside the blast pattern centered on
  * `center`, on a `files`×`ranks` board. The center itself is excluded — the
@@ -721,7 +719,7 @@ function friendlySquaresInBlast(
     const r = cr + dr;
     if (f < 0 || f >= files) continue;
     if (r < 1 || r > ranks) continue;
-    const sq = FILE_LETTERS[f] + String(r);
+    const sq = FILES[f] + String(r);
     if (sq === excludeSq) continue;
     const piece = ctx.pieceAt(sq);
     if (!piece || piece.side !== "player") continue;
