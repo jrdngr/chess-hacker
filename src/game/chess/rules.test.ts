@@ -13,6 +13,7 @@ import {
   isSquareAttacked,
   legalMoves,
   parseFen,
+  promotionRank,
   serializeFen,
 } from "./rules";
 
@@ -185,6 +186,33 @@ describe("rules — Shield/Sanctuary protect the en-passant victim (CH-003)", ()
     const ov = { ...NO_OVERLAYS, sanctuaries: new Set<AlgebraicSquare>(["e4"]) };
     const moves = legalMoves(pos, ov, "d4").map((m) => m.to);
     expect(moves).not.toContain("e3");
+  });
+});
+
+describe("rules — promotionRank override & opponent mirror (CH-009)", () => {
+  const size = { files: 8, ranks: 8 };
+
+  it("defaults: player promotes on the far rank, opponent on the near rank", () => {
+    expect(promotionRank(size, "player")).toBe(7); // RankIndex 7 = rank 8
+    expect(promotionRank(size, "opponent")).toBe(0); // RankIndex 0 = rank 1
+  });
+
+  it("a player override applies verbatim (1-indexed → 0-indexed)", () => {
+    const ov = { ...NO_OVERLAYS, pawnPromotionRanks: { player: 7 } };
+    expect(promotionRank(size, "player", ov)).toBe(6); // rank 7
+  });
+
+  it("an opponent override is reflected across the board (size.ranks - override)", () => {
+    const ov = { ...NO_OVERLAYS, pawnPromotionRanks: { opponent: 7 } };
+    // Mirror of "one rank short of the far edge": opponent promotes on rank 2.
+    expect(promotionRank(size, "opponent", ov)).toBe(1); // rank 2
+  });
+
+  it("override at the board extreme mirrors symmetrically", () => {
+    const ovP = { ...NO_OVERLAYS, pawnPromotionRanks: { player: 8 } };
+    const ovO = { ...NO_OVERLAYS, pawnPromotionRanks: { opponent: 8 } };
+    expect(promotionRank(size, "player", ovP)).toBe(7); // rank 8 (default)
+    expect(promotionRank(size, "opponent", ovO)).toBe(0); // rank 1 (default)
   });
 });
 

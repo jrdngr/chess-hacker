@@ -52,14 +52,20 @@ export function squareCoords(s: AlgebraicSquare): { file: FileIndex; rank: RankI
 export const STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 /**
- * Promotion rank for `side` on a board of `size.ranks` ranks.
+ * Promotion rank for `side` on a board of `size.ranks` ranks. Returns a
+ * 0-indexed `RankIndex` (rank N is RankIndex N-1).
  *
  * Optionally consults `overlays.pawnPromotionRanks` for an artifact-driven
- * override (e.g. Promotion Engine = rank 7). The override is a 1-indexed
- * rank for the player side (e.g. 7 → rank-7 promotes). For the opponent
- * side the rank is mirrored (`size.ranks - rank + 1` from rank 1 = the
- * board's own rank-1, etc.) but no current artifact targets the opponent
- * so we keep the override player-only in practice.
+ * override (e.g. Promotion Engine = rank 7). The override is a 1-indexed rank
+ * written from the *player's* perspective (e.g. 7 → player pawns promote on
+ * rank 7, RankIndex 6).
+ *
+ * For the opponent the override is reflected across the board: the 1-indexed
+ * mirrored rank is `size.ranks + 1 - override`, so the returned RankIndex is
+ * `size.ranks - override`. Example on 8 ranks: override 7 → player RankIndex 6
+ * (rank 7), opponent RankIndex 1 (rank 2) — both "one rank short of the far
+ * edge." No current artifact targets the opponent, so this branch is dead in
+ * practice, but it is exercised by a unit test (CH-009).
  */
 export function promotionRank(size: BoardSize, side: Side, overlays?: Overlays): RankIndex {
   const override = overlays?.pawnPromotionRanks?.[side];

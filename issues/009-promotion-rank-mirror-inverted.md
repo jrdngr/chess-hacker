@@ -2,7 +2,18 @@
 
 - **Category:** Code — Correctness
 - **Severity:** low
-- **Status:** Open
+- **Status:** Done
+
+## Resolution
+
+Verified the formula is **correct**, not inverted. `promotionRank` returns a
+0-indexed `RankIndex`. A player override `O` (1-indexed) reflects across the
+board to the opponent: 1-indexed mirrored rank `size.ranks + 1 - O`, i.e.
+RankIndex `size.ranks - O` — exactly what the code computes. On 8 ranks,
+override 7 gives player RankIndex 6 (rank 7) and opponent RankIndex 1 (rank 2),
+both "one rank short of the far edge." The misleading doc comment (which mixed
+1- and 0-indexed) was rewritten, and the branch is now pinned by unit tests in
+`rules.test.ts`.
 
 ## Locations
 
