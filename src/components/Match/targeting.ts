@@ -1,7 +1,7 @@
 import type { ChoseEngine, LegalMove } from "../../game/chess/engine";
 import type { AlgebraicSquare, Card, MatchCardState } from "../../game/types";
 import { isInPlayerHalf } from "../../game/cards/match";
-import { FILES, fileOf, rankNumberOf } from "../../game/chess/coords";
+import { FILES, kingAdjacentSquares } from "../../game/chess/coords";
 import type { BoardMode } from "../Board/Board";
 
 export function computeValidTargetSquares(
@@ -59,21 +59,10 @@ export function computeValidTargetSquares(
   }
   if (targetKind === "own-piece-then-adjacent-empty") {
     if (partialTarget) {
-      const f0 = fileOf(partialTarget);
-      const r0 = rankNumberOf(partialTarget);
-      const { files, ranks } = engine.size();
-      for (let df = -1; df <= 1; df++) {
-        for (let dr = -1; dr <= 1; dr++) {
-          if (df === 0 && dr === 0) continue;
-          const f = f0 + df;
-          const r = r0 + dr;
-          if (f < 0 || f >= files) continue;
-          if (r < 1 || r > ranks) continue;
-          const sq = FILES[f] + r;
-          if (engine.pieceAt(sq)) continue;
-          if (walledSet.has(sq)) continue;
-          out.add(sq);
-        }
+      for (const sq of kingAdjacentSquares(partialTarget, engine.size())) {
+        if (engine.pieceAt(sq)) continue;
+        if (walledSet.has(sq)) continue;
+        out.add(sq);
       }
       return out;
     }

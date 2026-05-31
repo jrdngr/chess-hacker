@@ -13,7 +13,8 @@ import {
   pawnPromotionRank,
   rookAttackThroughWalls,
 } from "../../game/artifacts/effects";
-import { FILES, fileOf, rankNumberOf } from "../../game/chess/coords";
+import { kingAdjacentSquares } from "../../game/chess/coords";
+import { STANDARD_SIZE } from "../../game/chess/rules";
 
 /**
  * Wall, freeze, root, disarm, compel, shield, sanctuary, trap, empower —
@@ -64,7 +65,11 @@ export function deriveOverlaySets(state: MatchCardState): OverlaySets {
   const mutexAnchorSet = new Set<AlgebraicSquare>();
   for (const lock of state.mutexLocks ?? []) {
     mutexAnchorSet.add(lock.anchor);
-    for (const sq of kingStepAdjacentSquares(lock.anchor)) {
+    // 3×3 king-step region (anchor inclusive). OverlaySets carries no board-
+    // size hint, so we enumerate against the standard 8×8 frame; the rule
+    // layer filters off-board destinations independently, so any stray
+    // over-the-edge entry on a smaller board is harmless.
+    for (const sq of kingAdjacentSquares(lock.anchor, STANDARD_SIZE, { includeCenter: true })) {
       forbiddenForOpponentSet.add(sq);
     }
   }
@@ -85,30 +90,6 @@ export function deriveOverlaySets(state: MatchCardState): OverlaySets {
     downgradedSet: new Set((state.downgrades ?? []).map((d) => d.square)),
     backdoorSet: new Set((state.backdoors ?? []).map((b) => b.square)),
   };
-}
-
-/**
- * 3×3 king-step-adjacent region around `center` (anchor inclusive). Skips
- * squares outside the standard 8×8 frame; the rule layer filters off-board
- * destinations independently so a stray over-the-edge entry is harmless. We
- * don't clip to the *current* board size here because OverlaySets is built
- * from a MatchCardState without a board-size hint — the engine ignores
- * off-board squares anyway.
- */
-function kingStepAdjacentSquares(center: AlgebraicSquare): AlgebraicSquare[] {
-  const f0 = fileOf(center);
-  const r0 = rankNumberOf(center);
-  const out: AlgebraicSquare[] = [];
-  for (let df = -1; df <= 1; df++) {
-    for (let dr = -1; dr <= 1; dr++) {
-      const f = f0 + df;
-      const r = r0 + dr;
-      if (f < 0 || f > 7) continue;
-      if (r < 1 || r > 8) continue;
-      out.push(FILES[f] + String(r));
-    }
-  }
-  return out;
 }
 
 /** Pack the rule-layer's "extra overlays" struct from the derived sets. */

@@ -30,7 +30,7 @@ import {
   type Rng,
 } from "./match";
 import { getCardById } from "./library";
-import { FILES, fileOf, rankNumberOf } from "../chess/coords";
+import { FILES, KING_OFFSETS, fileOf, kingAdjacentSquares, rankNumberOf } from "../chess/coords";
 
 function opposite(s: Side): Side {
   return s === "player" ? "opponent" : "player";
@@ -551,19 +551,10 @@ export function applyEffect(
       const ranks = ctx.boardRanks ?? 8;
       const sideEffects: CardSideEffect[] = [{ kind: "remove-piece", square: sq }];
       // Destroy adjacent enemy non-King pieces
-      const f = fileOf(sq);
-      const r = rankNumberOf(sq);
-      for (let df = -1; df <= 1; df++) {
-        for (let dr = -1; dr <= 1; dr++) {
-          if (df === 0 && dr === 0) continue;
-          const nf = f + df;
-          const nr = r + dr;
-          if (nf < 0 || nf >= files || nr < 1 || nr > ranks) continue;
-          const adjSq = FILES[nf] + String(nr);
-          const p = ctx.pieceAt(adjSq);
-          if (p && p.side === "opponent" && p.type !== "king") {
-            sideEffects.push({ kind: "remove-piece", square: adjSq });
-          }
+      for (const adjSq of kingAdjacentSquares(sq, { files, ranks })) {
+        const p = ctx.pieceAt(adjSq);
+        if (p && p.side === "opponent" && p.type !== "king") {
+          sideEffects.push({ kind: "remove-piece", square: adjSq });
         }
       }
       let next = state;
@@ -692,17 +683,7 @@ function friendlySquaresInBlast(
 ): AlgebraicSquare[] {
   const cf = fileOf(center);
   const cr = rankNumberOf(center);
-  const kingSteps: ReadonlyArray<[number, number]> = [
-    [-1, -1],
-    [-1, 0],
-    [-1, 1],
-    [0, -1],
-    [0, 1],
-    [1, -1],
-    [1, 0],
-    [1, 1],
-  ];
-  const knightSteps: ReadonlyArray<[number, number]> = [
+  const knightSteps: ReadonlyArray<readonly [number, number]> = [
     [-2, -1],
     [-2, 1],
     [-1, -2],
@@ -712,7 +693,7 @@ function friendlySquaresInBlast(
     [2, -1],
     [2, 1],
   ];
-  const offsets = pattern === "king-step" ? kingSteps : [...kingSteps, ...knightSteps];
+  const offsets = pattern === "king-step" ? KING_OFFSETS : [...KING_OFFSETS, ...knightSteps];
   const out: AlgebraicSquare[] = [];
   for (const [df, dr] of offsets) {
     const f = cf + df;

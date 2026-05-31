@@ -14,7 +14,7 @@
 //   - 1-indexed math (algebraic rank, bounds like `r >= 1 && r <= ranks`):
 //     `rankNumberOf`, and build squares with `FILES[file] + String(rank)`.
 
-import type { AlgebraicSquare, FileIndex, RankIndex } from "../types";
+import type { AlgebraicSquare, BoardSize, FileIndex, RankIndex } from "../types";
 
 /** File letters in order. Index with a 0-indexed file: `FILES[0] === "a"`. */
 export const FILES = "abcdefgh";
@@ -44,4 +44,54 @@ export function rankOf(s: AlgebraicSquare): RankIndex {
 /** 1-indexed algebraic rank number of a square. `rankNumberOf("c4") === 4`. */
 export function rankNumberOf(s: AlgebraicSquare): number {
   return Number(s.slice(1));
+}
+
+// ---- Geometry: king-step adjacency ----------------------------------------
+
+/**
+ * The eight king-step adjacency offsets as `[df, dr]` deltas, in file-major
+ * (then rank-ascending) scan order: `[-1,-1] … [1,1]`. This is the order the
+ * 3×3 enumeration has always produced, so `kingAdjacentSquares` yields squares
+ * in a stable, file-then-rank sequence (some callers — e.g. Self-Destruct's
+ * blast — rely on this order). Distinct from the rule engine's move-direction
+ * tables, which order orthogonal-before-diagonal.
+ */
+export const KING_OFFSETS: ReadonlyArray<readonly [number, number]> = [
+  [-1, -1],
+  [-1, 0],
+  [-1, 1],
+  [0, -1],
+  [0, 1],
+  [1, -1],
+  [1, 0],
+  [1, 1],
+];
+
+/** Whether a 0-indexed (file, rank) pair lies on a `size` board. */
+export function withinBounds(size: BoardSize, file: number, rank: number): boolean {
+  return file >= 0 && file < size.files && rank >= 0 && rank < size.ranks;
+}
+
+/**
+ * The king-step-adjacent squares around `center` that lie on a `size` board.
+ * Excludes `center` itself unless `includeCenter` is set (the 3×3 region used
+ * by Mutex Lock / zone-radius buffs includes the anchor; blast/adjacency
+ * patterns exclude it).
+ */
+export function kingAdjacentSquares(
+  center: AlgebraicSquare,
+  size: BoardSize,
+  opts: { includeCenter?: boolean } = {},
+): AlgebraicSquare[] {
+  const f0 = fileOf(center);
+  const r0 = rankOf(center);
+  const out: AlgebraicSquare[] = [];
+  if (opts.includeCenter && withinBounds(size, f0, r0)) out.push(center);
+  for (const [df, dr] of KING_OFFSETS) {
+    const f = f0 + df;
+    const r = r0 + dr;
+    if (!withinBounds(size, f, r)) continue;
+    out.push(squareName(f as FileIndex, r as RankIndex));
+  }
+  return out;
 }

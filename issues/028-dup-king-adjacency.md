@@ -2,7 +2,7 @@
 
 - **Category:** Refactor — Duplication
 - **Severity:** low
-- **Status:** Open
+- **Status:** Done
 
 ## Locations
 
@@ -19,6 +19,29 @@ The `for df in -1..1, for dr in -1..1, skip center, bounds-check, build square` 
 ## Recommendation
 
 Extract `kingAdjacentSquares(center, size)` + a `withinBounds` predicate; unify `KING_RADIUS_OFFSETS`/`kingSteps` into one exported table.
+
+## Resolution
+
+Added to `src/game/chess/coords.ts`: one exported `KING_OFFSETS` table (file-
+major scan order, preserving the historical 3×3 enumeration order),
+`withinBounds(size, file, rank)`, and `kingAdjacentSquares(center, size, {
+includeCenter })`. Call sites now route through them:
+
+- `effectHandlers.ts` `sacrifice-detonate` — the hand-rolled 3×3-minus-center
+  loop → `kingAdjacentSquares(sq, { files, ranks })`.
+- `targeting.ts` `own-piece-then-adjacent-empty` — same → `kingAdjacentSquares`.
+- `effectHandlers.ts` `friendlySquaresInBlast` — local `kingSteps` table →
+  the shared `KING_OFFSETS` (knight table left local; covered by CH-030).
+- `zoneBuffs.ts` `regionSquares` — local `KING_RADIUS_OFFSETS` →
+  `KING_OFFSETS`.
+- `derivations.ts` `kingStepAdjacentSquares` — removed; mutex zones now call
+  `kingAdjacentSquares(anchor, STANDARD_SIZE, { includeCenter: true })`, keeping
+  the prior 8×8-frame behaviour (OverlaySets has no board-size hint; the rule
+  layer filters off-board destinations).
+
+`KING_OFFSETS` is deliberately ordered file-major (distinct from the rule
+engine's orthogonal-before-diagonal move tables) so the Self-Destruct blast and
+other order-sensitive callers keep their existing scan sequence.
 
 ## Related Issues
 
