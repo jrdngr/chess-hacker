@@ -188,7 +188,7 @@ describe("playCard — resource", () => {
     if (!res.ok) expect(res.reason).toBe("not-enough-energy");
   });
 
-  it("Self Destruct: sacrifice own non-king piece, draw 2, gain 2 energy", () => {
+  it("Self Destruct: base sacrifices own non-king piece (no draw, no energy gain)", () => {
     const rng = makeRng(9);
     // Force the card into hand directly so the test always exercises playCard
     // (the old seed left an opening hand without Self Destruct, so the test

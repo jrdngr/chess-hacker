@@ -2,7 +2,13 @@
 
 - **Category:** Tests — Validity
 - **Severity:** low
-- **Status:** Open
+- **Status:** Done
+
+## Resolution
+
+Renamed the test to "Self Destruct: base sacrifices own non-king piece (no
+draw, no energy gain)", matching the base `sacrifice-detonate` behavior. The
+`drawCount: 2` upgrade variant is covered by the new CH-014 tests.
 
 ## Locations
 
