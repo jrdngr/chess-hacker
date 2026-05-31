@@ -76,7 +76,7 @@ describe("Memory Leak (every-n-turns 4 → pending-energy-loss-on-no-capture)", 
         emptyBoard,
         rng,
       );
-      expect(res.state.pendingEnergyLossOnNoCapture).toBe(true);
+      expect(res.state.pendingEnergyLossOnNoCapture).toBe(1);
     }
   });
 });

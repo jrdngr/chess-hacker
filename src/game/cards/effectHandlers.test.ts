@@ -5,7 +5,7 @@
 import { describe, expect, it } from "vitest";
 
 import { applyEffect } from "./effectHandlers";
-import { createMatchCardState, makeRng } from "./match";
+import { createMatchCardState, makeRng, startPlayerTurn } from "./match";
 import type { PlayTarget } from "./match";
 import { getCardById } from "./library";
 import { emptyBoard } from "./match.testHelpers";
@@ -19,6 +19,51 @@ const twoSquares = (first: string, second: string): PlayTarget => ({
   kind: "two-squares",
   first,
   second,
+});
+
+describe("pending-energy-loss-on-no-capture (CH-005)", () => {
+  it("stores the validated amount rather than a fixed flag", () => {
+    const r = applyEffect(
+      { kind: "pending-energy-loss-on-no-capture", amount: 3 },
+      baseState(),
+      { kind: "none" },
+      emptyBoard,
+      makeRng(1),
+      getCardById("firewall"),
+      0,
+    );
+    expect(r.state.pendingEnergyLossOnNoCapture).toBe(3);
+  });
+
+  it("applies the stored amount (not a hardcoded 1) at start-of-turn with no capture", () => {
+    const rng = makeRng(1);
+    const withPenalty = {
+      ...baseState(),
+      energy: 5,
+      capturedThisTurn: false,
+      pendingEnergyLossOnNoCapture: 3,
+    };
+    const noPenalty = { ...withPenalty, pendingEnergyLossOnNoCapture: 0 };
+
+    const penalized = startPlayerTurn(withPenalty, rng);
+    const control = startPlayerTurn(noPenalty, rng);
+
+    // The only difference between the two runs is the penalty amount.
+    expect(control.energy - penalized.energy).toBe(3);
+  });
+
+  it("does not apply the penalty when a capture happened this turn", () => {
+    const rng = makeRng(1);
+    const captured = {
+      ...baseState(),
+      energy: 5,
+      capturedThisTurn: true,
+      pendingEnergyLossOnNoCapture: 3,
+    };
+    const control = { ...captured, capturedThisTurn: false, pendingEnergyLossOnNoCapture: 0 };
+
+    expect(startPlayerTurn(captured, rng).energy).toBe(startPlayerTurn(control, rng).energy);
+  });
 });
 
 describe("resurrect-piece (Git Revert) — index mapping (CH-004)", () => {

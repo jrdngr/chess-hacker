@@ -127,7 +127,7 @@ function isEffectActive(effect: CardEffect, state: MatchCardState): boolean {
     case "next-move-constraint":
       return state.mustNotCheckNextMove === true;
     case "pending-energy-loss-on-no-capture":
-      return state.pendingEnergyLossOnNoCapture === true;
+      return (state.pendingEnergyLossOnNoCapture ?? 0) > 0;
     case "forbid-zero-cost-this-turn":
       return state.noZeroCostCardsThisTurn === true;
     case "boss-extra-move":

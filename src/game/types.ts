@@ -1029,11 +1029,12 @@ export type MatchCardState = {
    */
   mustNotCheckNextMove?: boolean;
   /**
-   * Boss-driven (Memory Leak curse, Boss B): when true, if no capture happens
-   * before the start of the next player turn the player loses 1 energy at
-   * that point. Cleared on capture or after the penalty applies.
+   * Boss-driven (Memory Leak curse, Boss B): the energy penalty applied at the
+   * start of the next player turn if no capture happens before then. 0 or
+   * undefined means no pending penalty. Cleared on capture or after the
+   * penalty applies. (Was a boolean; now carries the card-tuned amount.)
    */
-  pendingEnergyLossOnNoCapture?: boolean;
+  pendingEnergyLossOnNoCapture?: number;
   /**
    * Tracks whether the player made a capture during the current player
    * turn — used by the Memory Leak curse's start-of-turn check. Reset to false

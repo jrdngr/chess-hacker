@@ -16,7 +16,7 @@ Legend: 🔴 critical · 🟠 high · 🟡 medium · 🔵 low · ⚪ nit
 | CH-002 | 🟡  | [Bit Flip (convert-piece) keeps enemy-applied statuses on the converted piece](issues/002-bit-flip-keeps-enemy-statuses.md)                | Done   |
 | CH-003 | 🟡  | [Sanctuary/Shield protection is bypassed by en passant](issues/003-sanctuary-shield-en-passant.md)                                         | Done   |
 | CH-004 | 🔵  | [resurrect-piece removes by an index into the unfiltered capturedPieces array](issues/004-resurrect-piece-index-mismatch.md)               | Done   |
-| CH-005 | 🔵  | [pending-energy-loss-on-no-capture ignores its validated amount and hardcodes a penalty of 1](issues/005-pending-energy-loss-hardcoded.md) | Open   |
+| CH-005 | 🔵  | [pending-energy-loss-on-no-capture ignores its validated amount and hardcodes a penalty of 1](issues/005-pending-energy-loss-hardcoded.md) | Done   |
 | CH-006 | 🔵  | [Card-destroyed enemy pieces don't fire on-capture artifacts](issues/006-card-capture-artifact-disagreement.md)                            | Open   |
 | CH-008 | 🔵  | [outcome() reports stalemate (draw) for any king-less side with no moves](issues/008-stalemate-kingless-engine.md)                         | Open   |
 | CH-009 | 🔵  | [promotionRank opponent-side mirror formula is likely inverted (dead code)](issues/009-promotion-rank-mirror-inverted.md)                  | Open   |

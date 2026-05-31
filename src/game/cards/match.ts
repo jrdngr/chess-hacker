@@ -348,7 +348,7 @@ export function startPlayerTurn(
   // Boss B / Memory Leak: if the status left a pending penalty and no capture
   // happened between then and now, take 1 energy. The flag is cleared
   // whether or not it triggered.
-  const greedPenalty = state.pendingEnergyLossOnNoCapture && !state.capturedThisTurn ? 1 : 0;
+  const greedPenalty = !state.capturedThisTurn ? (state.pendingEnergyLossOnNoCapture ?? 0) : 0;
   // Boss B modifier: queued energy from the captures-grant-captured-energy
   // rule. Applied (and cleared) at the start of the player's next turn.
   const queuedCaptureEnergy = state.pendingPlayerEnergyOnTurnStart ?? 0;
@@ -397,7 +397,7 @@ export function startPlayerTurn(
     traps: alive(state.traps),
     mutexLocks: liveMutexLocks,
     downgrades: alive(state.downgrades ?? []),
-    pendingEnergyLossOnNoCapture: false,
+    pendingEnergyLossOnNoCapture: 0,
     capturedThisTurn: false,
     noZeroCostCardsThisTurn: false,
     pendingPlayerEnergyOnTurnStart: 0,

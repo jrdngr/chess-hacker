@@ -442,7 +442,16 @@ export function applyEffect(
       // single-turn lifetime; multiple Memory Leak plays in one turn are no-ops
       // beyond the first since the flag is binary. Acceptable: Boss B's
       // schedule (every 4 turns) prevents stacking in practice.
-      return { state: { ...state, pendingEnergyLossOnNoCapture: true }, sideEffects: [] };
+      return {
+        state: {
+          ...state,
+          pendingEnergyLossOnNoCapture: Math.max(
+            state.pendingEnergyLossOnNoCapture ?? 0,
+            effect.amount,
+          ),
+        },
+        sideEffects: [],
+      };
     }
     case "forbid-zero-cost-this-turn": {
       return { state: { ...state, noZeroCostCardsThisTurn: true }, sideEffects: [] };

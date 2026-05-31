@@ -97,7 +97,7 @@ describe("fireStatusEffects", () => {
         emptyBoard,
         rng,
       );
-      expect(res.state.pendingEnergyLossOnNoCapture).toBe(true);
+      expect(res.state.pendingEnergyLossOnNoCapture).toBe(1);
     }
   });
 
