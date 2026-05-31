@@ -2,12 +2,33 @@
 // symmetry. Per-curse parity (Throttled / Memory Leak / etc.) is covered in
 // src/game/cards/match.statusEffects.test.ts.
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { createMatchCardState, makeRng, startPlayerTurn, type BoardContext } from "../cards/match";
 import type { MatchCardState, StatusEffect } from "../types";
 
 import { fireStatusEffects, type StatusEvent } from "./dispatch";
+
+// Inject a synthetic def using the on-self-pawn-move trigger (no shipped def
+// uses it yet) so we can give that trigger positive coverage. Every other id
+// delegates to the real library, so the rest of the suite is unaffected.
+vi.mock("./library", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./library")>();
+  return {
+    ...actual,
+    getStatusEffectById: (id: string) =>
+      id === "pawn-pinger"
+        ? {
+            id: "pawn-pinger",
+            name: "Pawn Pinger",
+            description: "Fires when you move a pawn.",
+            trigger: { kind: "on-self-pawn-move" },
+            effect: { kind: "next-move-constraint", constraint: "must-not-check" },
+            flavor: "curse",
+          }
+        : actual.getStatusEffectById(id as never),
+  };
+});
 
 const emptyBoard: BoardContext = {
   pieceAt: () => null,
@@ -143,15 +164,36 @@ describe("fireStatusEffects", () => {
     expect(res.state.bossExtraMoves).toBe(1);
   });
 
-  it("on-self-pawn-move only fires for pawn-move events", () => {
+  it("on-self-pawn-move fires on a self pawn-move event", () => {
     const rng = makeRng(8);
     let st = startPlayerTurn(createMatchCardState([], rng), rng);
-    // Hand-built status with on-self-pawn-move trigger, using a recognizable
-    // effect. We reuse the throttled status since it has on-self-check; for
-    // this test we directly construct a synthetic StatusEffect referencing a
-    // def we ship — but no shipped def uses on-self-pawn-move yet, so we
-    // simply assert that pawn-move events don't accidentally trigger
-    // non-pawn-move statuses.
+    st = withStatuses(st, [bossCurse("pawn-pinger")]);
+    const res = fireStatusEffects(
+      st,
+      { kind: "pawn-move", by: "player", turn: st.turn },
+      emptyBoard,
+      rng,
+    );
+    expect(res.state.mustNotCheckNextMove).toBe(true);
+    expect(res.state.statusEffects[0]?.lastFiredOnTurn).toBe(st.turn);
+  });
+
+  it("on-self-pawn-move does NOT fire on a non-pawn-move (check) event", () => {
+    const rng = makeRng(8);
+    let st = startPlayerTurn(createMatchCardState([], rng), rng);
+    st = withStatuses(st, [bossCurse("pawn-pinger")]);
+    const res = fireStatusEffects(
+      st,
+      { kind: "check", by: "player", turn: st.turn },
+      emptyBoard,
+      rng,
+    );
+    expect(res.state.mustNotCheckNextMove).toBeFalsy();
+  });
+
+  it("a non-pawn-move status (on-self-check) does not fire on a pawn-move event", () => {
+    const rng = makeRng(8);
+    let st = startPlayerTurn(createMatchCardState([], rng), rng);
     st = withStatuses(st, [bossCurse("throttled")]);
     const res = fireStatusEffects(
       st,

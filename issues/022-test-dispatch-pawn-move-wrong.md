@@ -2,7 +2,16 @@
 
 - **Category:** Tests — Validity
 - **Severity:** low
-- **Status:** Open
+- **Status:** Done
+
+## Resolution
+
+Added positive coverage for `on-self-pawn-move`: a delegating `vi.mock` of
+`./library` injects a synthetic `pawn-pinger` def (trigger `on-self-pawn-move`,
+all other ids fall through to the real library). Tests now assert the trigger
+fires on a self pawn-move and does NOT fire on a non-pawn-move (check). The
+original (oppositely-named) assertion was kept and renamed to "a non-pawn-move
+status (on-self-check) does not fire on a pawn-move event".
 
 ## Locations
 

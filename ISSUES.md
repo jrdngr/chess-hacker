@@ -44,7 +44,7 @@ Legend: 🔴 critical · 🟠 high · 🟡 medium · 🔵 low · ⚪ nit
 | CH-013 | 🟠  | ["Self Destruct" test silently no-ops on its seed and never calls playCard](issues/013-test-self-destruct-noop.md)                    | Done   |
 | CH-014 | 🟠  | [sacrifice-detonate core effect (adjacent-enemy destruction + drawCount) is untested](issues/014-test-sacrifice-detonate-untested.md) | Done   |
 | CH-021 | 🔵  | [Misleading test name "draw 2, gain 2 energy"](issues/021-test-name-draw2-gain2.md)                                                   | Done   |
-| CH-022 | 🔵  | [dispatch test "on-self-pawn-move only fires for pawn-move events" tests the opposite](issues/022-test-dispatch-pawn-move-wrong.md)   | Open   |
+| CH-022 | 🔵  | [dispatch test "on-self-pawn-move only fires for pawn-move events" tests the opposite](issues/022-test-dispatch-pawn-move-wrong.md)   | Done   |
 | CH-023 | 🔵  | [every-n-turns test gap and tautological skirmish assertions](issues/023-test-dispatch-everyn-skirmish-tautology.md)                  | Open   |
 
 ## Refactor — Duplication
