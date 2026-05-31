@@ -286,6 +286,10 @@ export function applyCardSideEffects(
       if (piece && piece.side === "opponent") {
         engine.removePiece(fx.square);
         engine.placePiece(fx.square, { type: piece.type, side: "player" });
+        // Statuses are keyed by square only (the `side` field is never read by
+        // isFrozen/isRooted/...). Clear any enemy-applied status (freeze/root)
+        // so it doesn't carry over and suppress the player's new piece.
+        next = clearStatusesOn(next, fx.square);
       }
     } else if (fx.kind === "transform-piece") {
       const piece = engine.pieceAt(fx.square);

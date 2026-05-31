@@ -2,7 +2,7 @@
 
 - **Category:** Code — Correctness
 - **Severity:** medium
-- **Status:** Open
+- **Status:** Done
 
 ## Locations
 

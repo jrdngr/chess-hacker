@@ -387,6 +387,40 @@ describe("move-piece (SSH Tunnel teleport)", () => {
   });
 });
 
+describe("convert-piece (Bit Flip)", () => {
+  it("converts the enemy piece to the player's side", () => {
+    const e = new ChoseEngine("4k3/8/8/8/3n4/8/8/4K3 w - - 0 1");
+    applyCardSideEffects(
+      e,
+      freshState(),
+      [{ kind: "convert-piece", square: "d4" }],
+      Math.random,
+      () => {},
+    );
+    expect(e.pieceAt("d4")).toEqual({ type: "knight", side: "player" });
+  });
+
+  it("clears enemy-applied statuses (freeze) off the converted piece", () => {
+    const e = new ChoseEngine("4k3/8/8/8/3n4/8/8/4K3 w - - 0 1");
+    const state: MatchCardState = {
+      ...freshState(),
+      freezes: [{ square: "d4", side: "opponent", expiresOnTurn: 99 }],
+    };
+
+    const next = applyCardSideEffects(
+      e,
+      state,
+      [{ kind: "convert-piece", square: "d4" }],
+      Math.random,
+      () => {},
+    );
+
+    // The freeze applied to the enemy minor before Bit Flip must not persist
+    // and suppress the player's newly-acquired piece (CH-002).
+    expect(next.freezes).toEqual([]);
+  });
+});
+
 describe("swap-pieces promotion", () => {
   it("triggers onTransformPrompt when a pawn lands on its promotion rank", () => {
     // White pawn on e7, white rook on e1. Swapping puts the pawn on e1
