@@ -32,22 +32,14 @@ import type {
   RankIndex,
   Side,
 } from "../types";
+import { squareCoords, squareName } from "./coords";
 
-const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"] as const;
+// `squareName` / `squareCoords` are the canonical coordinate helpers (now in
+// `./coords`). Re-exported here because the engine surface has exposed them
+// from this module since M1; callers import them via `engine.ts`.
+export { squareCoords, squareName };
 
 export const STANDARD_SIZE: BoardSize = { files: 8, ranks: 8 };
-
-export function squareName(file: FileIndex, rank: RankIndex): AlgebraicSquare {
-  // Algebraic ranks have one or two digits ("a1".."h10" — we cap at 8 today,
-  // but the helper is robust either way).
-  return `${FILES[file]}${rank + 1}`;
-}
-
-export function squareCoords(s: AlgebraicSquare): { file: FileIndex; rank: RankIndex } {
-  const file = FILES.indexOf(s[0] as (typeof FILES)[number]);
-  const rank = Number(s.slice(1)) - 1;
-  return { file: file as FileIndex, rank: rank as RankIndex };
-}
 
 export const STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 

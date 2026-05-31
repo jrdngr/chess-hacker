@@ -30,6 +30,7 @@ import {
   type Rng,
 } from "./match";
 import { getCardById } from "./library";
+import { fileOf, rankNumberOf } from "../chess/coords";
 
 function opposite(s: Side): Side {
   return s === "player" ? "opponent" : "player";
@@ -550,8 +551,8 @@ export function applyEffect(
       const ranks = ctx.boardRanks ?? 8;
       const sideEffects: CardSideEffect[] = [{ kind: "remove-piece", square: sq }];
       // Destroy adjacent enemy non-King pieces
-      const f = sq.charCodeAt(0) - "a".charCodeAt(0);
-      const r = Number(sq.slice(1));
+      const f = fileOf(sq);
+      const r = rankNumberOf(sq);
       for (let df = -1; df <= 1; df++) {
         for (let dr = -1; dr <= 1; dr++) {
           if (df === 0 && dr === 0) continue;
@@ -691,8 +692,8 @@ function friendlySquaresInBlast(
   ctx: BoardContext,
   excludeSq: AlgebraicSquare,
 ): AlgebraicSquare[] {
-  const cf = FILE_LETTERS.indexOf(center[0]);
-  const cr = Number(center.slice(1));
+  const cf = fileOf(center);
+  const cr = rankNumberOf(center);
   const kingSteps: ReadonlyArray<[number, number]> = [
     [-1, -1],
     [-1, 0],

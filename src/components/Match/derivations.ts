@@ -13,6 +13,7 @@ import {
   pawnPromotionRank,
   rookAttackThroughWalls,
 } from "../../game/artifacts/effects";
+import { fileOf, rankNumberOf } from "../../game/chess/coords";
 
 /**
  * Wall, freeze, root, disarm, compel, shield, sanctuary, trap, empower —
@@ -95,8 +96,8 @@ export function deriveOverlaySets(state: MatchCardState): OverlaySets {
  * off-board squares anyway.
  */
 function kingStepAdjacentSquares(center: AlgebraicSquare): AlgebraicSquare[] {
-  const f0 = center.charCodeAt(0) - "a".charCodeAt(0);
-  const r0 = Number(center.slice(1));
+  const f0 = fileOf(center);
+  const r0 = rankNumberOf(center);
   const out: AlgebraicSquare[] = [];
   for (let df = -1; df <= 1; df++) {
     for (let dr = -1; dr <= 1; dr++) {

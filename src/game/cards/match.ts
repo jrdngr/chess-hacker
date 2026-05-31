@@ -37,6 +37,7 @@ import {
 } from "../overlays/zoneBuffs";
 import { applyEffect } from "./effectHandlers";
 import { CLASSICAL_PIECE_VALUE } from "../pieceValues";
+import { fileOf, rankNumberOf } from "../chess/coords";
 
 /** Per `docs/design/cards.md`. */
 export const HAND_SIZE = 7;
@@ -580,7 +581,7 @@ export type PlayTarget =
  * legacy callers (tests, prototype matches) seeing the standard 1–4 split.
  */
 export function isInPlayerHalf(square: AlgebraicSquare, totalRanks: number = 8): boolean {
-  const r = Number(square.slice(1));
+  const r = rankNumberOf(square);
   return r >= 1 && r <= Math.floor(totalRanks / 2);
 }
 
@@ -590,10 +591,10 @@ export function isInPlayerHalf(square: AlgebraicSquare, totalRanks: number = 8):
  */
 export function isKingAdjacent(a: AlgebraicSquare, b: AlgebraicSquare): boolean {
   if (a === b) return false;
-  const fileA = a.charCodeAt(0) - "a".charCodeAt(0);
-  const rankA = Number(a.slice(1));
-  const fileB = b.charCodeAt(0) - "a".charCodeAt(0);
-  const rankB = Number(b.slice(1));
+  const fileA = fileOf(a);
+  const rankA = rankNumberOf(a);
+  const fileB = fileOf(b);
+  const rankB = rankNumberOf(b);
   return Math.abs(fileA - fileB) <= 1 && Math.abs(rankA - rankB) <= 1;
 }
 

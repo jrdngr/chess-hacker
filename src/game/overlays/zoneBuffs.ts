@@ -12,6 +12,7 @@
 // Pure TypeScript — no React. The pattern matches the rest of `game/`.
 
 import type { AlgebraicSquare, BoardSize, PieceType, Side, ZoneBuff, ZoneRegion } from "../types";
+import { fileOf, rankNumberOf } from "../chess/coords";
 
 /** Just enough of the chess board to evaluate zone-buff control. */
 export type ZoneBoardContext = {
@@ -46,8 +47,8 @@ export function regionSquares(region: ZoneRegion, size: BoardSize): Set<Algebrai
       : region.kind === "square-orthogonal-1"
         ? ORTHOGONAL_OFFSETS
         : [];
-  const fileIdx = "abcdefgh".indexOf(region.anchor[0]);
-  const rank = Number(region.anchor.slice(1));
+  const fileIdx = fileOf(region.anchor);
+  const rank = rankNumberOf(region.anchor);
   if (fileIdx < 0 || !Number.isFinite(rank)) return out;
   // The anchor itself counts toward the region.
   if (fileIdx >= 0 && fileIdx < size.files && rank >= 1 && rank <= size.ranks) {

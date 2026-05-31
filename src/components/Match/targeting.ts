@@ -1,6 +1,7 @@
 import type { ChoseEngine, LegalMove } from "../../game/chess/engine";
 import type { AlgebraicSquare, Card, MatchCardState } from "../../game/types";
 import { isInPlayerHalf } from "../../game/cards/match";
+import { fileOf, rankNumberOf } from "../../game/chess/coords";
 import type { BoardMode } from "../Board/Board";
 
 export function computeValidTargetSquares(
@@ -58,8 +59,8 @@ export function computeValidTargetSquares(
   }
   if (targetKind === "own-piece-then-adjacent-empty") {
     if (partialTarget) {
-      const f0 = partialTarget.charCodeAt(0) - "a".charCodeAt(0);
-      const r0 = Number(partialTarget.slice(1));
+      const f0 = fileOf(partialTarget);
+      const r0 = rankNumberOf(partialTarget);
       const { files, ranks } = engine.size();
       for (let df = -1; df <= 1; df++) {
         for (let dr = -1; dr <= 1; dr++) {

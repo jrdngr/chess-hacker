@@ -13,6 +13,7 @@ import { useCallback } from "react";
 
 import { ChoseEngine } from "../../game/chess/engine";
 import { generateChess960Position } from "../../game/chess/positions";
+import { fileOf, rankOf, squareName } from "../../game/chess/coords";
 import {
   clampEnergy,
   createMatchCardState,
@@ -187,12 +188,12 @@ export function useDevSandbox({
       const fresh = new ChoseEngine(`${board} w - - 0 1`, size);
       const oldSize = engine.size();
       for (const { square, piece } of engine.pieces()) {
-        const file = square.charCodeAt(0) - 97;
-        const rank = Number(square.slice(1)) - 1;
+        const file = fileOf(square);
+        const rank = rankOf(square);
         const newFile = remapAxis(file, oldSize.files, size.files);
         const newRank = remapAxis(rank, oldSize.ranks, size.ranks);
         if (newFile === null || newRank === null) continue;
-        const newSquare = `${String.fromCharCode(97 + newFile)}${newRank + 1}` as AlgebraicSquare;
+        const newSquare = squareName(newFile, newRank);
         fresh.placePiece(newSquare, piece);
       }
       fresh.forceTurn(engine.turn());
