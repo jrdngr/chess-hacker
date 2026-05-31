@@ -2,7 +2,14 @@
 
 - **Category:** Code — Correctness
 - **Severity:** nit
-- **Status:** Open
+- **Status:** Done
+
+## Resolution
+
+`playCard` now blocks a `place-zone-buff` card whose `autoPlace` candidates are
+all walled, returning the new `no-legal-autoplace` failure before any energy or
+card is spent. Added a regression test (all four Power Node center squares
+walled → play rejected, hand and energy unchanged).
 
 ## Locations
 

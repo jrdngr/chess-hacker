@@ -678,6 +678,7 @@ export type PlayCardFailure =
   | "target-hand-card-self"
   | "target-hand-card-already-retained"
   | "target-piece-type-mismatch"
+  | "no-legal-autoplace"
   | "effect-forbidden-by-modifier";
 
 /**
@@ -726,6 +727,17 @@ export function playCard(
 
   const validation = validateTarget(card, target, ctx, state, cardIndex);
   if (validation) return { ok: false, reason: validation };
+
+  // place-zone-buff with autoPlace needs at least one non-walled candidate
+  // square. If every candidate is walled the effect would whiff (no buff),
+  // so block the play here rather than silently eating the energy and card.
+  if (
+    card.effect.kind === "place-zone-buff" &&
+    card.effect.autoPlace &&
+    card.effect.autoPlace.every((s) => ctx.hasWall(s as AlgebraicSquare))
+  ) {
+    return { ok: false, reason: "no-legal-autoplace" };
+  }
 
   let next: MatchCardState = { ...state, energy: clampEnergy(state.energy - cost) };
   const sideEffects: CardSideEffect[] = [];

@@ -357,6 +357,25 @@ describe("playCard — disruption / spatial", () => {
     expect(buff.expiresOnTurn).toBe(st.turn + 5);
     expect(buff.sourceLabel).toBe("Power Node");
   });
+
+  it("rejects Power Node (no refund whiff) when every autoPlace square is walled (CH-007)", () => {
+    const rng = makeRng(41);
+    const stone = getCardById("power-node");
+    let st = startPlayerTurn(createMatchCardState([stone], rng), rng);
+    st = { ...st, energy: 10 };
+    const idx = st.hand.findIndex((s) => s.card.id === "power-node");
+    // Wall all four center candidates.
+    const walled = new Set(["d4", "d5", "e4", "e5"]);
+    const ctx = { ...emptyBoard, hasWall: (sq: string) => walled.has(sq) };
+
+    const r = playCard(st, idx, { kind: "none" }, ctx, rng);
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.reason).toBe("no-legal-autoplace");
+    // The card stays in hand and no energy is spent (state is unchanged).
+    expect(st.hand[idx]?.card.id).toBe("power-node");
+    expect(st.energy).toBe(10);
+  });
 });
 
 describe("playCard — buffs", () => {
