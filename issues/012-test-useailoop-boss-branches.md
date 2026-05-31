@@ -2,7 +2,24 @@
 
 - **Category:** Tests — Coverage
 - **Severity:** high
-- **Status:** Open
+- **Status:** Done
+
+## Resolution
+
+Added `<Match>`-render tests (via the injectable `createAi`) for the useAiLoop
+branches: malformed-UCI → random-legal fallback (no error surfaced); AI moving
+onto a void square → destroyed; the captures-grant-captured-energy modifier →
+player gains +1 energy next turn (vs. a no-modifier control); and the Echo
+branch — a player check queues a boss extra move so the AI's reply forces the
+turn back to the opponent instead of rolling over to the player (asserted
+against a no-Echo control).
+
+NOTE (out of scope, flagged for follow-up): the Echo branch's _second_ AI move
+does not auto-fire in the harness because the AI-loop effect depends only on
+`isAiTurn`, which stays `true` after `forceTurn("opponent")`. The test asserts
+the branch's reliably-observable action (turn forced back to opponent +
+bossExtraMoves consumed); whether the second move actually fires in the running
+app warrants a separate correctness investigation.
 
 ## Locations
 

@@ -287,6 +287,140 @@ describe("Match (vs AI)", () => {
   });
 });
 
+function makeBoss(over: Partial<BossDef>): BossDef {
+  return {
+    id: "test-boss" as BossDef["id"],
+    name: "Test Boss",
+    matchNumber: 3,
+    modifier: { kind: "no-player-walls" },
+    modifierDescription: "",
+    hazardWalls: [],
+    statusEffects: [],
+    description: "",
+    ...over,
+  };
+}
+
+describe("Match (vs AI) — boss / Echo / void / fallback branches (CH-012)", () => {
+  it("falls back to a legal move (no error) when the AI returns a malformed UCI string", async () => {
+    const user = userEvent.setup();
+    const ai = makeFakeAi(["xxxx"]); // unparseable / illegal UCI (not a rejection)
+    render(<Match initialMode="vs-ai" createAi={() => ai} aiMinThinkMs={0} />);
+
+    await user.click(squareCell("e2")!);
+    await user.click(squareCell("e4")!);
+
+    // The malformed string can't be turned into a legal move, so the loop
+    // applies the first legal move and the turn flips back to white...
+    await waitFor(() => {
+      expect(screen.getByLabelText(/side to move: white/i)).toBeInTheDocument();
+    });
+    // ...and unlike the rejection path, no AI error is surfaced.
+    expect(screen.queryByText(/AI engine error/i)).toBeNull();
+  });
+
+  it("destroys an AI piece that moves onto a void square", async () => {
+    const user = userEvent.setup();
+    const ai = makeFakeAi(["e7e5"]); // black pawn double-pushes onto the void
+    render(
+      <Match
+        initialMode="vs-ai"
+        createAi={() => ai}
+        aiMinThinkMs={0}
+        initialFen="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1"
+        activeBoss={makeBoss({ voidSquares: ["e5"] })}
+      />,
+    );
+
+    await user.click(squareCell("e2")!);
+    await user.click(squareCell("e4")!);
+
+    // The AI pawn lands on the void square e5 and is destroyed: e5 ends empty.
+    await waitFor(() => {
+      expect(squareCell("e5")?.getAttribute("aria-label")).toBe("e5");
+    });
+    expect(screen.getByLabelText(/side to move: white/i)).toBeInTheDocument();
+  });
+
+  it("queues +1 energy for the player when the AI captures under Boss B's modifier", async () => {
+    // White pawn on e5 is capturable by the black pawn on d6. The player makes
+    // a quiet move, the AI captures, and (with the modifier) the player gains
+    // an extra +1 energy at the start of their next turn vs. without it.
+    const FEN = "4k3/8/3p4/4P3/8/8/P7/4K3 w - - 0 1";
+
+    async function turn2Energy(boss: BossDef | null): Promise<number> {
+      const user = userEvent.setup();
+      const ai = makeFakeAi(["d6e5"]);
+      const { unmount } = render(
+        <Match
+          initialMode="vs-ai"
+          createAi={() => ai}
+          aiMinThinkMs={0}
+          initialFen={FEN}
+          initialEnergy={0}
+          activeBoss={boss}
+        />,
+      );
+      await user.click(squareCell("a2")!);
+      await user.click(squareCell("a3")!);
+      await waitFor(() => {
+        expect(screen.getByLabelText(/side to move: white/i)).toBeInTheDocument();
+      });
+      // The energy readout renders as "ENERGY<value>/<cap>"; pull the value.
+      const text = screen.getByLabelText(/^energy:/i).textContent ?? "";
+      const energy = Number(text.match(/(\d+)\s*\/\s*\d+/)?.[1] ?? "NaN");
+      unmount();
+      return energy;
+    }
+
+    const withModifier = await turn2Energy(
+      makeBoss({ modifier: { kind: "captures-grant-captured-energy" } }),
+    );
+    const withoutModifier = await turn2Energy(null);
+    expect(withModifier - withoutModifier).toBe(1);
+  });
+
+  it("Echo (Boss C): a player check forces the AI's turn back to the opponent (bossExtraMoves)", async () => {
+    // White rook a7 delivers check on h7 (Rh7+). With Echo attached, the
+    // on-self-check status queues a boss extra move, so after the AI's reply
+    // the loop forces the turn back to the opponent instead of rolling over to
+    // the player (useAiLoop:297-304). Without Echo the same line rolls over to
+    // the player. We assert the side-to-move difference, which isolates the
+    // bossExtraMoves branch.
+    const FEN = "7k/R7/8/8/8/8/8/K7 w - - 0 1";
+
+    async function sideAfterCheck(boss: BossDef): Promise<"white" | "black"> {
+      const user = userEvent.setup();
+      const ai = makeFakeAi(["h8g8", "g8f8"]);
+      const { unmount } = render(
+        <Match
+          initialMode="vs-ai"
+          createAi={() => ai}
+          aiMinThinkMs={0}
+          initialFen={FEN}
+          activeBoss={boss}
+        />,
+      );
+      await user.click(squareCell("a7")!);
+      await user.click(squareCell("h7")!); // Rh7+
+      // Wait for the AI's first reply (the king leaves h8).
+      await waitFor(() => {
+        expect(squareCell("h8")?.getAttribute("aria-label")).toBe("h8");
+      });
+      const side = screen.queryByLabelText(/side to move: white/i) ? "white" : "black";
+      unmount();
+      return side;
+    }
+
+    const withEcho = await sideAfterCheck(makeBoss({ statusEffects: ["echo"] }));
+    const withoutEcho = await sideAfterCheck(makeBoss({}));
+    // Echo keeps the turn on the opponent (extra move queued); without it the
+    // AI's reply rolls the turn back to the player.
+    expect(withEcho).toBe("black");
+    expect(withoutEcho).toBe("white");
+  });
+});
+
 const VOID_BOSS: BossDef = {
   id: "test-void" as BossDef["id"],
   name: "Void Test",
