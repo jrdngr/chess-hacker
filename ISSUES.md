@@ -18,7 +18,7 @@ Legend: 🔴 critical · 🟠 high · 🟡 medium · 🔵 low · ⚪ nit
 | CH-026 | 🟡  | [FILES / "abcdefgh" / FILE_LETTERS constant redefined in ~7 modules](issues/026-dup-files-constant.md) | Open   |
 | CH-027 | 🟡  | [PIECE_VALUE defined 4 times with pawn=0/1 drift](issues/027-dup-piece-value.md)                       | Done   |
 | CH-028 | 🔵  | [3x3 king-adjacent enumeration is hand-rolled in multiple places](issues/028-dup-king-adjacency.md)    | Open   |
-| CH-029 | 🔵  | [Rarity-weighted distinct-pick loop copy-pasted](issues/029-dup-rarity-pick-loop.md)                   | Open   |
+| CH-029 | 🔵  | [Rarity-weighted distinct-pick loop copy-pasted](issues/029-dup-rarity-pick-loop.md)                   | Done   |
 | CH-030 | 🔵  | [Miscellaneous low-level duplication cleanup](issues/030-dup-misc-cleanup.md)                          | Open   |
 
 ## Game Design — Balance

@@ -17,6 +17,7 @@ import { resolvePieceSet, standardMatchConfig } from "./standard";
 import { SKIRMISH_STARTING_ROSTER, skirmishBoardSize } from "./skirmish";
 import { bossForMatch } from "../bosses/library";
 import { ARTIFACT_LIBRARY, pickRandomArtifacts } from "../artifacts/library";
+import { pickRandomByRarity } from "./rarity";
 import type {
   Artifact,
   BoardSize,
@@ -226,35 +227,15 @@ export function eligibleCardsByRarity(rarity: CardRarity): Card[] {
  * weights are tuning knobs — bumped via the rare-rate roll per pick.
  */
 export function pickRandomCards(count: number, rng: Rng): Card[] {
-  const commons = eligibleCardsByRarity("common");
-  const uncommons = eligibleCardsByRarity("uncommon");
-  const rares = eligibleCardsByRarity("rare");
-
-  const out: Card[] = [];
-  const usedIds = new Set<CardId>();
-  // Defensive: guard against asking for more cards than the pool can provide.
-  const cap = Math.min(count, commons.length + uncommons.length + rares.length);
-  while (out.length < cap) {
-    const r = rng();
-    let pool: Card[];
-    if (r < 0.05 && rares.length > 0) pool = rares;
-    else if (r < 0.3 && uncommons.length > 0) pool = uncommons;
-    else pool = commons;
-    const candidates = pool.filter((c) => !usedIds.has(c.id));
-    if (candidates.length === 0) {
-      // Pool exhausted at this rarity — fall back to whatever's left.
-      const all = [...commons, ...uncommons, ...rares].filter((c) => !usedIds.has(c.id));
-      if (all.length === 0) break;
-      const pick = all[Math.floor(rng() * all.length)];
-      out.push(pick);
-      usedIds.add(pick.id);
-      continue;
-    }
-    const pick = candidates[Math.floor(rng() * candidates.length)];
-    out.push(pick);
-    usedIds.add(pick.id);
-  }
-  return out;
+  return pickRandomByRarity(
+    {
+      commons: eligibleCardsByRarity("common"),
+      uncommons: eligibleCardsByRarity("uncommon"),
+      rares: eligibleCardsByRarity("rare"),
+    },
+    count,
+    rng,
+  );
 }
 
 // ---- Reward (boss pick + boss artifact) ------------------------------------

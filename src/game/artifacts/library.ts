@@ -23,6 +23,7 @@ import type {
   ZoneBuffEffect,
   ZoneRegion,
 } from "../types";
+import { pickRandomByRarity } from "../progression/rarity";
 
 export const VALID_ARTIFACT_RARITIES: readonly ArtifactRarity[] = ["common", "uncommon", "rare"];
 
@@ -472,31 +473,13 @@ export function pickRandomArtifacts(
   rng: () => number,
   excludeIds: ReadonlySet<string> = new Set(),
 ): Artifact[] {
-  const commons = getArtifactsByRarity("common").filter((a) => !excludeIds.has(a.id));
-  const uncommons = getArtifactsByRarity("uncommon").filter((a) => !excludeIds.has(a.id));
-  const rares = getArtifactsByRarity("rare").filter((a) => !excludeIds.has(a.id));
-
-  const out: Artifact[] = [];
-  const used = new Set<string>();
-  const cap = Math.min(count, commons.length + uncommons.length + rares.length);
-  while (out.length < cap) {
-    const r = rng();
-    let pool: Artifact[];
-    if (r < 0.05 && rares.length > 0) pool = rares;
-    else if (r < 0.3 && uncommons.length > 0) pool = uncommons;
-    else pool = commons;
-    const candidates = pool.filter((a) => !used.has(a.id));
-    if (candidates.length === 0) {
-      const all = [...commons, ...uncommons, ...rares].filter((a) => !used.has(a.id));
-      if (all.length === 0) break;
-      const pick = all[Math.floor(rng() * all.length)];
-      out.push(pick);
-      used.add(pick.id);
-      continue;
-    }
-    const pick = candidates[Math.floor(rng() * candidates.length)];
-    out.push(pick);
-    used.add(pick.id);
-  }
-  return out;
+  return pickRandomByRarity(
+    {
+      commons: getArtifactsByRarity("common").filter((a) => !excludeIds.has(a.id)),
+      uncommons: getArtifactsByRarity("uncommon").filter((a) => !excludeIds.has(a.id)),
+      rares: getArtifactsByRarity("rare").filter((a) => !excludeIds.has(a.id)),
+    },
+    count,
+    rng,
+  );
 }

@@ -2,7 +2,7 @@
 
 - **Category:** Refactor — Duplication
 - **Severity:** low
-- **Status:** Open
+- **Status:** Done
 
 ## Locations
 
@@ -16,6 +16,16 @@
 ## Recommendation
 
 Extract a generic `pickRandomByRarity<T extends {id; rarity}>(...)` or at minimum hoist 0.05/0.3 to a named shared constant.
+
+## Resolution
+
+Added `src/game/progression/rarity.ts` with `pickRandomByRarity<T extends {
+id: string }>(pools, count, rng)` plus named `RARE_THRESHOLD = 0.05` /
+`UNCOMMON_THRESHOLD = 0.3` constants. `pickRandomCards` (run.ts) and
+`pickRandomArtifacts` (library.ts) now build their three rarity-filtered pools
+and delegate to it. The pools are passed pre-filtered (each caller applies its
+own exclusions before splitting), so the RNG call sequence — and therefore
+seeded determinism — is identical to the previous inline copies.
 
 ---
 
