@@ -2,7 +2,16 @@
 
 - **Category:** Tests — Validity
 - **Severity:** high
-- **Status:** Open
+- **Status:** Done
+
+## Resolution
+
+Added three sacrifice-detonate tests in `match.test.ts`: (1) a center sacrifice
+with multiple adjacent enemies asserting the full remove-piece set while the
+adjacent enemy king and own pieces are spared; (2) a corner sacrifice
+confirming detonation respects board bounds (no off-board access); (3) the
+upgraded `self-destruct+` variant asserting it draws 2 (hand keeps the 2 drawn
+cards, draw pile drained).
 
 ## Locations
 

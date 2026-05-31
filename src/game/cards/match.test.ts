@@ -432,6 +432,77 @@ describe("playCard — sacrifice / summon / swap / marionette", () => {
     expect(st.consumedPile.some((c) => c.id === "self-destruct")).toBe(true);
   });
 
+  it("Self Destruct: detonates adjacent enemy non-kings, sparing the enemy king and own pieces (CH-014)", () => {
+    const rng = makeRng(61);
+    let st = startPlayerTurn(createMatchCardState([SELF_DESTRUCT], rng), rng);
+    st = { ...st, energy: ENERGY_MAX, hand: [{ card: SELF_DESTRUCT, retained: false }] };
+    // Sacrifice e4. Neighbors: d3 enemy, d5 enemy, e3 OWN, e5 enemy KING, f4 enemy.
+    const ctx = withPieces({
+      e4: { type: "pawn", side: "player" },
+      d3: { type: "pawn", side: "opponent" },
+      d5: { type: "knight", side: "opponent" },
+      e3: { type: "pawn", side: "player" },
+      e5: { type: "king", side: "opponent" },
+      f4: { type: "bishop", side: "opponent" },
+    });
+
+    const r = playCard(st, 0, { kind: "square", square: "e4" }, ctx, rng);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    // Sacrificed piece first, then adjacent enemy non-kings in scan order
+    // (file d before e before f; rank low→high). The enemy king (e5) and the
+    // own pawn (e3) are not removed.
+    expect(r.sideEffects).toEqual([
+      { kind: "remove-piece", square: "e4" },
+      { kind: "remove-piece", square: "d3" },
+      { kind: "remove-piece", square: "d5" },
+      { kind: "remove-piece", square: "f4" },
+    ]);
+  });
+
+  it("Self Destruct: detonation respects board bounds at a corner (CH-014)", () => {
+    const rng = makeRng(62);
+    let st = startPlayerTurn(createMatchCardState([SELF_DESTRUCT], rng), rng);
+    st = { ...st, energy: ENERGY_MAX, hand: [{ card: SELF_DESTRUCT, retained: false }] };
+    // Sacrifice a1 (corner). Only in-bounds neighbors are a2, b1, b2.
+    const ctx = withPieces({
+      a1: { type: "pawn", side: "player" },
+      a2: { type: "pawn", side: "opponent" },
+      b2: { type: "pawn", side: "opponent" },
+    });
+
+    const r = playCard(st, 0, { kind: "square", square: "a1" }, ctx, rng);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    // No crash / off-board access; both in-bounds adjacent enemies destroyed.
+    expect(r.sideEffects).toEqual([
+      { kind: "remove-piece", square: "a1" },
+      { kind: "remove-piece", square: "a2" },
+      { kind: "remove-piece", square: "b2" },
+    ]);
+  });
+
+  it("Self Destruct+ (upgrade) draws 2 cards (CH-014)", () => {
+    const rng = makeRng(63);
+    const upgraded = getCardById("self-destruct+");
+    expect(upgraded.effect.kind).toBe("sacrifice-detonate");
+    let st = startPlayerTurn(createMatchCardState([upgraded], rng), rng);
+    st = {
+      ...st,
+      energy: ENERGY_MAX,
+      hand: [{ card: upgraded, retained: false }],
+      drawPile: [FIREWALL, FIREWALL],
+    };
+    const ctx = withPieces({ a2: { type: "pawn", side: "player" } });
+
+    const r = playCard(st, 0, { kind: "square", square: "a2" }, ctx, rng);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    // The played card is consumed out of hand; the 2 drawn cards remain.
+    expect(r.state.hand).toHaveLength(2);
+    expect(r.state.drawPile).toHaveLength(0);
+  });
+
   it("Overclock: applies haste to own piece", () => {
     const rng = makeRng(70);
     let st = startPlayerTurn(createMatchCardState([OVERCLOCK], rng), rng);
