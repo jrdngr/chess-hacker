@@ -52,20 +52,21 @@ describe("pricing helpers", () => {
 });
 
 describe("interest", () => {
-  it("+1 per 5 saved gold, capped at +5", () => {
+  it("+1 per 5 saved gold, capped at +3 (max reached at 15g)", () => {
     expect(interestFor(0)).toBe(0);
     expect(interestFor(4)).toBe(0);
     expect(interestFor(5)).toBe(1);
     expect(interestFor(9)).toBe(1);
-    expect(interestFor(25)).toBe(5);
-    expect(interestFor(50)).toBe(5); // capped
+    expect(interestFor(15)).toBe(3);
+    expect(interestFor(25)).toBe(3); // capped
+    expect(interestFor(50)).toBe(3); // capped
   });
 
   it("applyInterest pays out and includes the new gold in the returned state", () => {
     const run = { ...createRun({ mode: "royal", rngSeed: 1 }), gold: 25 };
     const { state, interest } = applyInterest(run);
-    expect(interest).toBe(5);
-    expect(state.gold).toBe(30);
+    expect(interest).toBe(3);
+    expect(state.gold).toBe(28);
   });
 });
 

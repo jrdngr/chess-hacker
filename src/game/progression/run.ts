@@ -38,7 +38,7 @@ import type {
 // ---- Tuning knobs (prototype starting values, see docs/design/economy.md) --
 
 /** Per-match gold reward for a normal (non-boss) win. */
-export const WIN_BONUS_NORMAL = 10;
+export const WIN_BONUS_NORMAL = 12;
 /** Per-match gold reward for a boss win — large bonus per docs/design/bosses.md. */
 export const WIN_BONUS_BOSS = 25;
 

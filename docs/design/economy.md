@@ -35,9 +35,9 @@ Gold is earned from four sources:
 
 ## Interest (Balatro-style saving)
 
-At the **end of each shop visit**, the player gains **+1 gold per 5 unspent gold** they hold, capped at **+5 gold** (so the saving cap is 25 gold to maximize interest).
+At the **end of each shop visit**, the player gains **+1 gold per 5 unspent gold** they hold, capped at **+3 gold** (so the saving cap is 15 gold to maximize interest).
 
-This rewards budgeting: it's better to save 25 gold and earn +5 per shop than to spend everything every shop.
+This rewards budgeting: it's better to save 15 gold and earn +3 per shop than to spend everything every shop. The cap is deliberately low so that saving for interest does not out-compete spending gold on cards (CH-036) — the shop is the only card source, so hoarding must never be the dominant line.
 
 The cap is a tuning knob — too high and saving dominates; too low and interest is irrelevant.
 
@@ -49,7 +49,7 @@ A **shop opens after every match**. Non-boss wins go match → shop directly; bo
 
 | Slot type        | What                                                      | Pricing (rough)           |
 |------------------|-----------------------------------------------------------|---------------------------|
-| Single cards     | A small rotating selection (3–5) of cards available to buy directly. Mix of commons / uncommons. | ~5–15 gold each. Higher rarity = higher cost. |
+| Single cards     | A small rotating selection (3–5) of cards available to buy directly. Mix of commons / uncommons. | ~4–15 gold each. Higher rarity = higher cost. |
 | Booster packs    | A small selection (1–3) of card-pack bundles. Contents are hidden until purchased; opening reveals N distinct cards drawn from the pack's pool, and the player picks 1. Different pack types for different archetypes. | Common pack: fixed at 5 gold. Other pack flavours TBD. |
 | Artifacts        | A small selection (1–2) of artifacts. Mostly common/uncommon; rares appear occasionally. | ~10–25 gold each. Rare = expensive. |
 
@@ -94,20 +94,25 @@ There is no card-draft skip in this prototype: cards are bought in the shop, not
 - Removal should be powerful but rare-use.
 - Reroll should be available in moderation — paying ~5 gold to fish for a key card is reasonable.
 
+### Card-acquisition target (CH-036)
+
+The shop is the **only** source of new cards, so the economy must let a player meaningfully grow their deck. The target is **~8–12 cards acquired per run** on realistic income (every match won, modest feats), even after buying an artifact or two and using a service. Income and prices are tuned around this floor: common cards start at 4 gold, common packs are a fixed 5 gold (1 card), the normal-win bonus is 12 gold, and the interest cap is kept low (+3) so hoarding doesn't crowd out buying. A guardrail test (`src/game/shop/economy.balance.test.ts`) asserts the 8-card floor holds against guaranteed win income.
+
 ## Summary numbers (prototype starting values)
 
 | Knob                              | Value                                  |
 |-----------------------------------|----------------------------------------|
 | Currencies                        | Gold only                              |
-| Per-match win bonus               | 10 gold normal, 25 gold boss           |
+| Per-match win bonus               | 12 gold normal, 25 gold boss           |
 | Performance feats                 | +5 queen / +4 fast win (≤25 turns) / +5 no major loss / +3 cards remaining / +4 restraint; capped at +12/match |
 | Interest rate                     | +1 gold per 5 saved                    |
-| Interest cap                      | +5 gold per shop visit                 |
+| Interest cap                      | +3 gold per shop visit (max at 15 gold saved) |
+| Card-acquisition target           | ~8–12 cards per run (shop is the only source) |
 | Reroll cost                       | Scales **per shop visit** (5 + 1/use)  |
 | Card removal cost                 | Scales **per use over the run** (10 + 25/use) |
 | Card upgrade cost (Smith)         | Scales **per use over the run** (10 + 25/use) |
 | Skip boss-artifact bonus          | 10 gold                                |
 | Skip piece-draft bonus            | TBD (Skirmish only)                    |
-| Shop card price range             | ~5–15 gold                             |
+| Shop card price range             | ~4–15 gold (commons from 4)            |
 | Common pack price                 | 5 gold (fixed)                         |
 | Shop artifact price range         | ~12–28 gold                            |

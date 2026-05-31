@@ -35,15 +35,19 @@ export const REMOVAL_COST_STEP = 25;
 export const SMITH_COST_BASE = 10;
 export const SMITH_COST_STEP = 25;
 
-/** Interest at shop close: +1 per `INTEREST_PER` saved gold, capped. */
+/**
+ * Interest at shop close: +1 per `INTEREST_PER` saved gold, capped.
+ * Cap kept low (max reached at 15g) so hoarding for interest competes less
+ * with spending gold on cards — see docs/design/economy.md (CH-036).
+ */
 export const INTEREST_PER = 5;
-export const INTEREST_CAP = 5;
+export const INTEREST_CAP = 3;
 
 // ---- Pricing ---------------------------------------------------------------
 
 /** Card price by rarity — spread per docs/design/economy.md (~5–15 gold). */
 function priceForCard(card: Card, rng: Rng): number {
-  const base = card.rarity === "rare" ? 13 : card.rarity === "uncommon" ? 8 : 5;
+  const base = card.rarity === "rare" ? 13 : card.rarity === "uncommon" ? 8 : 4;
   // ±1 randomness so two-of-a-rarity in the same shop don't tie exactly.
   return base + Math.floor(rng() * 3);
 }
