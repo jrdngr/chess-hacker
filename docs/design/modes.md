@@ -109,7 +109,6 @@ Standard is the streamlined "chess + spells with a ramp." Skirmish is the maximu
 - The artifact pool.
 - The 3-act, 9-match run structure with three hand-crafted bosses.
 - Win conditions and chess rules (see `chess-rules.md`).
-- Ascension difficulty modifiers.
 
 The differences are roster management, placement, and AI army sourcing.
 

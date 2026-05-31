@@ -104,8 +104,7 @@ src/
 │   │   └── library.ts               #   loader + validation, sister to cards/library.ts
 │   ├── overlays/                  (M7, live)     Zone-control buffs
 │   ├── bosses/                    (planned, M8)  Boss definitions + curse insertion
-│   ├── pieces/                    (planned, M10) Skirmish drafts, soft caps
-│   └── ascension/                 (planned, post-M11) Difficulty modifier definitions
+│   └── pieces/                    (planned, M10) Skirmish drafts, soft caps
 ├── ai/
 │   └── curseAI.ts                 (planned, M8)  Curse-card insertion scheduling
 └── persistence/                   (planned, M9)  localStorage adapter
@@ -169,7 +168,7 @@ Scaffolding types added for M5+ milestones (no implementations yet — see the t
 ```ts
 // (planned shapes — defined in game/types.ts as scaffolding; refined per milestone)
 
-type RunState = { mode; ascension; act; matchInAct; gold; deck; artifacts; roster?; rngSeed; phase };  // M5
+type RunState = { mode; act; matchInAct; gold; deck; artifacts; roster?; rngSeed; phase };  // M5
 type Artifact = { id; name; rarity; description; triggers };                                            // M6
 type Shop = { offers: ShopOffer[]; rerollCost; removalCost };                                           // M5
 type BossModifier = { bossId; /* rule shape M8 */ };                                                    // M8
@@ -228,4 +227,4 @@ The curse-AI layer also lives in the worker (so the worker can simulate the play
 - Match state should be small (<10KB JSON). We can deep-clone freely.
 - Avoid recomputing zone-control buffs every frame; compute once per turn.
 - Memoize board overlays in render selectors.
-- Stockfish at low depth (5–8) is fast (<1s per move). Higher depths are reserved for late-Ascension.
+- Stockfish at low depth (5–8) is fast (<1s per move). Higher depths are reserved for the late-run boss spikes.

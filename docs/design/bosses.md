@@ -126,7 +126,7 @@ The boon pick is the structural counterpoint to the artifact pick: the artifact 
 - Bosses do not have decks of cards (no AI hand). They have a fixed roster of status effects that trigger on game events.
 - Bosses do not heal or have HP. The win condition is checkmate, same as normal matches.
 - Bosses do not have multiple phases in the prototype. (Multi-phase bosses are interesting but out of scope — see `roadmap/open-questions.md`.)
-- Bosses do not use Ascension-style scaling within a single boss; they ARE the difficulty plateau of the act.
+- Bosses do not scale within a single boss; they ARE the difficulty plateau of the act.
 
 ## AI for bosses
 

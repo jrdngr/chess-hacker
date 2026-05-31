@@ -25,10 +25,6 @@ type MetaState = {
     artifacts: string[];       // unlocked artifact IDs
     // any other content unlocks
   };
-  ascensionRecord: {
-    royal: number;             // highest ascension cleared in royal
-    skirmish: number;          // highest ascension cleared in skirmish
-  };
   stats: {
     runsStarted: number;
     runsWon: number;
@@ -47,7 +43,6 @@ type SavedRun = {
   version: number;
   rngSeed: number;
   mode: "royal" | "skirmish";
-  ascension: number;
   act: 1 | 2 | 3;
   matchInAct: 1 | 2 | 3;
   state: "preMatch" | "match" | "reward" | "shop";

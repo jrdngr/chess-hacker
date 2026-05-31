@@ -67,7 +67,7 @@ wrapper (`setStrength`) as an alternative cap, though the run schedule uses
 Skill Level.
 
 The per-match schedule lives in `src/game/progression/aiStrength.ts`
-(`aiStrengthForMatch(matchNumber, ascension)`) and is shared by Standard and
+(`aiStrengthForMatch(matchNumber)`) and is shared by Standard and
 Skirmish (both run 9 matches with bosses at 3/6/9):
 
 | Match            | Skill Level | Depth |
@@ -84,9 +84,7 @@ Skirmish (both run 9 matches with bosses at 3/6/9):
 
 Each new act resets the non-boss baseline below the prior boss, then climbs;
 bosses spike above their neighbours (the engine plays "for real" on top of the
-boss's modifier/hazard/status layers). **Ascension** sharpens the engine: +2
-Skill Level per level (cap 20) and +1 depth per two levels (cap 16) — the
-"Sharper Mind" axis from `progression.md`. Numbers are first-pass; tune from
+boss's modifier/hazard/status layers). Numbers are first-pass; tune from
 playtesting.
 
 **Why non-boss matches don't get abilities.** The escalation between bosses

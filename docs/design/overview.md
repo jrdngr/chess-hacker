@@ -7,7 +7,7 @@
 1. **Chess is the core.** The board, the pieces, and the move set are recognizable chess. A player who understands chess should immediately understand 80% of what's happening. Cards modify chess; they don't replace it.
 2. **Decks express identity.** Two players who reach the act-3 boss should have arrived with very different decks and pursued very different lines of play. Drafting and shop choices are the central self-expression mechanic.
 3. **Every match has a story.** Cards introduce variance and combos — small board states should be able to explode into memorable swings. Bosses introduce constraints that force the player to use their deck differently.
-4. **Short runs, replayable.** A run is bounded (9 matches across 3 acts). A single run finishes in one sitting. Replay value comes from build variety and the Ascension difficulty ladder, not from grinding.
+4. **Short runs, replayable.** A run is bounded (9 matches across 3 acts). A single run finishes in one sitting. Replay value comes from build variety and content unlocks, not from grinding.
 5. **Single-player, prototype-first.** No multiplayer, no live ops, no asymmetric balance work. Tune for one player having a great time.
 
 ## The run loop (the macro view)
@@ -34,7 +34,7 @@ START RUN
 - After every match (including normal ones) the player gets reward choices, then shops, then plays the next match.
 - Each act-end boss is hand-crafted, visible at act start so the player can plan, and grants an artifact reward.
 
-See [`progression.md`](progression.md) for the post-match flow in detail and the Ascension/heat ladder.
+See [`progression.md`](progression.md) for the post-match flow in detail.
 
 ## The match loop (the micro view)
 
@@ -66,7 +66,7 @@ See [`modes.md`](modes.md).
 - Not a chess teacher / tutor. Players are assumed to understand basic chess.
 - Not a chess variant in the FIDE-rules sense. We use chess as a substrate for a card game.
 - Not multiplayer. No PvP, no leaderboards, no async play. Single-player only — see `roadmap/open-questions.md` for the multiplayer revisit gate.
-- Not a long campaign. A run is short (9 matches); long-tail replay is the Ascension ladder + content-unlocks.
+- Not a long campaign. A run is short (9 matches); long-tail replay is build variety + content-unlocks.
 - Not an asset-rich game (for the prototype). The visual theme is **abstract minimalist** — geometric shapes and color, not illustrated art. See [`theme.md`](theme.md).
 
 ## Influences (recurring touchstones)

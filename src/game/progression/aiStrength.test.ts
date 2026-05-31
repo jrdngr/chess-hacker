@@ -36,17 +36,6 @@ describe("aiStrengthForMatch", () => {
     expect(aiStrengthForMatch(9).depth!).toBeGreaterThan(aiStrengthForMatch(8).depth!);
   });
 
-  it("sharpens the engine with Ascension and caps skill at 20 / depth at 16", () => {
-    const base = aiStrengthForMatch(4, 0);
-    const asc = aiStrengthForMatch(4, 3);
-    expect(asc.skillLevel!).toBeGreaterThan(base.skillLevel!);
-    expect(asc.depth!).toBeGreaterThanOrEqual(base.depth!);
-
-    const high = aiStrengthForMatch(9, 50);
-    expect(high.skillLevel).toBe(20);
-    expect(high.depth).toBe(16);
-  });
-
   it("falls back to the finale entry for out-of-range match numbers", () => {
     expect(aiStrengthForMatch(99)).toEqual(aiStrengthForMatch(9));
   });

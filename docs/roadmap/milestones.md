@@ -190,4 +190,4 @@ Artifact JSON files go in `src/game/artifacts/data/`. New effect kinds require t
 - Tutorial mode (added late if at all; the abstract minimalist UI plus tooltips should suffice).
 - Localization.
 - Custom seeded runs / daily challenges (deferred — see `progression.md` and `open-questions.md`).
-- Meta-progression / Ascension scaffolding. Designed in `docs/design/progression.md` but not milestoned in this revision; re-add when Royal and Skirmish are both shippable.
+- Meta-progression scaffolding. Designed in `docs/design/progression.md` but not milestoned in this revision; re-add when Royal and Skirmish are both shippable.

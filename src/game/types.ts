@@ -551,7 +551,6 @@ export type PieceSet = {
 
 export type RunState = {
   mode: RunMode;
-  ascension: number;
   config: RunConfig;
   /** 1-indexed current act. */
   act: 1 | 2 | 3;

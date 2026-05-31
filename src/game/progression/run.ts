@@ -55,7 +55,6 @@ export const STANDARD_RUN_CONFIG: RunConfig = { actCount: 3, matchesPerAct: 3 };
 
 export type CreateRunOptions = {
   mode: RunMode;
-  ascension?: number;
   rngSeed?: number;
   config?: RunConfig;
   /** Override starting deck — tests pass a deterministic deck. */
@@ -87,7 +86,6 @@ export function createRun(opts: CreateRunOptions): RunState {
   }
   return {
     mode: opts.mode,
-    ascension: opts.ascension ?? 0,
     config,
     act: 1,
     matchInAct: 1,

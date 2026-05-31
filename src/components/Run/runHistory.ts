@@ -26,7 +26,6 @@ export type RunHistoryEvent =
   | {
       kind: "run-start";
       mode: RunMode;
-      ascension: number;
       rngSeed: number;
       startingDeckIds: CardId[];
       startingArtifactIds: string[];
@@ -216,7 +215,7 @@ export function serializeRunHistory(events: ReadonlyArray<RunHistoryEvent>): str
 export function describeRunEvent(ev: RunHistoryEvent): string {
   switch (ev.kind) {
     case "run-start":
-      return `Run start (${ev.mode}, ascension ${ev.ascension}, seed ${ev.rngSeed}, deck ${ev.startingDeckIds.length})`;
+      return `Run start (${ev.mode}, seed ${ev.rngSeed}, deck ${ev.startingDeckIds.length})`;
     case "match-start": {
       const boss = ev.bossId ? ` · boss ${ev.bossId}` : "";
       return `Match ${ev.matchNumber} start (act ${ev.act} #${ev.matchInAct}, ${ev.size.files}×${ev.size.ranks}, deck ${ev.deckIds.length}, gold ${ev.goldAtStart})${boss}`;

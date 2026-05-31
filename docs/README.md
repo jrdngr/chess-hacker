@@ -8,7 +8,7 @@ Welcome. This folder is the design and technical reference for **Chess Hacker**:
 2. [`design/modes.md`](design/modes.md) — Standard (default), Royal, Skirmish, Sandbox.
 3. [`design/cards.md`](design/cards.md) — cards, energy, hand, disposal.
 4. [`cards/`](cards/) — per-card reference grouped by type, plus the keyword and starter-deck pages.
-5. [`design/progression.md`](design/progression.md) — runs, acts, Ascension.
+5. [`design/progression.md`](design/progression.md) — runs, acts, meta-progression.
 6. Skim the rest of `design/` as needed.
 7. When ready to build, read [`technical/stack.md`](technical/stack.md) and [`technical/architecture.md`](technical/architecture.md), then [`roadmap/milestones.md`](roadmap/milestones.md).
 
@@ -68,7 +68,7 @@ docs/
 - **Board:** 8×8 maximum. Standard mode uses three square sizes — one per act (6×6, 7×7, 8×8) — and only grows the board after each act-end boss; the dev sandbox supports any size from 3×3 to 8×8. Card-spawned square effects, zone-control buffs, walls/blocks. No portals.
 - **Bosses:** 3 hand-crafted, visible at act start. Combine match-modifier rules + fixed board hazards + persistent status effects (see `design/status-effects.md`).
 - **Win conditions:** standard chess — checkmate, stalemate, draws all enforced. Draws count as run-loss. No clock.
-- **Meta-progression:** content unlocks only (no power buffs); Ascension/heat ladder for replay; single character.
+- **Meta-progression:** content unlocks only (no power buffs); single character.
 - **Stack:** TypeScript + React (Vite), custom chess engine (`src/game/chess/`), Stockfish.wasm, localStorage.
 
 For everything else — the why, the details, the edge cases — read the per-topic docs above.

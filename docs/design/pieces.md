@@ -64,7 +64,7 @@ Reconsider after playtesting if drafts feel too random — see `roadmap/open-que
 
 Within a Skirmish run, pieces are **persistent across matches**. Pieces lost during a match (captured) **are not permanently lost** — they return at full strength for the next match. This keeps Skirmish's roguelite power-curve fun. The roster effectively only grows.
 
-The "death is permanent" question is filed under future difficulty modifiers (Ascension / heat). See `progression.md` and `roadmap/open-questions.md`.
+The "death is permanent" question is filed under future difficulty modifiers. See `roadmap/open-questions.md`.
 
 ## Placement (both modes)
 

@@ -15,7 +15,7 @@ Loosely grouped by topic.
 - **Exact starter roster composition.** Currently "king + 2 pawns + 2 minors" — should the 2 minors be (KN+B), (2 KN), (2 B), or player-chosen? Default: knight + bishop. Revisit after first-Skirmish playtests.
 - **AI army scaling curve.** How does the opponent's army grow across the 9 matches in Skirmish? Need a concrete curve. Starting suggestion: match 1 = 8 pieces, match 9 = 16 pieces. Tune through play.
 - **Pieces in shop.** Currently NOT sold in shop. Reconsider if drafts feel too random.
-- **Permanent piece death.** Currently captured pieces revive next match. Persistent piece loss is filed as a candidate Ascension modifier (`progression.md`).
+- **Permanent piece death.** Currently captured pieces revive next match. Persistent piece loss is filed as a candidate future difficulty modifier.
 - **Pawn-only restriction on rank 2.** Strictly required, or relaxable? Default: pawns on rank 2 only.
 - **Promotion as roster growth.** Currently promotion is match-only and doesn't add to roster. Worth revisiting: an artifact that says "promoted pieces persist" would be a unique build axis.
 - **Fairy pieces.** Could we unlock non-standard piece types over time (e.g., archbishop, chancellor)? Out of MVP. Note for post-prototype design.
@@ -51,8 +51,6 @@ Loosely grouped by topic.
 
 ## Progression / meta
 
-- **Ascension modifier ladder.** A1–A8 sketches in `progression.md` are illustrative. Real ladder depth and ordering are TBD; iterate as players reach higher Ascensions.
-- **Per-mode Ascension records.** Confirmed yes (Royal and Skirmish track separately).
 - **Cosmetic theme skins (cosmic, clockwork, fantasy).** Out of prototype scope. Designed-for in `theme.md` as a future overlay system.
 - **Daily / weekly challenges.** Cut from MVP. Re-add when the seed/RNG system matures.
 - **Multiple characters / decks.** Single character only for MVP. Slay-style multiple-character expansion is a possible post-prototype direction.

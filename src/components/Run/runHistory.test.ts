@@ -95,7 +95,6 @@ describe("runHistory — serialization", () => {
       {
         kind: "run-start",
         mode: "royal",
-        ascension: 0,
         rngSeed: 42,
         startingDeckIds: ["firewall"],
         startingArtifactIds: [],
@@ -115,12 +114,11 @@ describe("runHistory — describeRunEvent", () => {
       ev: {
         kind: "run-start",
         mode: "royal",
-        ascension: 2,
         rngSeed: 7,
         startingDeckIds: ["firewall", "stack-trace"],
         startingArtifactIds: [],
       },
-      match: /Run start \(royal, ascension 2, seed 7, deck 2\)/,
+      match: /Run start \(royal, seed 7, deck 2\)/,
     },
     {
       ev: {

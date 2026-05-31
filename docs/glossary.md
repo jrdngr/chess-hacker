@@ -6,7 +6,6 @@ Terms used across the Chess Hacker design and technical docs.
 |---------------------|------------------------------------------------------------------------------------------|
 | **Act**             | A third of a run (3 matches). The run has 3 acts; each ends with a boss.                |
 | **Artifact**        | A persistent run-level effect occupying one of 5 slots; sourced from shop and bosses.   |
-| **Ascension**       | Difficulty level above 0; each level adds a fixed stacking modifier. Per-mode track.    |
 | **Booster pack**    | Shop item: open and pick 1+ cards from its randomized contents. Balatro-style.          |
 | **Boss**            | A hand-crafted match at the end of each act. 3 bosses per run (one per act).            |
 | **Card**            | An effect played from hand. Costs energy. By default a played card lands in the discard pile and cycles back into the draw pile when it empties; the Consume keyword removes it from the match instead. |
@@ -31,9 +30,8 @@ Terms used across the Chess Hacker design and technical docs.
 | **FIDE**            | The international chess federation; "FIDE rules" = the standard chess rules baseline.   |
 | **Freeze**          | Status keyword: enemy piece cannot move or capture on its next turn.                    |
 | **Haste**           | Buff keyword: own piece may move a second time this turn; first move cannot capture.    |
-| **Heat**            | Synonym for Ascension level.                                                            |
 | **Match**           | A single chess game inside a run. 9 matches per run.                                    |
-| **Modifier**        | A persistent rule change for a match (used by bosses and Ascension).                    |
+| **Modifier**        | A persistent rule change for a match (used by bosses).                                  |
 | **Move extension**  | A card-granted ability that adds new legal moves for a piece this turn.                 |
 | **Overlay**         | Anything painted onto the board that isn't a piece — wall, square effect, zone buff.    |
 | **Performance bonus** | Gold earned by a per-match feat (short game, no losses, etc.).                       |

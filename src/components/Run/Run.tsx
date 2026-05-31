@@ -217,7 +217,6 @@ export function Run({
     pushRunEvent({
       kind: "run-start",
       mode: run.mode,
-      ascension: run.ascension,
       rngSeed: run.rngSeed,
       startingDeckIds: deckIds(run.deck),
       startingArtifactIds: artifactIds(run.artifacts),
@@ -666,12 +665,9 @@ export function Run({
     });
   };
 
-  // Per-match engine strength (CH-031): scaled by match number + Ascension so
-  // the AI ramps across the run instead of sitting at a flat depth 6.
-  const aiStrength = useMemo(
-    () => aiStrengthForMatch(run.matchNumber, run.ascension),
-    [run.matchNumber, run.ascension],
-  );
+  // Per-match engine strength (CH-031): scaled by match number so the AI ramps
+  // across the run instead of sitting at a flat depth 6.
+  const aiStrength = useMemo(() => aiStrengthForMatch(run.matchNumber), [run.matchNumber]);
 
   // ---- Render -------------------------------------------------------------
 
