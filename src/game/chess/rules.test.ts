@@ -162,6 +162,32 @@ describe("rules — isSquareAttacked direct", () => {
   });
 });
 
+describe("rules — Shield/Sanctuary protect the en-passant victim (CH-003)", () => {
+  // White just played e2-e4 (en-passant target e3). Black pawn on d4 can
+  // capture en passant, landing on e3 and removing the white pawn on e4.
+  const fen = "4k3/8/8/8/3pP3/8/8/4K3 b - e3 0 1";
+
+  it("without protection, the en-passant capture is legal", () => {
+    const pos = parseFen(fen);
+    const moves = legalMoves(pos, NO_OVERLAYS, "d4").map((m) => m.to);
+    expect(moves).toContain("e3");
+  });
+
+  it("a Shield on the EP victim (e4) forbids the en-passant capture", () => {
+    const pos = parseFen(fen);
+    const ov = { ...NO_OVERLAYS, shields: new Set<AlgebraicSquare>(["e4"]) };
+    const moves = legalMoves(pos, ov, "d4").map((m) => m.to);
+    expect(moves).not.toContain("e3");
+  });
+
+  it("a Sanctuary on the EP victim's square (e4) forbids the en-passant capture", () => {
+    const pos = parseFen(fen);
+    const ov = { ...NO_OVERLAYS, sanctuaries: new Set<AlgebraicSquare>(["e4"]) };
+    const moves = legalMoves(pos, ov, "d4").map((m) => m.to);
+    expect(moves).not.toContain("e3");
+  });
+});
+
 // ---- Power-curve overhaul: piece-rule-modifier artifacts -------------------
 
 describe("rules — Pawn Storm (pawn-double-from-any-rank)", () => {

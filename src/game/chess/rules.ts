@@ -552,7 +552,12 @@ export function pseudoLegalMoves(
       if (disarmed && m.isCapture) continue;
       // Sanctuary: pieces on a Sanctuary square cannot be captured.
       // Shield: shielded pieces cannot be captured.
-      if (m.isCapture && (sanc.has(m.to) || sh.has(m.to))) continue;
+      // For en passant the victim sits on `epVictim`, not `m.to` (the empty
+      // EP target square), so guard the actual victim square.
+      if (m.isCapture) {
+        const victimSq = m.epVictim ?? m.to;
+        if (sanc.has(victimSq) || sh.has(victimSq)) continue;
+      }
       if (forbidden && forbidden.has(m.to)) continue;
       out.push(m);
     }
