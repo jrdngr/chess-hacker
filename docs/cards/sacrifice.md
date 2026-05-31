@@ -16,10 +16,10 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 
 ## Self-Destruct
 
-- **Cost:** 2
+- **Cost:** 3
 - **Rarity:** Uncommon
 - **Keywords:** **Consume**
 - **Target:** own non-King piece
-- **Effect:** Destroy the targeted piece. Destroy all enemy non-King pieces on the 8 king-step-adjacent squares around it.
+- **Effect:** Destroy the targeted piece. Destroy all enemy non-King pieces on the 4 orthogonally adjacent squares (N/S/E/W) around it. Diagonal neighbours are spared.
 - **Upgrade (Self-Destruct+):** Also draw 2 cards after the detonation resolves.
-- **Design note:** the AoE sacrifice — position a piece in the thick of the enemy formation, then detonate it. Compared to Buffer Overflow (tempo payoff: allied actions), Self-Destruct's payoff is enemy removal. Cost 2 is low because you're also paying a piece and the card is Consume. Devastating when a pawn can be parked next to 2–3 enemy pieces. The enemy king is never destroyed (non-King restriction). Pieces destroyed by Self-Destruct are eligible for Git Revert resurrection.
+- **Design note:** the AoE sacrifice — position a piece in the thick of the enemy formation, then detonate it. Compared to Buffer Overflow (tempo payoff: allied actions), Self-Destruct's payoff is enemy removal. Cost 3 and orthogonal-only adjacency (CH-037) keep the swing in check — on cramped boards the old cost-2, all-8-neighbours version was a refund-positive board wipe. Rewards lining a piece up against an orthogonal cluster. The enemy king is never destroyed (non-King restriction). Pieces destroyed by Self-Destruct are eligible for Git Revert resurrection.

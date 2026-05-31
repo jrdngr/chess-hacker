@@ -35,7 +35,7 @@ import {
   KING_OFFSETS,
   KNIGHT_OFFSETS,
   fileOf,
-  kingAdjacentSquares,
+  orthogonalAdjacentSquares,
   rankNumberOf,
 } from "../chess/coords";
 
@@ -557,8 +557,8 @@ export function applyEffect(
       const files = ctx.boardFiles ?? 8;
       const ranks = ctx.boardRanks ?? 8;
       const sideEffects: CardSideEffect[] = [{ kind: "remove-piece", square: sq }];
-      // Destroy adjacent enemy non-King pieces
-      for (const adjSq of kingAdjacentSquares(sq, { files, ranks })) {
+      // Destroy orthogonally adjacent enemy non-King pieces (diagonals spared)
+      for (const adjSq of orthogonalAdjacentSquares(sq, { files, ranks })) {
         const p = ctx.pieceAt(adjSq);
         if (p && p.side === "opponent" && p.type !== "king") {
           sideEffects.push({ kind: "remove-piece", square: adjSq });

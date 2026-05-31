@@ -135,3 +135,24 @@ export function kingAdjacentSquares(
   }
   return out;
 }
+
+/**
+ * The orthogonally adjacent squares (N/S/E/W) around `center` on a `size`
+ * board — the 4-neighbour subset of {@link kingAdjacentSquares}. Used by
+ * blast patterns that should spare diagonal neighbours (e.g. Self-Destruct).
+ */
+export function orthogonalAdjacentSquares(
+  center: AlgebraicSquare,
+  size: BoardSize,
+): AlgebraicSquare[] {
+  const f0 = fileOf(center);
+  const r0 = rankOf(center);
+  const out: AlgebraicSquare[] = [];
+  for (const [df, dr] of ORTHOGONAL_OFFSETS) {
+    const f = f0 + df;
+    const r = r0 + dr;
+    if (!withinBounds(size, f, r)) continue;
+    out.push(squareName(f as FileIndex, r as RankIndex));
+  }
+  return out;
+}

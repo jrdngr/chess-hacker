@@ -444,39 +444,40 @@ describe("playCard — sacrifice / summon / swap / marionette", () => {
     expect(st.consumedPile.some((c) => c.id === "self-destruct")).toBe(true);
   });
 
-  it("Self Destruct: detonates adjacent enemy non-kings, sparing the enemy king and own pieces (CH-014)", () => {
+  it("Self Destruct: detonates orthogonally adjacent enemy non-kings, sparing diagonals, the enemy king, and own pieces (CH-037)", () => {
     const rng = makeRng(61);
     let st = startPlayerTurn(createMatchCardState([SELF_DESTRUCT], rng), rng);
     st = { ...st, energy: ENERGY_MAX, hand: [{ card: SELF_DESTRUCT, retained: false }] };
-    // Sacrifice e4. Neighbors: d3 enemy, d5 enemy, e3 OWN, e5 enemy KING, f4 enemy.
+    // Sacrifice e4. Orthogonal: d4 enemy, f4 enemy, e3 OWN, e5 enemy KING.
+    // Diagonal: d5 enemy (must be SPARED now — orthogonal-only blast).
     const ctx = withPieces({
       e4: { type: "pawn", side: "player" },
-      d3: { type: "pawn", side: "opponent" },
-      d5: { type: "knight", side: "opponent" },
+      d4: { type: "pawn", side: "opponent" },
+      f4: { type: "bishop", side: "opponent" },
       e3: { type: "pawn", side: "player" },
       e5: { type: "king", side: "opponent" },
-      f4: { type: "bishop", side: "opponent" },
+      d5: { type: "knight", side: "opponent" },
     });
 
     const r = playCard(st, 0, { kind: "square", square: "e4" }, ctx, rng);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    // Sacrificed piece first, then adjacent enemy non-kings in scan order
-    // (file d before e before f; rank low→high). The enemy king (e5) and the
-    // own pawn (e3) are not removed.
+    // Sacrificed piece first, then orthogonal enemy non-kings in scan order
+    // (ORTHOGONAL_OFFSETS: +file, -file, +rank, -rank → f4, d4). The enemy king
+    // (e5), the own pawn (e3), and the diagonal knight (d5) are not removed.
     expect(r.sideEffects).toEqual([
       { kind: "remove-piece", square: "e4" },
-      { kind: "remove-piece", square: "d3" },
-      { kind: "remove-piece", square: "d5" },
       { kind: "remove-piece", square: "f4" },
+      { kind: "remove-piece", square: "d4" },
     ]);
   });
 
-  it("Self Destruct: detonation respects board bounds at a corner (CH-014)", () => {
+  it("Self Destruct: detonation respects board bounds at a corner and spares diagonals (CH-037)", () => {
     const rng = makeRng(62);
     let st = startPlayerTurn(createMatchCardState([SELF_DESTRUCT], rng), rng);
     st = { ...st, energy: ENERGY_MAX, hand: [{ card: SELF_DESTRUCT, retained: false }] };
-    // Sacrifice a1 (corner). Only in-bounds neighbors are a2, b1, b2.
+    // Sacrifice a1 (corner). In-bounds orthogonal neighbors: a2, b1.
+    // b2 is diagonal and must be SPARED.
     const ctx = withPieces({
       a1: { type: "pawn", side: "player" },
       a2: { type: "pawn", side: "opponent" },
@@ -486,11 +487,11 @@ describe("playCard — sacrifice / summon / swap / marionette", () => {
     const r = playCard(st, 0, { kind: "square", square: "a1" }, ctx, rng);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    // No crash / off-board access; both in-bounds adjacent enemies destroyed.
+    // No crash / off-board access; only the orthogonal enemy (a2) is destroyed,
+    // the diagonal enemy (b2) is spared.
     expect(r.sideEffects).toEqual([
       { kind: "remove-piece", square: "a1" },
       { kind: "remove-piece", square: "a2" },
-      { kind: "remove-piece", square: "b2" },
     ]);
   });
 
