@@ -4,48 +4,11 @@ Issues derived from the comprehensive review in `docs/reviews/2026-05-29-compreh
 
 **Working instructions for the agent:** Work issues **one at a time**. Open the linked file for full context (locations, problem, recommendation, related issues). After completing an issue, run the pre-commit checks in `CLAUDE.md` (`npm run format`, `npm run lint`, `npx tsc --noEmit`, `npm test`, `npm run build`), then commit with `jj commit` and mark the issue's **Status** as `Done` here and in its file. Prefer the recommended ordering below (severity-first within each section).
 
-**Total open issues:** 63
+**Total open issues:** 39
+
+_The Code — Correctness, Tests — Coverage, and Tests — Validity sections (CH-001…024) are all resolved and have been removed from this index; their resolution notes live in the individual `issues/` files._
 
 Legend: 🔴 critical · 🟠 high · 🟡 medium · 🔵 low · ⚪ nit
-
-## Code — Correctness
-
-| #      | Sev | Issue                                                                                                                                      | Status |
-| ------ | --- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
-| CH-001 | 🟠  | [SSH Tunnel teleport records own piece as destroyed and drops its buffs](issues/001-ssh-tunnel-teleport-phantom.md)                        | Done   |
-| CH-002 | 🟡  | [Bit Flip (convert-piece) keeps enemy-applied statuses on the converted piece](issues/002-bit-flip-keeps-enemy-statuses.md)                | Done   |
-| CH-003 | 🟡  | [Sanctuary/Shield protection is bypassed by en passant](issues/003-sanctuary-shield-en-passant.md)                                         | Done   |
-| CH-004 | 🔵  | [resurrect-piece removes by an index into the unfiltered capturedPieces array](issues/004-resurrect-piece-index-mismatch.md)               | Done   |
-| CH-005 | 🔵  | [pending-energy-loss-on-no-capture ignores its validated amount and hardcodes a penalty of 1](issues/005-pending-energy-loss-hardcoded.md) | Done   |
-| CH-006 | 🔵  | [Card-destroyed enemy pieces don't fire on-capture artifacts](issues/006-card-capture-artifact-disagreement.md)                            | Done   |
-| CH-008 | 🔵  | [outcome() reports stalemate (draw) for any king-less side with no moves](issues/008-stalemate-kingless-engine.md)                         | Done   |
-| CH-009 | 🔵  | [promotionRank opponent-side mirror formula is likely inverted (dead code)](issues/009-promotion-rank-mirror-inverted.md)                  | Done   |
-| CH-007 | ⚪  | [place-zone-buff autoPlace whiffs with no refund when all candidate squares are walled](issues/007-zone-buff-autoplace-whiff.md)           | Done   |
-| CH-010 | ⚪  | [Root + Empower stacking silently loses all empower moves](issues/010-root-empower-stacking.md)                                            | Done   |
-| CH-011 | ⚪  | [SAN disambiguation runs the Compel filter and can under-disambiguate](issues/011-san-disambiguation-compel.md)                            | Done   |
-
-## Tests — Coverage
-
-| #      | Sev | Issue                                                                                                                         | Status |
-| ------ | --- | ----------------------------------------------------------------------------------------------------------------------------- | ------ |
-| CH-012 | 🟠  | [useAiLoop boss/Echo/void/fallback branches are untested](issues/012-test-useailoop-boss-branches.md)                         | Done   |
-| CH-015 | 🟡  | [cardValidator.ts (1077 lines) has no direct tests](issues/015-test-cardvalidator-untested.md)                                | Done   |
-| CH-017 | 🟡  | [Chess draw rules & special-move execution are under-tested](issues/017-test-chess-draw-special-moves.md)                     | Done   |
-| CH-018 | 🟡  | [targeting.ts (computeValidTargetSquares / computeBoardMode) is pure but untested](issues/018-test-targeting-untested.md)     | Done   |
-| CH-019 | 🟡  | [Boss in-match mechanics (void squares, capture-energy) validated only statically](issues/019-test-boss-mechanics-runtime.md) | Done   |
-| CH-016 | 🔵  | [status/validate.ts has no direct tests](issues/016-test-status-validate-untested.md)                                         | Done   |
-| CH-020 | 🔵  | [Run.tsx phase machine and runHistory.ts are under-tested](issues/020-test-run-runhistory.md)                                 | Done   |
-| CH-024 | 🔵  | [Save/load persistence is fully specced but unimplemented and untested](issues/024-test-persistence-unimplemented.md)         | Done   |
-
-## Tests — Validity
-
-| #      | Sev | Issue                                                                                                                                 | Status |
-| ------ | --- | ------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| CH-013 | 🟠  | ["Self Destruct" test silently no-ops on its seed and never calls playCard](issues/013-test-self-destruct-noop.md)                    | Done   |
-| CH-014 | 🟠  | [sacrifice-detonate core effect (adjacent-enemy destruction + drawCount) is untested](issues/014-test-sacrifice-detonate-untested.md) | Done   |
-| CH-021 | 🔵  | [Misleading test name "draw 2, gain 2 energy"](issues/021-test-name-draw2-gain2.md)                                                   | Done   |
-| CH-022 | 🔵  | [dispatch test "on-self-pawn-move only fires for pawn-move events" tests the opposite](issues/022-test-dispatch-pawn-move-wrong.md)   | Done   |
-| CH-023 | 🔵  | [every-n-turns test gap and tautological skirmish assertions](issues/023-test-dispatch-everyn-skirmish-tautology.md)                  | Done   |
 
 ## Refactor — Duplication
 
