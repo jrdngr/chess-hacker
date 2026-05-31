@@ -25,12 +25,14 @@ const MOCK_OUTCOME_WIN: RunMatchOutcome = {
   won: true,
   outcome: { kind: "checkmate", winner: "player" },
   turnsPlayed: 12,
+  feats: [],
 };
 
 const MOCK_OUTCOME_LOSS: RunMatchOutcome = {
   won: false,
   outcome: { kind: "checkmate", winner: "opponent" },
   turnsPlayed: 22,
+  feats: [],
 };
 
 describe("createRun", () => {
@@ -83,6 +85,48 @@ describe("applyMatchOutcome", () => {
     const next = applyMatchOutcome(start, MOCK_OUTCOME_LOSS);
     expect(next.phase).toBe("lost");
     expect(next.gold).toBe(10);
+  });
+
+  it("adds feat gold on a non-boss win, on top of the win bonus", () => {
+    const run = createRun({ mode: "royal", rngSeed: 1 });
+    const outcome: RunMatchOutcome = {
+      ...MOCK_OUTCOME_WIN,
+      feats: [
+        { id: "queen-capture", label: "Queen Capture", gold: 5 },
+        { id: "fast-win", label: "Fast Win", gold: 4 },
+      ],
+    };
+    const next = applyMatchOutcome(run, outcome);
+    expect(next.gold).toBe(WIN_BONUS_NORMAL + 9);
+  });
+
+  it("caps total feat gold (raw 14 → 12) on the final-match win", () => {
+    let run = createRun({ mode: "royal", rngSeed: 1 });
+    run = leaveShop(applyMatchOutcome(run, MOCK_OUTCOME_WIN)); // match 1 → 2
+    run = leaveShop(applyMatchOutcome(run, MOCK_OUTCOME_WIN)); // match 2 → 3
+    const goldBefore = run.gold;
+    const outcome: RunMatchOutcome = {
+      ...MOCK_OUTCOME_WIN,
+      feats: [
+        { id: "queen-capture", label: "Queen Capture", gold: 5 },
+        { id: "fast-win", label: "Fast Win", gold: 4 },
+        { id: "no-major-loss", label: "No Major Loss", gold: 5 },
+      ],
+    };
+    const next = applyMatchOutcome(run, outcome);
+    expect(next.phase).toBe("won");
+    expect(next.gold).toBe(goldBefore + WIN_BONUS_NORMAL + 12);
+  });
+
+  it("awards no feat gold on a loss even if feats are present", () => {
+    const start = { ...createRun({ mode: "royal", rngSeed: 1 }), gold: 7 };
+    const outcome: RunMatchOutcome = {
+      ...MOCK_OUTCOME_LOSS,
+      feats: [{ id: "fast-win", label: "Fast Win", gold: 4 }],
+    };
+    const next = applyMatchOutcome(start, outcome);
+    expect(next.phase).toBe("lost");
+    expect(next.gold).toBe(7);
   });
 });
 

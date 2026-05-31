@@ -51,6 +51,7 @@ import { ReviveModal } from "./Hand/ReviveModal";
 import { PileInspector } from "./Hand/PileInspector";
 import { ScryModal } from "./Hand/ScryModal";
 import { totalMatches } from "../game/progression/run";
+import { evaluateFeats } from "../game/progression/feats";
 import type { RunState } from "../game/types";
 import type { PaletteId } from "../state/palette";
 import {
@@ -807,7 +808,17 @@ export function Match({
     const won =
       (outcome.kind === "checkmate" || outcome.kind === "king-captured") &&
       outcome.winner === HUMAN_SIDE;
-    onMatchEnd({ won, outcome, turnsPlayed: cardState.turn });
+    const captured = engine.capturedPieces();
+    const feats = won
+      ? evaluateFeats({
+          turnsPlayed: cardState.turn,
+          capturedByPlayer: captured.byPlayer.map((p) => p.type),
+          lostToOpponent: captured.byOpponent.map((p) => p.type),
+          drawPileCount: cardState.drawPile.length,
+          cardsPlayed: cardState.cardsPlayedThisMatch,
+        })
+      : [];
+    onMatchEnd({ won, outcome, turnsPlayed: cardState.turn, feats });
     onCaptureFinalSnapshot?.({
       engineSnapshot: engine.snapshot(),
       cardState,

@@ -11,14 +11,23 @@ There is exactly **one currency: gold**. No premium currency, no skill currency,
 Gold is earned from four sources:
 
 1. **Per-match win bonus.** A flat amount for winning any match. Bosses pay more.
-2. **Performance bonuses.** Modest extra gold for in-match feats. Examples (final list TBD):
-   - Win in N or fewer turns.
-   - Lose no major pieces (rook/queen/king-equivalent).
-   - Win without playing any cards on a turn (banking energy spends 0 by default; this measures restraint, not "free" play).
-   - Capture the enemy queen.
-   - Win with cards still in your draw pile (consume-all means the deck thins quickly; finishing before it empties is a feat).
+2. **Performance bonuses ("feats").** Modest extra gold for in-match feats, awarded **only on a win** and stacked on top of the win bonus. The implemented set:
 
-   These are designed to reward a specific style without pressuring every player into the same play pattern.
+   | Feat            | Condition (on a win)                                          | Gold |
+   |-----------------|---------------------------------------------------------------|------|
+   | Queen Capture   | You captured the enemy queen.                                 | +5   |
+   | Fast Win        | You won in **25 or fewer** player turns.                      | +4   |
+   | No Major Loss   | The opponent captured **none** of your rooks/queens.          | +5   |
+   | Cards Remaining | You finished with cards still in your draw pile.             | +3   |
+   | Restraint       | You won without playing **a single card** all match.         | +4   |
+
+   Total feat gold is **capped at +12** per match (the raw maximum, 21, intentionally exceeds the cap so no single match earns every feat). These are designed to reward a specific style without pressuring every player into the same play pattern.
+
+   Notes:
+   - **No Major Loss** counts only pieces the *opponent* captures — a rook or queen you intentionally sacrifice via a card does **not** break it.
+   - **Restraint** measures restraint, not "free" play: banking energy spends 0 by default, so winning on pure chess + banked energy is the feat.
+
+   The feat list, gold values, the ≤25-turn fast-win threshold, and the +12 cap are prototype tuning knobs (`src/game/progression/feats.ts`).
 
 3. **Skip rewards.** Some reward steps (Skirmish piece draft, boss artifact pick) offer a **Skip** button to forfeit the reward in exchange for gold. There is no post-match card draft, so no card-draft skip; cards are acquired in the shop instead.
 
@@ -91,6 +100,7 @@ There is no card-draft skip in this prototype: cards are bought in the shop, not
 |-----------------------------------|----------------------------------------|
 | Currencies                        | Gold only                              |
 | Per-match win bonus               | 10 gold normal, 25 gold boss           |
+| Performance feats                 | +5 queen / +4 fast win (≤25 turns) / +5 no major loss / +3 cards remaining / +4 restraint; capped at +12/match |
 | Interest rate                     | +1 gold per 5 saved                    |
 | Interest cap                      | +5 gold per shop visit                 |
 | Reroll cost                       | Scales **per shop visit** (5 + 1/use)  |

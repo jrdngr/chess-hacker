@@ -335,6 +335,29 @@
   letter-spacing: 0.04em;
 }
 
+.summaryFeats {
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.summaryFeat {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--amber-dim2);
+}
+
+.summaryFeatGold {
+  color: var(--amber-primary);
+  font-weight: 700;
+}
+
 .summaryButton {
   margin-top: 14px;
   padding: 8px 20px;

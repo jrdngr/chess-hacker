@@ -586,6 +586,17 @@ export type RunState = {
   phase: RunPhase;
 };
 
+/** Identifies a performance feat. See src/game/progression/feats.ts. */
+export type FeatId =
+  | "queen-capture"
+  | "fast-win"
+  | "no-major-loss"
+  | "cards-remaining"
+  | "restraint";
+
+/** A single earned performance feat — its id, player-facing label, and gold. */
+export type FeatAward = { id: FeatId; label: string; gold: number };
+
 /** Outcome of a single match, surfaced from <Match> back to the run shell. */
 export type RunMatchOutcome = {
   won: boolean;
@@ -593,6 +604,11 @@ export type RunMatchOutcome = {
   outcome: MatchOutcome;
   /** Total player turns played in the match — used by performance bonuses. */
   turnsPlayed: number;
+  /**
+   * Performance feats earned this match (empty on a loss). The run shell adds
+   * the capped feat gold to the win bonus. See src/game/progression/feats.ts.
+   */
+  feats: FeatAward[];
 };
 
 /** A single card-draft offer, as shown to the player after a match win. */
@@ -1107,6 +1123,12 @@ export type MatchCardState = {
    * by Heartbleed for energy scaling.
    */
   playerCaptureCount: number;
+  /**
+   * Total cards the player has played this match. Incremented once per
+   * successful `playCard`. Read by the Restraint performance feat (win without
+   * playing any cards). See src/game/progression/feats.ts.
+   */
+  cardsPlayedThisMatch: number;
   /**
    * Hot Swap: when set, the player gets a bonus chess move with a different
    * piece after their normal move. `canCapture` controls whether the bonus

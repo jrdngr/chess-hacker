@@ -347,6 +347,8 @@ export function useDevSandbox({
       won: true,
       outcome: { kind: "checkmate", winner: HUMAN_SIDE },
       turnsPlayed: cardState.turn,
+      // Synthesized debug win — no real play happened, so no feats are earned.
+      feats: [],
     });
   }, [runMode, onMatchEnd, matchOver, cardState.turn, matchEndedRef]);
 

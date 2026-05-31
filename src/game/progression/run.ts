@@ -18,6 +18,7 @@ import { SKIRMISH_STARTING_ROSTER, skirmishBoardSize } from "./skirmish";
 import { bossForMatch } from "../bosses/library";
 import { ARTIFACT_LIBRARY, pickRandomArtifacts } from "../artifacts/library";
 import { pickRandomByRarity } from "./rarity";
+import { totalFeatGold } from "./feats";
 import type {
   Artifact,
   BoardSize,
@@ -185,7 +186,7 @@ export function applyMatchOutcome(state: RunState, outcome: RunMatchOutcome): Ru
     return { ...state, phase: "lost" };
   }
   const boss = isBossMatch(state);
-  const winGold = boss ? WIN_BONUS_BOSS : WIN_BONUS_NORMAL;
+  const winGold = (boss ? WIN_BONUS_BOSS : WIN_BONUS_NORMAL) + totalFeatGold(outcome.feats);
   const isFinalMatch = state.matchNumber >= totalMatches(state);
   if (isFinalMatch) {
     return { ...state, gold: state.gold + winGold, phase: "won" };

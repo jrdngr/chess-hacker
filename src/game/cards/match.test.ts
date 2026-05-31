@@ -219,6 +219,18 @@ describe("playCard — resource", () => {
     // Stack Trace is non-Consume, so it lands in the discard pile.
     expect(st.discardPile.some((c: Card) => c.id === "stack-trace")).toBe(true);
   });
+
+  it("counts each successful card play in cardsPlayedThisMatch (Restraint feat)", () => {
+    const rng = makeRng(20);
+    let st = createMatchCardState([STACK_TRACE, STACK_TRACE], rng);
+    expect(st.cardsPlayedThisMatch).toBe(0); // initializer default
+    st = startPlayerTurn(st, rng);
+    st = { ...st, hand: [{ card: STACK_TRACE, retained: false }] };
+    const res = playCard(st, 0, noTarget(), emptyBoard, rng);
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.state.cardsPlayedThisMatch).toBe(1);
+  });
 });
 
 describe("playCard — disruption / spatial", () => {

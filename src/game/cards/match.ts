@@ -144,6 +144,7 @@ export function createMatchCardState(
     backdoors: [],
     capturedPieces: [],
     playerCaptureCount: 0,
+    cardsPlayedThisMatch: 0,
     discardsRemaining: DISCARDS_PER_TURN,
   };
 }
@@ -746,10 +747,11 @@ export function playCard(
   //  - All others land in the discard pile (will cycle back via shuffle).
   const hand = next.hand.slice();
   hand.splice(cardIndex, 1);
+  const cardsPlayedThisMatch = next.cardsPlayedThisMatch + 1;
   if (card.consume) {
-    next = { ...next, hand, consumedPile: [...next.consumedPile, card] };
+    next = { ...next, hand, cardsPlayedThisMatch, consumedPile: [...next.consumedPile, card] };
   } else {
-    next = { ...next, hand, discardPile: [...next.discardPile, card] };
+    next = { ...next, hand, cardsPlayedThisMatch, discardPile: [...next.discardPile, card] };
   }
   return { ok: true, state: next, sideEffects };
 }
