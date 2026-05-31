@@ -2,7 +2,7 @@
   "id": "overclock",
   "name": "Overclock",
   "cost": 4,
-  "rarity": "common",
+  "rarity": "uncommon",
   "archetype": "tempo",
   "description": "**Haste** a piece. First move is **Disarmed**.",
   "target": {

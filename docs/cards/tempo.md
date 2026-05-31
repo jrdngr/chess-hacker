@@ -7,7 +7,7 @@ See [`keywords.md`](keywords.md) for keyword definitions, especially **Haste** a
 ## Overclock
 
 - **Cost:** 4
-- **Rarity:** Common
+- **Rarity:** Uncommon
 - **Target:** own piece
 - **Effect:** **Haste** a piece. First move is **Disarmed** (can reposition but not capture; second move may capture).
 - **Upgrade (Overclock+):** **Haste** a piece (Disarm removed — both moves may capture).

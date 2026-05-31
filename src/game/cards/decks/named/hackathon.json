@@ -8,8 +8,8 @@
     { "id": "hot-swap", "count": 1 },
     { "id": "side-channel", "count": 1 },
     { "id": "lateral-movement", "count": 1 },
-    { "id": "switch-files", "count": 1 },
-    { "id": "fork", "count": 1 },
+    { "id": "encrypted", "count": 1 },
+    { "id": "freeze-process", "count": 1 },
     { "id": "backdoor", "count": 1 },
     { "id": "polymorphism", "count": 1 }
   ]
