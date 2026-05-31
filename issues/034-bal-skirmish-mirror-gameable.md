@@ -12,7 +12,7 @@
 
 ## Problem
 
-The enemy mirrors the player's *placed* composition, so under-placing value forces a symmetric weak enemy and the value cap becomes a player-controlled dial; drafting a queen hands the enemy the same queen. Exact mirroring also removes opponent variety and kills the "Pandora's Box queen" fantasy.
+The enemy mirrors the player's _placed_ composition, so under-placing value forces a symmetric weak enemy and the value cap becomes a player-controlled dial; drafting a queen hands the enemy the same queen. Exact mirroring also removes opponent variety and kills the "Pandora's Box queen" fantasy.
 
 ## Recommendation
 

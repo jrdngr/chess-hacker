@@ -11,7 +11,7 @@
 
 ## Problem
 
-`resurrect-piece` removes by an index into the *unfiltered* `capturedPieces` while the UI supplies a *filtered* index (player-side only). Latent today because all push sites currently use `side:"player"`, but it will desync the moment an enemy-side or card-destroyed entry is added to the pool (see related teleport bug).
+`resurrect-piece` removes by an index into the _unfiltered_ `capturedPieces` while the UI supplies a _filtered_ index (player-side only). Latent today because all push sites currently use `side:"player"`, but it will desync the moment an enemy-side or card-destroyed entry is added to the pool (see related teleport bug).
 
 ## Recommendation
 

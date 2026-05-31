@@ -12,7 +12,7 @@
 
 ## Problem
 
-Port Scan, Bookmark, Cache Warmup, Connection Reset, Heartbleed, kill -9 have no data files; the doc decks don't match decks/named/*.json; cards.md:12 says 3 decks while code ships 5.
+Port Scan, Bookmark, Cache Warmup, Connection Reset, Heartbleed, kill -9 have no data files; the doc decks don't match decks/named/\*.json; cards.md:12 says 3 decks while code ships 5.
 
 ## Recommendation
 
