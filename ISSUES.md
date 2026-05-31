@@ -4,22 +4,11 @@ Issues derived from the comprehensive review in `docs/reviews/2026-05-29-compreh
 
 **Working instructions for the agent:** Work issues **one at a time**. Open the linked file for full context (locations, problem, recommendation, related issues). After completing an issue, run the pre-commit checks in `CLAUDE.md` (`npm run format`, `npm run lint`, `npx tsc --noEmit`, `npm test`, `npm run build`), then commit with `jj commit` and mark the issue's **Status** as `Done` here and in its file. Prefer the recommended ordering below (severity-first within each section).
 
-**Total open issues:** 39
+**Total open issues:** 33
 
-_The Code — Correctness, Tests — Coverage, and Tests — Validity sections (CH-001…024) are all resolved and have been removed from this index; their resolution notes live in the individual `issues/` files._
+_The Code — Correctness, Tests — Coverage, Tests — Validity (CH-001…024), and Refactor — Duplication (CH-025…030) sections are all resolved and have been removed from this index; their resolution notes live in the individual `issues/` files._
 
 Legend: 🔴 critical · 🟠 high · 🟡 medium · 🔵 low · ⚪ nit
-
-## Refactor — Duplication
-
-| #      | Sev | Issue                                                                                                  | Status |
-| ------ | --- | ------------------------------------------------------------------------------------------------------ | ------ |
-| CH-025 | 🟡  | [Square coordinate parsing reimplemented inline in 7+ files](issues/025-dup-square-coord-parsing.md)   | Done   |
-| CH-026 | 🟡  | [FILES / "abcdefgh" / FILE_LETTERS constant redefined in ~7 modules](issues/026-dup-files-constant.md) | Done   |
-| CH-027 | 🟡  | [PIECE_VALUE defined 4 times with pawn=0/1 drift](issues/027-dup-piece-value.md)                       | Done   |
-| CH-028 | 🔵  | [3x3 king-adjacent enumeration is hand-rolled in multiple places](issues/028-dup-king-adjacency.md)    | Done   |
-| CH-029 | 🔵  | [Rarity-weighted distinct-pick loop copy-pasted](issues/029-dup-rarity-pick-loop.md)                   | Done   |
-| CH-030 | 🔵  | [Miscellaneous low-level duplication cleanup](issues/030-dup-misc-cleanup.md)                          | Done   |
 
 ## Game Design — Balance
 
