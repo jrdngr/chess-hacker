@@ -2,7 +2,16 @@
 
 - **Category:** Tests — Coverage
 - **Severity:** medium
-- **Status:** Open
+- **Status:** Done
+
+## Resolution
+
+Added `targeting.test.ts` against a mixed fixture position: covers the
+piece-target families (enemy/enemy-non-king with attacked-by filter, own/
+own-non-king, own-pawn, enemy-minor, own-promotable, two-enemy with partial
+exclusion) and the square/spatial families (empty-square + walls, square allows
+occupied, empty-square-own-half restriction, adjacent-empty bounds/walls). Also
+covers `computeBoardMode` for play / drop-anywhere / target modes.
 
 ## Locations
 
