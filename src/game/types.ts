@@ -189,6 +189,13 @@ export type CardEffect =
     }
   | { kind: "compel-then-disarm-if-no-capture"; disarmDurationTurns: number }
   | { kind: "summon-orthogonal-burst"; pieceType: PieceType; maxCount: number }
+  /** Watchdog Timer: Shield every friendly piece for `durationTurns` (prevents
+   * all enemy captures while active — the engine bars capturing a shielded
+   * piece). A pre-armed defensive ward, not a live reaction. */
+  | { kind: "shield-all-friendly"; durationTurns: number }
+  /** Kernel Panic (softened draw-aversion): grant the player `count` extra
+   * chess move(s) this turn to break out of a forced line / dead-end. */
+  | { kind: "grant-extra-move"; count: number }
   | { kind: "swap-own-pieces" }
   | { kind: "swap-rooted-with-own" }
   | { kind: "swap-with-enemy" }

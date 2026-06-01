@@ -1,0 +1,12 @@
+{
+  "id": "kernel-panic",
+  "name": "Kernel Panic",
+  "cost": 12,
+  "rarity": "rare",
+  "archetype": "burst",
+  "consume": true,
+  "description": "**Consume.** Take an extra chess move this turn — break out of a forced line or dead-end before the opponent replies.",
+  "target": { "kind": "none" },
+  "effect": { "kind": "grant-extra-move", "count": 1 },
+  "upgrade": { "cost": 10 }
+}

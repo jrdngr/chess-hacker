@@ -515,6 +515,36 @@ export function applyEffect(
       // that Match resolves with full board access.
       return { state, sideEffects: [{ kind: "remove-random-own-minor" }] };
     }
+    case "shield-all-friendly": {
+      // Watchdog Timer: Shield every friendly piece on the board until the
+      // stated turn. While shielded, the engine bars the opponent from
+      // capturing the piece — so this nullifies enemy captures for the window.
+      const files = ctx.boardFiles ?? 8;
+      const ranks = ctx.boardRanks ?? 8;
+      const expires = state.turn + effect.durationTurns;
+      let shields = state.shields.slice();
+      for (let f = 0; f < files; f++) {
+        for (let r = 1; r <= ranks; r++) {
+          const sq = (FILES[f] + String(r)) as AlgebraicSquare;
+          if (ctx.pieceAt(sq)?.side !== "player") continue;
+          shields = shields.filter((s) => s.square !== sq);
+          shields.push({ square: sq, side: "player", expiresOnTurn: expires });
+        }
+      }
+      return { state: { ...state, shields }, sideEffects: [] };
+    }
+    case "grant-extra-move": {
+      // Kernel Panic (softened): grant the player extra chess move(s) this
+      // turn so they can break out of a forced line / draw dead-end. Mirrors
+      // the extra-chess-move-per-turn Power budget the turn loop already reads.
+      return {
+        state: {
+          ...state,
+          playerExtraMovesRemaining: (state.playerExtraMovesRemaining ?? 0) + effect.count,
+        },
+        sideEffects: [],
+      };
+    }
     case "apply-status-effect": {
       // Worm / Rootkit: install a persistent player→enemy curse. It lives in
       // statusEffects and fires later via the status dispatcher. target is

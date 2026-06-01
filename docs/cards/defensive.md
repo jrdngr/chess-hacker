@@ -12,6 +12,16 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 - **Effect:** Target own piece: **Shield** until the start of your next turn.
 - **Design note:** the introductory Shield card. The opponent simply cannot include any move that captures the shielded piece in their next turn — no destruction of the attacker, no counterplay; the move is just illegal. Cheap and safe; pairs naturally with Trusted Zone for layered protection.
 
+## Watchdog Timer
+
+- **Cost:** 3
+- **Rarity:** Uncommon
+- **Keywords:** **Consume**
+- **Target:** none
+- **Effect:** **Shield** every one of your pieces until the start of your next turn. While shielded, none of your pieces can be captured — so the opponent makes no captures this turn.
+- **Upgrade (Watchdog Timer+):** The shields last 2 turns instead of 1.
+- **Design note:** a pre-armed defensive ward (CH-059) and a panic button against an aggressive boss line — arm it on your turn and the opponent's next turn cannot trade off your material. Because it reuses the Shield keyword, the protection is enforced by move generation (capturing a shielded piece is simply illegal), not a live reaction. Consume keeps it scarce; cost 3 makes it a real tempo investment rather than a reflexive answer. A board-wide, one-turn counterpart to Encrypted's single-piece shield and Garrison Mode's recurring back-rank shield.
+
 ## Mutex Lock
 
 - **Cost:** 7

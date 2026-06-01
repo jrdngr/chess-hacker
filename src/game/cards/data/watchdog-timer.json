@@ -1,0 +1,15 @@
+{
+  "id": "watchdog-timer",
+  "name": "Watchdog Timer",
+  "cost": 3,
+  "rarity": "uncommon",
+  "archetype": "defensive",
+  "consume": true,
+  "description": "**Consume.** Shield all your pieces until your next turn — the enemy cannot capture this opponent turn.",
+  "target": { "kind": "none" },
+  "effect": { "kind": "shield-all-friendly", "durationTurns": 1 },
+  "upgrade": {
+    "description": "**Consume.** Shield all your pieces for 2 turns — the enemy cannot capture them.",
+    "effect": { "kind": "shield-all-friendly", "durationTurns": 2 }
+  }
+}

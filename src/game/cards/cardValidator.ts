@@ -90,6 +90,8 @@ export const VALID_EFFECT_KINDS = [
   "summon-piece",
   "summon-adjacent",
   "summon-orthogonal-burst",
+  "shield-all-friendly",
+  "grant-extra-move",
   "sacrifice-piece",
   "sacrifice-blast-action",
   "mutex-lock",
@@ -628,6 +630,22 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
         maxCount: raw.maxCount,
       };
     }
+    case "shield-all-friendly": {
+      if (!isPositiveInt(raw.durationTurns)) {
+        errors.push(
+          "'effect.durationTurns' must be a positive integer for kind 'shield-all-friendly'",
+        );
+        return null;
+      }
+      return { kind: "shield-all-friendly", durationTurns: raw.durationTurns };
+    }
+    case "grant-extra-move": {
+      if (!isPositiveInt(raw.count)) {
+        errors.push("'effect.count' must be a positive integer for kind 'grant-extra-move'");
+        return null;
+      }
+      return { kind: "grant-extra-move", count: raw.count };
+    }
     case "sacrifice-blast-action": {
       const pattern = raw.pattern;
       if (
@@ -1005,6 +1023,8 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
     case "capture-random-own-minor":
     case "apply-status-effect":
     case "afflict-random-enemy":
+    case "shield-all-friendly":
+    case "grant-extra-move":
     case "pending-energy-next-turn":
     case "play-power":
     case "undo-last-enemy-move":

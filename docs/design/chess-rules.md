@@ -88,7 +88,7 @@ Subject to specific card / artifact / boss text:
 - Resources (energy, hand size, gold).
 - Triggers ("when you check, draw a card").
 - Promotion rules (e.g., "pawns promote on rank 6").
-- Match-end conditions in specific niche cases (e.g., a card might say "if you would lose to checkmate this turn, instead skip the opponent's next move" — rare, deliberately).
+- Match-end conditions in specific niche cases (e.g., a card might say "if you would lose to checkmate this turn, instead skip the opponent's next move" — rare, deliberately). The prototype keeps the draw=loss rule itself intact; **counterplay against forced dead-ends is delivered through cards rather than a match-end override** — Kernel Panic grants an extra chess move to change the position before it resolves, and Watchdog Timer shields all your pieces for an opponent turn (see [`../cards/burst.md`](../cards/burst.md), [`../cards/defensive.md`](../cards/defensive.md)).
 
 ## What cards / artifacts / bosses CAN'T override (without explicit text)
 

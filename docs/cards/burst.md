@@ -42,6 +42,16 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 - **Upgrade (Mass Exploit+):** Cost 8.
 - **Design note:** the mid-curve board-harvest (CH-057, filling the cost-9 hole). Sits between Exploit (cost 8, single attacked target) and Garbage Collect (cost 15, recursive board-wide). Same setup-dependent payoff as Garbage Collect's first wave but one-shot and far cheaper — reward a threatening position without the queen-capture price tag. The enemy king is never destroyed.
 
+## Kernel Panic
+
+- **Cost:** 12
+- **Rarity:** Rare
+- **Keywords:** **Consume**
+- **Target:** none
+- **Effect:** Take an **extra chess move** this turn — make an additional move before the opponent replies.
+- **Upgrade (Kernel Panic+):** Cost 10.
+- **Design note:** the player's out against forced dead-ends — Boss C's draw-trap squares, zugzwang, a looming stalemate, or an Echo-style sequence (CH-059). Rather than overriding the draw=loss rule outright (the original proposal), the softened version hands you a free tempo to *change* the position before it resolves: shuffle a king out of stalemate, break a repetition, or escape a forced line. Reuses the extra-chess-move budget (`playerExtraMovesRemaining`) the Fork Process Power already drives. Consume + cost 12 keep it a genuine emergency button.
+
 ## Polymorphism
 
 - **Cost:** 6
