@@ -4,7 +4,7 @@ Issues derived from the comprehensive review in `docs/reviews/2026-05-29-compreh
 
 **Working instructions for the agent:** Work issues **one at a time**. Open the linked file for full context (locations, problem, recommendation, related issues). After completing an issue, run the pre-commit checks in `CLAUDE.md` (`npm run format`, `npm run lint`, `npx tsc --noEmit`, `npm test`, `npm run build`), then commit with `jj commit`. As part of that commit, delete the resolved issue entirely: remove its row here and delete its file under `issues/`. Prefer the recommended ordering below (severity-first within each section).
 
-**Total open issues:** 25
+**Total open issues:** 23
 
 _The Code — Correctness, Tests — Coverage, Tests — Validity (CH-001…024), Refactor — Duplication (CH-025…030), and Game Design — Balance (CH-031…038) sections are all resolved and have been removed from this index; their resolution notes live in the individual `issues/` files._
 
@@ -44,8 +44,6 @@ Legend: 🔴 critical · 🟠 high · 🟡 medium · 🔵 low · ⚪ nit
 
 ## Docs / Infra
 
-| #      | Sev | Issue                                                                                                    | Status |
-| ------ | --- | -------------------------------------------------------------------------------------------------------- | ------ |
-| CH-061 | 🔵  | [dev-mode.md is broadly stale vs code](issues/061-doc-devmode-stale.md)                                  | Open   |
-| CH-062 | 🔵  | [CI runs only on main push/PRs and only ever uses a fake Stockfish worker](issues/062-infra-ci-scope.md) | Open   |
-| CH-063 | ⚪  | [No keyboard equivalent for drag placement / card targeting](issues/063-infra-keyboard-a11y.md)          | Open   |
+| #      | Sev | Issue                                                                                           | Status |
+| ------ | --- | ----------------------------------------------------------------------------------------------- | ------ |
+| CH-063 | ⚪  | [No keyboard equivalent for drag placement / card targeting](issues/063-infra-keyboard-a11y.md) | Open   |
