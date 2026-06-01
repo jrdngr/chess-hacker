@@ -60,7 +60,7 @@ type SavedMatch = {
   hand: Card[];
   drawPile: Card[];
   consumedPile: Card[];   // every played card lives here for the rest of the match
-  energy: number;         // resets to 3 each turn; no banking
+  energy: number;         // persistent pool: +1/turn, carries between turns, capped at 20
   turn: number;
   whoseTurn: Side;
   bossModifier?: BossModifier;

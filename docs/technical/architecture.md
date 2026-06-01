@@ -196,7 +196,7 @@ boss-definition modules) once those systems are implemented.
 
 ## Update flow during a match
 
-1. **It's the player's turn.** `startPlayerTurn` ticks turn-bound overlays (statuses expire), refills hand to 5, and resets energy to 3 (no banking — unspent energy from last turn is gone).
+1. **It's the player's turn.** `startPlayerTurn` ticks turn-bound overlays (statuses expire), draws 1 card (up to the hand limit of 7), and adds +1 energy to the **persistent** energy pool (energy is not reset — unspent energy carries over; the pool is capped at 20, plus any artifact / zone-buff / Power / pending bonuses).
 2. Player plays any number of cards → `playCard` resolves each effect against `MatchCardState`, returning a new state plus a list of `CardSideEffect`s that the React layer applies to the engine (place/remove/swap pieces, foreign moves, etc.). The played card moves to `consumedPile` for the rest of the match.
 3. Player makes a chess move → `engine.move(...)`. The trap resolver (`resolveTrapForMove`) walks the move path and fires the first trap hit (capture / freeze / push). Outcome is checked.
 4. **Move ends the turn.** Cards must be played BEFORE moving. (No explicit End-Turn button; the chess move is the turn boundary.)
