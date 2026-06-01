@@ -76,6 +76,22 @@ describe("computeValidTargetSquares — piece target families", () => {
     expect(out).toEqual(new Set(["h8"]));
   });
 
+  it("enemy-non-king-piece with destroy/disabled filter keeps only Frozen/Rooted/Disarmed pieces (Quarantine)", () => {
+    const state: MatchCardState = {
+      ...createMatchCardState([], makeRng(1)),
+      freezes: [{ square: "b8", side: "opponent", expiresOnTurn: 99 }],
+      disarms: [{ square: "h8", side: "opponent", expiresOnTurn: 99 }],
+    };
+    const out = compute(
+      card("enemy-non-king-piece", { kind: "destroy-piece", filter: "disabled" }),
+      {
+        state,
+      },
+    );
+    // Only the frozen knight (b8) and disarmed rook (h8) are quarantine targets.
+    expect(out).toEqual(new Set(["b8", "h8"]));
+  });
+
   it("own-piece selects all player pieces; own-non-king-piece drops the king", () => {
     expect(compute(card("own-piece"))).toEqual(new Set(["a2", "b1", "c1", "d1", "e1", "h1"]));
     const nonKing = compute(card("own-non-king-piece"));

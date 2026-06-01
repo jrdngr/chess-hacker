@@ -626,6 +626,12 @@ export type BoardContext = {
   isAttackedBy: (sq: AlgebraicSquare, by: Side) => boolean;
   /** True iff the piece on `sq` carries a Tangled (root) status. */
   isRooted: (sq: AlgebraicSquare) => boolean;
+  /**
+   * True iff the (enemy) piece on `sq` currently has at least one legal
+   * capture. Used by Stack Smash. Optional — treated as false when absent
+   * (legacy/test contexts that don't wire the engine).
+   */
+  hasLegalCapture?: (sq: AlgebraicSquare) => boolean;
   /** Number of ranks on the board. Defaults to 8 if unspecified. */
   boardRanks?: number;
   /** Number of files on the board. Defaults to 8 if unspecified. */

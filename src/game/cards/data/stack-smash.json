@@ -1,0 +1,22 @@
+{
+  "id": "stack-smash",
+  "name": "Stack Smash",
+  "cost": 4,
+  "rarity": "uncommon",
+  "archetype": "disruption",
+  "description": "**Compel** an enemy piece. If it has no legal capture, also **Disarm** it next turn.",
+  "target": {
+    "kind": "enemy-non-king-piece"
+  },
+  "effect": {
+    "kind": "compel-then-disarm-if-no-capture",
+    "disarmDurationTurns": 1
+  },
+  "upgrade": {
+    "description": "**Compel** an enemy piece. If it has no legal capture, also **Disarm** it for 2 turns.",
+    "effect": {
+      "kind": "compel-then-disarm-if-no-capture",
+      "disarmDurationTurns": 2
+    }
+  }
+}

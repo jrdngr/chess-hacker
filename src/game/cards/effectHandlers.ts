@@ -165,6 +165,23 @@ export function applyEffect(
         state: addStatus(state, "compels", squareTarget(target), state.turn + 1, opposite(side)),
         sideEffects: [],
       };
+    case "compel-then-disarm-if-no-capture": {
+      // Stack Smash. Always Compel; if the target has no legal capture, also
+      // Disarm it so it's forced into a bad non-capturing move.
+      const sq = squareTarget(target);
+      let next = addStatus(state, "compels", sq, state.turn + 1, opposite(side));
+      const hasCapture = ctx.hasLegalCapture ? ctx.hasLegalCapture(sq) : false;
+      if (!hasCapture) {
+        next = addStatus(
+          next,
+          "disarms",
+          sq,
+          state.turn + effect.disarmDurationTurns,
+          opposite(side),
+        );
+      }
+      return { state: next, sideEffects: [] };
+    }
     case "shield-piece": {
       // In a compound (e.g. Git Revert+), the target may be two-squares where
       // the second square is where the piece was placed — shield that one.

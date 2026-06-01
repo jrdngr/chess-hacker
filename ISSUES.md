@@ -4,7 +4,7 @@ Issues derived from the comprehensive review in `docs/reviews/2026-05-29-compreh
 
 **Working instructions for the agent:** Work issues **one at a time**. Open the linked file for full context (locations, problem, recommendation, related issues). After completing an issue, run the pre-commit checks in `CLAUDE.md` (`npm run format`, `npm run lint`, `npx tsc --noEmit`, `npm test`, `npm run build`), then commit with `jj commit`. As part of that commit, delete the resolved issue entirely: remove its row here and delete its file under `issues/`. Prefer the recommended ordering below (severity-first within each section).
 
-**Total open issues:** 19
+**Total open issues:** 18
 
 _The Code — Correctness, Tests — Coverage, Tests — Validity (CH-001…024), Refactor — Duplication (CH-025…030), and Game Design — Balance (CH-031…038) sections are all resolved and have been removed from this index; their resolution notes live in the individual `issues/` files._
 
@@ -32,7 +32,6 @@ Legend: 🔴 critical · 🟠 high · 🟡 medium · 🔵 low · ⚪ nit
 | ------ | --- | --------------------------------------------------------------------------------------------------------------------------- | ------ |
 | CH-052 | 🟠  | [Zone-control buffs are used by exactly one card](issues/052-content-zone-buff-cards.md)                                    | Open   |
 | CH-053 | 🟠  | [Artifact pool is 14 vs a 26-40 target, with only 2 rares](issues/053-content-artifact-pool-thin.md)                        | Open   |
-| CH-054 | 🟡  | [Most keywords have one enabler and no payoff card](issues/054-content-keyword-payoffs.md)                                  | Open   |
 | CH-055 | 🟡  | [Sacrifice (2 cards) and Summon (3 cards) archetypes lack density and anchors](issues/055-content-sacrifice-summon-thin.md) | Open   |
 | CH-056 | 🟡  | [Only 3 fixed bosses, one per act, with no archetype variety](issues/056-content-boss-variety.md)                           | Open   |
 | CH-059 | 🟡  | [No counterplay vs Boss C dead-ends / draw=loss / uninteractive Echo](issues/059-content-counterplay-boss-c.md)             | Open   |

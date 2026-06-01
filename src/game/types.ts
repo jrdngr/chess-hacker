@@ -187,6 +187,7 @@ export type CardEffect =
       minorOnly?: boolean;
       durationTurns?: number;
     }
+  | { kind: "compel-then-disarm-if-no-capture"; disarmDurationTurns: number }
   | { kind: "swap-own-pieces" }
   | { kind: "swap-rooted-with-own" }
   | { kind: "swap-with-enemy" }
@@ -226,7 +227,7 @@ export type CardEffect =
    */
   | { kind: "garbage-collect"; recursive: boolean }
   | { kind: "marionette" }
-  | { kind: "destroy-piece"; filter: "any" | "attacked-by-player" }
+  | { kind: "destroy-piece"; filter: "any" | "attacked-by-player" | "disabled" }
   | { kind: "add-card-to-draw"; source: "self" | "card-id"; cardId?: CardId }
   | { kind: "revive"; selection: "random" | "choose" }
   | {

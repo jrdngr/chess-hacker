@@ -82,3 +82,21 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 - **Effect:** Install the **Rootkit** curse on the enemy. Whenever the enemy captures a piece, a random enemy piece is **Frozen** and loses its next move. Lasts the whole match.
 - **Upgrade (Rootkit+):** Costs 8.
 - **Design note:** punishes an aggressive opponent — every trade the enemy initiates locks down one of their own pieces for a turn. Strong against capture-happy AI lines; near-dead against a passive opponent, which is the intended risk. Reactive counterpart to Worm's periodic tick; both are installed via `apply-status-effect`.
+
+## Stack Smash
+
+- **Cost:** 4
+- **Rarity:** Uncommon
+- **Target:** enemy non-King piece
+- **Effect:** **Compel** the target (it must move next turn). If it currently has no legal capture, also **Disarm** it next turn — forcing it into a non-capturing move.
+- **Upgrade (Stack Smash+):** The added Disarm lasts 2 turns.
+- **Design note:** a payoff that rewards reading the board (CH-054). Against a piece with no captures available, it's a two-keyword lock: forced to move (Compel) but barred from capturing (Disarm). Against a piece that *can* capture, it's just a Compel — so the conditional makes it strongest exactly when the enemy piece is already passive. Pairs with walls / Freeze to strip an enemy's capture options first.
+
+## Quarantine
+
+- **Cost:** 5
+- **Rarity:** Uncommon
+- **Target:** enemy non-King piece that is **Frozen**, **Rooted**, or **Disarmed**
+- **Effect:** Destroy the targeted disabled enemy piece outright.
+- **Upgrade (Quarantine+):** Costs 4.
+- **Design note:** the keyword-payoff capstone (CH-054) and the pool's only cost-5 card. A 2-card removal combo — first disable an enemy piece (chroot / Read-Only / Freeze Process / Honeypot), then Quarantine it for a clean kill at a fraction of Format C:'s cost. Turns the Freeze/Root/Disarm enabler cards from tempo tools into a removal engine. Only valid targets light up, so it can't be misfired onto a healthy piece.

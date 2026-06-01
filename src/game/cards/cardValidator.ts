@@ -80,6 +80,7 @@ export const VALID_EFFECT_KINDS = [
   "place-square-mark",
   "apply-status-effect",
   "afflict-random-enemy",
+  "compel-then-disarm-if-no-capture",
   "place-zone-buff",
   "swap-own-pieces",
   "swap-rooted-with-own",
@@ -127,7 +128,7 @@ export const VALID_POWER_KINDS = [
 ] as const;
 export const VALID_ZONE_BUFF_PATTERNS = ["square-orthogonal-1", "square-radius-1"] as const;
 export const VALID_ZONE_BUFF_EFFECT_KINDS = ["energy-per-turn", "hand-size"] as const;
-export const VALID_DESTROY_FILTERS = ["any", "attacked-by-player"] as const;
+export const VALID_DESTROY_FILTERS = ["any", "attacked-by-player", "disabled"] as const;
 export const VALID_ADD_CARD_DRAW_SOURCES = ["self", "card-id"] as const;
 export const VALID_REVIVE_SELECTIONS = ["random", "choose"] as const;
 export const VALID_TRAP_EFFECTS: readonly TrapEffect[] = ["capture", "freeze", "push"];
@@ -434,6 +435,18 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
       if (typeof dt === "number") out.durationTurns = dt;
       return out;
     }
+    case "compel-then-disarm-if-no-capture": {
+      if (!isPositiveInt(raw.disarmDurationTurns)) {
+        errors.push(
+          "'effect.disarmDurationTurns' must be a positive integer for kind 'compel-then-disarm-if-no-capture'",
+        );
+        return null;
+      }
+      return {
+        kind: "compel-then-disarm-if-no-capture",
+        disarmDurationTurns: raw.disarmDurationTurns,
+      };
+    }
     case "place-zone-buff": {
       const pattern = raw.pattern;
       if (
@@ -585,7 +598,7 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
         );
         return null;
       }
-      return { kind: "destroy-piece", filter: filter as "any" | "attacked-by-player" };
+      return { kind: "destroy-piece", filter: filter as "any" | "attacked-by-player" | "disabled" };
     }
     case "add-card-to-draw": {
       const source = raw.source;
@@ -926,6 +939,10 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
       return tk === "enemy-non-king-piece"
         ? null
         : "'downgrade-piece' effect requires target.kind 'enemy-non-king-piece'";
+    case "compel-then-disarm-if-no-capture":
+      return tk === "enemy-non-king-piece"
+        ? null
+        : "'compel-then-disarm-if-no-capture' effect requires target.kind 'enemy-non-king-piece'";
     case "convert-piece":
       return tk === "enemy-minor-piece" || tk === "enemy-non-king-piece"
         ? null

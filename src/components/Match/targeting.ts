@@ -99,13 +99,22 @@ export function computeValidTargetSquares(
     return out;
   }
   if (targetKind === "enemy-non-king-piece") {
-    const requireAttacked =
-      targetingCard.effect.kind === "destroy-piece" &&
-      targetingCard.effect.filter === "attacked-by-player";
+    const filter =
+      targetingCard.effect.kind === "destroy-piece" ? targetingCard.effect.filter : undefined;
+    const requireAttacked = filter === "attacked-by-player";
+    const requireDisabled = filter === "disabled";
+    const disabledSquares = requireDisabled
+      ? new Set<AlgebraicSquare>([
+          ...cardState.freezes.map((s) => s.square),
+          ...cardState.roots.map((s) => s.square),
+          ...cardState.disarms.map((s) => s.square),
+        ])
+      : null;
     for (const { square, piece } of allPieces) {
       if (piece.side !== "opponent") continue;
       if (piece.type === "king") continue;
       if (requireAttacked && !engine.isSquareAttackedBy(square, "player")) continue;
+      if (requireDisabled && !disabledSquares!.has(square)) continue;
       out.add(square);
     }
     return out;
@@ -254,6 +263,11 @@ export function computeBoardMode(
       targetingCard.effect.filter === "attacked-by-player"
     ) {
       hint = `Pick an enemy piece your forces are attacking for ${targetingCard.name}`;
+    } else if (
+      targetingCard.effect.kind === "destroy-piece" &&
+      targetingCard.effect.filter === "disabled"
+    ) {
+      hint = `Pick a Frozen, Rooted, or Disarmed enemy piece for ${targetingCard.name}`;
     } else {
       hint = `Pick an enemy non-King piece for ${targetingCard.name}`;
     }

@@ -1,0 +1,18 @@
+{
+  "id": "quarantine",
+  "name": "Quarantine",
+  "cost": 5,
+  "rarity": "uncommon",
+  "archetype": "disruption",
+  "description": "Destroy an enemy non-King piece that is **Frozen**, **Rooted**, or **Disarmed**.",
+  "target": {
+    "kind": "enemy-non-king-piece"
+  },
+  "effect": {
+    "kind": "destroy-piece",
+    "filter": "disabled"
+  },
+  "upgrade": {
+    "cost": 4
+  }
+}

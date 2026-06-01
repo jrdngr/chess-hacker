@@ -49,6 +49,8 @@ Per-card reference for Chess Hacker. The mechanics doc is [`docs/design/cards.md
 | [Trusted Zone](spatial.md#hallowed-ground) | Spatial | 4 | Uncommon | Sanctuary on square, 3 turns. |
 | [Switch Files](swap.md#switch-files) | Swap/Displace | 4 | Uncommon | Swap two of your own pieces. |
 | [Race Condition](swap.md#race-condition) | Swap/Displace | 4 | Uncommon | Swap two enemy non-King pieces. |
+| [Stack Smash](disruption.md#stack-smash) | Disruption | 4 | Uncommon | **Compel** an enemy; if it can't capture, also **Disarm** it. |
+| [Quarantine](disruption.md#quarantine) | Disruption | 5 | Uncommon | Destroy a Frozen/Rooted/Disarmed enemy non-King. |
 | [Rollback](disruption.md#rollback) | Disruption | 6 | Uncommon | Reverse the opponent's most recent move. |
 | [Logic Bomb](spatial.md#spike-pit) | Spatial | 6 | Uncommon | Trap (capture), 4 turns. |
 | [Fork](summon.md#fork) | Summon | 6 | Uncommon | Choose a non-King piece; summon a pawn on an adjacent empty square. |
@@ -74,5 +76,5 @@ Per-card reference for Chess Hacker. The mechanics doc is [`docs/design/cards.md
 ## Counts
 
 - **By Consume:** 20 cards have Consume; the rest cycle through the discard pile.
-- **By type:** Resource 3, Disruption 9, Spatial 9, Tempo 3, Movement-extension 5, Defensive 2, Burst 4, Sacrifice 2, Summon 3, Swap 4, Power 2.
-- **By cost (0–15):** 1× 0-cost, 3× 1-cost, 9× 2-cost, 5× 3-cost, 7× 4-cost, 0× 5-cost, 5× 6-cost, 7× 7-cost, 3× 8-cost, 3× 10-cost, 2× 12-cost, 1× 15-cost.
+- **By type:** Resource 3, Disruption 11, Spatial 9, Tempo 3, Movement-extension 5, Defensive 2, Burst 4, Sacrifice 2, Summon 3, Swap 4, Power 2.
+- **By cost (0–15):** 1× 0-cost, 3× 1-cost, 9× 2-cost, 5× 3-cost, 8× 4-cost, 1× 5-cost, 5× 6-cost, 7× 7-cost, 3× 8-cost, 3× 10-cost, 2× 12-cost, 1× 15-cost.

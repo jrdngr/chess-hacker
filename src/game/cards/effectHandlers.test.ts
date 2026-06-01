@@ -135,3 +135,37 @@ describe("resurrect-piece (Git Revert) — index mapping (CH-004)", () => {
     ]);
   });
 });
+
+describe("compel-then-disarm-if-no-capture (Stack Smash, CH-054)", () => {
+  const target: PlayTarget = { kind: "square", square: "d5" };
+
+  it("compels and ALSO disarms when the target has no legal capture", () => {
+    const ctx = { ...emptyBoard, hasLegalCapture: () => false };
+    const r = applyEffect(
+      { kind: "compel-then-disarm-if-no-capture", disarmDurationTurns: 1 },
+      baseState(),
+      target,
+      ctx,
+      makeRng(1),
+      getCardById("stack-smash"),
+      0,
+    );
+    expect(r.state.compels.some((s) => s.square === "d5")).toBe(true);
+    expect(r.state.disarms.some((s) => s.square === "d5")).toBe(true);
+  });
+
+  it("only compels when the target has a legal capture", () => {
+    const ctx = { ...emptyBoard, hasLegalCapture: () => true };
+    const r = applyEffect(
+      { kind: "compel-then-disarm-if-no-capture", disarmDurationTurns: 1 },
+      baseState(),
+      target,
+      ctx,
+      makeRng(1),
+      getCardById("stack-smash"),
+      0,
+    );
+    expect(r.state.compels.some((s) => s.square === "d5")).toBe(true);
+    expect(r.state.disarms.some((s) => s.square === "d5")).toBe(false);
+  });
+});

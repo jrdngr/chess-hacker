@@ -892,6 +892,7 @@ export function Match({
         hasWall: (sq) => hasWallOn(state, sq),
         isAttackedBy: (sq, by) => engine.isSquareAttackedBy(sq, by),
         isRooted: (sq) => isRooted(state, sq),
+        hasLegalCapture: (sq) => engine.foreignLegalMoves(sq).some((m) => m.isCapture),
         boardRanks: engine.size().ranks,
         boardFiles: engine.size().files,
       };
@@ -1005,6 +1006,7 @@ export function Match({
       hasWall: (sq) => hasWallOn(cardState, sq),
       isAttackedBy: (sq, by) => engine.isSquareAttackedBy(sq, by),
       isRooted: (sq) => isRooted(cardState, sq),
+      hasLegalCapture: (sq) => engine.foreignLegalMoves(sq).some((m) => m.isCapture),
       boardRanks: engine.size().ranks,
       boardFiles: engine.size().files,
     }),
