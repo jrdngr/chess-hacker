@@ -54,6 +54,15 @@ See [`keywords.md`](keywords.md) for keyword definitions and [`docs/design/board
 - **Upgrade (Backdoor+):** Place markers on **2** squares (each usable once).
 - **Design note:** a delayed spatial setup that rewards planning ahead. Place it early behind enemy lines; activate it later to teleport a piece into a surprise attack position. The free-action activation means it doesn't compete with your card plays on the turn you use it. Consume prevents repeat marker spam — each copy in the deck is one backdoor. The marker being visible gives the opponent counterplay: they can park a piece on the square to block the teleport (the target square must be empty when activated).
 
+## Chokepoint
+
+- **Cost:** 3
+- **Rarity:** Uncommon
+- **Target:** none
+- **Effect:** Place a zone-buff over your **back rank** (rank 1). While you control any square on that rank, hand size +1. Lasts 4 turns.
+- **Upgrade (Chokepoint+):** Lasts 6 turns.
+- **Design note:** the prototype's second zone-control card (Power Node was the first) and the only card that places a whole-rank zone-buff (CH-052). Activation uses the existing "control any square in the region" model — your back rank is almost always held, so this reads as a near-unconditional temporary hand-size boost, traded against a card slot and 3 energy. (The review's original "out-piece the enemy on a file" condition was simplified to the existing control model; a true file-comparison predicate is noted as a possible future zone-buff activation kind.)
+
 ## Beacon
 
 - **Cost:** 2

@@ -98,7 +98,7 @@ Artifacts live as **emoji badges in the top banner** of the run, persistent acro
 
 ## Current pool (post power-curve overhaul)
 
-The prototype's artifact pool sits at **26 entries** (7 common, 12 uncommon, 7 rare) — within the target range above. The full list:
+The prototype's artifact pool sits at **27 entries** (7 common, 12 uncommon, 8 rare) — within the target range above. The full list:
 
 > **"Capture" for on-capture artifacts means a chess-move capture only.** Bug
 > Bounty and Keylogger fire when one of your pieces captures by moving onto an
@@ -131,7 +131,7 @@ The prototype's artifact pool sits at **26 entries** (7 common, 12 uncommon, 7 r
 - *Mainframe:* Hand size +1 (unconditional).
 - *Trapsmith:* Your Walls, Traps, and square marks (Beacon / Repulsor) last 2 extra turns. (Spatial anchor.)
 
-**Rare (7)**
+**Rare (8)**
 - *Sniper Optics:* Your rooks may capture an enemy piece even with one wall in the path between attacker and target. Movement to empty squares past a wall is still blocked.
 - *Phalanx:* At the start of your turn, every friendly piece orthogonally adjacent to another friendly piece is shielded until your next turn.
 - *Hive Mind:* Summon cards cost 2 less, and the first pawn you summon each turn gains Shield until your next turn. (Anchors the summon archetype — pairs with Fork, Reinforce, Swarm Protocol.)
@@ -139,6 +139,7 @@ The prototype's artifact pool sits at **26 entries** (7 common, 12 uncommon, 7 r
 - *Compound Interest:* At the start of your turn, gain 1 energy per 6 energy banked (max +3). Rewards saving the persistent energy pool.
 - *Cryostasis:* Your Freeze / Root / Disarm / Downgrade effects on enemy pieces last 1 extra turn. (Disruption anchor — pairs with chroot, Freeze Process, Quarantine.)
 - *Demolition Charge:* Burst cards cost 25% less (round down, minimum 0). (Enables Format C: / Garbage Collect haymakers sooner.)
+- *Loadbalancer:* At the start of your turn, if you hold more of the center 2×2 than the opponent, draw 1 card and gain 1 energy. (Rewards contesting the center — pairs with Power Node / Foothold.)
 
 The "piece-related" effect domain — flagged earlier in this doc as a design goal — is now wired up via the `piece-rule-modifier` artifact effect (see `src/game/types.ts`). Six modifier kinds cover the current pool: pawn-double-from-any-rank, pawn-backward-step, pawn-promotion-rank, piece-empower-all, rook-attack-through-wall, and phalanx-adjacent-shield.
 

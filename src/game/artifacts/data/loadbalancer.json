@@ -1,0 +1,8 @@
+{
+  "id": "loadbalancer",
+  "name": "Loadbalancer",
+  "rarity": "rare",
+  "description": "At the start of your turn, if you hold more of the center 2×2 than the opponent, draw 1 card and gain 1 energy.",
+  "emoji": "⚖️",
+  "effects": [{ "kind": "center-majority-bonus", "draw": 1, "energy": 1 }]
+}

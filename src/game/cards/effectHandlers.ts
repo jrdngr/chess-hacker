@@ -351,6 +351,28 @@ export function applyEffect(
         sideEffects: [],
       };
     }
+    case "place-zone-buff-region": {
+      // Chokepoint: a board-relative rank/center zone-buff (no anchor square).
+      // Active while the player controls any square in the region.
+      const buff: ZoneBuff = {
+        region: effect.region,
+        effect: effect.buff,
+        side,
+        expiresOnTurn: state.turn + effect.durationTurns + overlayBonus,
+        sourceLabel: effect.sourceLabel,
+      };
+      const sameRegion = (b: ZoneBuff) =>
+        b.region.kind === effect.region.kind &&
+        (effect.region.kind === "center" ||
+          (b.region.kind === "rank" && b.region.rank === effect.region.rank));
+      return {
+        state: {
+          ...state,
+          zoneBuffs: [...(state.zoneBuffs ?? []).filter((b) => !sameRegion(b)), buff],
+        },
+        sideEffects: [],
+      };
+    }
 
     // ---- Movement / board side-effects -------------------------------------
     case "swap-own-pieces":

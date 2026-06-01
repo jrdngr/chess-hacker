@@ -41,6 +41,7 @@ Per-card reference for Chess Hacker. The mechanics doc is [`docs/design/cards.md
 | [Restore from Backup](revival.md#recover) | Resource | 2 | Uncommon | **Consume.** Choose a discarded card to return to hand. |
 | [Backdoor](spatial.md#backdoor) | Spatial | 3 | Uncommon | **Consume.** Place marker; free-action teleport a piece there later. |
 | [Repulsor Field](spatial.md#repulsor-field) | Spatial | 3 | Uncommon | Mark; enemy ending there is pushed 1 toward its side, 4 turns. |
+| [Chokepoint](spatial.md#chokepoint) | Spatial | 3 | Uncommon | Hand size +1 while you hold your back rank, 4 turns. |
 | [Hot Swap](tempo.md#hot-swap) | Tempo | 3 | Common | After your move, a different piece takes a **Disarmed** bonus move. |
 | [Power Node](spatial.md#standing-stone) | Spatial | 3 | Uncommon | Spawns on random center square; +1 energy/turn near it, 5 turns. |
 | [Freeze Process](disruption.md#frostbite) | Disruption | 4 | Common | **Freeze** enemy piece. |
@@ -78,5 +79,5 @@ Per-card reference for Chess Hacker. The mechanics doc is [`docs/design/cards.md
 ## Counts
 
 - **By Consume:** 20 cards have Consume; the rest cycle through the discard pile.
-- **By type:** Resource 3, Disruption 11, Spatial 9, Tempo 3, Movement-extension 5, Defensive 2, Burst 4, Sacrifice 3, Summon 4, Swap 4, Power 2.
-- **By cost (0–15):** 1× 0-cost, 4× 1-cost, 9× 2-cost, 5× 3-cost, 8× 4-cost, 1× 5-cost, 6× 6-cost, 7× 7-cost, 3× 8-cost, 3× 10-cost, 2× 12-cost, 1× 15-cost.
+- **By type:** Resource 3, Disruption 11, Spatial 10, Tempo 3, Movement-extension 5, Defensive 2, Burst 4, Sacrifice 3, Summon 4, Swap 4, Power 2.
+- **By cost (0–15):** 1× 0-cost, 4× 1-cost, 9× 2-cost, 6× 3-cost, 8× 4-cost, 1× 5-cost, 6× 6-cost, 7× 7-cost, 3× 8-cost, 3× 10-cost, 2× 12-cost, 1× 15-cost.

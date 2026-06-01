@@ -244,6 +244,19 @@ export type CardEffect =
       autoPlace?: AlgebraicSquare[];
     }
   /**
+   * Place a non-anchored zone-buff over a whole rank or the board center
+   * (Chokepoint). Unlike `place-zone-buff` this needs no target square — the
+   * region is board-relative. Active while the player controls any square in
+   * the region.
+   */
+  | {
+      kind: "place-zone-buff-region";
+      region: { kind: "rank"; rank: number } | { kind: "center" };
+      buff: ZoneBuffEffect;
+      durationTurns: number;
+      sourceLabel: string;
+    }
+  /**
    * Status-effect payload (Boss A / Throttled): constrains the next chess
    * move. Currently the only variant is `must-not-check`.
    */
@@ -726,6 +739,11 @@ export type ArtifactEffect =
    * `amount` extra turn(s).
    */
   | { kind: "overlay-duration-bonus"; amount: number }
+  /**
+   * Loadbalancer: at the start of your turn, if you hold a majority of the
+   * board's center 2×2, draw `draw` cards and gain `energy` energy.
+   */
+  | { kind: "center-majority-bonus"; draw: number; energy: number }
   /**
    * Grants a zone-buff at match start. The region is materialised verbatim
    * into `MatchCardState.zoneBuffs` with no expiry; the buff is active for

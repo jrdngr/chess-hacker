@@ -82,6 +82,7 @@ export const VALID_EFFECT_KINDS = [
   "afflict-random-enemy",
   "compel-then-disarm-if-no-capture",
   "place-zone-buff",
+  "place-zone-buff-region",
   "swap-own-pieces",
   "swap-rooted-with-own",
   "swap-with-enemy",
@@ -500,6 +501,62 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
         ...(autoPlace ? { autoPlace } : {}),
       };
     }
+    case "place-zone-buff-region": {
+      const region = raw.region;
+      if (!isPlainObject(region)) {
+        errors.push("'effect.region' must be an object for kind 'place-zone-buff-region'");
+        return null;
+      }
+      let parsedRegion: { kind: "rank"; rank: number } | { kind: "center" };
+      if (region.kind === "center") {
+        parsedRegion = { kind: "center" };
+      } else if (region.kind === "rank") {
+        if (typeof region.rank !== "number" || !Number.isInteger(region.rank) || region.rank < 1) {
+          errors.push("'effect.region.rank' must be a positive integer for a 'rank' region");
+          return null;
+        }
+        parsedRegion = { kind: "rank", rank: region.rank };
+      } else {
+        errors.push("'effect.region.kind' must be 'rank' or 'center' for 'place-zone-buff-region'");
+        return null;
+      }
+      const buff = raw.buff;
+      if (!isPlainObject(buff)) {
+        errors.push("'effect.buff' must be an object for kind 'place-zone-buff-region'");
+        return null;
+      }
+      if (
+        typeof buff.kind !== "string" ||
+        !(VALID_ZONE_BUFF_EFFECT_KINDS as readonly string[]).includes(buff.kind) ||
+        typeof buff.amount !== "number" ||
+        !Number.isInteger(buff.amount) ||
+        buff.amount < 1
+      ) {
+        errors.push(
+          `'effect.buff' must be { kind: ${VALID_ZONE_BUFF_EFFECT_KINDS.join("|")}, amount: positive int } for 'place-zone-buff-region'`,
+        );
+        return null;
+      }
+      if (!isPositiveInt(raw.durationTurns)) {
+        errors.push(
+          "'effect.durationTurns' must be a positive integer for kind 'place-zone-buff-region'",
+        );
+        return null;
+      }
+      if (typeof raw.sourceLabel !== "string" || raw.sourceLabel.length === 0) {
+        errors.push(
+          "'effect.sourceLabel' must be a non-empty string for kind 'place-zone-buff-region'",
+        );
+        return null;
+      }
+      return {
+        kind: "place-zone-buff-region",
+        region: parsedRegion,
+        buff: { kind: buff.kind as "energy-per-turn" | "hand-size", amount: buff.amount },
+        durationTurns: raw.durationTurns,
+        sourceLabel: raw.sourceLabel,
+      };
+    }
     case "swap-own-pieces":
       return { kind: "swap-own-pieces" };
     case "summon-piece": {
@@ -884,6 +941,8 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
       return tk === "square" || tk === "empty-square"
         ? null
         : "'place-zone-buff' effect requires target.kind 'square' or 'empty-square'";
+    case "place-zone-buff-region":
+      return tk === "none" ? null : "'place-zone-buff-region' effect requires target.kind 'none'";
     case "summon-piece":
       return tk === "empty-square" || tk === "empty-square-own-half"
         ? null

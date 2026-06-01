@@ -43,6 +43,7 @@ export const VALID_ARTIFACT_EFFECT_KINDS = [
   "energy-interest",
   "status-duration-bonus",
   "overlay-duration-bonus",
+  "center-majority-bonus",
   "zone-buff",
   "piece-rule-modifier",
 ] as const;
@@ -351,6 +352,20 @@ function validateArtifactEffect(raw: unknown, errors: string[]): ArtifactEffect 
         return null;
       }
       return { kind: "overlay-duration-bonus", amount: raw.amount };
+    }
+    case "center-majority-bonus": {
+      const isNonNegInt = (v: unknown) => typeof v === "number" && Number.isInteger(v) && v >= 0;
+      if (!isNonNegInt(raw.draw) || !isNonNegInt(raw.energy)) {
+        errors.push(
+          "'effect.draw' and 'effect.energy' must be non-negative integers for kind 'center-majority-bonus'",
+        );
+        return null;
+      }
+      return {
+        kind: "center-majority-bonus",
+        draw: raw.draw as number,
+        energy: raw.energy as number,
+      };
     }
     case "piece-rule-modifier": {
       const modifier = validatePieceRuleModifier(raw.modifier, errors);

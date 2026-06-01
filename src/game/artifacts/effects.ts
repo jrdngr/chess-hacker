@@ -159,6 +159,22 @@ export function overlayDurationBonus(artifacts: ReadonlyArray<Artifact>): number
   return n;
 }
 
+/** Loadbalancer: summed draw/energy granted when the player holds center majority. */
+export function centerMajorityBonus(artifacts: ReadonlyArray<Artifact>): {
+  draw: number;
+  energy: number;
+} {
+  let draw = 0;
+  let energy = 0;
+  each(artifacts, (fx) => {
+    if (fx.kind === "center-majority-bonus") {
+      draw += fx.draw;
+      energy += fx.energy;
+    }
+  });
+  return { draw, energy };
+}
+
 // ---- Piece-rule-modifier helpers --------------------------------------------
 //
 // These helpers feed the chess rule engine via Overlays (see

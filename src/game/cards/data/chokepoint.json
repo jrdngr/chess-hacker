@@ -1,0 +1,26 @@
+{
+  "id": "chokepoint",
+  "name": "Chokepoint",
+  "cost": 3,
+  "rarity": "uncommon",
+  "archetype": "spatial",
+  "description": "Hand size +1 while you hold any square on your back rank (rank 1). Lasts 4 turns.",
+  "target": { "kind": "none" },
+  "effect": {
+    "kind": "place-zone-buff-region",
+    "region": { "kind": "rank", "rank": 1 },
+    "buff": { "kind": "hand-size", "amount": 1 },
+    "durationTurns": 4,
+    "sourceLabel": "Chokepoint"
+  },
+  "upgrade": {
+    "description": "Hand size +1 while you hold any square on your back rank (rank 1). Lasts 6 turns.",
+    "effect": {
+      "kind": "place-zone-buff-region",
+      "region": { "kind": "rank", "rank": 1 },
+      "buff": { "kind": "hand-size", "amount": 1 },
+      "durationTurns": 6,
+      "sourceLabel": "Chokepoint"
+    }
+  }
+}

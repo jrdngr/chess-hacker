@@ -23,6 +23,7 @@ import type {
   ZoneBuff,
 } from "../types";
 import {
+  centerMajorityBonus,
   effectiveCardCost,
   effectiveEnergyPerTurn,
   effectiveHandSize,
@@ -32,6 +33,7 @@ import {
 } from "../artifacts/effects";
 import {
   activeZoneBuffs,
+  regionSquares,
   zoneBuffEnergyPerTurn,
   zoneBuffHandSize,
   type ZoneBoardContext,
@@ -415,7 +417,35 @@ export function startPlayerTurn(
   // createMatchCardState, so skip the per-turn draw.
   const refilled = state.turn === 0 ? next : refillHand(next, rng, ctx);
   const beaconed = applyBeaconDraws(refilled, rng, ctx);
-  return applyStartOfTurnArtifactsAndPowers(beaconed, ctx);
+  const balanced = applyCenterMajorityBonus(beaconed, rng, ctx);
+  return applyStartOfTurnArtifactsAndPowers(balanced, ctx);
+}
+
+/**
+ * Loadbalancer: at the start of the player's turn, if the player holds a strict
+ * majority of the board's center 2×2, draw and/or gain energy. No-op when `ctx`
+ * is omitted or no Loadbalancer artifact is held.
+ */
+function applyCenterMajorityBonus(
+  state: MatchCardState,
+  rng: Rng,
+  ctx?: ZoneBoardContext,
+): MatchCardState {
+  if (!ctx) return state;
+  const bonus = centerMajorityBonus(state.artifacts ?? []);
+  if (bonus.draw === 0 && bonus.energy === 0) return state;
+  let player = 0;
+  let opponent = 0;
+  for (const sq of regionSquares({ kind: "center" }, ctx.size)) {
+    const side = ctx.pieceSideAt(sq);
+    if (side === "player") player++;
+    else if (side === "opponent") opponent++;
+  }
+  if (player <= opponent) return state;
+  let next = state;
+  if (bonus.energy > 0) next = { ...next, energy: clampEnergy(next.energy + bonus.energy) };
+  if (bonus.draw > 0) next = drawCards(next, bonus.draw, rng, true);
+  return next;
 }
 
 /**
