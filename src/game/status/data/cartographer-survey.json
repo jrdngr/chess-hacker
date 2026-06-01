@@ -1,0 +1,8 @@
+{
+  "id": "cartographer-survey",
+  "name": "Survey",
+  "description": "Every 3 turns: a new permanent wall appears on a random empty square in your half.",
+  "trigger": { "kind": "every-n-turns", "n": 3 },
+  "effect": { "kind": "place-wall-random" },
+  "flavor": "curse"
+}

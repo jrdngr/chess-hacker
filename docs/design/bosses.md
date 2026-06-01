@@ -1,13 +1,13 @@
 # Bosses
 
-Each act ends in a hand-crafted boss match. There are **3 bosses, one per act**, fixed (not from a pool). The act-3 boss is the **finale** and gets the strongest hand-crafted treatment.
+Each act ends in a hand-crafted boss match. Each act draws its boss from a **small per-act pool**, so runs vary: the boss for an act is chosen once per run, deterministically from the run seed (`activeBossFor` in `progression/run.ts`), and stays fixed for that run. Act 1 and Act 3 currently have a single boss each; **Act 2 picks one of three** (The Whale, The Cartographer, The Overseer). The act-3 boss is the **finale** and gets the strongest hand-crafted treatment.
 
 ## Structure
 
 | Act | Match position | Boss role                 |
 |-----|---------------|----------------------------|
 | 1   | Match 3       | Boss A — introductory boss; teaches "boss = special rules" |
-| 2   | Match 6       | Boss B — middle-game boss; tests built-up deck/roster |
+| 2   | Match 6       | One of {The Whale, The Cartographer, The Overseer} — middle-game boss; tests built-up deck/roster |
 | 3   | Match 9       | Boss C — finale; hardest, most spectacular |
 
 The player **knows which boss is coming at the start of the act**. This lets them shop and draft with the boss in mind. The boss preview shows: name, signature mechanic, and the status effects the boss will apply. Specific hazards/modifiers/triggers are visible in the preview.
@@ -86,6 +86,22 @@ Note: with only 10 pieces per side and the two central walls, mate paths get tig
 - **Status effects:** *Memory Leak* — fires every 4 turns at turn start, queueing a "capture this turn or lose 1 energy next turn" penalty.
 
 Teaches: not all captures are good. Pressure piece economy.
+
+### Act-2 alternate — "The Cartographer" (match 6, 7×7) — *spatial boss*
+
+- **Modifier:** No player Sanctuaries — `place-sanctuary` cards are forbidden (mirrors The Firewall's no-walls, but on the defensive overlay).
+- **Hazards:** A maze of 6 permanent walls hemming the center (c3/d3/e3/c5/d5/e5).
+- **Status effects:** *Survey* — every 3 turns, a new **permanent** wall appears on a random empty square in the player's half (the maze grows toward you). Implemented via the `place-wall-random` status effect.
+
+Teaches: fight for space. Movement-extension / teleport tools (SSH Tunnel, Backdoor) shine; static plans get walled in.
+
+### Act-2 alternate — "The Overseer" (match 6, 7×7) — *debuff boss*
+
+- **Modifier:** Hand-size penalty −1 (you hold one fewer card all match).
+- **Hazards:** none.
+- **Status effects:** *Audit* — at the start of each of your turns, a random non-pawn piece of yours is **Disarmed** for its next move (it may move but not capture).
+
+Teaches: resource and tempo pressure. Card-draw and a wide board presence blunt the constant disarm; fragile one-piece plans suffer.
 
 ### Boss C — "The Singularity" (Act 3, match 9, 8x8, full armies + queen)
 

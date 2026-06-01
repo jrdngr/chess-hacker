@@ -4,9 +4,9 @@ Issues derived from the comprehensive review in `docs/reviews/2026-05-29-compreh
 
 **Working instructions for the agent:** Work issues **one at a time**. Open the linked file for full context (locations, problem, recommendation, related issues). After completing an issue, run the pre-commit checks in `CLAUDE.md` (`npm run format`, `npm run lint`, `npx tsc --noEmit`, `npm test`, `npm run build`), then commit with `jj commit`. As part of that commit, delete the resolved issue entirely: remove its row here and delete its file under `issues/`. Prefer the recommended ordering below (severity-first within each section).
 
-**Total open issues:** 12
+**Total open issues:** 11
 
-_The Code — Correctness, Tests — Coverage, Tests — Validity (CH-001…024), Refactor — Duplication (CH-025…030), and Game Design — Balance (CH-031…038) sections are all resolved and have been removed from this index; their resolution notes live in the individual `issues/` files._
+_The Code — Correctness, Tests — Coverage, Tests — Validity (CH-001…024), Refactor — Duplication (CH-025…030), Game Design — Balance (CH-031…038), and Game Design — Content (CH-050…060) sections are all resolved and have been removed from this index. Only the Game Design — Design Hole section remains open._
 
 Legend: 🔴 critical · 🟠 high · 🟡 medium · 🔵 low · ⚪ nit
 
@@ -25,9 +25,3 @@ Legend: 🔴 critical · 🟠 high · 🟡 medium · 🔵 low · ⚪ nit
 | CH-047 | 🔵  | [Downgrade + promotion interaction is unspecified](issues/047-hole-downgrade-promotion.md)                              | Open   |
 | CH-048 | 🔵  | [rollDistinct can emit non-distinct piece offers](issues/048-hole-rolldistinct-nondistinct.md)                          | Open   |
 | CH-049 | 🔵  | ["No reactions" leaves disruption one-sided; Boss C's Echo has no player counter](issues/049-hole-no-reactions-echo.md) | Open   |
-
-## Game Design — Content
-
-| #      | Sev | Issue                                                                                                           | Status |
-| ------ | --- | --------------------------------------------------------------------------------------------------------------- | ------ |
-| CH-056 | 🟡  | [Only 3 fixed bosses, one per act, with no archetype variety](issues/056-content-boss-variety.md)               | Open   |

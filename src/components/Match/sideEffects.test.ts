@@ -315,6 +315,43 @@ describe("resolveTrapForMove — intermediate-square interception preserves the 
   });
 });
 
+describe("boss survey / audit side effects (CH-056)", () => {
+  it("place-wall-random adds a permanent wall on an empty player-half square", () => {
+    // 8×8, only kings present. Player half = ranks 1..4.
+    const e = new ChoseEngine("4k3/8/8/8/8/8/8/4K3 w - - 0 1");
+    const next = applyCardSideEffects(
+      e,
+      freshState(),
+      [{ kind: "place-wall-random" }],
+      makeRng(1),
+      () => {},
+    );
+    expect(next.walls).toHaveLength(1);
+    const wall = next.walls[0];
+    expect(wall.permanent).toBe(true);
+    expect(Number(wall.square.slice(1))).toBeLessThanOrEqual(4); // player half
+    expect(e.pieceAt(wall.square)).toBeNull(); // empty square
+  });
+
+  it("disarm-random-player-non-pawn disarms a player non-pawn (not a pawn)", () => {
+    // Player has a knight on b1 and a pawn on a2; only the knight is eligible.
+    const e = new ChoseEngine("4k3/8/8/8/8/8/P7/1N2K3 w - - 0 1");
+    const next = applyCardSideEffects(
+      e,
+      freshState(),
+      [{ kind: "disarm-random-player-non-pawn", expiresOnTurn: 5 }],
+      makeRng(1),
+      () => {},
+    );
+    const disarmed = next.disarms.map((d) => d.square);
+    expect(disarmed).not.toContain("a2"); // pawn never chosen
+    // a non-pawn player piece (b1 knight or e1 king) is disarmed
+    expect(next.disarms.length).toBe(1);
+    expect(["b1", "e1"]).toContain(next.disarms[0].square);
+    expect(next.disarms[0]).toMatchObject({ side: "player", expiresOnTurn: 5 });
+  });
+});
+
 describe("Hive Mind — first summoned pawn each turn gains Shield", () => {
   it("shields the first place-piece pawn and not the second", () => {
     const e = new ChoseEngine("4k3/8/8/8/8/8/8/4K3 w - - 0 1");

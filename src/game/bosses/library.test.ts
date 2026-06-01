@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { BOSS_DEFS, VALID_BOSS_MODIFIER_KINDS, bossForAct, bossForMatch } from "./library";
+import {
+  BOSS_DEFS,
+  VALID_BOSS_MODIFIER_KINDS,
+  bossForAct,
+  bossForMatch,
+  bossesForMatch,
+} from "./library";
 import { getStatusEffectById } from "../status/library";
 
 describe("boss library", () => {
@@ -23,11 +29,14 @@ describe("boss library", () => {
     }
   });
 
-  it("bossForMatch and bossForAct agree for every boss", () => {
+  it("every boss is in its act's pool, and the act pool is non-empty", () => {
     for (const boss of BOSS_DEFS) {
-      expect(bossForMatch(boss.matchNumber)?.id).toBe(boss.id);
+      const pool = bossesForMatch(boss.matchNumber).map((b) => b.id);
+      expect(pool, `${boss.id} should be in its match pool`).toContain(boss.id);
       const act = (boss.matchNumber / 3) as 1 | 2 | 3;
-      expect(bossForAct(act)?.id).toBe(boss.id);
+      // bossForAct/bossForMatch return the canonical first-of-pool boss.
+      expect(bossForAct(act)?.id).toBe(bossForMatch(boss.matchNumber)?.id);
+      expect(bossesForMatch(boss.matchNumber).length).toBeGreaterThan(0);
     }
   });
 

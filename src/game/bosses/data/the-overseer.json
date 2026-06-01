@@ -1,0 +1,10 @@
+{
+  "id": "the-overseer",
+  "name": "The Overseer",
+  "matchNumber": 6,
+  "modifier": { "kind": "hand-size-penalty", "amount": 1 },
+  "modifierDescription": "Your hand size is reduced by 1.",
+  "hazardWalls": [],
+  "statusEffects": ["overseer-audit"],
+  "description": "Nothing you do goes unaudited. Your hand runs a card short, and each turn it disarms one of your pieces at random."
+}

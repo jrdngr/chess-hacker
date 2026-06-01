@@ -1,0 +1,8 @@
+{
+  "id": "overseer-audit",
+  "name": "Audit",
+  "description": "At the start of each of your turns, a random non-pawn piece of yours is Disarmed for its next move.",
+  "trigger": { "kind": "turn-start" },
+  "effect": { "kind": "disarm-random-player-non-pawn" },
+  "flavor": "curse"
+}

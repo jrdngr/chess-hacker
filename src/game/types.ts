@@ -196,6 +196,11 @@ export type CardEffect =
   /** Kernel Panic (softened draw-aversion): grant the player `count` extra
    * chess move(s) this turn to break out of a forced line / dead-end. */
   | { kind: "grant-extra-move"; count: number }
+  /** The Cartographer (boss status): place a permanent wall on a random empty
+   * square in the player's half — the maze grows each survey. */
+  | { kind: "place-wall-random" }
+  /** The Overseer (boss status): Disarm a random player non-pawn next turn. */
+  | { kind: "disarm-random-player-non-pawn" }
   | { kind: "swap-own-pieces" }
   | { kind: "swap-rooted-with-own" }
   | { kind: "swap-with-enemy" }
@@ -846,13 +851,20 @@ export type Shop = {
 };
 
 // === Bosses (M8 + M9) ===
-export type BossId = "the-firewall" | "the-whale" | "the-singularity";
+export type BossId =
+  | "the-firewall"
+  | "the-whale"
+  | "the-singularity"
+  | "the-cartographer"
+  | "the-overseer";
 
-/** Match-modifier identifiers — all three are now wired end-to-end. */
+/** Match-modifier identifiers. */
 export type BossModifier =
   | { kind: "no-player-walls" }
   | { kind: "captures-grant-captured-energy" }
-  | { kind: "no-promotion" };
+  | { kind: "no-promotion" }
+  | { kind: "no-player-sanctuaries" }
+  | { kind: "hand-size-penalty"; amount: number };
 
 /**
  * A boss encounter: name + modifier + hazards + status effects. Bosses are
@@ -1235,4 +1247,9 @@ export type MatchCardState = {
    * effect has already fired this player turn. Reset by `startPlayerTurn`.
    */
   firstSummonShieldUsedThisTurn?: boolean;
+  /**
+   * The Overseer (boss): a flat penalty applied to the player's effective hand
+   * size for the whole match. Set at match start from the boss modifier.
+   */
+  bossHandSizeDelta?: number;
 };

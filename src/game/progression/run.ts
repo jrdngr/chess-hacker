@@ -15,7 +15,7 @@ import { makeRng, shuffle, type Rng } from "../cards/match";
 import { generateChess960Position } from "../chess/positions";
 import { resolvePieceSet, standardMatchConfig } from "./standard";
 import { SKIRMISH_STARTING_ROSTER, skirmishBoardSize } from "./skirmish";
-import { bossForMatch } from "../bosses/library";
+import { bossesForMatch } from "../bosses/library";
 import { ARTIFACT_LIBRARY, pickRandomArtifacts } from "../artifacts/library";
 import { pickRandomByRarity } from "./rarity";
 import { totalFeatGold } from "./feats";
@@ -165,7 +165,14 @@ export function isBossMatch(state: RunState): boolean {
  */
 export function activeBossFor(state: RunState): BossDef | null {
   if (state.mode !== "standard" && state.mode !== "skirmish") return null;
-  return bossForMatch(state.matchNumber);
+  const pool = bossesForMatch(state.matchNumber);
+  if (pool.length <= 1) return pool[0] ?? null;
+  // Per-act pool: pick one boss for this run, deterministically from the
+  // persisted run seed + match number. Pure (no rngCursor consumption), so
+  // repeated calls during the act return the same boss and it survives a
+  // save/load round-trip.
+  const rng = makeRng(state.rngSeed + state.matchNumber * 7919);
+  return pool[Math.floor(rng() * pool.length)];
 }
 
 // ---- Match → reward transition ---------------------------------------------

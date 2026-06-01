@@ -48,6 +48,8 @@ The four boss curses today reuse four existing effect kinds:
 | The Whale (B)    | `memory-leak` | `pending-energy-loss-on-no-capture`  |
 | The Singularity (C) | `hardened` | `forbid-zero-cost-this-turn`         |
 | The Singularity (C) | `bit-rot`  | `capture-random-own-minor`           |
+| The Cartographer | `cartographer-survey` | `place-wall-random` (every 3 turns) |
+| The Overseer     | `overseer-audit`      | `disarm-random-player-non-pawn` (turn-start) |
 
 (`echo` → `boss-extra-move` still exists as a status effect but is no longer attached to any boss — Echo was dropped from The Singularity to soften the finale, CH-038.)
 

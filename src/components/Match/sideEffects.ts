@@ -11,7 +11,7 @@
 import type { ChoseEngine } from "../../game/chess/engine";
 import { movePath } from "../../game/chess/engine";
 import { promotionRank, squareCoords } from "../../game/chess/rules";
-import { squareName } from "../../game/chess/coords";
+import { squareName, FILES } from "../../game/chess/coords";
 import { hasShieldFirstSummon } from "../../game/artifacts/effects";
 import {
   addToHand,
@@ -170,6 +170,8 @@ type CardSideEffect =
       minorOnly: boolean;
       expiresOnTurn: number;
     }
+  | { kind: "place-wall-random" }
+  | { kind: "disarm-random-player-non-pawn"; expiresOnTurn: number }
   | { kind: "undo-last-enemy-move" }
   | { kind: "garbage-collect"; recursive: boolean }
   | { kind: "convert-piece"; square: AlgebraicSquare }
@@ -389,6 +391,45 @@ export function applyCardSideEffects(
         next = {
           ...next,
           [key]: [...next[key].filter((s) => s.square !== pick), entry],
+        };
+      }
+    } else if (fx.kind === "place-wall-random") {
+      // The Cartographer survey: place a permanent wall on a random empty
+      // square in the player's half (ranks 1..floor(ranks/2)).
+      const { files, ranks } = engine.size();
+      const half = Math.floor(ranks / 2);
+      const empties: AlgebraicSquare[] = [];
+      for (let f = 0; f < files; f++) {
+        for (let r = 1; r <= half; r++) {
+          const sq = (FILES[f] + String(r)) as AlgebraicSquare;
+          if (engine.pieceAt(sq)) continue;
+          if (next.walls.some((w) => w.square === sq)) continue;
+          empties.push(sq);
+        }
+      }
+      if (empties.length > 0) {
+        const r = rng ?? Math.random;
+        const pick = empties[Math.floor(r() * empties.length)];
+        next = {
+          ...next,
+          walls: [...next.walls, { square: pick, expiresOnTurn: 0, permanent: true }],
+        };
+      }
+    } else if (fx.kind === "disarm-random-player-non-pawn") {
+      // The Overseer audit: Disarm a random player non-pawn piece.
+      const candidates: AlgebraicSquare[] = [];
+      for (const { square, piece } of engine.pieces()) {
+        if (piece.side === "player" && piece.type !== "pawn") candidates.push(square);
+      }
+      if (candidates.length > 0) {
+        const r = rng ?? Math.random;
+        const pick = candidates[Math.floor(r() * candidates.length)];
+        next = {
+          ...next,
+          disarms: [
+            ...next.disarms.filter((d) => d.square !== pick),
+            { square: pick, side: "player", expiresOnTurn: fx.expiresOnTurn },
+          ],
         };
       }
     }

@@ -1,0 +1,10 @@
+{
+  "id": "the-cartographer",
+  "name": "The Cartographer",
+  "matchNumber": 6,
+  "modifier": { "kind": "no-player-sanctuaries" },
+  "modifierDescription": "You cannot place Sanctuaries.",
+  "hazardWalls": ["c3", "d3", "e3", "c5", "d5", "e5"],
+  "statusEffects": ["cartographer-survey"],
+  "description": "It is always redrawing the map. A maze hems in the center, and every few turns a new wall rises on your side of the board."
+}

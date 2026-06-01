@@ -545,6 +545,16 @@ export function applyEffect(
         sideEffects: [],
       };
     }
+    case "place-wall-random":
+      // The Cartographer survey — random board pick resolved in the shell.
+      return { state, sideEffects: [{ kind: "place-wall-random" }] };
+    case "disarm-random-player-non-pawn":
+      // The Overseer audit — random board pick resolved in the shell. Disarm
+      // lasts into the player's next move window (turn + 1).
+      return {
+        state,
+        sideEffects: [{ kind: "disarm-random-player-non-pawn", expiresOnTurn: state.turn + 1 }],
+      };
     case "apply-status-effect": {
       // Worm / Rootkit: install a persistent player→enemy curse. It lives in
       // statusEffects and fires later via the status dispatcher. target is

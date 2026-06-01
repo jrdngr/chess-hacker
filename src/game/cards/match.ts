@@ -191,7 +191,9 @@ export function drawCards(
   rng: Rng = Math.random,
   respectHandLimit = false,
 ): MatchCardState {
-  const handLimit = respectHandLimit ? effectiveHandSize(state.artifacts ?? []) : Infinity;
+  const handLimit = respectHandLimit
+    ? Math.max(0, effectiveHandSize(state.artifacts ?? []) + (state.bossHandSizeDelta ?? 0))
+    : Infinity;
   const hand = state.hand.slice();
   let drawPile = state.drawPile.slice();
   let discardPile = state.discardPile.slice();
@@ -219,8 +221,12 @@ export function refillHand(
 ): MatchCardState {
   const drawCount = DRAW_PER_TURN + powerDrawBonus(state);
   if (drawCount <= 0) return state;
-  const handLimitWithBonuses =
-    effectiveHandSize(state.artifacts ?? []) + zoneBuffsHandSizeFor(state, ctx);
+  const handLimitWithBonuses = Math.max(
+    0,
+    effectiveHandSize(state.artifacts ?? []) +
+      zoneBuffsHandSizeFor(state, ctx) +
+      (state.bossHandSizeDelta ?? 0),
+  );
   const drawState = { ...state, artifacts: state.artifacts ?? [] };
   // Temporarily set hand limit for the draw call
   const hand = state.hand.slice();
@@ -703,6 +709,10 @@ export type CardSideEffect =
       minorOnly: boolean;
       expiresOnTurn: number;
     }
+  /** The Cartographer: place a permanent wall on a random empty player-half square. */
+  | { kind: "place-wall-random" }
+  /** The Overseer: Disarm a random player non-pawn until `expiresOnTurn`. */
+  | { kind: "disarm-random-player-non-pawn"; expiresOnTurn: number }
   /** Rollback: reverse the opponent's most recent chess move. */
   | { kind: "undo-last-enemy-move" }
   /**

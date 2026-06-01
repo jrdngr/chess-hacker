@@ -80,6 +80,8 @@ export const VALID_EFFECT_KINDS = [
   "place-square-mark",
   "apply-status-effect",
   "afflict-random-enemy",
+  "place-wall-random",
+  "disarm-random-player-non-pawn",
   "compel-then-disarm-if-no-capture",
   "place-zone-buff",
   "place-zone-buff-region",
@@ -409,6 +411,10 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
         durationTurns: raw.durationTurns,
       };
     }
+    case "place-wall-random":
+      return { kind: "place-wall-random" };
+    case "disarm-random-player-non-pawn":
+      return { kind: "disarm-random-player-non-pawn" };
     case "apply-status-effect": {
       if (typeof raw.statusId !== "string" || raw.statusId.length === 0) {
         errors.push("'effect.statusId' must be a non-empty string for kind 'apply-status-effect'");
@@ -1023,6 +1029,8 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
     case "capture-random-own-minor":
     case "apply-status-effect":
     case "afflict-random-enemy":
+    case "place-wall-random":
+    case "disarm-random-player-non-pawn":
     case "shield-all-friendly":
     case "grant-extra-move":
     case "pending-energy-next-turn":

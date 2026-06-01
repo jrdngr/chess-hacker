@@ -30,12 +30,20 @@ import type {
   ZoneRegion,
 } from "../types";
 
-export const VALID_BOSS_IDS: readonly BossId[] = ["the-firewall", "the-whale", "the-singularity"];
+export const VALID_BOSS_IDS: readonly BossId[] = [
+  "the-firewall",
+  "the-whale",
+  "the-singularity",
+  "the-cartographer",
+  "the-overseer",
+];
 export const VALID_MATCH_NUMBERS = [3, 6, 9] as const;
 export const VALID_BOSS_MODIFIER_KINDS = [
   "no-player-walls",
   "captures-grant-captured-energy",
   "no-promotion",
+  "no-player-sanctuaries",
+  "hand-size-penalty",
 ] as const;
 
 const VALID_ZONE_REGION_KINDS = [
@@ -43,6 +51,7 @@ const VALID_ZONE_REGION_KINDS = [
   "square-orthogonal-1",
   "square-radius-1",
   "rank",
+  "center",
 ] as const;
 const VALID_ZONE_BUFF_KINDS = ["energy-per-turn", "hand-size"] as const;
 
@@ -73,6 +82,13 @@ function validateModifier(raw: unknown, errors: string[]): BossModifier | null {
     errors.push(`'modifier.kind' must be one of ${VALID_BOSS_MODIFIER_KINDS.join(", ")}`);
     return null;
   }
+  if (kind === "hand-size-penalty") {
+    if (typeof raw.amount !== "number" || !Number.isInteger(raw.amount) || raw.amount < 1) {
+      errors.push("'modifier.amount' must be a positive integer for kind 'hand-size-penalty'");
+      return null;
+    }
+    return { kind: "hand-size-penalty", amount: raw.amount };
+  }
   return { kind } as BossModifier;
 }
 
@@ -97,6 +113,9 @@ function validateZoneRegion(raw: unknown, errors: string[]): ZoneRegion | null {
       return null;
     }
     return { kind: "rank", rank: raw.rank };
+  }
+  if (kind === "center") {
+    return { kind: "center" };
   }
   const anchor = validateSquare(raw.anchor, "region.anchor", errors);
   if (!anchor) return null;
@@ -299,11 +318,22 @@ export function getBossById(id: BossId): BossDef {
 }
 
 /**
- * Look up the boss for a given match number, or null if no boss is defined
- * for that match.
+ * Every boss eligible for a given match number — the act's pool. Sorted by id
+ * for a stable order so seeded selection is reproducible.
+ */
+export function bossesForMatch(matchNumber: number): BossDef[] {
+  return BOSS_DEFS.filter((b) => b.matchNumber === matchNumber).sort((a, b) =>
+    a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
+  );
+}
+
+/**
+ * Look up *a* boss for a given match number (the first in the act pool), or
+ * null if none. Back-compat single-boss accessor; for per-run selection from a
+ * multi-boss pool use `activeBossFor` (seeded) in `progression/run.ts`.
  */
 export function bossForMatch(matchNumber: number): BossDef | null {
-  return BOSS_DEFS.find((b) => b.matchNumber === matchNumber) ?? null;
+  return bossesForMatch(matchNumber)[0] ?? null;
 }
 
 /**

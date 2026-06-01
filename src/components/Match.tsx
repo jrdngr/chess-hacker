@@ -553,6 +553,10 @@ export function Match({
       });
       base = { ...base, statusEffects: [...base.statusEffects, ...fxs] };
     }
+    if (activeBoss && activeBoss.modifier.kind === "hand-size-penalty") {
+      // The Overseer: a flat hand-size penalty for the whole match.
+      base = { ...base, bossHandSizeDelta: -activeBoss.modifier.amount };
+    }
     const fresh = startPlayerTurn(base, rng, zoneBoardContextOf(engine));
     return initialEnergy !== undefined ? { ...fresh, energy: initialEnergy } : fresh;
   });
@@ -565,6 +569,7 @@ export function Match({
     if (!activeBoss) return {};
     const forbidden = new Set<CardEffect["kind"]>();
     if (activeBoss.modifier.kind === "no-player-walls") forbidden.add("place-wall");
+    if (activeBoss.modifier.kind === "no-player-sanctuaries") forbidden.add("place-sanctuary");
     const out: MatchRules = {};
     if (forbidden.size > 0) out.forbiddenCardEffectKinds = forbidden;
     if (activeBoss.modifier.kind === "no-promotion") out.noPromotion = true;
