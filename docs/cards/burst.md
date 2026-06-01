@@ -32,6 +32,16 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 - **Upgrade (Garbage Collect+):** After the initial sweep, repeat: any enemy non-King piece *newly* attacked (e.g. by a sliding piece whose line of attack opened when its blocker was destroyed) is also destroyed. Continue until a pass produces zero new destructions. Same cost.
 - **Design note:** Unreachable references get freed. The reward for building a threatening position — turn N+1's earned attacks all cash out at once. Unlike Format C: (single-target, unconditional) and Exploit (single-target, requires-attack), Garbage Collect is a board-wide harvest gated on the player's positional setup. The enemy king is never destroyed in any wave, even if discovered checks reveal it as newly attacked — the recursion continues to evaluate non-king pieces; the discovered check sits as the game state after the card resolves. Pieces with Frozen / Rooted / Disarmed statuses are still destroyed if attacked — the status doesn't grant immunity. Cost 15 makes this the most expensive card in the game — you need a queen capture plus significant savings to reach it.
 
+## Mass Exploit
+
+- **Cost:** 9
+- **Rarity:** Rare
+- **Keywords:** **Consume**
+- **Target:** none — resolves immediately
+- **Effect:** Destroy every enemy non-King piece currently attacked by one of your pieces — a **single** sweep (no chasing of discovered attacks).
+- **Upgrade (Mass Exploit+):** Cost 8.
+- **Design note:** the mid-curve board-harvest (CH-057, filling the cost-9 hole). Sits between Exploit (cost 8, single attacked target) and Garbage Collect (cost 15, recursive board-wide). Same setup-dependent payoff as Garbage Collect's first wave but one-shot and far cheaper — reward a threatening position without the queen-capture price tag. The enemy king is never destroyed.
+
 ## Polymorphism
 
 - **Cost:** 6

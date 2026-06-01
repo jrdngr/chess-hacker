@@ -1,0 +1,12 @@
+{
+  "id": "overmind",
+  "name": "Overmind",
+  "cost": 11,
+  "rarity": "rare",
+  "archetype": "summon",
+  "consume": true,
+  "description": "**Consume.** Summon a knight on any empty square in your half.",
+  "target": { "kind": "empty-square-own-half" },
+  "effect": { "kind": "summon-piece", "pieceType": "knight" },
+  "upgrade": { "cost": 10 }
+}

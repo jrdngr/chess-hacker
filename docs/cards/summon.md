@@ -28,6 +28,16 @@ Summon cards create new pieces on empty squares.
 - **Upgrade (Swarm Protocol+):** Costs 5.
 - **Design note:** the Summon archetype's go-wide payoff (CH-055). A single pawn in open space blooms into a phalanx of up to five — instant board presence and a wall of bodies. Best in the center early before squares fill up; cramped or edge positions yield fewer spawns, which is the intended cost of poor placement. With the **Hive Mind** artifact the first of the summoned pawns enters Shielded, and summon-cost −2 makes this a 4-energy swarm. Like Fork, the new pawns *appear* (no Trap trigger) and follow normal pawn rules thereafter.
 
+## Overmind
+
+- **Cost:** 11
+- **Rarity:** Rare
+- **Keywords:** **Consume**
+- **Target:** an empty square in your half
+- **Effect:** Summon a **knight** on the targeted empty square in your half.
+- **Upgrade (Overmind+):** Cost 10.
+- **Design note:** the top-end summon (CH-057, filling the cost-11 hole). Where Reinforce drops a pawn for 8, Overmind drops a fully-mobile knight for 11 — immediate attacking presence and fork threats rather than a slow promoter. Consume + Rare + the steep price keep it a deliberate haymaker reached via a big capture or patient saving.
+
 ## Git Revert
 
 - **Cost:** 8

@@ -75,9 +75,11 @@ Per-card reference for Chess Hacker. The mechanics doc is [`docs/design/cards.md
 | [Exploit](burst.md#cheap-destroy) | Burst | 8 | Rare | **Consume.** Destroy an attacked enemy non-King piece. |
 | [Reinforce](summon.md#reinforce) | Summon | 8 | Rare | Summon a pawn on any empty square in your half. |
 | [Git Revert](summon.md#git-revert) | Summon | 8 | Rare | **Consume.** Resurrect a captured/destroyed piece to your half. |
+| [Mass Exploit](burst.md#mass-exploit) | Burst | 9 | Rare | **Consume.** Destroy every attacked enemy non-King (single sweep). |
 | [Bit Flip](disruption.md#bit-flip) | Disruption | 10 | Rare | **Consume.** Convert enemy minor piece to your side. |
 | [Rootkit](disruption.md#rootkit) | Disruption | 10 | Rare | **Consume.** On enemy capture, **Freeze** a random enemy piece. |
 | [Garrison Mode](power.md#garrison-mode) | Power | 10 | Rare | **Consume.** Each turn-start, **Shield** your rank-1 pieces (except king). |
+| [Overmind](summon.md#overmind) | Summon | 11 | Rare | **Consume.** Summon a knight on any empty square in your half. |
 | [Format C:](burst.md#big-destroy) | Burst | 12 | Rare | **Consume.** Destroy any enemy non-King piece. |
 | [Intrusion Detection](power.md#intrusion-detection) | Power | 12 | Rare | **Consume.** Each turn-start, **Root** enemies that entered your half. |
 | [Garbage Collect](burst.md#garbage-collect) | Burst | 15 | Rare | **Consume.** Destroy every enemy non-King piece attacked by your pieces. |
@@ -85,5 +87,5 @@ Per-card reference for Chess Hacker. The mechanics doc is [`docs/design/cards.md
 ## Counts
 
 - **By Consume:** 20 cards have Consume; the rest cycle through the discard pile.
-- **By type:** Resource 7, Disruption 11, Spatial 11, Tempo 3, Movement-extension 5, Defensive 2, Burst 4, Sacrifice 4, Summon 4, Swap 4, Power 2.
-- **By cost (0–15):** 1× 0-cost, 9× 1-cost, 10× 2-cost, 6× 3-cost, 8× 4-cost, 1× 5-cost, 6× 6-cost, 7× 7-cost, 3× 8-cost, 3× 10-cost, 2× 12-cost, 1× 15-cost.
+- **By type:** Resource 7, Disruption 11, Spatial 11, Tempo 3, Movement-extension 5, Defensive 2, Burst 5, Sacrifice 4, Summon 5, Swap 4, Power 2.
+- **By cost (0–15):** 1× 0-cost, 9× 1-cost, 10× 2-cost, 6× 3-cost, 8× 4-cost, 1× 5-cost, 6× 6-cost, 7× 7-cost, 3× 8-cost, 1× 9-cost, 3× 10-cost, 1× 11-cost, 2× 12-cost, 1× 15-cost.
