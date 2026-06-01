@@ -1,0 +1,24 @@
+{
+  "id": "beacon",
+  "name": "Beacon",
+  "cost": 2,
+  "rarity": "common",
+  "archetype": "spatial",
+  "description": "Mark a square. At the start of each of your turns, if a friendly piece stands on it, draw 1. 4 turns.",
+  "target": {
+    "kind": "empty-square"
+  },
+  "effect": {
+    "kind": "place-square-mark",
+    "mark": "beacon",
+    "durationTurns": 4
+  },
+  "upgrade": {
+    "description": "Mark a square. At the start of each of your turns, if a friendly piece stands on it, draw 1. 6 turns.",
+    "effect": {
+      "kind": "place-square-mark",
+      "mark": "beacon",
+      "durationTurns": 6
+    }
+  }
+}

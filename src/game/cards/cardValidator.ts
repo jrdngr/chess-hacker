@@ -16,6 +16,7 @@ import type {
   EmpowerPattern,
   PieceType,
   PowerEffect,
+  SquareMarkKind,
   TrapEffect,
 } from "../types";
 
@@ -76,6 +77,7 @@ export const VALID_EFFECT_KINDS = [
   "place-wall",
   "place-sanctuary",
   "place-trap",
+  "place-square-mark",
   "place-zone-buff",
   "swap-own-pieces",
   "swap-rooted-with-own",
@@ -127,6 +129,7 @@ export const VALID_DESTROY_FILTERS = ["any", "attacked-by-player"] as const;
 export const VALID_ADD_CARD_DRAW_SOURCES = ["self", "card-id"] as const;
 export const VALID_REVIVE_SELECTIONS = ["random", "choose"] as const;
 export const VALID_TRAP_EFFECTS: readonly TrapEffect[] = ["capture", "freeze", "push"];
+export const VALID_SQUARE_MARK_KINDS = ["beacon", "repulsor"] as const;
 export const VALID_EMPOWER_PATTERNS: readonly EmpowerPattern[] = [
   "pawn",
   "knight",
@@ -372,6 +375,29 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
       return {
         kind: "place-trap",
         trapEffect: fx as TrapEffect,
+        durationTurns: raw.durationTurns,
+      };
+    }
+    case "place-square-mark": {
+      const mark = raw.mark;
+      if (
+        typeof mark !== "string" ||
+        !(VALID_SQUARE_MARK_KINDS as readonly string[]).includes(mark)
+      ) {
+        errors.push(
+          `'effect.mark' must be one of ${VALID_SQUARE_MARK_KINDS.join(", ")} for kind 'place-square-mark'`,
+        );
+        return null;
+      }
+      if (!isPositiveInt(raw.durationTurns)) {
+        errors.push(
+          "'effect.durationTurns' must be a positive integer for kind 'place-square-mark'",
+        );
+        return null;
+      }
+      return {
+        kind: "place-square-mark",
+        mark: mark as SquareMarkKind,
         durationTurns: raw.durationTurns,
       };
     }
@@ -774,6 +800,7 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
       return tk === "own-piece" ? null : `'${effect.kind}' effect requires target.kind 'own-piece'`;
     case "place-wall":
     case "place-trap":
+    case "place-square-mark":
       return tk === "empty-square"
         ? null
         : `'${effect.kind}' effect requires target.kind 'empty-square'`;

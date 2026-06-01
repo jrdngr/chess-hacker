@@ -18,7 +18,7 @@ import {
 import type { ChoseEngine } from "../../game/chess/engine";
 import type { AlgebraicSquare, BossDef, MatchCardState, Piece, Side } from "../../game/types";
 import { clearStatusesOn } from "../../game/cards/match";
-import { resolveTrapForMove } from "./sideEffects";
+import { resolveTrapForMove, resolveSquareMarkForMove } from "./sideEffects";
 import type { HistoryEvent } from "./history";
 
 const AI_SIDE: Side = "opponent";
@@ -243,6 +243,11 @@ export function useAiLoop({
           applied.to,
           captured,
         );
+        // Repulsor square marks: shove the enemy piece back toward its own
+        // side if it ended on a player-placed repulsor (persists, not consumed).
+        if (engine.pieceAt(applied.to)) {
+          trapped = resolveSquareMarkForMove(engine, trapped, mover, applied.to);
+        }
         // Boss C void: any piece ending its turn on a void square is
         // destroyed. The AI just moved there — that's its end-of-turn — so
         // remove it now. We also clear per-piece statuses on the dead square.

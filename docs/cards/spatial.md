@@ -53,3 +53,21 @@ See [`keywords.md`](keywords.md) for keyword definitions and [`docs/design/board
 - **Effect:** Place a **Backdoor** marker on the target square. The marker persists indefinitely and is visible to both players. On any future turn, as a free action (no card or energy cost), teleport any friendly non-King piece to the marked square. The marker is consumed on use. Enemy pieces can move through and onto the square freely — it is not a wall or trap.
 - **Upgrade (Backdoor+):** Place markers on **2** squares (each usable once).
 - **Design note:** a delayed spatial setup that rewards planning ahead. Place it early behind enemy lines; activate it later to teleport a piece into a surprise attack position. The free-action activation means it doesn't compete with your card plays on the turn you use it. Consume prevents repeat marker spam — each copy in the deck is one backdoor. The marker being visible gives the opponent counterplay: they can park a piece on the square to block the teleport (the target square must be empty when activated).
+
+## Beacon
+
+- **Cost:** 2
+- **Rarity:** Common
+- **Target:** empty square
+- **Effect:** Place a **Beacon** square mark. At the start of each of your turns, if a friendly piece stands on the marked square, draw 1 card. Persists 4 turns (it is not consumed when it fires).
+- **Upgrade (Beacon+):** Persists 6 turns.
+- **Design note:** the prototype's first repeating square overlay (a `SquareMark`, distinct from one-shot Traps). It rewards planting a piece on a held square — strongest when paired with a Sanctuary or Wall that keeps the occupant safe. The draw respects the hand limit, so it can't overflow your hand. Low floor (no friendly piece on it = no value), steady ceiling if you control the square for its whole lifetime.
+
+## Repulsor Field
+
+- **Cost:** 3
+- **Rarity:** Uncommon
+- **Target:** empty square
+- **Effect:** Place a **Repulsor** square mark. An enemy piece that ends a move on the marked square is pushed 1 square back toward its own side (it fizzles if that square is off-board, occupied, or walled). Persists 4 turns and is **not** consumed — it repels every enemy that lands there.
+- **Upgrade (Repulsor Field+):** Persists 6 turns.
+- **Design note:** a persistent denial tool — unlike a Trap it keeps firing. It can't capture or freeze, but it disrupts the opponent's intended landing square, undoing tempo and re-opening lines. Best on a chokepoint or in front of your king. The push is purely positional, so it never illegally removes a piece; it just makes a square frustrating to occupy.

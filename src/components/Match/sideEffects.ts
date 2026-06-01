@@ -11,6 +11,7 @@
 import type { ChoseEngine } from "../../game/chess/engine";
 import { movePath } from "../../game/chess/engine";
 import { promotionRank, squareCoords } from "../../game/chess/rules";
+import { squareName } from "../../game/chess/coords";
 import {
   addToHand,
   clearStatusesOn,
@@ -114,6 +115,37 @@ export function resolveTrapForMove(
     return next;
   }
   return cardState;
+}
+
+/**
+ * Resolve a Repulsor square mark: when an enemy piece ends its move on a
+ * repulsor placed by the other side, it is shoved one square back toward its
+ * own home side (opposite its advance direction). The mark is NOT consumed —
+ * repulsors persist until they expire. The push fizzles (and the piece stays)
+ * if the destination is off-board, occupied, or walled. Mutates the engine in
+ * place; returns the (status-relocated) card state.
+ */
+export function resolveSquareMarkForMove(
+  engine: ChoseEngine,
+  cardState: MatchCardState,
+  mover: Piece,
+  to: AlgebraicSquare,
+): MatchCardState {
+  const mark = cardState.squareMarks.find((m) => m.square === to && m.kind === "repulsor");
+  if (!mark || mark.side === mover.side) return cardState;
+  if (engine.pieceAt(to) === null) return cardState; // piece already gone (e.g. trap)
+
+  const { files, ranks } = engine.size();
+  const { file, rank } = squareCoords(to);
+  // Push toward the mover's own side = opposite its advance direction.
+  const delta = mover.side === "player" ? -1 : 1;
+  const backRank = rank + delta;
+  if (backRank < 0 || backRank >= ranks || file < 0 || file >= files) return cardState;
+  const back = squareName(file, backRank as typeof rank);
+  if (engine.pieceAt(back) || cardState.walls.some((w) => w.square === back)) return cardState;
+
+  engine.displacePiece(to, back);
+  return relocateStatuses(cardState, to, back);
 }
 
 /**

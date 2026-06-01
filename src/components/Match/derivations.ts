@@ -249,6 +249,12 @@ export function deriveSquareEffects(
       remaining: remaining(tr.expiresOnTurn),
     });
   }
+  for (const mk of state.squareMarks ?? []) {
+    pushSquare(mk.square, {
+      label: mk.kind === "beacon" ? "Beacon" : "Repulsor Field",
+      remaining: remaining(mk.expiresOnTurn),
+    });
+  }
   // Zone-buffs: only the anchor square gets a hover description (the radiating
   // squares are visualised by the aura overlay). Artifact-granted buffs have
   // no anchor and no expiry, so they're skipped here — they show in the

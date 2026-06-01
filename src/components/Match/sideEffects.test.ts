@@ -4,7 +4,7 @@ import { ChoseEngine } from "../../game/chess/engine";
 import { createMatchCardState, makeRng } from "../../game/cards/match";
 import type { MatchCardState, Trap } from "../../game/types";
 
-import { applyCardSideEffects, resolveTrapForMove } from "./sideEffects";
+import { applyCardSideEffects, resolveSquareMarkForMove, resolveTrapForMove } from "./sideEffects";
 
 describe("Garbage Collect (sweep)", () => {
   it("destroys every enemy non-king piece attacked by a player piece", () => {
@@ -311,6 +311,46 @@ describe("resolveTrapForMove — intermediate-square interception preserves the 
     // Both pieces gone — pawn captured by rook, rook captured by trap.
     expect(e.pieceAt("h4")).toBeNull();
     expect(e.pieceAt("h8")).toBeNull();
+  });
+});
+
+describe("resolveSquareMarkForMove — Repulsor Field", () => {
+  it("pushes an enemy piece that ends on the mark one rank back toward its own side", () => {
+    // Black knight on d5 moves to e3 (a player-side advance). A player repulsor
+    // sits on e3; the knight should be shoved back to e4 (toward black's home).
+    const e = new ChoseEngine("4k3/8/8/3n4/8/8/8/4K3 b - - 0 1");
+    const mover = e.pieceAt("d5")!;
+    e.move({ from: "d5", to: "e3" });
+    expect(e.pieceAt("e3")).toEqual({ type: "knight", side: "opponent" });
+
+    const state: MatchCardState = {
+      ...freshState(),
+      squareMarks: [{ square: "e3", kind: "repulsor", side: "player", expiresOnTurn: 99 }],
+    };
+    resolveSquareMarkForMove(e, state, mover, "e3");
+
+    expect(e.pieceAt("e3")).toBeNull();
+    expect(e.pieceAt("e4")).toEqual({ type: "knight", side: "opponent" });
+  });
+
+  it("does not consume the mark, and fizzles if the push target is occupied", () => {
+    // Knight pushed back would land on e4, but a black pawn already sits there.
+    const e = new ChoseEngine("4k3/8/8/3n4/4p3/8/8/4K3 b - - 0 1");
+    const mover = e.pieceAt("d5")!;
+    e.move({ from: "d5", to: "e3" });
+
+    const mark = {
+      square: "e3" as const,
+      kind: "repulsor" as const,
+      side: "player" as const,
+      expiresOnTurn: 99,
+    };
+    const state: MatchCardState = { ...freshState(), squareMarks: [mark] };
+    const next = resolveSquareMarkForMove(e, state, mover, "e3");
+
+    // Push fizzled — knight stays on e3 — and the mark persists.
+    expect(e.pieceAt("e3")).toEqual({ type: "knight", side: "opponent" });
+    expect(next.squareMarks).toContainEqual(mark);
   });
 });
 

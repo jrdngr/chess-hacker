@@ -1,0 +1,24 @@
+{
+  "id": "repulsor-field",
+  "name": "Repulsor Field",
+  "cost": 3,
+  "rarity": "uncommon",
+  "archetype": "spatial",
+  "description": "Mark a square. An enemy piece that ends a move on it is pushed 1 square back toward its own side. Persists 4 turns.",
+  "target": {
+    "kind": "empty-square"
+  },
+  "effect": {
+    "kind": "place-square-mark",
+    "mark": "repulsor",
+    "durationTurns": 4
+  },
+  "upgrade": {
+    "description": "Mark a square. An enemy piece that ends a move on it is pushed 1 square back toward its own side. Persists 6 turns.",
+    "effect": {
+      "kind": "place-square-mark",
+      "mark": "repulsor",
+      "durationTurns": 6
+    }
+  }
+}

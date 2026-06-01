@@ -35,6 +35,8 @@ A card can mark a specific square (or set of squares) with an effect. Effects ca
 
 Square effects are short-to-medium-lifetime (a few turns). They are visually marked on the board (a colored aura or icon) and have a visible turn-count remaining.
 
+Two flavours exist in code. **One-shot Traps** (`Trap`: capture / freeze / push) fire once and dissolve — see `keywords.md`. **Persistent square marks** (`SquareMark`, in `MatchCardState.squareMarks`) keep firing until they expire: **Beacon** (draw 1 at the start of your turn while a friendly piece stands on it) and **Repulsor Field** (an enemy that ends a move on it is pushed 1 square back toward its own side). Beacons resolve at start-of-turn (`startPlayerTurn`); Repulsors resolve when an opponent move lands on them (`resolveSquareMarkForMove`).
+
 ### 3. Zone-control buffs
 
 Some cards (and some artifacts) grant a buff for **controlling** a region of the board. A region is a contiguous group of squares (e.g., "the center 4 squares", "the d-file", "your back rank"). "Control" means a friendly piece is on the region, or — for larger regions — that you have more pieces in the region than the opponent.

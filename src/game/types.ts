@@ -178,6 +178,7 @@ export type CardEffect =
   | { kind: "place-wall"; durationTurns: number }
   | { kind: "place-sanctuary"; durationTurns: number }
   | { kind: "place-trap"; trapEffect: TrapEffect; durationTurns: number }
+  | { kind: "place-square-mark"; mark: SquareMarkKind; durationTurns: number }
   | { kind: "swap-own-pieces" }
   | { kind: "swap-rooted-with-own" }
   | { kind: "swap-with-enemy" }
@@ -482,6 +483,19 @@ export type Sanctuary = {
 export type Trap = {
   square: AlgebraicSquare;
   effect: TrapEffect;
+  expiresOnTurn: number;
+};
+
+/** Persistent, repeating square overlay placed by a card. Unlike a Trap it is
+ * not consumed when it fires. `beacon` draws a card at the start of the
+ * player's turn while a friendly piece stands on it; `repulsor` shoves an enemy
+ * piece that ends a move on it one square back toward the enemy's own side. */
+export type SquareMarkKind = "beacon" | "repulsor";
+export type SquareMark = {
+  square: AlgebraicSquare;
+  kind: SquareMarkKind;
+  /** The side that placed the mark (player). */
+  side: Side;
   expiresOnTurn: number;
 };
 
@@ -1018,6 +1032,8 @@ export type MatchCardState = {
   sanctuaries: Sanctuary[];
   /** Trap square overlays. */
   traps: Trap[];
+  /** Persistent square marks placed by cards (Beacon, Repulsor Field). */
+  squareMarks: SquareMark[];
   /**
    * Active Mutex Locks. Each one keeps a no-go zone around the locked
    * player piece while it's on the board. See `MutexLockStatus`.

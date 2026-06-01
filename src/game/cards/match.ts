@@ -135,6 +135,7 @@ export function createMatchCardState(
     empowers: [],
     sanctuaries: [],
     traps: [],
+    squareMarks: [],
     mutexLocks: [],
     zoneBuffs: zoneBuffsFromArtifacts(artifacts),
     artifacts,
@@ -391,6 +392,7 @@ export function startPlayerTurn(
     empowers: alive(state.empowers),
     sanctuaries: alive(state.sanctuaries),
     traps: alive(state.traps),
+    squareMarks: alive(state.squareMarks ?? []),
     mutexLocks: liveMutexLocks,
     downgrades: alive(state.downgrades ?? []),
     pendingEnergyLossOnNoCapture: 0,
@@ -409,7 +411,23 @@ export function startPlayerTurn(
   // Turn 0→1 is match start — the opening hand was already drawn by
   // createMatchCardState, so skip the per-turn draw.
   const refilled = state.turn === 0 ? next : refillHand(next, rng, ctx);
-  return applyStartOfTurnArtifactsAndPowers(refilled, ctx);
+  const beaconed = applyBeaconDraws(refilled, rng, ctx);
+  return applyStartOfTurnArtifactsAndPowers(beaconed, ctx);
+}
+
+/**
+ * Beacon square marks: at the start of the player's turn, each active beacon
+ * with a friendly piece standing on it draws 1 card (respecting the hand
+ * limit). Beacons persist — they fire every turn until they expire. No-op when
+ * `ctx` is omitted (legacy tests that skip the board context).
+ */
+function applyBeaconDraws(state: MatchCardState, rng: Rng, ctx?: ZoneBoardContext): MatchCardState {
+  if (!ctx) return state;
+  const beacons = (state.squareMarks ?? []).filter(
+    (m) => m.kind === "beacon" && ctx.pieceSideAt(m.square) === m.side,
+  );
+  if (beacons.length === 0) return state;
+  return drawCards(state, beacons.length, rng, true);
 }
 
 /**

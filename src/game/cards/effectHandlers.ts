@@ -277,6 +277,24 @@ export function applyEffect(
         sideEffects: [],
       };
     }
+    case "place-square-mark": {
+      const sq = squareTarget(target);
+      return {
+        state: {
+          ...state,
+          squareMarks: [
+            ...state.squareMarks.filter((m) => m.square !== sq),
+            {
+              square: sq,
+              kind: effect.mark,
+              side,
+              expiresOnTurn: state.turn + effect.durationTurns,
+            },
+          ],
+        },
+        sideEffects: [],
+      };
+    }
     case "place-zone-buff": {
       let sq: AlgebraicSquare;
       if (effect.autoPlace) {
