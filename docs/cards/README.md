@@ -59,10 +59,12 @@ Per-card reference for Chess Hacker. The mechanics doc is [`docs/design/cards.md
 | [Extract](swap.md#extract) | Swap/Displace | 7 | Uncommon | Swap one of your pieces with any enemy non-King piece. |
 | [Remote Access](swap.md#marionette) | Swap/Displace | 7 | Rare | **Consume.** Move an enemy piece by its legal moves. |
 | [Buffer Overflow](sacrifice.md#buffer-overflow) | Sacrifice | 7 | Rare | **Consume.** Destroy own piece; adjacent friendlies each get a free action. |
+| [Worm](disruption.md#worm) | Disruption | 7 | Rare | **Consume.** Every 3 turns, **Freeze** a random enemy minor. |
 | [Exploit](burst.md#cheap-destroy) | Burst | 8 | Rare | **Consume.** Destroy an attacked enemy non-King piece. |
 | [Reinforce](summon.md#reinforce) | Summon | 8 | Rare | Summon a pawn on any empty square in your half. |
 | [Git Revert](summon.md#git-revert) | Summon | 8 | Rare | **Consume.** Resurrect a captured/destroyed piece to your half. |
 | [Bit Flip](disruption.md#bit-flip) | Disruption | 10 | Rare | **Consume.** Convert enemy minor piece to your side. |
+| [Rootkit](disruption.md#rootkit) | Disruption | 10 | Rare | **Consume.** On enemy capture, **Freeze** a random enemy piece. |
 | [Garrison Mode](power.md#garrison-mode) | Power | 10 | Rare | **Consume.** Each turn-start, **Shield** your rank-1 pieces (except king). |
 | [Format C:](burst.md#big-destroy) | Burst | 12 | Rare | **Consume.** Destroy any enemy non-King piece. |
 | [Intrusion Detection](power.md#intrusion-detection) | Power | 12 | Rare | **Consume.** Each turn-start, **Root** enemies that entered your half. |
@@ -70,6 +72,6 @@ Per-card reference for Chess Hacker. The mechanics doc is [`docs/design/cards.md
 
 ## Counts
 
-- **By Consume:** 18 cards have Consume; the rest cycle through the discard pile.
-- **By type:** Resource 3, Disruption 7, Spatial 9, Tempo 3, Movement-extension 4, Defensive 2, Burst 4, Sacrifice 2, Summon 3, Swap 4, Power 2.
-- **By cost (0–15):** 1× 0-cost, 3× 1-cost, 8× 2-cost, 5× 3-cost, 7× 4-cost, 0× 5-cost, 5× 6-cost, 6× 7-cost, 3× 8-cost, 2× 10-cost, 2× 12-cost, 1× 15-cost.
+- **By Consume:** 20 cards have Consume; the rest cycle through the discard pile.
+- **By type:** Resource 3, Disruption 9, Spatial 9, Tempo 3, Movement-extension 4, Defensive 2, Burst 4, Sacrifice 2, Summon 3, Swap 4, Power 2.
+- **By cost (0–15):** 1× 0-cost, 3× 1-cost, 8× 2-cost, 5× 3-cost, 7× 4-cost, 0× 5-cost, 5× 6-cost, 7× 7-cost, 3× 8-cost, 3× 10-cost, 2× 12-cost, 1× 15-cost.

@@ -1,6 +1,6 @@
 # Status effects
 
-Status effects are persistent passives attached to a side of a match. When a status's trigger condition fires during gameplay, the framework applies its effect immediately. Today only **boss → player** status effects ship (replacing the legacy curse-card-in-hand mechanism); the same system is designed to host **player → enemy** status effects in the future, applied via cards.
+Status effects are persistent passives attached to a side of a match. When a status's trigger condition fires during gameplay, the framework applies its effect immediately. **Boss → player** status effects ship as the boss-curse system (replacing the legacy curse-card-in-hand mechanism), and **player → enemy** curses now ship too, installed by cards via the `apply-status-effect` effect (Worm and Rootkit — see below).
 
 ## Why this exists
 
@@ -50,6 +50,19 @@ The four boss curses today reuse four existing effect kinds:
 | The Singularity (C) | `bit-rot`  | `capture-random-own-minor`           |
 
 (`echo` → `boss-extra-move` still exists as a status effect but is no longer attached to any boss — Echo was dropped from The Singularity to soften the finale, CH-038.)
+
+### Player-applied curses (cards)
+
+Two cards install a persistent curse on the enemy via the `apply-status-effect` card effect (CH-050):
+
+| Card    | Status    | Trigger                | Effect kind                                          |
+| ------- | --------- | ---------------------- | ---------------------------------------------------- |
+| Worm    | `worm`    | `every-n-turns` (n: 3) | `afflict-random-enemy: freeze, minorOnly`            |
+| Rootkit | `rootkit` | `on-opponent-capture`  | `afflict-random-enemy: freeze` (lasts 2 turns)       |
+
+`afflict-random-enemy` picks a random enemy (opponent) piece — knights/bishops only when `minorOnly` is set — and applies the named per-piece status (the engine enforces Freeze/Root/Disarm on opponent pieces exactly as the player-cast chroot / Freeze Process do). The random board pick is resolved in the Match shell via an `afflict-random-enemy` side effect, mirroring Bit Rot's `remove-random-own-minor`.
+
+These curses are installed with `source: "player"` and **`target: "player"`** — deliberately. The match shell only dispatches player turn-start and `on-opponent-capture` events, so a player-installed periodic/reactive curse must tick on the player's cadence; it reaches across to the enemy through its `afflict-random-enemy` effect rather than through a `target: "opponent"` field. `apply-status-effect` dedupes by `defId`, so re-playing a permanent curse is a no-op.
 
 ## Lifetime fields
 

@@ -653,6 +653,17 @@ export type CardSideEffect =
   | { kind: "revive-prompt" }
   /** Bit Rot (Boss C): destroy a random own minor piece. */
   | { kind: "remove-random-own-minor" }
+  /**
+   * Worm / Rootkit (player→enemy curses): apply a Freeze / Root / Disarm to a
+   * random enemy (opponent) piece. `minorOnly` restricts the pick to knights
+   * and bishops. Resolved with full board access in the Match shell.
+   */
+  | {
+      kind: "afflict-random-enemy";
+      status: "freeze" | "root" | "disarm";
+      minorOnly: boolean;
+      expiresOnTurn: number;
+    }
   /** Rollback: reverse the opponent's most recent chess move. */
   | { kind: "undo-last-enemy-move" }
   /**

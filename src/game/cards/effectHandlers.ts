@@ -19,6 +19,7 @@ import type {
   PieceType,
   PowerEffect,
   Side,
+  StatusEffect,
   ZoneBuff,
 } from "../types";
 import {
@@ -445,6 +446,43 @@ export function applyEffect(
       // BoardContext, so we delegate the random choice through a side effect
       // that Match resolves with full board access.
       return { state, sideEffects: [{ kind: "remove-random-own-minor" }] };
+    }
+    case "apply-status-effect": {
+      // Worm / Rootkit: install a persistent player→enemy curse. It lives in
+      // statusEffects and fires later via the status dispatcher. target is
+      // "player" so it ticks on the player's turn cadence / opponent-capture
+      // events (the only sides the match shell dispatches); the curse's own
+      // effect always afflicts the enemy. Dedupe by defId — the curse is
+      // permanent, so a second copy would be a dead replay.
+      if (state.statusEffects.some((s) => s.defId === effect.statusId)) {
+        return { state, sideEffects: [] };
+      }
+      const status: StatusEffect = {
+        defId: effect.statusId,
+        source: "player",
+        target: "player",
+        attachedOnTurn: state.turn,
+      };
+      return {
+        state: { ...state, statusEffects: [...state.statusEffects, status] },
+        sideEffects: [],
+      };
+    }
+    case "afflict-random-enemy": {
+      // Freeze / Root / Disarm a random enemy piece. The random board pick
+      // needs full board access, so delegate to a side effect resolved in the
+      // Match shell (mirrors remove-random-own-minor).
+      return {
+        state,
+        sideEffects: [
+          {
+            kind: "afflict-random-enemy",
+            status: effect.status,
+            minorOnly: effect.minorOnly ?? false,
+            expiresOnTurn: state.turn + (effect.durationTurns ?? 1),
+          },
+        ],
+      };
     }
     case "undo-last-enemy-move": {
       // Rollback. The actual unwind happens against the engine in

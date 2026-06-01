@@ -314,6 +314,36 @@ describe("resolveTrapForMove — intermediate-square interception preserves the 
   });
 });
 
+describe("afflict-random-enemy side effect (Worm / Rootkit)", () => {
+  it("freezes a random enemy piece on the opponent's side", () => {
+    // Only one opponent piece (knight on d5) besides the king, so the random
+    // pick is deterministic enough to assert.
+    const e = new ChoseEngine("4k3/8/8/3n4/8/8/8/4K3 w - - 0 1");
+    const next = applyCardSideEffects(
+      e,
+      freshState(),
+      [{ kind: "afflict-random-enemy", status: "freeze", minorOnly: true, expiresOnTurn: 7 }],
+      makeRng(1),
+      () => {},
+    );
+    // Exactly one opponent minor exists (the knight); it must be the one frozen.
+    expect(next.freezes).toContainEqual({ square: "d5", side: "opponent", expiresOnTurn: 7 });
+  });
+
+  it("no-ops when the enemy has no eligible piece", () => {
+    // minorOnly with no enemy minors → nothing frozen.
+    const e = new ChoseEngine("4k3/8/8/8/8/8/8/4K3 w - - 0 1");
+    const next = applyCardSideEffects(
+      e,
+      freshState(),
+      [{ kind: "afflict-random-enemy", status: "freeze", minorOnly: true, expiresOnTurn: 7 }],
+      makeRng(1),
+      () => {},
+    );
+    expect(next.freezes).toEqual([]);
+  });
+});
+
 describe("resolveSquareMarkForMove — Repulsor Field", () => {
   it("pushes an enemy piece that ends on the mark one rank back toward its own side", () => {
     // Black knight on d5 moves to e3 (a player-side advance). A player repulsor

@@ -1,0 +1,19 @@
+{
+  "id": "worm",
+  "name": "Worm",
+  "cost": 7,
+  "rarity": "rare",
+  "archetype": "disruption",
+  "consume": true,
+  "description": "**Consume.** Install a Worm: every 3 of your turns, **Freeze** a random enemy knight or bishop for its next move.",
+  "target": {
+    "kind": "none"
+  },
+  "effect": {
+    "kind": "apply-status-effect",
+    "statusId": "worm"
+  },
+  "upgrade": {
+    "cost": 6
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "id": "worm",
+  "name": "Worm",
+  "description": "Every 3 of your turns: a random enemy knight or bishop is Frozen for its next move.",
+  "trigger": { "kind": "every-n-turns", "n": 3 },
+  "effect": {
+    "kind": "afflict-random-enemy",
+    "status": "freeze",
+    "minorOnly": true,
+    "durationTurns": 1
+  },
+  "flavor": "curse"
+}

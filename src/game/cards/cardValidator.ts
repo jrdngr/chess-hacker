@@ -78,6 +78,8 @@ export const VALID_EFFECT_KINDS = [
   "place-sanctuary",
   "place-trap",
   "place-square-mark",
+  "apply-status-effect",
+  "afflict-random-enemy",
   "place-zone-buff",
   "swap-own-pieces",
   "swap-rooted-with-own",
@@ -400,6 +402,36 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
         mark: mark as SquareMarkKind,
         durationTurns: raw.durationTurns,
       };
+    }
+    case "apply-status-effect": {
+      if (typeof raw.statusId !== "string" || raw.statusId.length === 0) {
+        errors.push("'effect.statusId' must be a non-empty string for kind 'apply-status-effect'");
+        return null;
+      }
+      return { kind: "apply-status-effect", statusId: raw.statusId };
+    }
+    case "afflict-random-enemy": {
+      const s = raw.status;
+      if (s !== "freeze" && s !== "root" && s !== "disarm") {
+        errors.push(
+          "'effect.status' must be one of freeze, root, disarm for kind 'afflict-random-enemy'",
+        );
+        return null;
+      }
+      const minorOnly = raw.minorOnly;
+      if (minorOnly !== undefined && typeof minorOnly !== "boolean") {
+        errors.push("'effect.minorOnly' must be a boolean if present for 'afflict-random-enemy'");
+        return null;
+      }
+      const dt = validateDurationTurns(raw.durationTurns, "afflict-random-enemy", errors);
+      if (dt === null) return null;
+      const out: CardEffect & { kind: "afflict-random-enemy" } = {
+        kind: "afflict-random-enemy",
+        status: s,
+      };
+      if (minorOnly === true) out.minorOnly = true;
+      if (typeof dt === "number") out.durationTurns = dt;
+      return out;
     }
     case "place-zone-buff": {
       const pattern = raw.pattern;
@@ -873,6 +905,8 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
     case "forbid-zero-cost-this-turn":
     case "boss-extra-move":
     case "capture-random-own-minor":
+    case "apply-status-effect":
+    case "afflict-random-enemy":
     case "pending-energy-next-turn":
     case "play-power":
     case "undo-last-enemy-move":

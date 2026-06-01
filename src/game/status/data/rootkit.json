@@ -1,0 +1,8 @@
+{
+  "id": "rootkit",
+  "name": "Rootkit",
+  "description": "Whenever the enemy captures a piece: a random enemy piece is Frozen and loses its next move.",
+  "trigger": { "kind": "on-opponent-capture" },
+  "effect": { "kind": "afflict-random-enemy", "status": "freeze", "durationTurns": 2 },
+  "flavor": "curse"
+}

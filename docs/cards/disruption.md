@@ -62,3 +62,23 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 - **Effect:** Convert the target enemy piece to your side. It stays on its current square but is now yours — you control it from your next move onward.
 - **Upgrade (Bit Flip+):** Can also target rooks.
 - **Design note:** the single most disruptive card in the pool — a net two-piece material swing (they lose one, you gain one). Restricted to minor pieces to prevent instant-win scenarios (no queen/king conversion). The upgrade opening rooks is a significant power spike. Consume + Rare + cost 10 means this requires a big capture or patient saving — a major commitment for a major swing.
+
+## Worm
+
+- **Cost:** 7
+- **Rarity:** Rare
+- **Keywords:** **Consume**
+- **Target:** none
+- **Effect:** Install the **Worm** curse on the enemy. Every 3 of your turns, a random enemy knight or bishop is **Frozen** for its next move. Lasts the whole match.
+- **Upgrade (Worm+):** Costs 6.
+- **Design note:** the first card-installed player→enemy status effect (see [`../design/status-effects.md`](../design/status-effects.md)). A slow, recurring tax on the enemy's minor pieces rather than a one-shot — install it early and it pays off over a long match. Consume + dedupe-by-id means one copy is one permanent Worm; extra copies in hand are dead, so it's a setup card you play once and bank the value.
+
+## Rootkit
+
+- **Cost:** 10
+- **Rarity:** Rare
+- **Keywords:** **Consume**
+- **Target:** none
+- **Effect:** Install the **Rootkit** curse on the enemy. Whenever the enemy captures a piece, a random enemy piece is **Frozen** and loses its next move. Lasts the whole match.
+- **Upgrade (Rootkit+):** Costs 8.
+- **Design note:** punishes an aggressive opponent — every trade the enemy initiates locks down one of their own pieces for a turn. Strong against capture-happy AI lines; near-dead against a passive opponent, which is the intended risk. Reactive counterpart to Worm's periodic tick; both are installed via `apply-status-effect`.

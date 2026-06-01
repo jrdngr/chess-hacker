@@ -179,6 +179,13 @@ export type CardEffect =
   | { kind: "place-sanctuary"; durationTurns: number }
   | { kind: "place-trap"; trapEffect: TrapEffect; durationTurns: number }
   | { kind: "place-square-mark"; mark: SquareMarkKind; durationTurns: number }
+  | { kind: "apply-status-effect"; statusId: StatusEffectId }
+  | {
+      kind: "afflict-random-enemy";
+      status: "freeze" | "root" | "disarm";
+      minorOnly?: boolean;
+      durationTurns?: number;
+    }
   | { kind: "swap-own-pieces" }
   | { kind: "swap-rooted-with-own" }
   | { kind: "swap-with-enemy" }

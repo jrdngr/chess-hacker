@@ -163,6 +163,12 @@ type CardSideEffect =
   | { kind: "add-card-to-draw"; card: Card }
   | { kind: "revive-prompt" }
   | { kind: "remove-random-own-minor" }
+  | {
+      kind: "afflict-random-enemy";
+      status: "freeze" | "root" | "disarm";
+      minorOnly: boolean;
+      expiresOnTurn: number;
+    }
   | { kind: "undo-last-enemy-move" }
   | { kind: "garbage-collect"; recursive: boolean }
   | { kind: "convert-piece"; square: AlgebraicSquare }
@@ -347,6 +353,26 @@ export function applyCardSideEffects(
         const pick = minors[Math.floor(r() * minors.length)];
         engine.removePiece(pick);
         next = clearStatusesOn(next, pick);
+      }
+    } else if (fx.kind === "afflict-random-enemy") {
+      // Worm / Rootkit: Freeze / Root / Disarm a random enemy (opponent) piece.
+      // The chess engine enforces these per-piece statuses on the opponent's
+      // moves exactly as chroot / Freeze Process do for player-cast versions.
+      const targets: AlgebraicSquare[] = [];
+      for (const { square, piece } of engine.pieces()) {
+        if (piece.side !== "opponent") continue;
+        if (fx.minorOnly && piece.type !== "knight" && piece.type !== "bishop") continue;
+        targets.push(square);
+      }
+      if (targets.length > 0) {
+        const r = rng ?? Math.random;
+        const pick = targets[Math.floor(r() * targets.length)];
+        const entry = { square: pick, side: "opponent" as const, expiresOnTurn: fx.expiresOnTurn };
+        const key = fx.status === "freeze" ? "freezes" : fx.status === "root" ? "roots" : "disarms";
+        next = {
+          ...next,
+          [key]: [...next[key].filter((s) => s.square !== pick), entry],
+        };
       }
     }
   }

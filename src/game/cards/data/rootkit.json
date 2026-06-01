@@ -1,0 +1,19 @@
+{
+  "id": "rootkit",
+  "name": "Rootkit",
+  "cost": 10,
+  "rarity": "rare",
+  "archetype": "disruption",
+  "consume": true,
+  "description": "**Consume.** Install a Rootkit: whenever the enemy captures a piece, **Freeze** a random enemy piece so it loses its next move.",
+  "target": {
+    "kind": "none"
+  },
+  "effect": {
+    "kind": "apply-status-effect",
+    "statusId": "rootkit"
+  },
+  "upgrade": {
+    "cost": 8
+  }
+}
