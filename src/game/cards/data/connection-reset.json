@@ -1,0 +1,14 @@
+{
+  "id": "connection-reset",
+  "name": "Connection Reset",
+  "cost": 2,
+  "rarity": "common",
+  "archetype": "spatial",
+  "description": "Place a Trap on an empty square. The first enemy to enter is pushed back 1 square. 3 turns.",
+  "target": { "kind": "empty-square" },
+  "effect": { "kind": "place-trap", "trapEffect": "push", "durationTurns": 3 },
+  "upgrade": {
+    "description": "Place a Trap on an empty square. The first enemy to enter is pushed back 1 square. 5 turns.",
+    "effect": { "kind": "place-trap", "trapEffect": "push", "durationTurns": 5 }
+  }
+}

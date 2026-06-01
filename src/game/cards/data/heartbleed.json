@@ -1,0 +1,11 @@
+{
+  "id": "heartbleed",
+  "name": "Heartbleed",
+  "cost": 1,
+  "rarity": "uncommon",
+  "archetype": "resource",
+  "description": "Gain energy equal to the number of enemy pieces you've captured this match.",
+  "target": { "kind": "none" },
+  "effect": { "kind": "gain-energy-per-capture" },
+  "upgrade": { "cost": 0 }
+}

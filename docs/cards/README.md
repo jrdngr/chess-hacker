@@ -29,7 +29,13 @@ Per-card reference for Chess Hacker. The mechanics doc is [`docs/design/cards.md
 | [Side Channel](movement-extension.md#side-channel) | Movement-extension | 1 | Common | **Consume.** **Empower** own pawn w/ 1-sq diagonal step (no capture, this turn). |
 | [Lateral Movement](movement-extension.md#lateral-movement) | Movement-extension | 1 | Common | **Consume.** **Empower** own pawn w/ 1-sq horizontal step (no capture, this turn). |
 | [Martyr Protocol](sacrifice.md#martyr-protocol) | Sacrifice | 1 | Common | Destroy own pawn → gain 2 energy, draw 1. |
+| [Port Scan](resource.md#port-scan) | Resource | 1 | Common | Draw 2 cards. |
+| [Cache Warmup](resource.md#cache-warmup) | Resource | 1 | Common | +2 energy at the start of your next turn. |
+| [Heartbleed](resource.md#heartbleed) | Resource | 1 | Uncommon | Gain energy = enemies captured this match. |
+| [Bookmark](resource.md#bookmark) | Resource | 1 | Uncommon | Apply **Retain** to a hand card. |
+| [kill -9](sacrifice.md#kill--9) | Sacrifice | 1 | Uncommon | Destroy own non-King → gain 2 energy, draw 1. |
 | [Firewall](spatial.md#barricade) | Spatial | 2 | Common | Wall on square, 3 turns. |
+| [Connection Reset](spatial.md#connection-reset) | Spatial | 2 | Common | Push trap (3 turns). |
 | [Honeypot](spatial.md#snare) | Spatial | 2 | Common | Trap (**Freeze**), 3 turns. |
 | [Beacon](spatial.md#beacon) | Spatial | 2 | Common | Mark; friendly piece ending there draws 1 each turn, 4 turns. |
 | [chroot](disruption.md#tangled-roots) | Disruption | 2 | Common | **Root** enemy piece. |
@@ -79,5 +85,5 @@ Per-card reference for Chess Hacker. The mechanics doc is [`docs/design/cards.md
 ## Counts
 
 - **By Consume:** 20 cards have Consume; the rest cycle through the discard pile.
-- **By type:** Resource 3, Disruption 11, Spatial 10, Tempo 3, Movement-extension 5, Defensive 2, Burst 4, Sacrifice 3, Summon 4, Swap 4, Power 2.
-- **By cost (0–15):** 1× 0-cost, 4× 1-cost, 9× 2-cost, 6× 3-cost, 8× 4-cost, 1× 5-cost, 6× 6-cost, 7× 7-cost, 3× 8-cost, 3× 10-cost, 2× 12-cost, 1× 15-cost.
+- **By type:** Resource 7, Disruption 11, Spatial 11, Tempo 3, Movement-extension 5, Defensive 2, Burst 4, Sacrifice 4, Summon 4, Swap 4, Power 2.
+- **By cost (0–15):** 1× 0-cost, 9× 1-cost, 10× 2-cost, 6× 3-cost, 8× 4-cost, 1× 5-cost, 6× 6-cost, 7× 7-cost, 3× 8-cost, 3× 10-cost, 2× 12-cost, 1× 15-cost.

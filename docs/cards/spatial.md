@@ -36,6 +36,15 @@ See [`keywords.md`](keywords.md) for keyword definitions and [`docs/design/board
 - **Effect:** Place a **Trap** on an empty square. The first enemy piece to enter is **frozen** for 1 turn. Lasts 3 turns.
 - **Design note:** the introductory trap card — cheap, low-stakes, teaches the trigger pattern. The freeze it applies is the same Freeze as Freeze Process, so the player learns one effect across two cards.
 
+## Connection Reset
+
+- **Cost:** 2
+- **Rarity:** Common
+- **Target:** empty square
+- **Effect:** Place a **Trap** on an empty square. The first enemy piece to enter is pushed back 1 square (along its move path). Lasts 3 turns.
+- **Upgrade (Connection Reset+):** Lasts 5 turns.
+- **Design note:** the third Trap flavour (push), distinct from Honeypot (freeze) and Logic Bomb (capture). It doesn't remove the piece — it denies the destination, costing the opponent tempo and re-opening a line. Cheap, common, and a fixture of the Pentester starter deck. Contrast with the persistent **Repulsor Field** square mark, which repels every enemy that lands on it rather than firing once.
+
 ## Power Node
 
 - **Cost:** 3

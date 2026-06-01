@@ -1,0 +1,14 @@
+{
+  "id": "kill-9",
+  "name": "kill -9",
+  "cost": 1,
+  "rarity": "uncommon",
+  "archetype": "sacrifice",
+  "description": "Destroy one of your non-King pieces: gain 2 energy and draw 1.",
+  "target": { "kind": "own-non-king-piece" },
+  "effect": { "kind": "sacrifice-piece", "drawCount": 1, "energyGain": 2 },
+  "upgrade": {
+    "description": "Destroy one of your non-King pieces: gain 3 energy and draw 1.",
+    "effect": { "kind": "sacrifice-piece", "drawCount": 1, "energyGain": 3 }
+  }
+}

@@ -13,6 +13,15 @@ See [`keywords.md`](keywords.md) for keyword definitions.
 - **Upgrade (Martyr Protocol+):** Gain 3 energy instead of 2.
 - **Design note:** the cheap sacrifice enabler the archetype lacked (CH-055). Turns a dead-weight pawn into tempo + a card — a net-positive trade when a pawn is already doomed or blocking your own lines. The anchor for sacrifice builds: with the **Scavenger** artifact it nets +4 energy, and it feeds Git Revert's resurrection pool. Common + cost 1 so it shows up early and often.
 
+## kill -9
+
+- **Cost:** 1
+- **Rarity:** Uncommon
+- **Target:** own non-King piece
+- **Effect:** Destroy the targeted piece. Gain 2 energy and draw 1 card.
+- **Upgrade (kill -9+):** Gain 3 energy instead of 2.
+- **Design note:** the broader sibling of Martyr Protocol — sacrifices *any* non-King piece, not just a pawn, for the same tempo + card. Use it to clear a piece that's blocking your own lines, or to fuel a sacrifice/Scavenger engine with a larger body. The destroyed piece joins the Git Revert resurrection pool.
+
 ## Buffer Overflow
 
 - **Cost:** 7
