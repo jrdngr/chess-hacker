@@ -1,0 +1,8 @@
+{
+  "id": "trapsmith",
+  "name": "Trapsmith",
+  "rarity": "uncommon",
+  "description": "Your Walls, Traps, and square marks (Beacon / Repulsor) last 2 extra turns.",
+  "emoji": "🪤",
+  "effects": [{ "kind": "overlay-duration-bonus", "amount": 2 }]
+}

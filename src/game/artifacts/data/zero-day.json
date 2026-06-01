@@ -1,0 +1,8 @@
+{
+  "id": "zero-day",
+  "name": "Zero-Day",
+  "rarity": "rare",
+  "description": "When you put the opponent in check, gain 3 energy.",
+  "emoji": "🐛",
+  "effects": [{ "kind": "energy-on-check", "amount": 3 }]
+}

@@ -1,0 +1,8 @@
+{
+  "id": "war-chest",
+  "name": "War Chest",
+  "rarity": "common",
+  "description": "Start each match with +20 gold.",
+  "emoji": "💰",
+  "effects": [{ "kind": "gold-on-match-start", "amount": 20 }]
+}

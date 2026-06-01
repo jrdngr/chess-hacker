@@ -1,0 +1,8 @@
+{
+  "id": "demolition-charge",
+  "name": "Demolition Charge",
+  "rarity": "rare",
+  "description": "Burst cards cost 25% less (round down, minimum 0).",
+  "emoji": "🧨",
+  "effects": [{ "kind": "card-cost-percentage-discount", "archetype": "burst", "percent": 25 }]
+}

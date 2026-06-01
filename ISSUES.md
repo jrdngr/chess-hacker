@@ -4,7 +4,7 @@ Issues derived from the comprehensive review in `docs/reviews/2026-05-29-compreh
 
 **Working instructions for the agent:** Work issues **one at a time**. Open the linked file for full context (locations, problem, recommendation, related issues). After completing an issue, run the pre-commit checks in `CLAUDE.md` (`npm run format`, `npm run lint`, `npx tsc --noEmit`, `npm test`, `npm run build`), then commit with `jj commit`. As part of that commit, delete the resolved issue entirely: remove its row here and delete its file under `issues/`. Prefer the recommended ordering below (severity-first within each section).
 
-**Total open issues:** 17
+**Total open issues:** 16
 
 _The Code — Correctness, Tests — Coverage, Tests — Validity (CH-001…024), Refactor — Duplication (CH-025…030), and Game Design — Balance (CH-031…038) sections are all resolved and have been removed from this index; their resolution notes live in the individual `issues/` files._
 
@@ -28,11 +28,10 @@ Legend: 🔴 critical · 🟠 high · 🟡 medium · 🔵 low · ⚪ nit
 
 ## Game Design — Content
 
-| #      | Sev | Issue                                                                                                                       | Status |
-| ------ | --- | --------------------------------------------------------------------------------------------------------------------------- | ------ |
-| CH-052 | 🟠  | [Zone-control buffs are used by exactly one card](issues/052-content-zone-buff-cards.md)                                    | Open   |
-| CH-053 | 🟠  | [Artifact pool is 14 vs a 26-40 target, with only 2 rares](issues/053-content-artifact-pool-thin.md)                        | Open   |
-| CH-056 | 🟡  | [Only 3 fixed bosses, one per act, with no archetype variety](issues/056-content-boss-variety.md)                           | Open   |
-| CH-059 | 🟡  | [No counterplay vs Boss C dead-ends / draw=loss / uninteractive Echo](issues/059-content-counterplay-boss-c.md)             | Open   |
-| CH-060 | 🟡  | [Author the cards referenced by starter-deck.md that don't exist](issues/060-content-author-missing-starter-cards.md)       | Open   |
-| CH-057 | 🔵  | [Cost-curve holes at 5, 9, 11; thin mid-tier](issues/057-content-cost-curve-holes.md)                                       | Open   |
+| #      | Sev | Issue                                                                                                                 | Status |
+| ------ | --- | --------------------------------------------------------------------------------------------------------------------- | ------ |
+| CH-052 | 🟠  | [Zone-control buffs are used by exactly one card](issues/052-content-zone-buff-cards.md)                              | Open   |
+| CH-056 | 🟡  | [Only 3 fixed bosses, one per act, with no archetype variety](issues/056-content-boss-variety.md)                     | Open   |
+| CH-059 | 🟡  | [No counterplay vs Boss C dead-ends / draw=loss / uninteractive Echo](issues/059-content-counterplay-boss-c.md)       | Open   |
+| CH-060 | 🟡  | [Author the cards referenced by starter-deck.md that don't exist](issues/060-content-author-missing-starter-cards.md) | Open   |
+| CH-057 | 🔵  | [Cost-curve holes at 5, 9, 11; thin mid-tier](issues/057-content-cost-curve-holes.md)                                 | Open   |

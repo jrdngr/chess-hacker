@@ -708,6 +708,24 @@ export type ArtifactEffect =
   | { kind: "energy-on-sacrifice"; amount: number }
   /** Hive Mind: the first pawn you summon each turn gains Shield until your next turn. */
   | { kind: "shield-first-summon-per-turn" }
+  /** Zero-Day: gain `amount` energy whenever you put the opponent in check. */
+  | { kind: "energy-on-check"; amount: number }
+  /**
+   * Compound Interest: at the start of your turn, gain 1 energy per `per`
+   * energy currently banked, capped at `max`. Rewards saving the persistent
+   * energy pool.
+   */
+  | { kind: "energy-interest"; per: number; max: number }
+  /**
+   * Cryostasis: your Freeze / Root / Disarm / Downgrade effects on enemy
+   * pieces last `amount` extra turn(s).
+   */
+  | { kind: "status-duration-bonus"; amount: number }
+  /**
+   * Trapsmith: your Walls, Traps, and square marks (Beacon / Repulsor) last
+   * `amount` extra turn(s).
+   */
+  | { kind: "overlay-duration-bonus"; amount: number }
   /**
    * Grants a zone-buff at match start. The region is materialised verbatim
    * into `MatchCardState.zoneBuffs` with no expiry; the buff is active for

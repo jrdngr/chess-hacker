@@ -1,0 +1,8 @@
+{
+  "id": "cryostasis",
+  "name": "Cryostasis",
+  "rarity": "rare",
+  "description": "Your Freeze, Root, Disarm, and Downgrade effects on enemy pieces last 1 extra turn.",
+  "emoji": "❄️",
+  "effects": [{ "kind": "status-duration-bonus", "amount": 1 }]
+}

@@ -39,6 +39,10 @@ export const VALID_ARTIFACT_EFFECT_KINDS = [
   "draw-on-check",
   "energy-on-sacrifice",
   "shield-first-summon-per-turn",
+  "energy-on-check",
+  "energy-interest",
+  "status-duration-bonus",
+  "overlay-duration-bonus",
   "zone-buff",
   "piece-rule-modifier",
 ] as const;
@@ -318,6 +322,36 @@ function validateArtifactEffect(raw: unknown, errors: string[]): ArtifactEffect 
     }
     case "shield-first-summon-per-turn":
       return { kind: "shield-first-summon-per-turn" };
+    case "energy-on-check": {
+      if (!isPositiveInt(raw.amount)) {
+        errors.push("'effect.amount' must be a positive integer for kind 'energy-on-check'");
+        return null;
+      }
+      return { kind: "energy-on-check", amount: raw.amount };
+    }
+    case "energy-interest": {
+      if (!isPositiveInt(raw.per) || !isPositiveInt(raw.max)) {
+        errors.push(
+          "'effect.per' and 'effect.max' must be positive integers for kind 'energy-interest'",
+        );
+        return null;
+      }
+      return { kind: "energy-interest", per: raw.per, max: raw.max };
+    }
+    case "status-duration-bonus": {
+      if (!isPositiveInt(raw.amount)) {
+        errors.push("'effect.amount' must be a positive integer for kind 'status-duration-bonus'");
+        return null;
+      }
+      return { kind: "status-duration-bonus", amount: raw.amount };
+    }
+    case "overlay-duration-bonus": {
+      if (!isPositiveInt(raw.amount)) {
+        errors.push("'effect.amount' must be a positive integer for kind 'overlay-duration-bonus'");
+        return null;
+      }
+      return { kind: "overlay-duration-bonus", amount: raw.amount };
+    }
     case "piece-rule-modifier": {
       const modifier = validatePieceRuleModifier(raw.modifier, errors);
       if (!modifier) return null;

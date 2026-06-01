@@ -118,6 +118,47 @@ export function hasShieldFirstSummon(artifacts: ReadonlyArray<Artifact>): boolea
   return found;
 }
 
+/** Energy gained when the player puts the opponent in check (Zero-Day). */
+export function energyOnCheck(artifacts: ReadonlyArray<Artifact>): number {
+  let n = 0;
+  each(artifacts, (fx) => {
+    if (fx.kind === "energy-on-check") n += fx.amount;
+  });
+  return n;
+}
+
+/**
+ * Compound Interest: start-of-turn energy interest. For each `energy-interest`
+ * artifact, gain `min(max, floor(currentEnergy / per))` energy.
+ */
+export function energyInterest(artifacts: ReadonlyArray<Artifact>, currentEnergy: number): number {
+  let n = 0;
+  each(artifacts, (fx) => {
+    if (fx.kind === "energy-interest" && fx.per > 0) {
+      n += Math.min(fx.max, Math.floor(currentEnergy / fx.per));
+    }
+  });
+  return n;
+}
+
+/** Cryostasis: extra turns added to player-applied Freeze/Root/Disarm/Downgrade. */
+export function statusDurationBonus(artifacts: ReadonlyArray<Artifact>): number {
+  let n = 0;
+  each(artifacts, (fx) => {
+    if (fx.kind === "status-duration-bonus") n += fx.amount;
+  });
+  return n;
+}
+
+/** Trapsmith: extra turns added to player-placed Walls / Traps / square marks. */
+export function overlayDurationBonus(artifacts: ReadonlyArray<Artifact>): number {
+  let n = 0;
+  each(artifacts, (fx) => {
+    if (fx.kind === "overlay-duration-bonus") n += fx.amount;
+  });
+  return n;
+}
+
 // ---- Piece-rule-modifier helpers --------------------------------------------
 //
 // These helpers feed the chess rule engine via Overlays (see

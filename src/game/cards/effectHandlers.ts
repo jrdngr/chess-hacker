@@ -31,7 +31,7 @@ import {
   type Rng,
 } from "./match";
 import { getCardById } from "./library";
-import { energyOnSacrifice } from "../artifacts/effects";
+import { energyOnSacrifice, overlayDurationBonus, statusDurationBonus } from "../artifacts/effects";
 import {
   FILES,
   KING_OFFSETS,
@@ -63,6 +63,10 @@ export function applyEffect(
   playingIndex: number,
   side: Side = "player",
 ): EffectResult {
+  // Artifact duration bonuses (Cryostasis / Trapsmith). statusBonus only
+  // applies to player-cast debuffs; overlayBonus to player-placed overlays.
+  const statusBonus = side === "player" ? statusDurationBonus(state.artifacts ?? []) : 0;
+  const overlayBonus = overlayDurationBonus(state.artifacts ?? []);
   switch (effect.kind) {
     // ---- Card / resource manipulation --------------------------------------
     case "gain-energy":
@@ -134,7 +138,7 @@ export function applyEffect(
           state,
           "freezes",
           squareTarget(target),
-          state.turn + (effect.durationTurns ?? 1),
+          state.turn + (effect.durationTurns ?? 1) + statusBonus,
           opposite(side),
         ),
         sideEffects: [],
@@ -145,7 +149,7 @@ export function applyEffect(
           state,
           "roots",
           squareTarget(target),
-          state.turn + (effect.durationTurns ?? 1),
+          state.turn + (effect.durationTurns ?? 1) + statusBonus,
           opposite(side),
         ),
         sideEffects: [],
@@ -156,7 +160,7 @@ export function applyEffect(
           state,
           "disarms",
           squareTarget(target),
-          state.turn + (effect.durationTurns ?? 1),
+          state.turn + (effect.durationTurns ?? 1) + statusBonus,
           opposite(side),
         ),
         sideEffects: [],
@@ -260,7 +264,7 @@ export function applyEffect(
           ...state,
           walls: [
             ...state.walls.filter((w) => w.square !== sq),
-            { square: sq, expiresOnTurn: state.turn + effect.durationTurns },
+            { square: sq, expiresOnTurn: state.turn + effect.durationTurns + overlayBonus },
           ],
         },
         sideEffects: [],
@@ -289,7 +293,7 @@ export function applyEffect(
             {
               square: sq,
               effect: effect.trapEffect,
-              expiresOnTurn: state.turn + effect.durationTurns,
+              expiresOnTurn: state.turn + effect.durationTurns + overlayBonus,
             },
           ],
         },
@@ -307,7 +311,7 @@ export function applyEffect(
               square: sq,
               kind: effect.mark,
               side,
-              expiresOnTurn: state.turn + effect.durationTurns,
+              expiresOnTurn: state.turn + effect.durationTurns + overlayBonus,
             },
           ],
         },
@@ -606,7 +610,7 @@ export function applyEffect(
     }
     case "downgrade-piece": {
       const sq = squareTarget(target);
-      const expires = state.turn + effect.durationTurns;
+      const expires = state.turn + effect.durationTurns + statusBonus;
       const status: PieceStatus = { square: sq, side: opposite(side), expiresOnTurn: expires };
       return {
         state: {

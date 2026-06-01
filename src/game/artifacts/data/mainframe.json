@@ -1,0 +1,8 @@
+{
+  "id": "mainframe",
+  "name": "Mainframe",
+  "rarity": "uncommon",
+  "description": "Hand size +1.",
+  "emoji": "🖥️",
+  "effects": [{ "kind": "hand-size-bonus", "amount": 1 }]
+}

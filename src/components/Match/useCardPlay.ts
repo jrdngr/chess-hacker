@@ -35,7 +35,12 @@ import {
   type PlayTarget,
   type Rng,
 } from "../../game/cards/match";
-import { drawOnCapture, drawOnCheck, energyOnCapture } from "../../game/artifacts/effects";
+import {
+  drawOnCapture,
+  drawOnCheck,
+  energyOnCapture,
+  energyOnCheck,
+} from "../../game/artifacts/effects";
 import type {
   AlgebraicSquare,
   Artifact,
@@ -307,6 +312,8 @@ export function useCardPlay({
         if (engine.inCheck()) {
           const drawC = drawOnCheck(artifacts);
           if (drawC > 0) next = drawCards(next, drawC, rng);
+          const energyC = energyOnCheck(artifacts);
+          if (energyC > 0) next = { ...next, energy: clampEnergy(next.energy + energyC) };
         }
       }
 

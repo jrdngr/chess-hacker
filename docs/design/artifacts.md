@@ -98,7 +98,7 @@ Artifacts live as **emoji badges in the top banner** of the run, persistent acro
 
 ## Current pool (post power-curve overhaul)
 
-The prototype's artifact pool sits at 16 entries — still under the target above; the content pass is closing this gap. The full list:
+The prototype's artifact pool sits at **26 entries** (7 common, 12 uncommon, 7 rare) — within the target range above. The full list:
 
 > **"Capture" for on-capture artifacts means a chess-move capture only.** Bug
 > Bounty and Keylogger fire when one of your pieces captures by moving onto an
@@ -108,14 +108,16 @@ The prototype's artifact pool sits at 16 entries — still under the target abov
 > but never toward on-capture artifacts. (Implemented via
 > `recordCardDestruction` in `src/game/cards/match.ts`; see CH-006.)
 
-**Common (5)**
+**Common (7)**
 - *Bug Bounty:* When you capture an enemy piece, gain 1 energy this turn.
 - *Keylogger:* When you capture an enemy piece, draw 1 card.
 - *Polished Bishop* (default starting artifact for Standard mode): Your bishops may also step 1 square in any direction (king-step) in addition to their diagonal slides. The granted ortho-step is non-capturing — bishops still capture only on their diagonal slides.
 - *Pawn Storm:* Your pawns may double-push from any rank, not just the start rank.
 - *Drill Sergeant:* Your pawns may move 1 square backward (no capture).
+- *War Chest:* Start each match with +20 gold. (Economy ramp — buy bigger, sooner.)
+- *Toolkit:* Resource cards cost 1 less (minimum 0).
 
-**Uncommon (8)**
+**Uncommon (12)**
 - *Threat Detector:* When you put the opponent in check, draw 1 card.
 - *Scavenger:* Whenever you sacrifice one of your own pieces, gain 2 energy. (Anchors the sacrifice archetype — pairs with Martyr Protocol, Self-Destruct, Buffer Overflow.)
 - *Foothold:* Hand size +1 while you have a friendly piece on a center square (d4 / e4 / d5 / e5 on 8×8; the central 2×2 on even-sized boards, the single middle square on odd).
@@ -124,10 +126,20 @@ The prototype's artifact pool sits at 16 entries — still under the target abov
 - *Promotion Engine:* Your pawns promote at rank 7 instead of rank 8.
 - *Build Pipeline:* Movement cards cost 1 less (minimum 0).
 - *Sysadmin Token:* Disruption cards cost 1 less (minimum 0).
+- *Quartermaster:* Sacrifice cards cost 1 less (minimum 0).
+- *Stopwatch:* Tempo cards cost 1 less (minimum 0).
+- *Mainframe:* Hand size +1 (unconditional).
+- *Trapsmith:* Your Walls, Traps, and square marks (Beacon / Repulsor) last 2 extra turns. (Spatial anchor.)
 
-**Rare (3)**
+**Rare (7)**
 - *Sniper Optics:* Your rooks may capture an enemy piece even with one wall in the path between attacker and target. Movement to empty squares past a wall is still blocked.
 - *Phalanx:* At the start of your turn, every friendly piece orthogonally adjacent to another friendly piece is shielded until your next turn.
 - *Hive Mind:* Summon cards cost 2 less, and the first pawn you summon each turn gains Shield until your next turn. (Anchors the summon archetype — pairs with Fork, Reinforce, Swarm Protocol.)
+- *Zero-Day:* When you put the opponent in check, gain 3 energy. (Aggressive tempo payoff.)
+- *Compound Interest:* At the start of your turn, gain 1 energy per 6 energy banked (max +3). Rewards saving the persistent energy pool.
+- *Cryostasis:* Your Freeze / Root / Disarm / Downgrade effects on enemy pieces last 1 extra turn. (Disruption anchor — pairs with chroot, Freeze Process, Quarantine.)
+- *Demolition Charge:* Burst cards cost 25% less (round down, minimum 0). (Enables Format C: / Garbage Collect haymakers sooner.)
 
 The "piece-related" effect domain — flagged earlier in this doc as a design goal — is now wired up via the `piece-rule-modifier` artifact effect (see `src/game/types.ts`). Six modifier kinds cover the current pool: pawn-double-from-any-rank, pawn-backward-step, pawn-promotion-rank, piece-empower-all, rook-attack-through-wall, and phalanx-adjacent-shield.
+
+Beyond piece-rules, the pool now exercises the trigger / resource domains with on-check energy (Zero-Day), banked-energy interest (Compound Interest), on-sacrifice energy (Scavenger), status- and overlay-duration bonuses (Cryostasis, Trapsmith), and per-archetype cost discounts spanning resource / sacrifice / tempo / movement / spatial / disruption / summon / burst.

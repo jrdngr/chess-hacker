@@ -26,6 +26,7 @@ import {
   effectiveCardCost,
   effectiveEnergyPerTurn,
   effectiveHandSize,
+  energyInterest,
   hasPhalanxShield,
   pieceEmpowerAll,
 } from "../artifacts/effects";
@@ -357,7 +358,8 @@ export function startPlayerTurn(
     powerEnergyBonus(tickedState) +
     zoneEnergyBonus +
     queuedCaptureEnergy +
-    pendingNextTurnEnergy -
+    pendingNextTurnEnergy +
+    energyInterest(artifacts, state.energy) -
     greedPenalty;
   const energy = clampEnergy(state.energy + energyGain);
   // Mutex Lock snapshot/decrement. This runs at the top of each player turn,

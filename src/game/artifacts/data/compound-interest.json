@@ -1,0 +1,8 @@
+{
+  "id": "compound-interest",
+  "name": "Compound Interest",
+  "rarity": "rare",
+  "description": "At the start of your turn, gain 1 energy for every 6 energy you have banked (max +3).",
+  "emoji": "🏦",
+  "effects": [{ "kind": "energy-interest", "per": 6, "max": 3 }]
+}
