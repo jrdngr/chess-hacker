@@ -1,0 +1,11 @@
+{
+  "id": "hive-mind",
+  "name": "Hive Mind",
+  "rarity": "rare",
+  "description": "Summon cards cost 2 less. The first pawn you summon each turn gains Shield until your next turn.",
+  "emoji": "🐝",
+  "effects": [
+    { "kind": "card-cost-discount", "archetype": "summon", "amount": 2 },
+    { "kind": "shield-first-summon-per-turn" }
+  ]
+}

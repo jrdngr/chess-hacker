@@ -1,0 +1,24 @@
+{
+  "id": "martyr-protocol",
+  "name": "Martyr Protocol",
+  "cost": 1,
+  "rarity": "common",
+  "archetype": "sacrifice",
+  "description": "Destroy one of your pawns: gain 2 energy and draw 1.",
+  "target": {
+    "kind": "own-pawn"
+  },
+  "effect": {
+    "kind": "sacrifice-piece",
+    "drawCount": 1,
+    "energyGain": 2
+  },
+  "upgrade": {
+    "description": "Destroy one of your pawns: gain 3 energy and draw 1.",
+    "effect": {
+      "kind": "sacrifice-piece",
+      "drawCount": 1,
+      "energyGain": 3
+    }
+  }
+}

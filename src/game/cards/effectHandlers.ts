@@ -31,6 +31,7 @@ import {
   type Rng,
 } from "./match";
 import { getCardById } from "./library";
+import { energyOnSacrifice } from "../artifacts/effects";
 import {
   FILES,
   KING_OFFSETS,
@@ -388,11 +389,30 @@ export function applyEffect(
     case "sacrifice-piece": {
       const sq = squareTarget(target);
       let next = drawCards(state, effect.drawCount, rng);
-      next = { ...next, energy: clampEnergy(next.energy + effect.energyGain) };
+      next = {
+        ...next,
+        energy: clampEnergy(
+          next.energy + effect.energyGain + energyOnSacrifice(state.artifacts ?? []),
+        ),
+      };
       return {
         state: next,
         sideEffects: [{ kind: "remove-piece", square: sq }],
       };
+    }
+    case "summon-orthogonal-burst": {
+      // Swarm Protocol: summon a piece on up to `maxCount` empty, unwalled
+      // squares orthogonally adjacent to the targeted pawn.
+      const sq = squareTarget(target);
+      const files = ctx.boardFiles ?? 8;
+      const ranks = ctx.boardRanks ?? 8;
+      const sideEffects: CardSideEffect[] = [];
+      for (const adjSq of orthogonalAdjacentSquares(sq, { files, ranks })) {
+        if (sideEffects.length >= effect.maxCount) break;
+        if (ctx.pieceAt(adjSq) || ctx.hasWall(adjSq)) continue;
+        sideEffects.push({ kind: "place-piece", square: adjSq, pieceType: effect.pieceType });
+      }
+      return { state, sideEffects };
     }
     case "sacrifice-blast-action": {
       // Buffer Overflow: destroy the targeted own piece, then grant each
@@ -415,8 +435,13 @@ export function applyEffect(
           remaining: effect.actions + 1,
         });
       }
+      const blastBonus = energyOnSacrifice(state.artifacts ?? []);
       return {
-        state: { ...state, lightnings: nextLightnings },
+        state: {
+          ...state,
+          lightnings: nextLightnings,
+          energy: blastBonus > 0 ? clampEnergy(state.energy + blastBonus) : state.energy,
+        },
         sideEffects: [{ kind: "remove-piece", square: sq }],
       };
     }
@@ -641,6 +666,8 @@ export function applyEffect(
       if (effect.drawCount && effect.drawCount > 0) {
         next = drawCards(next, effect.drawCount, rng);
       }
+      const detonateBonus = energyOnSacrifice(state.artifacts ?? []);
+      if (detonateBonus > 0) next = { ...next, energy: clampEnergy(next.energy + detonateBonus) };
       return { state: next, sideEffects };
     }
     case "gain-energy-per-capture": {

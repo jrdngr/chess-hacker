@@ -19,6 +19,15 @@ Summon cards create new pieces on empty squares.
 - **Upgrade (Fork+):** Summon a copy of the source piece's type instead of a pawn (so a Fork+ from a knight summons a knight; from a rook, a rook; etc.). Same cost.
 - **Design note:** A process forks — a child appears next to its parent. Cheaper than Reinforce because it requires an existing piece as an anchor, and the spawn location is tightly constrained. The King is excluded as a source so the upgrade cannot summon a second king (which would be illegal under standard chess). Spawned pawns follow normal pawn rules from that point on — promotion on the far rank still applies. Doesn't trigger Traps because the new piece *appears*; it doesn't *enter* the square.
 
+## Swarm Protocol
+
+- **Cost:** 6
+- **Rarity:** Uncommon
+- **Target:** one of your pawns
+- **Effect:** Summon a pawn on every empty square orthogonally adjacent to the chosen pawn (up to 4 — N/S/E/W). Walled and occupied squares are skipped.
+- **Upgrade (Swarm Protocol+):** Costs 5.
+- **Design note:** the Summon archetype's go-wide payoff (CH-055). A single pawn in open space blooms into a phalanx of up to five — instant board presence and a wall of bodies. Best in the center early before squares fill up; cramped or edge positions yield fewer spawns, which is the intended cost of poor placement. With the **Hive Mind** artifact the first of the summoned pawns enters Shielded, and summon-cost −2 makes this a 4-energy swarm. Like Fork, the new pawns *appear* (no Trap trigger) and follow normal pawn rules thereafter.
+
 ## Git Revert
 
 - **Cost:** 8

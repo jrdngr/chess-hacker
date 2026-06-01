@@ -4,6 +4,15 @@ Sacrifice cards destroy one of your own pieces in exchange for a strong effect. 
 
 See [`keywords.md`](keywords.md) for keyword definitions.
 
+## Martyr Protocol
+
+- **Cost:** 1
+- **Rarity:** Common
+- **Target:** own pawn
+- **Effect:** Destroy one of your pawns. Gain 2 energy and draw 1 card.
+- **Upgrade (Martyr Protocol+):** Gain 3 energy instead of 2.
+- **Design note:** the cheap sacrifice enabler the archetype lacked (CH-055). Turns a dead-weight pawn into tempo + a card — a net-positive trade when a pawn is already doomed or blocking your own lines. The anchor for sacrifice builds: with the **Scavenger** artifact it nets +4 energy, and it feeds Git Revert's resurrection pool. Common + cost 1 so it shows up early and often.
+
 ## Buffer Overflow
 
 - **Cost:** 7

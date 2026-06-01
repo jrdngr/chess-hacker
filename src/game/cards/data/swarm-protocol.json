@@ -1,0 +1,19 @@
+{
+  "id": "swarm-protocol",
+  "name": "Swarm Protocol",
+  "cost": 6,
+  "rarity": "uncommon",
+  "archetype": "summon",
+  "description": "Choose one of your pawns; summon a pawn on each empty square orthogonally adjacent to it (up to 4).",
+  "target": {
+    "kind": "own-pawn"
+  },
+  "effect": {
+    "kind": "summon-orthogonal-burst",
+    "pieceType": "pawn",
+    "maxCount": 4
+  },
+  "upgrade": {
+    "cost": 5
+  }
+}

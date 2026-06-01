@@ -1,0 +1,8 @@
+{
+  "id": "scavenger",
+  "name": "Scavenger",
+  "rarity": "uncommon",
+  "description": "Whenever you sacrifice one of your own pieces, gain 2 energy.",
+  "emoji": "🦅",
+  "effects": [{ "kind": "energy-on-sacrifice", "amount": 2 }]
+}

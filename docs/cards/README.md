@@ -28,6 +28,7 @@ Per-card reference for Chess Hacker. The mechanics doc is [`docs/design/cards.md
 | [Reinforced Wall](spatial.md#reinforced-wall) | Spatial | 1 | Common | Wall on square, 5 turns. |
 | [Side Channel](movement-extension.md#side-channel) | Movement-extension | 1 | Common | **Consume.** **Empower** own pawn w/ 1-sq diagonal step (no capture, this turn). |
 | [Lateral Movement](movement-extension.md#lateral-movement) | Movement-extension | 1 | Common | **Consume.** **Empower** own pawn w/ 1-sq horizontal step (no capture, this turn). |
+| [Martyr Protocol](sacrifice.md#martyr-protocol) | Sacrifice | 1 | Common | Destroy own pawn → gain 2 energy, draw 1. |
 | [Firewall](spatial.md#barricade) | Spatial | 2 | Common | Wall on square, 3 turns. |
 | [Honeypot](spatial.md#snare) | Spatial | 2 | Common | Trap (**Freeze**), 3 turns. |
 | [Beacon](spatial.md#beacon) | Spatial | 2 | Common | Mark; friendly piece ending there draws 1 each turn, 4 turns. |
@@ -54,6 +55,7 @@ Per-card reference for Chess Hacker. The mechanics doc is [`docs/design/cards.md
 | [Rollback](disruption.md#rollback) | Disruption | 6 | Uncommon | Reverse the opponent's most recent move. |
 | [Logic Bomb](spatial.md#spike-pit) | Spatial | 6 | Uncommon | Trap (capture), 4 turns. |
 | [Fork](summon.md#fork) | Summon | 6 | Uncommon | Choose a non-King piece; summon a pawn on an adjacent empty square. |
+| [Swarm Protocol](summon.md#swarm-protocol) | Summon | 6 | Uncommon | Summon a pawn on each empty square orthogonally adjacent to a chosen pawn (≤4). |
 | [Polymorphism](burst.md#polymorphism) | Burst | 6 | Rare | **Consume.** Transform friendly piece one tier up. |
 | [Insert Probe](resource.md#insert-probe) | Resource | 6 | Uncommon | **Consume.** Reveal eval bar + best move for 3 turns. |
 | [Sudo](tempo.md#sudo) | Tempo | 7 | Rare | **Consume.** Pawn acts as queen for one move this turn; reverts after. |
@@ -76,5 +78,5 @@ Per-card reference for Chess Hacker. The mechanics doc is [`docs/design/cards.md
 ## Counts
 
 - **By Consume:** 20 cards have Consume; the rest cycle through the discard pile.
-- **By type:** Resource 3, Disruption 11, Spatial 9, Tempo 3, Movement-extension 5, Defensive 2, Burst 4, Sacrifice 2, Summon 3, Swap 4, Power 2.
-- **By cost (0–15):** 1× 0-cost, 3× 1-cost, 9× 2-cost, 5× 3-cost, 8× 4-cost, 1× 5-cost, 5× 6-cost, 7× 7-cost, 3× 8-cost, 3× 10-cost, 2× 12-cost, 1× 15-cost.
+- **By type:** Resource 3, Disruption 11, Spatial 9, Tempo 3, Movement-extension 5, Defensive 2, Burst 4, Sacrifice 3, Summon 4, Swap 4, Power 2.
+- **By cost (0–15):** 1× 0-cost, 4× 1-cost, 9× 2-cost, 5× 3-cost, 8× 4-cost, 1× 5-cost, 6× 6-cost, 7× 7-cost, 3× 8-cost, 3× 10-cost, 2× 12-cost, 1× 15-cost.

@@ -98,7 +98,7 @@ Artifacts live as **emoji badges in the top banner** of the run, persistent acro
 
 ## Current pool (post power-curve overhaul)
 
-The prototype's artifact pool sits at 14 entries — under the target above; this is acknowledged technical debt that the next content pass will close. The full list:
+The prototype's artifact pool sits at 16 entries — still under the target above; the content pass is closing this gap. The full list:
 
 > **"Capture" for on-capture artifacts means a chess-move capture only.** Bug
 > Bounty and Keylogger fire when one of your pieces captures by moving onto an
@@ -115,8 +115,9 @@ The prototype's artifact pool sits at 14 entries — under the target above; thi
 - *Pawn Storm:* Your pawns may double-push from any rank, not just the start rank.
 - *Drill Sergeant:* Your pawns may move 1 square backward (no capture).
 
-**Uncommon (7)**
+**Uncommon (8)**
 - *Threat Detector:* When you put the opponent in check, draw 1 card.
+- *Scavenger:* Whenever you sacrifice one of your own pieces, gain 2 energy. (Anchors the sacrifice archetype — pairs with Martyr Protocol, Self-Destruct, Buffer Overflow.)
 - *Foothold:* Hand size +1 while you have a friendly piece on a center square (d4 / e4 / d5 / e5 on 8×8; the central 2×2 on even-sized boards, the single middle square on odd).
 - *Map Editor:* Spatial cards cost 25% less (round down, minimum 0).
 - *Cavalry Doctrine:* Your knights may also step 1 square in any direction in addition to the L-shape. The granted king-step is non-capturing — knights still capture only on the L-shape.
@@ -124,8 +125,9 @@ The prototype's artifact pool sits at 14 entries — under the target above; thi
 - *Build Pipeline:* Movement cards cost 1 less (minimum 0).
 - *Sysadmin Token:* Disruption cards cost 1 less (minimum 0).
 
-**Rare (2)**
+**Rare (3)**
 - *Sniper Optics:* Your rooks may capture an enemy piece even with one wall in the path between attacker and target. Movement to empty squares past a wall is still blocked.
 - *Phalanx:* At the start of your turn, every friendly piece orthogonally adjacent to another friendly piece is shielded until your next turn.
+- *Hive Mind:* Summon cards cost 2 less, and the first pawn you summon each turn gains Shield until your next turn. (Anchors the summon archetype — pairs with Fork, Reinforce, Swarm Protocol.)
 
 The "piece-related" effect domain — flagged earlier in this doc as a design goal — is now wired up via the `piece-rule-modifier` artifact effect (see `src/game/types.ts`). Six modifier kinds cover the current pool: pawn-double-from-any-rank, pawn-backward-step, pawn-promotion-rank, piece-empower-all, rook-attack-through-wall, and phalanx-adjacent-shield.

@@ -405,6 +405,7 @@ export function startPlayerTurn(
     pendingHotSwap: undefined,
     playerExtraMovesRemaining: powerExtraMoves(tickedState),
     discardsRemaining: DISCARDS_PER_TURN,
+    firstSummonShieldUsedThisTurn: false,
     probeExpiresOnTurn:
       (state.probeExpiresOnTurn ?? 0) > turn ? state.probeExpiresOnTurn : undefined,
   };

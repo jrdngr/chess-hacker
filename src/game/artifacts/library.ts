@@ -37,6 +37,8 @@ export const VALID_ARTIFACT_EFFECT_KINDS = [
   "draw-on-capture",
   "energy-on-capture",
   "draw-on-check",
+  "energy-on-sacrifice",
+  "shield-first-summon-per-turn",
   "zone-buff",
   "piece-rule-modifier",
 ] as const;
@@ -307,6 +309,15 @@ function validateArtifactEffect(raw: unknown, errors: string[]): ArtifactEffect 
       }
       return { kind: "zone-buff", region, buff, sourceLabel };
     }
+    case "energy-on-sacrifice": {
+      if (!isPositiveInt(raw.amount)) {
+        errors.push("'effect.amount' must be a positive integer for kind 'energy-on-sacrifice'");
+        return null;
+      }
+      return { kind: "energy-on-sacrifice", amount: raw.amount };
+    }
+    case "shield-first-summon-per-turn":
+      return { kind: "shield-first-summon-per-turn" };
     case "piece-rule-modifier": {
       const modifier = validatePieceRuleModifier(raw.modifier, errors);
       if (!modifier) return null;

@@ -188,6 +188,7 @@ export type CardEffect =
       durationTurns?: number;
     }
   | { kind: "compel-then-disarm-if-no-capture"; disarmDurationTurns: number }
+  | { kind: "summon-orthogonal-burst"; pieceType: PieceType; maxCount: number }
   | { kind: "swap-own-pieces" }
   | { kind: "swap-rooted-with-own" }
   | { kind: "swap-with-enemy" }
@@ -703,6 +704,10 @@ export type ArtifactEffect =
   | { kind: "draw-on-capture"; count: number }
   | { kind: "energy-on-capture"; amount: number }
   | { kind: "draw-on-check"; count: number }
+  /** Scavenger: gain `amount` energy whenever you sacrifice one of your own pieces. */
+  | { kind: "energy-on-sacrifice"; amount: number }
+  /** Hive Mind: the first pawn you summon each turn gains Shield until your next turn. */
+  | { kind: "shield-first-summon-per-turn" }
   /**
    * Grants a zone-buff at match start. The region is materialised verbatim
    * into `MatchCardState.zoneBuffs` with no expiry; the buff is active for
@@ -1182,4 +1187,9 @@ export type MatchCardState = {
   probeExpiresOnTurn?: number;
   /** Voluntary discards remaining this turn. Resets at start of each turn. */
   discardsRemaining?: number;
+  /**
+   * Hive Mind: whether the once-per-turn "first summoned pawn gains Shield"
+   * effect has already fired this player turn. Reset by `startPlayerTurn`.
+   */
+  firstSummonShieldUsedThisTurn?: boolean;
 };

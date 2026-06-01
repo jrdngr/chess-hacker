@@ -100,6 +100,24 @@ export function drawOnCheck(artifacts: ReadonlyArray<Artifact>): number {
   return n;
 }
 
+/** Energy gained whenever the player sacrifices one of their own pieces (Scavenger). */
+export function energyOnSacrifice(artifacts: ReadonlyArray<Artifact>): number {
+  let n = 0;
+  each(artifacts, (fx) => {
+    if (fx.kind === "energy-on-sacrifice") n += fx.amount;
+  });
+  return n;
+}
+
+/** Hive Mind: whether the first pawn summoned each turn should gain Shield. */
+export function hasShieldFirstSummon(artifacts: ReadonlyArray<Artifact>): boolean {
+  let found = false;
+  each(artifacts, (fx) => {
+    if (fx.kind === "shield-first-summon-per-turn") found = true;
+  });
+  return found;
+}
+
 // ---- Piece-rule-modifier helpers --------------------------------------------
 //
 // These helpers feed the chess rule engine via Overlays (see

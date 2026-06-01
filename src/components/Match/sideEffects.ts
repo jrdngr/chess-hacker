@@ -12,6 +12,7 @@ import type { ChoseEngine } from "../../game/chess/engine";
 import { movePath } from "../../game/chess/engine";
 import { promotionRank, squareCoords } from "../../game/chess/rules";
 import { squareName } from "../../game/chess/coords";
+import { hasShieldFirstSummon } from "../../game/artifacts/effects";
 import {
   addToHand,
   clearStatusesOn,
@@ -194,6 +195,22 @@ export function applyCardSideEffects(
     const fx = raw as CardSideEffect;
     if (fx.kind === "place-piece") {
       engine.placePiece(fx.square, { type: fx.pieceType, side: "player" });
+      // Hive Mind: the first pawn summoned each turn gains Shield until the
+      // player's next turn.
+      if (
+        fx.pieceType === "pawn" &&
+        !next.firstSummonShieldUsedThisTurn &&
+        hasShieldFirstSummon(next.artifacts ?? [])
+      ) {
+        next = {
+          ...next,
+          shields: [
+            ...next.shields.filter((s) => s.square !== fx.square),
+            { square: fx.square, side: "player", expiresOnTurn: next.turn + 1 },
+          ],
+          firstSummonShieldUsedThisTurn: true,
+        };
+      }
     } else if (fx.kind === "remove-piece") {
       const removed = engine.pieceAt(fx.square);
       if (removed?.side === "player") {

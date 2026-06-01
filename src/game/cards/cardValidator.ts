@@ -88,6 +88,7 @@ export const VALID_EFFECT_KINDS = [
   "swap-enemy-pieces",
   "summon-piece",
   "summon-adjacent",
+  "summon-orthogonal-burst",
   "sacrifice-piece",
   "sacrifice-blast-action",
   "mutex-lock",
@@ -550,6 +551,26 @@ function validateEffect(raw: unknown, errors: string[]): CardEffect | null {
         pieceType: pt as PieceType | "copy-of-source",
       };
     }
+    case "summon-orthogonal-burst": {
+      const pt = raw.pieceType;
+      if (typeof pt !== "string" || !(VALID_PIECE_TYPES as readonly string[]).includes(pt)) {
+        errors.push(
+          `'effect.pieceType' must be one of ${VALID_PIECE_TYPES.join(", ")} for kind 'summon-orthogonal-burst'`,
+        );
+        return null;
+      }
+      if (!isPositiveInt(raw.maxCount)) {
+        errors.push(
+          "'effect.maxCount' must be a positive integer for kind 'summon-orthogonal-burst'",
+        );
+        return null;
+      }
+      return {
+        kind: "summon-orthogonal-burst",
+        pieceType: pt as PieceType,
+        maxCount: raw.maxCount,
+      };
+    }
     case "sacrifice-blast-action": {
       const pattern = raw.pattern;
       if (
@@ -868,9 +889,9 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
         ? null
         : "'summon-piece' effect requires target.kind 'empty-square' or 'empty-square-own-half'";
     case "sacrifice-piece":
-      return tk === "own-non-king-piece"
+      return tk === "own-non-king-piece" || tk === "own-pawn"
         ? null
-        : "'sacrifice-piece' effect requires target.kind 'own-non-king-piece'";
+        : "'sacrifice-piece' effect requires target.kind 'own-non-king-piece' or 'own-pawn'";
     case "swap-own-pieces":
       return tk === "two-own-pieces"
         ? null
@@ -891,6 +912,10 @@ function targetMatchesEffect(target: CardTarget, effect: CardEffect): string | n
       return tk === "own-piece-then-adjacent-empty"
         ? null
         : "'summon-adjacent' effect requires target.kind 'own-piece-then-adjacent-empty'";
+    case "summon-orthogonal-burst":
+      return tk === "own-pawn"
+        ? null
+        : "'summon-orthogonal-burst' effect requires target.kind 'own-pawn'";
     case "sacrifice-blast-action":
       return tk === "own-non-king-piece"
         ? null

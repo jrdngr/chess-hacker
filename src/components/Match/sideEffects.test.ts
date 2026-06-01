@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { ChoseEngine } from "../../game/chess/engine";
 import { createMatchCardState, makeRng } from "../../game/cards/match";
+import { getArtifactById } from "../../game/artifacts/library";
 import type { MatchCardState, Trap } from "../../game/types";
 
 import { applyCardSideEffects, resolveSquareMarkForMove, resolveTrapForMove } from "./sideEffects";
@@ -311,6 +312,30 @@ describe("resolveTrapForMove — intermediate-square interception preserves the 
     // Both pieces gone — pawn captured by rook, rook captured by trap.
     expect(e.pieceAt("h4")).toBeNull();
     expect(e.pieceAt("h8")).toBeNull();
+  });
+});
+
+describe("Hive Mind — first summoned pawn each turn gains Shield", () => {
+  it("shields the first place-piece pawn and not the second", () => {
+    const e = new ChoseEngine("4k3/8/8/8/8/8/8/4K3 w - - 0 1");
+    const state: MatchCardState = {
+      ...freshState(),
+      turn: 3,
+      artifacts: [getArtifactById("hive-mind")],
+    };
+    const next = applyCardSideEffects(
+      e,
+      state,
+      [
+        { kind: "place-piece", square: "d3", pieceType: "pawn" },
+        { kind: "place-piece", square: "e3", pieceType: "pawn" },
+      ],
+      makeRng(1),
+      () => {},
+    );
+    expect(next.shields.some((s) => s.square === "d3")).toBe(true);
+    expect(next.shields.some((s) => s.square === "e3")).toBe(false);
+    expect(next.firstSummonShieldUsedThisTurn).toBe(true);
   });
 });
 
