@@ -80,6 +80,7 @@ An empowered piece **gains an additional movement pattern**, defined per card (e
   - **king-step** — one square in any direction (the king's native move). Used by the Polished Bishop and Cavalry Doctrine artifacts to give bishops and knights a 1-square ortho-step option.
   - **diagonal-step** — one square in any of the four diagonal directions. Used by Side Channel.
   - **horizontal-step** — one square left or right. Used by Lateral Movement.
+  - **forward-2** — one OR two squares straight forward in your direction (the two-square step needs the first square clear). Never captures; a step onto the promotion rank promotes. Used by Sprint to accelerate a pawn toward promotion from any rank.
 - **Edge cases:** the granted pattern follows the same blocking rules as a real piece of that move-type. Granting a pattern the piece already covers is a no-op (e.g. bishop slide on a queen). Because Empower never captures, occupied destinations are simply not legal under the granted pattern, even if the same square would be a legal capture under the piece's native moveset.
 
 ## Square / board effects

@@ -1,0 +1,18 @@
+{
+  "id": "sprint",
+  "name": "Sprint",
+  "cost": 2,
+  "rarity": "common",
+  "archetype": "movement",
+  "description": "**Empower** a pawn: a one-time 1- or 2-square forward step from any rank (no capture). Lost if another piece moves first.",
+  "target": { "kind": "own-piece" },
+  "effect": {
+    "kind": "empower-piece",
+    "pattern": "forward-2",
+    "singleUse": true,
+    "pieceTypeFilter": "pawn"
+  },
+  "upgrade": {
+    "cost": 1
+  }
+}

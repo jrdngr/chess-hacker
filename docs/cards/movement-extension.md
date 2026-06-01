@@ -28,6 +28,15 @@ See [`keywords.md`](keywords.md) for keyword definitions, especially **Empower**
 - **Effect:** Target own pawn: **Empower** with a 1-square horizontal step (left or right) **this turn**, no capture. Lost if you move a different piece first.
 - **Design note:** also a security term — an attacker pivoting sideways through a network. Lets a pawn change file once without first capturing, then resume its forward push the next turn. Combos with Promotion Engine (slip onto a clearer file) and with Pawn Storm tempo (re-align the wave). Movement-only; native captures are unaffected.
 
+## Sprint
+
+- **Cost:** 2
+- **Rarity:** Common
+- **Target:** own piece (must be a pawn)
+- **Effect:** Target own pawn: **Empower** with a one-time 1- or 2-square forward step **from any rank** (no capture). Lost if you move a different piece first. A step onto the promotion rank promotes.
+- **Upgrade (Sprint+):** Costs 1.
+- **Design note:** card-based promotion acceleration (CH-058) — the only card answer to the otherwise artifact-only promotion line, and a hedge against Boss C's no-promotion rule (it still advances pawns and threatens). Unlike the native double-push (start rank only), Sprint's two-square jump works from anywhere, so a stalled pawn can leap toward the back rank. Movement-only and single-use, so it sets up a promotion rather than forcing one.
+
 ## SSH Tunnel
 
 - **Cost:** 7

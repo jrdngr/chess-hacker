@@ -191,6 +191,32 @@ describe("rules — Root suppresses all Empower moves (CH-010)", () => {
   });
 });
 
+describe("rules — forward-2 empower (Sprint, CH-058)", () => {
+  it("grants a 1- and 2-square forward step from any rank (non-capturing)", () => {
+    // Player pawn on d4 (not its start rank): natively only d5. forward-2 adds d6.
+    const pos = parseFen("4k3/8/8/8/3P4/8/8/4K3 w - - 0 1");
+    const ov = { ...NO_OVERLAYS, empowers: new Map([["d4", new Set(["forward-2" as const])]]) };
+    const moves = legalMoves(pos, ov, "d4").map((m) => m.to);
+    expect(moves).toContain("d5");
+    expect(moves).toContain("d6"); // accelerated 2-step from a non-start rank
+  });
+
+  it("a blocker on the first square blocks both steps (no captures)", () => {
+    const pos = parseFen("4k3/8/8/3p4/3P4/8/8/4K3 w - - 0 1"); // enemy pawn on d5
+    const ov = { ...NO_OVERLAYS, empowers: new Map([["d4", new Set(["forward-2" as const])]]) };
+    const moves = legalMoves(pos, ov, "d4").map((m) => m.to);
+    expect(moves).not.toContain("d5"); // occupied — empower never captures
+    expect(moves).not.toContain("d6"); // blocked behind d5
+  });
+
+  it("a forward step onto the back rank promotes", () => {
+    const pos = parseFen("4k3/8/3P4/8/8/8/8/4K3 w - - 0 1"); // player pawn on d6
+    const ov = { ...NO_OVERLAYS, empowers: new Map([["d6", new Set(["forward-2" as const])]]) };
+    const d8 = legalMoves(pos, ov, "d6").find((m) => m.to === "d8");
+    expect(d8?.isPromotion).toBe(true);
+  });
+});
+
 describe("rules — Shield/Sanctuary protect the en-passant victim (CH-003)", () => {
   // White just played e2-e4 (en-passant target e3). Black pawn on d4 can
   // capture en passant, landing on e3 and removing the white pawn on e4.

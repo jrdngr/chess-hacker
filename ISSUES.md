@@ -4,7 +4,7 @@ Issues derived from the comprehensive review in `docs/reviews/2026-05-29-compreh
 
 **Working instructions for the agent:** Work issues **one at a time**. Open the linked file for full context (locations, problem, recommendation, related issues). After completing an issue, run the pre-commit checks in `CLAUDE.md` (`npm run format`, `npm run lint`, `npx tsc --noEmit`, `npm test`, `npm run build`), then commit with `jj commit`. As part of that commit, delete the resolved issue entirely: remove its row here and delete its file under `issues/`. Prefer the recommended ordering below (severity-first within each section).
 
-**Total open issues:** 20
+**Total open issues:** 19
 
 _The Code — Correctness, Tests — Coverage, Tests — Validity (CH-001…024), Refactor — Duplication (CH-025…030), and Game Design — Balance (CH-031…038) sections are all resolved and have been removed from this index; their resolution notes live in the individual `issues/` files._
 
@@ -38,4 +38,3 @@ Legend: 🔴 critical · 🟠 high · 🟡 medium · 🔵 low · ⚪ nit
 | CH-059 | 🟡  | [No counterplay vs Boss C dead-ends / draw=loss / uninteractive Echo](issues/059-content-counterplay-boss-c.md)             | Open   |
 | CH-060 | 🟡  | [Author the cards referenced by starter-deck.md that don't exist](issues/060-content-author-missing-starter-cards.md)       | Open   |
 | CH-057 | 🔵  | [Cost-curve holes at 5, 9, 11; thin mid-tier](issues/057-content-cost-curve-holes.md)                                       | Open   |
-| CH-058 | 🔵  | [Promotion archetype is artifact-only with no card support](issues/058-content-promotion-cards.md)                          | Open   |

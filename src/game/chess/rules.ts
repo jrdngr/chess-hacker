@@ -904,6 +904,11 @@ function addEmpowerMoves(
       // One-square horizontal step (left/right). No capture.
       addJumpMoves(out, from, piece, pos, overlays, HORIZONTAL_DELTAS, false);
       return;
+    case "forward-2":
+      // One- or two-square forward step from any rank (no capture). Used by
+      // Sprint to accelerate a pawn toward promotion.
+      addEmpowerForward2Moves(out, from, piece, pos, overlays);
+      return;
   }
 }
 
@@ -928,6 +933,37 @@ function addEmpowerPawnMoves(
       out.push({ from, to, isCapture: false, isDouble: false, isPromotion: false });
     }
   }
+}
+
+/**
+ * Forward-2 empower (Sprint): one OR two squares straight forward, no capture.
+ * The two-square step is only available if the one-square step is clear (a
+ * blocked first square blocks both). A step landing on the piece's promotion
+ * rank promotes — so a pawn never strands itself un-promoted on the back rank.
+ */
+function addEmpowerForward2Moves(
+  out: RuleMove[],
+  from: AlgebraicSquare,
+  piece: Piece,
+  pos: Position,
+  overlays: Overlays,
+): void {
+  const { file, rank } = squareCoords(from);
+  const size = pos.size;
+  const dir = piece.side === "player" ? 1 : -1;
+  const promoR = piece.type === "pawn" ? promotionRank(size, piece.side, overlays) : -1;
+
+  const r1 = rank + dir;
+  if (!inBounds(size, file, r1)) return;
+  const to1 = sqAt(file, r1);
+  if (overlays.walls.has(to1) || pos.pieces.has(to1)) return; // blocked → neither step legal
+  out.push({ from, to: to1, isCapture: false, isDouble: false, isPromotion: r1 === promoR });
+
+  const r2 = rank + 2 * dir;
+  if (!inBounds(size, file, r2)) return;
+  const to2 = sqAt(file, r2);
+  if (overlays.walls.has(to2) || pos.pieces.has(to2)) return;
+  out.push({ from, to: to2, isCapture: false, isDouble: false, isPromotion: r2 === promoR });
 }
 
 function addKingMoves(

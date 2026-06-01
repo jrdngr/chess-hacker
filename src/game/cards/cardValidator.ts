@@ -141,6 +141,7 @@ export const VALID_EMPOWER_PATTERNS: readonly EmpowerPattern[] = [
   "king-step",
   "diagonal-step",
   "horizontal-step",
+  "forward-2",
 ];
 export const VALID_PIECE_TYPES: readonly PieceType[] = [
   "pawn",

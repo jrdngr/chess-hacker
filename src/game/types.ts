@@ -137,7 +137,8 @@ export type EmpowerPattern =
   | "queen"
   | "king-step"
   | "diagonal-step"
-  | "horizontal-step";
+  | "horizontal-step"
+  | "forward-2";
 
 /**
  * Effect descriptor — interpreted by the resolver in `game/cards/match.ts`.
